@@ -18,7 +18,9 @@ Load subdirectory context by file glob — see project-specific routing table (s
 
 ## Workspace Facts
 
-- (none yet — durable facts discovered across sessions)
+- Start story branches with `git checkout -b` in this checkout, not a git
+  worktree. bigpowers gate scripts only evaluate this checkout, and a
+  worktree has no `scripts/` symlink (BUG-002).
 <!-- END bigpowers:learned-preferences -->
 
 <!-- BEGIN bigpowers:project -->
