@@ -1,0 +1,44 @@
+---
+story_id: e01s01
+verified_at: "2026-11-07T00:00:00Z"
+verifier: verify-work
+risk: P1
+phases:
+  smoke:
+    passed: true
+    note: no server; checker run as a CLI
+  build:
+    passed: true
+    note: n/a (no build step)
+  typecheck:
+    passed: true
+    note: n/a
+  lint:
+    passed: true
+    command: shellcheck tools/check-brief.sh && yamllint specs
+  tests:
+    passed: true
+    command: bash tools/check-brief.sh --selftest
+  terminal_verdict:
+    command: bash tools/check-brief.sh --selftest
+    exit_code: 0
+    note: Single run, last line "check-brief: selftest OK"
+  manual:
+    steps:
+      - step: Remove the H4 verdict from a copy of the R14 brief
+        expected: exit 1, names H4
+        actual: exit 1, "no verdict for H4 in ## Verdicts"
+        passed: true
+      - step: Run the checker on the real R14 brief
+        expected: exit 0
+        actual: "check-brief: OK (R14)"
+        passed: true
+      - step: Spot-check cited legacy facts
+        expected: D023 exists; 1 guard_block; 0 guard_override; 900000ms timeout
+        actual: all four found in ../pi-flow-legacy
+        passed: true
+  gaps:
+    closed: true
+    open_items:
+      - Owner has not confirmed why pi-flow was archived (brief says not recorded)
+      - Four guard-written lines in ../pi-flow-legacy/.flow/ledger.yaml await a decision

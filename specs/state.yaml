@@ -18,9 +18,9 @@ waivers:
     date: 2026-11-07
     scope: e01 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: audit-code
   note: >-
-    e01s01 done: checker (selftest green) and R14 brief pass
-    check-brief. Owner must confirm why pi-flow was archived (brief
-    says not recorded). Next: plan-work for e01s02 and e01s03, then
-    verify-work for e01s01. Branch docs/e01s01-plan, nothing pushed.
+    e01s01 verified (specs/verifications/e01s01-verify.yaml). Open:
+    owner to confirm why pi-flow was archived, and decide on the four
+    stray ledger lines in ../pi-flow-legacy. Then audit-code, and
+    plan-work for e01s02 and e01s03. Branch docs/e01s01-plan.
