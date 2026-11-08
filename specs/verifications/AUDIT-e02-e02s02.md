@@ -123,6 +123,36 @@ Reviewers A (81.6, 2 must-fix) and B (82.9) failed the AND-gate. Fixed:
   outputs, tests a non-index wiki path.
 - Tasks: statuses `done`. State: `vcs.branch` and handoff note current.
 
+## Review round 2
+
+Reviewers A (91.3) and B (91.7) had no must-fix findings but failed
+the 94 bar. Fixed:
+
+- Brief: H7 now names verify-work's declared `risk:` tiers (P0 to P3,
+  default P1) and the P1 default this story hit. [S5] abstract read
+  from the arXiv API, not recalled. Hook claims scoped to this
+  repository's settings, user level unchecked, with the
+  CONVENTIONS.md guard-hook line noted. Hook limits stated (inline
+  `-m` only; gemini mode does not exit). PyYAML re-wraps, not "does
+  not wrap". kickoff-branch step named and its self-conflict noted.
+  [S9] caveat. Tombstone skill noted. [S4] lists the scope record.
+- BUG-002 and AGENTS.md: scripts evaluate the checkout whose `scripts/`
+  symlink they are called through (reviewer-tested). Verify command
+  now regenerates the critic's gitignored inputs first.
+- `.yamllint`: explicit `ignore:` list replaces `ignore-from-file`,
+  which crashed when yamllint ran from a subdirectory.
+- Check script: the match must come from `.gitignore`, not a global
+  or `.git/info/exclude` rule (shown red with an exclude-only rule).
+- Status: e02 and e02s02 `in_progress` in `epic.yaml`, the tasks file
+  and `execution-status.yaml`.
+- Verify evidence: marked `stale_since: dc9472c`, Preflight rechecked
+  (exit 0); the owner should re-confirm UAT step 3 before release.
+
+Not changed: commit `f252e7e` uses `fix(tools)` and a 73-character
+subject; CONVENTIONS says tooling uses `chore`. The history is
+unpushed, but a squash merge replaces the subject, so it was not
+rewritten.
+
 ## Red Flags (rationalizations caught)
 
 - I was tempted to call the regression-test item N/A because the fix is
