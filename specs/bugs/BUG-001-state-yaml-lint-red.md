@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-001
-status: fixing
+status: fixed
 severity: medium
 scope: specs/state.yaml
 title: Preflight red; bp-timing.sh rewrites state.yaml in a lint-failing style
