@@ -6,7 +6,7 @@ phase: between-stories
 test_plan: lite
 vcs:
   kind: git
-  branch: e01s02-r0-discovery-sweep
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -15,11 +15,12 @@ waivers:
   date: 2026-11-07
   scope: e01 only
 handoff:
-  next_skill: develop-tdd
-  note: 'e01s02 done: docs/research/R0-discovery-sweep.md, 3 of 3 verifies exit 0,
-    owner confirmed the human check, 6 candidate stories for the e01s03 re-plan checkpoint.
-    Not committed; waiting on owner go-ahead. Next: develop-tdd for e01s03. pi-flow-legacy
-    is reference only (owner): do not touch it.'
+  next_skill: kickoff-branch
+  note: 'e01s02 released via PR: docs/research/R0-discovery-sweep.md, 3 of 3 verifies
+    exit 0, owner confirmed the human check, 6 candidate stories for the e01s03 re-plan
+    checkpoint. Next: kickoff-branch, then develop-tdd for e01s03 (plan already exists;
+    task 4 needs the owner to pick R0 candidates). pi-flow-legacy is reference only
+    (owner): do not touch it.'
 metrics:
   skill_timings:
     survey-context:
