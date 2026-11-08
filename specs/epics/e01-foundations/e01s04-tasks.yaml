@@ -2,14 +2,14 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s04
 title: Minimal CI (GitHub Actions)
-status: todo
+status: in_progress
 bcps: 3
 type: chore
 context: infra
 spec: e01s04-minimal-ci.md
 tasks:
   - id: 1
-    status: todo
+    status: done
     risk: P1
     scenarios: [AC-e01s04-01, AC-e01s04-02, AC-e01s04-03, AC-e01s04-04]
     description: >-
@@ -25,7 +25,7 @@ tasks:
     allure:
       severity: high
   - id: 2
-    status: todo
+    status: done
     risk: P2
     description: >-
       Write .github/workflows/ci.yml: triggers pull_request, push

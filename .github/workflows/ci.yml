@@ -1,0 +1,24 @@
+---
+name: ci
+
+"on":
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+      - run: pip install pyyaml yamllint
+      - run: yamllint specs
+      - run: bash tools/check-brief.sh --selftest
+      - run: bash tools/check-briefs.sh
