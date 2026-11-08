@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s03
 title: R4 research literature (recent agentic coding papers)
-status: todo
+status: done
 bcps: 5
 type: research
 context: infra
@@ -12,7 +12,7 @@ brief: docs/research/R4-research-literature.md
 depends_on: [e01s02]
 tasks:
   - id: 1
-    status: todo
+    status: done
     risk: P2
     scenarios: [AC-e01s03-01]
     description: >-
@@ -27,7 +27,7 @@ tasks:
     allure:
       severity: normal
   - id: 2
-    status: todo
+    status: done
     risk: P2
     scenarios: [AC-e01s03-02]
     description: >-
@@ -49,7 +49,7 @@ tasks:
     allure:
       severity: normal
   - id: 3
-    status: todo
+    status: done
     risk: P1
     scenarios: [AC-e01s03-03]
     description: >-
@@ -62,7 +62,7 @@ tasks:
     allure:
       severity: high
   - id: 4
-    status: todo
+    status: done
     risk: P1
     scenarios: [AC-e01s03-04]
     description: >-
@@ -77,9 +77,9 @@ tasks:
       docs/research/R0-discovery-sweep.md R0 && bash
       tools/check-brief.sh docs/research/R4-research-literature.md
       R4 && grep -Eq '^Decision: (no change|change)$'
-      specs/checkpoints/e01-replan.md && grep -q '^## e02'
-      specs/checkpoints/e01-replan.md && grep -q '^## e03'
-      specs/checkpoints/e01-replan.md && grep -q '^## e04'
+      specs/checkpoints/e01-replan.md && grep -q '^## e02$'
+      specs/checkpoints/e01-replan.md && grep -q '^## e03$'
+      specs/checkpoints/e01-replan.md && grep -q '^## e04$'
       specs/checkpoints/e01-replan.md
     allure:
       severity: high

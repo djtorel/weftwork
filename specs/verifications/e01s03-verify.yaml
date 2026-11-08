@@ -1,0 +1,83 @@
+---
+story_id: e01s03
+verified_at: "2026-11-08T11:45:43-07:00"
+verifier: verify-work
+risk: P1
+status: verified
+phases:
+  smoke:
+    passed: true
+    note: no server; checks run as CLI
+  build:
+    passed: true
+    note: n/a (no build step)
+  typecheck:
+    passed: true
+    note: n/a
+  lint:
+    passed: true
+    command: yamllint specs && bash scripts/validate-specs-yaml.sh
+    note: >-
+      yamllint exit 0; generated gate outputs were removed
+      after the audit (regenerable, outside story scope)
+  tests:
+    passed: true
+    note: n/a (no test suite; the brief checker is the gate)
+  terminal_verdict:
+    command: >-
+      bash tools/check-brief.sh
+      docs/research/R4-research-literature.md R4 --sources
+    exit_code: 0
+    output: "check-brief: OK (R4)"
+    captured_at: "2026-11-08T11:45:43-07:00"
+    note: Single run
+  task_verifies:
+    passed: true
+    note: >-
+      tasks 1-4 verify commands re-run, all exit 0 (T1 >= 8
+      sourced ids; T2 paper table; T3 check-brief R4; T4
+      checkpoint grep)
+  security_scan:
+    skipped: true
+    note: P1 story; security-review waived for e01 in state.yaml
+  blind_spots:
+    passed: true
+    note: "0 findings (0 HIGH, 0 MEDIUM, 0 LOW); output removed after audit"
+  completeness_critic:
+    passed: true
+    note: >-
+      BLOCKER=0 WARNING=0 FILLED=1 after
+      trace-stories.sh --json. Re-run that command before
+      the merge gate; the matrix is not kept in the tree.
+  adversarial:
+    passed: true
+    note: "verify-adversarial.sh PASS; output removed after audit"
+  manual:
+    steps:
+      - step: >-
+          Run bash tools/check-brief.sh
+          docs/research/R4-research-literature.md R4
+        expected: exit 0
+        actual: "check-brief: OK (R4)"
+        passed: true
+      - step: >-
+          Open the paper table; confirm each topic appears and
+          each row cites a source; spot-check two ids against
+          arxiv.org
+        expected: >-
+          8 topics present, 20 rows cite [S<n>], two ids match
+          arxiv.org
+        actual: >-
+          Agent checked all 20 ids against the arXiv API
+          (titles, first authors, v1 dates). Owner spot-check
+          confirmed.
+        passed: true
+      - step: >-
+          Open specs/checkpoints/e01-replan.md; confirm the
+          Decision line and one section per later epic
+        expected: "Decision: change; sections e02, e03, e04"
+        actual: "Decision: change; sections present. Owner confirmed."
+        passed: true
+  gaps:
+    closed: true
+    note: "No open gaps. Owner UAT confirmed in session, 2026-11-08."
