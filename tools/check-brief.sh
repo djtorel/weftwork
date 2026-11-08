@@ -12,9 +12,48 @@ usage() {
   echo "Usage: check-brief.sh <brief> <R-id> [--sources] | --selftest" >&2
 }
 
+PY='import sys, yaml
+d = yaml.safe_load(open(sys.argv[1]))
+for r in d["research_stories"]:
+    print("R", r["id"])
+for h in d["hypotheses"]:
+    if sys.argv[2] in h.get("tested_by", []):
+        print("H", h["id"])'
+
+REQUIRED=("## Sources" "## Verdicts" "## Implications for weftwork"
+  "## Earns its place vs ceremony" "## Open questions")
+
+fails=0
+fail() {
+  echo "FAIL $brief: $*" >&2
+  fails=$((fails + 1))
+}
+
 brief_check() {
-  echo "check-brief: not implemented" >&2
-  return 3
+  brief=$1
+  local rid=$2 mode=$3 ctx query ids h
+  if [[ ! -f $brief ]]; then
+    echo "check-brief: no such file: $brief" >&2
+    return 2
+  fi
+  ctx=${PLANNING_CONTEXT:-$(dirname "$SELF")/../specs/planning-context.yaml}
+  if ! query=$(python3 -I -c "$PY" "$ctx" "$rid"); then
+    echo "check-brief: cannot read $ctx" >&2
+    return 2
+  fi
+  mapfile -t ids < <(sed -n 's/^R //p' <<<"$query")
+  if ! printf '%s\n' "${ids[@]}" | grep -qx "$rid"; then
+    echo "check-brief: unknown R-id '$rid'; valid: ${ids[*]}" >&2
+    return 2
+  fi
+  for h in "${REQUIRED[@]}"; do
+    if [[ $mode == sources && $h != "## Sources" ]]; then continue; fi
+    grep -qxF -- "$h" "$brief" || fail "missing section '$h'"
+  done
+  if [[ $fails -gt 0 ]]; then
+    return 1
+  fi
+  echo "check-brief: OK ($rid)"
 }
 
 write_context() {
@@ -65,7 +104,7 @@ expect() {
   got=$?
   if [[ $got -ne $want ]] || ! grep -Eq -- "$pat" <<<"$out"; then
     echo "FAIL $name: want exit $want and /$pat/, got exit $got:" >&2
-    sed 's/^/  | /' <<<"$out" >&2
+    while IFS= read -r line; do echo "  | $line" >&2; done <<<"$out"
     return 1
   fi
   echo "PASS $name"
