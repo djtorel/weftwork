@@ -1,8 +1,13 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e02s03
 title: R3 workflow landscape
 status: todo
 bcps: 3
+type: research
+context: infra
+risk: P2
+spec: e02s03-r3-workflow-landscape.md
 research_story: R3
 brief: docs/research/R3-workflow-landscape.md
 tasks:
@@ -14,25 +19,63 @@ tasks:
     verify: >-
       bash tools/check-brief.sh docs/research/R3-workflow-landscape.md
       R3 --sources
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
   - id: 2
     description: >-
-      Compare Spec Kit, OpenSpec, BMAD, Kiro and Superpowers,
-      verifying each row against the tool's own docs
+      Write the Workflow comparison table: one row each for Spec Kit,
+      OpenSpec, BMAD, Kiro, Superpowers, GSD and bigpowers, each row
+      citing the tool's own docs or repository
     verify: >-
-      grep -Eqi 'Spec Kit' docs/research/R3-workflow-landscape.md
-      && grep -Eqi 'OpenSpec' docs/research/R3-workflow-landscape.md
-      && grep -Eqi 'BMAD' docs/research/R3-workflow-landscape.md
-      && grep -Eqi 'Kiro' docs/research/R3-workflow-landscape.md
-      && grep -Eqi 'Superpowers' docs/research/R3-workflow-landscape.md
+      grep -E '^\| *(Spec Kit|OpenSpec|BMAD|Kiro|Superpowers|GSD|bigpowers)
+      *\|.*\[S[0-9]+\]' docs/research/R3-workflow-landscape.md
+      | sed -E 's/^\| *([^|]*[^ |]) *\|.*/\1/' | sort -u | wc -l
+      | grep -qx 7
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
   - id: 3
     description: >-
+      Write Host practices (Claude Code, Codex CLI, Cline, Aider, from
+      vendor docs) and Post-mortems (at least 2 cited practitioner
+      reports)
+    verify: >-
+      awk '/^## Host practices/{f=1;next} /^## /{f=0} f'
+      docs/research/R3-workflow-landscape.md
+      | grep -Eo 'Claude Code|Codex CLI|Cline|Aider' | sort -u | wc -l
+      | grep -qx 4
+      && awk '/^## Post-mortems/{f=1;next} /^## /{f=0} f'
+      docs/research/R3-workflow-landscape.md
+      | grep -Ec '^- .*\[S[0-9]+\]' | awk '$1>=2{ok=1} END{exit !ok}'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
+  - id: 4
+    description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R3 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
+      for every hypothesis assigned to R3 in planning-context.yaml
+      (H7, H10), plus implications for weftwork, earns-its-place
       vs ceremony verdicts, and open questions
     verify: >-
       bash tools/check-brief.sh docs/research/R3-workflow-landscape.md
       R3
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"

@@ -115,7 +115,7 @@ stories:
     title: R3 workflow landscape
     bcps: 3
     epic: e02
-    tasks_total: 3
+    tasks_total: 4
     tasks_passing: 0
     tasks_failing: 0
   e02s04:

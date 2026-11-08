@@ -41,30 +41,39 @@ waivers:
     for e01.
   date: 2026-11-08
   scope: e02 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) and
+    MED status-ledger findings for e02s01, e02s02, e02s04
+  why: e02s01 and e02s02 are released, so specs written now would be paperwork.
+    e02s04 gets its spec when it is planned. The owner chose to keep the project
+    status values todo, in_progress, done (CONVENTIONS.md), as for e01. Findings
+    for e02s03 itself are clear.
+  date: 2026-11-08
+  scope: e02 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e02s03
-  note: 'e02s02 (R2 bigpowers) is released: brief docs/research/R2-bigpowers.md, evidence
-    in specs/verifications/e02s02-verify.yaml and AUDIT-e02-e02s02.md. Next is e02s03
-    (R3 workflow landscape, 3 BCPs, tasks in e02s03-tasks.yaml), started in a fresh
-    session with kickoff-branch. Start the branch with git checkout -b in the primary
-    checkout, not a worktree (BUG-002, AGENTS.md Workspace Facts). Waivers in force
-    for e02: threat model and gate-trace R1. Doc-only stories cannot satisfy develop-tdd''s
-    red-commit gate; name the skip in the PR body. The verify-work risk field defaults
-    to P1 when a story declares none, which forces manual UAT; decide whether e02s03
-    should declare risk P2 like its epic. R2 left candidate stories: compare a current
-    bigpowers release (v2.96.0) with the installed 2.93.3, and count gate follow-through
-    across logged runs (for R10).'
+  note: >-
+    e02s03 (R3 workflow landscape) is planned on branch
+    e02s03-r3-workflow-landscape: spec
+    e02s03-r3-workflow-landscape.md, 4 tasks in e02s03-tasks.yaml,
+    risk P2 (owner confirmed). Write the brief
+    docs/research/R3-workflow-landscape.md; its verify commands are in
+    the tasks file. Doc-only story: develop-tdd's red-commit gate
+    cannot apply; name the skip in the PR body. Waivers in force for
+    e02: threat model, gate-trace R1, plan-consistency-check findings
+    on e02s01, e02s02, e02s04. R2 left candidate stories: compare
+    bigpowers v2.96.0 with the installed 2.93.3, and count gate
+    follow-through across logged runs (for R10).
 metrics:
   skill_timings:
     survey-context:
-      calls: 2
-      total_seconds: 32.0
-      avg_seconds: 16.0
+      calls: 3
+      total_seconds: 46.0
+      avg_seconds: 15.333333333333334
     plan-work:
-      calls: 2
-      total_seconds: 70.0
-      avg_seconds: 35.0
+      calls: 3
+      total_seconds: 155.0
+      avg_seconds: 51.666666666666664
     develop-tdd:
       calls: 3
       total_seconds: 905.0
