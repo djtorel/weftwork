@@ -1,5 +1,3 @@
----
-# Session state for bigpowers. Update through the skills, not by hand.
 workflow_mode: solo-git
 active_flow: planning
 active_epic: e01
@@ -8,25 +6,32 @@ phase: between-stories
 test_plan: lite
 vcs:
   kind: git
-  branch: chore/close-e01s04
+  branch: main
 waivers:
-  - what: security-review threat model for e01 (build-epic step 0)
-    why: >-
-      No product code. The only executable surface is check-brief.sh,
-      which runs verify strings from this repo. Briefs read one outside
-      path, ../pi-flow-legacy, which the owner named for R14.
-    date: 2026-11-07
-    scope: e01 only
+- what: security-review threat model for e01 (build-epic step 0)
+  why: No product code. The only executable surface is check-brief.sh, which runs
+    verify strings from this repo. Briefs read one outside path, ../pi-flow-legacy,
+    which the owner named for R14.
+  date: 2026-11-07
+  scope: e01 only
 handoff:
   next_skill: kickoff-branch
-  note: >-
-    e01s04 done: minimal CI landed (PR #5); the negative run on a
-    throwaway branch concluded failure. pi-flow-legacy is reference
-    only (owner): do not touch it. Next: kickoff-branch, then
-    develop-tdd for e01s02. Story order: e01s02, e01s03.
+  note: 'e01s02 released via PR: docs/research/R0-discovery-sweep.md, 3 of 3 verifies
+    exit 0, owner confirmed the human check, 6 candidate stories for the e01s03 re-plan
+    checkpoint. Next: kickoff-branch, then develop-tdd for e01s03 (plan already exists;
+    task 4 needs the owner to pick R0 candidates). pi-flow-legacy is reference only
+    (owner): do not touch it.'
 metrics:
   skill_timings:
     survey-context:
       calls: 1
       total_seconds: 25.0
       avg_seconds: 25.0
+    plan-work:
+      calls: 1
+      total_seconds: 42.0
+      avg_seconds: 42.0
+    develop-tdd:
+      calls: 1
+      total_seconds: 287.0
+      avg_seconds: 287.0

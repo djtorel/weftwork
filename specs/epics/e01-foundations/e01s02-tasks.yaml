@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s02
 title: 'R0 discovery sweep (output: candidate new stories)'
-status: todo
+status: done
 bcps: 3
 type: research
 context: infra
@@ -11,7 +11,7 @@ research_story: R0
 brief: docs/research/R0-discovery-sweep.md
 tasks:
   - id: 1
-    status: todo
+    status: done
     risk: P2
     scenarios: [AC-e01s02-01]
     description: >-
@@ -26,25 +26,26 @@ tasks:
     allure:
       severity: normal
   - id: 2
-    status: todo
+    status: done
     risk: P2
     scenarios: [AC-e01s02-02]
     description: >-
       List candidate new stories under '## Candidate new
-      stories', one bullet each: title, 'reason:' with a
-      source, 'touches:' with the hypotheses or goals. At
-      least one bullet; every bullet has both fields
+      stories', one bullet per line: title, 'reason:' citing a
+      primary source as [S<n>], 'touches:' with the hypotheses
+      or goals. At least one bullet; every bullet has both
+      fields
     verify: >-
       test $(awk '$0=="## Candidate new stories"{f=1;next}
       /^## /{f=0} f&&/^- /' docs/research/R0-discovery-sweep.md
-      | grep -Ec 'reason:.*touches:') -ge 1 && test $(awk
-      '$0=="## Candidate new stories"{f=1;next} /^## /{f=0}
+      | grep -Ec 'reason:.*\[S[0-9]+\].*touches:') -ge 1 && test
+      $(awk '$0=="## Candidate new stories"{f=1;next} /^## /{f=0}
       f&&/^- /' docs/research/R0-discovery-sweep.md | grep -Evc
-      'reason:.*touches:') -eq 0
+      'reason:.*\[S[0-9]+\].*touches:') -eq 0
     allure:
       severity: normal
   - id: 3
-    status: todo
+    status: done
     risk: P1
     scenarios: [AC-e01s02-03]
     description: >-
