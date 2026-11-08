@@ -6,7 +6,7 @@ ceremony. Same questions as R1 [S10].
 
 Method: read the installed package at the path in [S1] read-only (file
 counts and line counts by `find`, `wc` and `grep`; the README top, the
-skill index, the git hook head, the test file heads), read upstream
+skill index, the git hooks, the test file heads), read upstream
 metadata with `gh api` [S2][S3], and record what happened when this
 repository used the skills in its own sessions [S4]. I ran no bigpowers
 script for measurement, and I did not read most skill bodies end to
@@ -24,7 +24,7 @@ without it must use upstream [S2].
 - [S1] bigpowers local install, `/home/domtorr/.local/share/mise/installs/node/26.7.0/lib/node_modules/bigpowers` (`package.json` reads version 2.93.3; 2,103 files outside `node_modules`; 80 skill directories; `SKILL-INDEX.md`, `README.md`, `hooks/pre-tool-use.sh`, `scripts/`, `tests/`, `constitution.md`). "Published" is the v2.93.3 release date [S3] - accessed: 2026-11-08 published: 2026-11-04
 - [S2] danielvm-git/bigpowers, upstream repository metadata via `gh api repos/danielvm-git/bigpowers` (MIT; created 2026-04-24; last push 2026-11-08; 288 stars) and the release list (newest listed: v2.96.0, 2026-11-08), https://github.com/danielvm-git/bigpowers - accessed: 2026-11-08 published: 2026-11-08
 - [S3] danielvm-git/bigpowers release v2.93.3, `gh api repos/danielvm-git/bigpowers/releases/tags/v2.93.3` - accessed: 2026-11-08 published: 2026-11-04
-- [S4] weftwork first-hand record: `specs/bugs/BUG-001-state-yaml-lint-red.md`, `specs/state.yaml`, `specs/execution-status.yaml`, `git log` (16 commits at HEAD `8a7b1b1`), `npx opensrc --help` and `npx opensrc search lodash` (opensrc 0.7.3), and the survey-context, kickoff-branch and develop-tdd sessions for e02s02 - accessed: 2026-11-08 published: 2026-11-08
+- [S4] weftwork first-hand record: `specs/bugs/BUG-001-state-yaml-lint-red.md`, `specs/state.yaml`, `specs/bugs/BUG-002-gates-skip-worktree.md`, `specs/execution-status.yaml`, `git log` (16 commits at HEAD `8a7b1b1`), `npx opensrc --help` and `npx opensrc search lodash` (opensrc 0.7.3), and the survey-context, kickoff-branch and develop-tdd sessions for e02s02 - accessed: 2026-11-08 published: 2026-11-08
 - [S5] Liu et al., "Lost in the Middle: How Language Models Use Long Contexts", TACL 2024, arXiv:2307.03172, https://arxiv.org/abs/2307.03172 (as cited in R1 [S4]; verdict rests on the abstract, not re-read here) - accessed: 2026-11-08 published: 2023-07-06
 - [S6] Huang et al., "Large Language Models Cannot Self-Correct Reasoning Yet", ICLR 2024, arXiv:2310.01798, https://arxiv.org/abs/2310.01798 (as read in R4 [S8]) - accessed: 2026-11-08 published: 2023-10-03
 - [S7] Wang, Pradel and Liu, "Are 'Solved Issues' in SWE-bench Really Solved Correctly? An Empirical Study", ICSE 2026, arXiv:2503.15223, https://arxiv.org/abs/2503.15223 (as read in R4 [S18]) - accessed: 2026-11-08 published: 2025-03-19
@@ -39,10 +39,11 @@ Measured from [S1], by file count, line count and `grep`:
 
 | Part | Count | Size |
 | ---- | ----- | ---- |
-| skills (`skills/*/SKILL.md`) | 80 | 6,887 lines; min 15, median 84, max 150 |
+| skills (`skills/*/SKILL.md`) | 80 | 6,887 lines; min 15, median 86, max 150 |
 | scripts (`scripts/`, all depths) | 261 files | not counted |
 | tests (`tests/`) | 31 files | not counted |
-| hooks (`hooks/`) | 2 entries | `pre-tool-use.sh`, 192 lines |
+| hooks (`hooks/`) | 2 files | `pre-tool-use.sh` 192 lines; `pre/bash.sh` 94 lines |
+| host extension (`extensions/omp-hooks.ts`) | 1 file | 607 lines |
 | profiles, kernel, templates, docs | 4, 3, 1, 5 files | not counted |
 
 The 80 skills split by lifecycle phase as the generated skill index
@@ -50,11 +51,19 @@ lists them [S1]: Discover 8, Design 7, Plan 9, Build 17, Verify 19,
 Release 2, Sustain 18. The README sells it as "a 6-phase lifecycle with
 hard gates, a 94% quality threshold, and a YAML cockpit
 (`specs/state.yaml`)" for solo developers [S1]. Of the 80 skills, 74
-contain the words "HARD GATE" (150 mentions in all). The single piece of
-code that blocks a tool call is `hooks/pre-tool-use.sh`; its head says it
-blocks dangerous git commands, checks Conventional Commits and blocks
-commits and pushes to `main` and `master` [S1]. I read the first 25
-lines of it, not the rest.
+contain the words "HARD GATE" (150 mentions in all). Some gates are also
+code. `hooks/pre-tool-use.sh` denies a tool call (exit 2) for dangerous
+git commands, pushes and commits to `main` or `master`, commit messages
+that are not Conventional Commits, subjects over 72 characters and
+`Co-authored-by` footers. It also denies edits to generated paths
+(`.cursor/rules/`, `.gemini/extensions/`, `.windsurf/`) and locks test
+files while `active_flow: fix_bug` is set and a recent commit is a
+`test:` red commit [S1]. That last rule is a TDD gate enforced in code.
+`hooks/pre/bash.sh`, `extensions/omp-hooks.ts` and
+`skills/guard-git/scripts/block-dangerous-git.sh` hold further blocking
+logic that I counted but did not read [S1]. This repository's
+`.claude/settings.local.json` does not register the hook; I did not
+check user-level settings [S4].
 
 The flow, from the three skills that ran here and the README [S1][S4]:
 
@@ -65,8 +74,8 @@ The flow, from the three skills that ran here and the README [S1][S4]:
    `SCOPE_LATEST.yaml`, epic capsules and `eNNsYY-tasks.yaml` with a
    `verify:` command per task. `plan-release` writes `release-plan.yaml`
    with WSJF order.
-3. Build: `kickoff-branch` makes a worktree and a branch and runs a
-   clean baseline; `develop-tdd` runs red, green, refactor with two
+3. Build: `kickoff-branch` makes a worktree (or a plain branch) and
+   runs a clean baseline; `develop-tdd` runs red, green, refactor with two
    commits per behaviour; `build-epic` and `execute-plan` batch this.
 4. Verify and release: `verify-work`, `audit-code`, `request-review`,
    `gate-trace` and `security-review`, then `release-branch` opens the
@@ -77,7 +86,7 @@ State lives in YAML (`state.yaml`, `execution-status.yaml`,
 next skill. The package is a moving target: it was created on
 2026-04-24, and 13 releases are listed from 2026-11-04, the date of the
 installed v2.93.3, up to v2.96.0 on 2026-11-08, so 12 are newer than the
-copy [S2][S3]. Any statement here about what bigpowers does today may be
+copy, all within four days [S2][S3]. Any statement here about what bigpowers does today may be
 stale.
 
 ## First-hand findings
@@ -103,23 +112,32 @@ These are single observations in one small project, not rates.
   `scripts/bp-timing.sh` rewrites `state.yaml` with `yaml.dump` (lines
   40 and 68), which drops the `---` start and the comments and does not
   indent sequences or wrap lines [S1]; this is BUG-001 [S4]. The owner
-  chose a local workaround (a `.yamllint` that skips two rules for that
+  chose a local workaround (a `.yamllint` that skips three rules for that
   one file) and not an upstream report. The workaround stops the lint
   failure but not the dirty tree: `survey-context` left `state.yaml`
   modified (16 lines added, 19 removed, mostly re-wrapped text), and
-  `develop-tdd` modified it again [S4]. `survey-context` itself calls the
-  `story_start` marker "informational progress marker only", so the
-  helper's output is ceremony that caused a defect.
+  `develop-tdd` modified it again [S4]. The timings have one consumer
+  that I found: `validate-skill-catalog.sh` lists skills with zero calls
+  in `metrics.skill_timings` as archive candidates [S1]. That use is
+  for the bigpowers maintainers' catalog, not for this project.
 - **Rules from three layers disagree.** `kickoff-branch` offers to
   commit a dirty `specs/` tree on `main` as `chore(state): checkpoint
   before kickoff`; this repository's `CONVENTIONS.md` and `AGENTS.md`
   say never commit to `main` [S4]. The agent had to pick. I put the
   commit on the new branch and told the owner [S4].
-- **The kickoff worktree cannot run the project's Preflight.**
+- **The kickoff worktree could not run the gates (BUG-002).**
   `scripts/` is a gitignored symlink, so a new worktree has none:
   `bash scripts/validate-specs-yaml.sh` there fails with "No such file"
-  (exit 127). I ran the primary checkout's copy by absolute path. The
-  skill's step 4 says to run Preflight in the worktree [S4].
+  (exit 127). I then ran the primary checkout's copies by absolute path.
+  Those scripts set their repository root from their own path
+  (`validate-specs-yaml.sh` line 15, `completeness-critic.sh`,
+  `skill-common.sh`), so they checked the primary checkout on `main`,
+  not the worktree [S1]. My early "validator OK" was therefore not
+  evidence for the story branch, and the blind-spot run wrote an
+  untracked file into `main`. The story had to leave the worktree; the
+  gates then ran on the branch in the primary checkout [S4]. The
+  skill's step 4 says to run Preflight in the worktree, which this
+  layout cannot do [S4].
 - **Three phase vocabularies.** `survey-context` names a 6-phase loop
   (Discover, Elaborate, Plan, Build, Verify, Release) and then maps the
   project onto a table of ten labels (Discover, Design, Plan, Initiate,
@@ -148,20 +166,23 @@ These are single observations in one small project, not rates.
 
 ## Verdicts
 
-- H6: refined - bigpowers does both at once and in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1], but the only code that blocks a tool call is one git hook, `hooks/pre-tool-use.sh` [S1]; the gates the agent met in e02s02 were instructions it had to weigh against other rules, and one conflicted with the project's `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus a small hard block for git"; no source tests that this order beats the reverse, and [S7] finds that passing tests can overstate correctness, which argues for gates that run a check over gates that ask the agent to confirm.
-- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `lite` test plan in `state.yaml`, recorded waivers) [S1][S4], but the owner or the agent picks the tier and nothing scores risk; the research story was routed through the code-shaped red/green gate anyway, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony; the one hint is [S7], that unscaled test checks can mislead.
-- H10: refined - 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1] refute "small catalog" for this tool, and the package ships `search-skills` ("find the right skill from natural-language intent") and `using-bigpowers` ("which skill to call first") to cope with its own size [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here, though [S5] gives a reason to expect cost for long contexts and [S8] finds that extra context files raise cost without a general gain.
+- H6: refined - bigpowers puts most gates in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1]; a smaller set is code, a hook that denies tool calls for git safety, commit format, edits to generated files and test edits during a `fix_bug` red phase [S1]; the hook is not registered in this repository, and the prose gates the agent met in e02s02 were instructions it weighed against other rules, one of them in conflict with `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus code blocks for a few narrow, mechanical rules, which only work once installed"; no source tests that this order beats the reverse. [S6] finds that models struggle to correct themselves without outside feedback, which favours gates that run a check over gates that ask the agent to confirm.
+- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `lite` test plan in `state.yaml`, recorded waivers) [S1][S4], but the owner or the agent picks the tier and nothing scores risk; the research story was routed through the code-shaped red/green gate anyway, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony. [S7] does not help here: it shows that a too-narrow test run lets wrong patches pass, which warns against cutting checks, not for or against scaling them.
+- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") exist because of the size [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. Skills load on demand, so the whole catalog is not one long context; only the listing of names and descriptions is always present. [S5] gives a reason to expect a cost from long contexts, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
 
 None is `confirmed`: no source tests bigpowers, or its design choices, as
 a treatment. None is `refuted`: the tool's design is consistent with H6
-and H7 in shape, and only the "small catalog" half of H10 is
-contradicted, which is why that one is `refined` and not `confirmed`.
+and H7 in shape, and for H10 bigpowers departs from "small catalog" in
+practice while its coping tools point the same way as the hypothesis.
 
 ## Implications for weftwork
 
-- Keep the one thing that works as a block: a hook that stops a tool
-  call (git safety, protected branches) [S1]. It does not depend on the
-  agent obeying prose. R13 should decide what else deserves that form.
+- Keep code blocks for narrow, mechanical rules: a hook that stops a
+  tool call (git safety, protected branches, commit format, generated
+  files, a test lock during a fix) [S1]. It does not depend on the agent
+  obeying prose. It also does nothing until it is installed, and here
+  it was not [S4]; weftwork's install step must register it and check
+  that it is live. R13 should decide what else deserves that form.
 - A gate written as prose is a request. This session showed a request
   and a repo rule disagreeing and the agent choosing [S4]. weftwork's
   rules should have one owner, with the gate text checked against the
@@ -178,17 +199,19 @@ contradicted, which is why that one is `refined` and not `confirmed`.
 - Check documented commands against the real CLI. The `opensrc search`
   drift [S4] is a test weftwork can run in CI: extract fenced commands
   from skills and run `--help` on each binary.
-- Run Preflight where the work happens. A worktree that lacks the
-  project's scripts cannot run its own gate [S4]; weftwork's layout
-  should not depend on a gitignored symlink.
+- Run Preflight where the work happens, and resolve the repository
+  root from the working directory (`git rev-parse --show-toplevel`),
+  not from the script's own path. BUG-002 shows both failure modes: a
+  worktree without the scripts, and scripts that silently checked the
+  wrong checkout [S1][S4].
 - Keep one phase vocabulary and one count, generated from the files
   [S1]. Three vocabularies and a stale count show hand-kept summaries
   drift within a version.
 - Copy the handoff idea (each step names the next step and writes it to
   one YAML file) [S1], and keep the cost visible: here it produced a
   dirty tree after two skills [S4].
-- Do not copy the size or the release pace: 80 skills, and 13 releases
-  in four days to v2.96.0 [S1][S2]. A host adapter pinned to this would
+- Do not copy the size or the release pace: 80 skills, and 12 releases
+  in the four days after the installed copy, to v2.96.0 [S1][S2]. A host adapter pinned to this would
   go stale within a week.
 
 ## Earns its place vs ceremony
@@ -197,23 +220,26 @@ Verdict labels: earns its place, ceremony, unproven. A verdict rests on
 the cited source only. Where a source is missing the label is
 `unproven`, with the direction of any signal.
 
-- Git safety hook (`pre-tool-use.sh`: dangerous commands, Conventional
-  Commits, protected branches): unproven, positive signal. It is a hard
-  block and does not rely on the agent reading prose [S1]. I did not
-  see it fire, so I have no catch rate [S4].
+- Blocking hook (`pre-tool-use.sh`: dangerous git commands, protected
+  branches, commit format, generated paths, test lock during
+  `fix_bug`): unproven, positive signal. It is a hard block and does not
+  rely on the agent reading prose [S1]. It is not registered in this
+  repository and never fired here, so I have no catch rate [S4].
 - "HARD GATE" prose in 74 of 80 skills: unproven. No data on how often
   agents follow them; one observed conflict with a repo rule [S4].
 - `survey-context` (read specs, name a phase, suggest a skill): unproven.
   It gave a correct next step in e02s02, but `state.yaml`'s own handoff
   note already said the same thing [S4], so the information gain was
   small and the cost included a dirty tree.
-- `bp-timing.sh` and the `metrics.skill_timings` block: ceremony. The
-  skill that starts the timer calls the result informational [S4], and
-  the helper caused BUG-001 and a dirty tree twice [S1][S4].
+- `bp-timing.sh` and the `metrics.skill_timings` block: unproven,
+  negative signal. Its one consumer that I found serves the bigpowers
+  catalog, not this project [S1], and the helper caused BUG-001 and left
+  a dirty tree after most skill calls in this story [S1][S4].
 - `kickoff-branch` (clean default branch, worktree, clean baseline):
-  unproven. The branch and worktree worked and kept `main` clean [S4];
-  the baseline step could not run here because the worktree lacks
-  `scripts/` [S4].
+  unproven, negative signal for the worktree mode. The branch kept
+  `main` clean, but in the worktree the baseline could not run and the
+  later gates checked the wrong checkout, so the story moved back to a
+  plain branch (BUG-002) [S4].
 - `develop-tdd` two-commit red/green policy on a doc-only story:
   ceremony, in this case. There is no test file, and I skipped the
   isolation check [S4]. For code it is unproven here: no code ran.
@@ -239,7 +265,7 @@ the cited source only. Where a source is missing the label is
 - "94 percent quality threshold" and the receipts page: unproven. The
   README states the figure [S1]; I did not read how it is computed.
 - 80-skill catalog: ceremony for weftwork's purpose, by scope. Eighteen
-  Sustain skills (VPS hardening, Allure reports, a wiki) are not needed
+  Sustain skills (VPS hardening, a wiki, a visual dashboard) are not needed
   to run coding agents on one repository [S1]. This is a scope
   judgment, not a measurement.
 - Per-model routing: not present in what I read. [S9] shows routing cuts
@@ -258,6 +284,9 @@ the cited source only. Where a source is missing the label is
   repository has the e01 and e02 session records.
 - What do the A/B ablation tests show about which skills change
   outcomes? The tests exist [S1]; I did not run them. R10 should.
+- Is the blocking hook registered anywhere for this project's agents?
+  It is not in this repository's settings [S4]; I did not check
+  user-level settings, which is outside the repository.
 - I read three skill bodies and part of a fourth out of 80. The other 76
   may carry more or less ceremony than this sample suggests.
 - How do bigpowers and GSD [S10] differ in cost and outcome on the same
