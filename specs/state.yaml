@@ -28,15 +28,21 @@ waivers:
     (double-tag in e01s03-tasks.yaml, from depends_on) was left as is.
   date: 2026-11-08
   scope: e01 only
+- what: security-review threat model for e02 (build-epic step 0)
+  why: No product code. e02 writes research briefs only; the executable
+    surface is check-brief.sh, as in e01. Briefs read web pages, GitHub
+    metadata and the local .pi/gsd copy, read only. The owner chose to
+    waive it.
+  date: 2026-11-08
+  scope: e02 only
 handoff:
   next_skill: kickoff-branch
   next_story: e02s02
   note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md,
     audit in specs/verifications/AUDIT-e02-e02s01.md. Next is e02s02 (R2
     bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started in
-    a fresh session with kickoff-branch. Decide first: the e02 threat
-    model (build-epic step 0) was never written or waived; the e01 waiver
-    covers e01 only. R1 left open questions for R10 (catalog size,
+    a fresh session with kickoff-branch. The e02 threat model is waived
+    (see waivers). R1 left open questions for R10 (catalog size,
     verifier stub catch rate) and a candidate story to compare a current
     GSD release with the local 1.30.0 copy.'
 metrics:
