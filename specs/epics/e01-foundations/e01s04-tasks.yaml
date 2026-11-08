@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s04
 title: Minimal CI (GitHub Actions)
-status: in_progress
+status: done
 bcps: 3
 type: chore
 context: infra
@@ -57,7 +57,7 @@ tasks:
     allure:
       severity: minor
   - id: 4
-    status: todo
+    status: done
     risk: P2
     scenarios: [AC-e01s04-05]
     description: >-
@@ -68,7 +68,7 @@ tasks:
     allure:
       severity: normal
   - id: 5
-    status: todo
+    status: done
     risk: P2
     scenarios: [AC-e01s04-06]
     description: >-

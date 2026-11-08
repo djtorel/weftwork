@@ -8,7 +8,7 @@ phase: between-stories
 test_plan: lite
 vcs:
   kind: git
-  branch: chore/reset-flow-state
+  branch: chore/close-e01s04
 waivers:
   - what: security-review threat model for e01 (build-epic step 0)
     why: >-
@@ -20,10 +20,10 @@ waivers:
 handoff:
   next_skill: kickoff-branch
   note: >-
-    BUG-001 fixed and landed (PR #3). e01s04 plan is reviewed and on
-    main. pi-flow-legacy is reference only (owner): do not touch it.
-    Next: kickoff-branch, then develop-tdd for e01s04 task 1. Story
-    order: e01s04, e01s02, e01s03.
+    e01s04 done: minimal CI landed (PR #5); the negative run on a
+    throwaway branch concluded failure. pi-flow-legacy is reference
+    only (owner): do not touch it. Next: kickoff-branch, then
+    develop-tdd for e01s02. Story order: e01s02, e01s03.
 metrics:
   skill_timings:
     survey-context:
