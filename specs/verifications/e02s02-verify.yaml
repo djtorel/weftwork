@@ -115,4 +115,25 @@ phases:
       the story moved from the worktree to the primary checkout and
       the gates re-ran there.
 verified: true
+stale_since:
+  commit: dc9472c
+  reason: >-
+    request-review rounds 1 and 2 changed the brief, added
+    tools/check-gate-ignores.sh and CI, and changed Preflight.
+  affected:
+    - >-
+      manual step 3 (verdicts): the owner confirmed H6, H7 and H10
+      text that was later rewritten; needs owner re-confirmation
+    - >-
+      security_review: covered 3 files; superseded by the security
+      pass over the new script in AUDIT-e02-e02s02.md
+    - >-
+      preflight: now includes tools/check-gate-ignores.sh; see
+      recheck below
+  recheck:
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh &&
+      bash tools/check-gate-ignores.sh
+    exit_code: 0
+    note: "run after round 2 fixes, single run"
 story_done: false

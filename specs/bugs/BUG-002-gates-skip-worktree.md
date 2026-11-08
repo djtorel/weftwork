@@ -37,9 +37,11 @@ Two causes combine:
    (`$SCRIPT_DIR/..`), `completeness-critic.sh` (`../..`) and
    `skill-common.sh` `resolve_repo_root`. Called by absolute path
    through the primary checkout's symlink, they resolve to the primary
-   checkout. Called through a symlink inside the worktree, they would
-   very likely resolve to the worktree, since `cd` and `pwd` keep the
-   logical path; that was not tested.
+   checkout. Called through a `scripts` symlink inside a worktree, they
+   resolve to that worktree, since `cd` and `pwd` keep the logical
+   path. A request-review round 2 reviewer tested this in a scratch
+   worktree: `validate-specs-yaml.sh` called through the worktree's own
+   symlink checked the worktree and caught a broken file there.
 
 `verify-adversarial.sh` uses `git rev-parse --show-toplevel` and is not
 affected. The scripts live in the global bigpowers install, so they are
@@ -48,9 +50,8 @@ not fixable from this repository.
 ## Fix
 
 Rejected alternative: create the `scripts` symlink in each new
-worktree. It would likely fix cause 1 and, through the logical path,
-cause 2, but it adds a manual step to every kickoff and was not
-tested.
+worktree. Per the test above it fixes both causes, but it adds a
+manual step to every kickoff, and forgetting it fails silently.
 
 Start story branches in the primary checkout with `git checkout -b`,
 not with a worktree. `kickoff-branch` allows a branch without a
@@ -65,9 +66,12 @@ then ran on the branch: blind spots 0 findings, completeness critic
 
 ## Verify
 
-`bash scripts/lib/completeness-critic.sh && git status --short`
-on a story branch in the primary checkout: critic exits 0, and no
-generated gate output is listed as untracked.
+`bash scripts/trace-stories.sh --json && bash scripts/check-blind-spots.sh
+&& bash scripts/lib/completeness-critic.sh && git status --short`
+on a story branch in the primary checkout: the critic exits 0, and no
+generated gate output is listed as untracked. The first two commands
+regenerate the critic's inputs, which are gitignored and absent in a
+fresh clone.
 
 Regression test: `bash tools/check-gate-ignores.sh`, run in Preflight
 and CI. It fails if any gate output path stops being gitignored.
