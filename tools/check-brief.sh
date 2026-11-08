@@ -23,6 +23,28 @@ for h in d["hypotheses"]:
 REQUIRED=("## Sources" "## Verdicts" "## Implications for weftwork"
   "## Earns its place vs ceremony" "## Open questions")
 
+# section <file> <heading>: the lines under one H2 heading
+section() {
+  awk -v h="$2" '$0 == h {f = 1; next} /^## / {f = 0} f' "$1"
+}
+
+check_sources() {
+  local line id undated=0 n=0
+  while IFS= read -r line; do
+    n=$((n + 1))
+    id=$(grep -Eo '^- \[S[0-9]+\]' <<<"$line")
+    grep -Eq 'accessed: [0-9]{4}-[0-9]{2}-[0-9]{2}' <<<"$line" ||
+      fail "source ${id:-?} has no 'accessed: YYYY-MM-DD'"
+    if grep -Eq 'published: undated' <<<"$line"; then
+      undated=$((undated + 1))
+    elif ! grep -Eq 'published: [0-9]{4}-[0-9]{2}-[0-9]{2}' <<<"$line"; then
+      fail "source ${id:-?} has no 'published: YYYY-MM-DD'"
+    fi
+  done < <(section "$brief" "## Sources" | grep -E '^- \[S[0-9]+\]')
+  [[ $n -gt 0 ]] || fail "## Sources lists no '- [S<n>]' source"
+  [[ $undated -eq 0 ]] || echo "warning: $undated undated source(s)" >&2
+}
+
 fails=0
 fail() {
   echo "FAIL $brief: $*" >&2
@@ -50,6 +72,7 @@ brief_check() {
     if [[ $mode == sources && $h != "## Sources" ]]; then continue; fi
     grep -qxF -- "$h" "$brief" || fail "missing section '$h'"
   done
+  check_sources
   if [[ $fails -gt 0 ]]; then
     return 1
   fi
