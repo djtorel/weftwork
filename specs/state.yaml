@@ -31,14 +31,15 @@ waivers:
 handoff:
   next_skill: kickoff-branch
   next_story: e02s01
-  note: 'e01 is released: e01s01-e01s04 done. Start in a FRESH session. The owner
-    must decide first: run change-request to apply the e01 re-plan checkpoint
-    (specs/checkpoints/e01-replan.md) to release-plan.yaml and the e02-e04 capsules.
-    That adds one e03 story, folds candidates into R5, R9, R11 and R12, and adds work
-    to R7 and R10. It also archives the e01 capsule and fixes its capsule_dir, which
-    this release deferred. e02s01 (R1 GSD in depth) is provisional until then. Open
-    items: the owner has not yet picked the new story size; gate-trace is waived for
-    e01 only. pi-flow-legacy is reference only.'
+  note: 'The e01 checkpoint is applied (change-request, on branch
+    replan-e01-checkpoint, not yet merged). e01 capsule archived. New story
+    e03s08 (R15 run termination, 5 BCPs). Resized: R7 3 to 5, R9 5 to 8, R11 3
+    to 5, R12 3 to 5; R5 and R10 unchanged. e03 is now 41 BCPs, WSJF 1.6 (cut
+    threshold 1.5). Start e02s01 (R1 GSD in depth) in a FRESH session with
+    kickoff-branch after this merges. Open: R15 is assigned to H15 only; R0 also
+    listed H4, which the owner may add. plan-consistency-check reports missing
+    story specs for every unplanned story; plan-work writes them. pi-flow-legacy
+    is reference only.'
 metrics:
   skill_timings:
     survey-context:

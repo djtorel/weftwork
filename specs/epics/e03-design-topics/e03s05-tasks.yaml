@@ -2,7 +2,7 @@
 story_id: e03s05
 title: R11 security and permissions
 status: todo
-bcps: 3
+bcps: 5
 research_story: R11
 brief: docs/research/R11-security-permissions.md
 tasks:
@@ -16,6 +16,15 @@ tasks:
       R11 --sources
     status: todo
   - id: 2
+    description: >-
+      Cover skill and plugin supply-chain trust: installed
+      skills and scanning before install. Start from the R0
+      sources arXiv:2601.10338 and arXiv:2602.06547
+    verify: >-
+      grep -Eqi 'supply.chain' docs/research/R11-security-permissions.md
+      && grep -Eqi 'install' docs/research/R11-security-permissions.md
+    status: todo
+  - id: 3
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
       for every hypothesis assigned to R11 in planning-context.yaml,

@@ -18,6 +18,7 @@ development_status:
   e03s05: backlog
   e03s06: backlog
   e03s07: backlog
+  e03s08: backlog
   e04: backlog
   e04s01: backlog
   e04s02: backlog
@@ -37,8 +38,8 @@ epics:
   e03:
     status: backlog
     title: Design topics (wave 3)
-    wsjf: 2.0
-    total_bcps: 27
+    wsjf: 1.6
+    total_bcps: 41
   e04:
     status: backlog
     title: Evaluation and synthesis (wave 4)
@@ -132,9 +133,9 @@ stories:
   e03s02:
     status: backlog
     title: 'R7 agent review and agent-answered decisions'
-    bcps: 3
+    bcps: 5
     epic: e03
-    tasks_total: 2
+    tasks_total: 3
     tasks_passing: 0
     tasks_failing: 0
   e03s03:
@@ -148,25 +149,25 @@ stories:
   e03s04:
     status: backlog
     title: R9 model routing and cost efficiency
-    bcps: 5
+    bcps: 8
     epic: e03
-    tasks_total: 3
+    tasks_total: 4
     tasks_passing: 0
     tasks_failing: 0
   e03s05:
     status: backlog
     title: R11 security and permissions
-    bcps: 3
+    bcps: 5
     epic: e03
-    tasks_total: 2
+    tasks_total: 3
     tasks_passing: 0
     tasks_failing: 0
   e03s06:
     status: backlog
     title: R12 context and memory
-    bcps: 3
+    bcps: 5
     epic: e03
-    tasks_total: 2
+    tasks_total: 3
     tasks_passing: 0
     tasks_failing: 0
   e03s07:
@@ -175,6 +176,14 @@ stories:
     bcps: 5
     epic: e03
     tasks_total: 2
+    tasks_passing: 0
+    tasks_failing: 0
+  e03s08:
+    status: backlog
+    title: R15 run termination for autonomous loops
+    bcps: 5
+    epic: e03
+    tasks_total: 3
     tasks_passing: 0
     tasks_failing: 0
   e04s01:
