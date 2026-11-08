@@ -79,3 +79,69 @@ next skill. The package is a moving target: it was created on
 installed v2.93.3, up to v2.96.0 on 2026-11-08, so 12 are newer than the
 copy [S2][S3]. Any statement here about what bigpowers does today may be
 stale.
+
+## First-hand findings
+
+What happened when this repository used bigpowers, from [S4] and [S1].
+These are single observations in one small project, not rates.
+
+- **Documented command that does not exist (tooling drift).**
+  `skills/research-first/SKILL.md` tells the agent to run
+  `npx opensrc search <pkg>` (lines 19 and 29), and the same string
+  appears in `scripts/bp-opensrc-check.sh`, whose other use I did not
+  read [S1]. The installed `opensrc` 0.7.3 lists `fetch`, `path`,
+  `list`, `remove` and `clean`; running `opensrc search lodash` printed
+  `error: unrecognized subcommand 'search'` and suggested `fetch` [S4].
+  The scope record had already noted this before I reproduced it. The
+  package's `compliance` script runs `audit-compliance.sh`,
+  `validate-doctrine.sh` and `check-skill-links.py` [S1]; I did not
+  read them, so I cannot say whether any could catch a stale command.
+- **A count that disagrees with itself.** `package.json` says "73 agent
+  skills"; the directory, the generated index and the README badge say
+  80 [S1].
+- **The timing helper dirties the tree and breaks lint.**
+  `scripts/bp-timing.sh` rewrites `state.yaml` with `yaml.dump` (lines
+  40 and 68), which drops the `---` start and the comments and does not
+  indent sequences or wrap lines [S1]; this is BUG-001 [S4]. The owner
+  chose a local workaround (a `.yamllint` that skips two rules for that
+  one file) and not an upstream report. The workaround stops the lint
+  failure but not the dirty tree: `survey-context` left `state.yaml`
+  modified (16 lines added, 19 removed, mostly re-wrapped text), and
+  `develop-tdd` modified it again [S4]. `survey-context` itself calls the
+  `story_start` marker "informational progress marker only", so the
+  helper's output is ceremony that caused a defect.
+- **Rules from three layers disagree.** `kickoff-branch` offers to
+  commit a dirty `specs/` tree on `main` as `chore(state): checkpoint
+  before kickoff`; this repository's `CONVENTIONS.md` and `AGENTS.md`
+  say never commit to `main` [S4]. The agent had to pick. I put the
+  commit on the new branch and told the owner [S4].
+- **The kickoff worktree cannot run the project's Preflight.**
+  `scripts/` is a gitignored symlink, so a new worktree has none:
+  `bash scripts/validate-specs-yaml.sh` there fails with "No such file"
+  (exit 127). I ran the primary checkout's copy by absolute path. The
+  skill's step 4 says to run Preflight in the worktree [S4].
+- **Three phase vocabularies.** `survey-context` names a 6-phase loop
+  (Discover, Elaborate, Plan, Build, Verify, Release) and then maps the
+  project onto a table of ten labels (Discover, Design, Plan, Initiate,
+  Execute, Verify, Bug, Review, Integrate, Sustain); the generated index
+  uses seven (Discover, Design, Plan, Build, Verify, Release, Sustain)
+  [S1][S4].
+- **Code-shaped gates on a research story.** `develop-tdd` requires two
+  commits per behaviour, a test-only commit that fails, then the fix,
+  checked by `verify-tdd-red-commit.sh` [S1]. For this story the tests
+  are the `verify:` commands already in `e02s02-tasks.yaml`, so there is
+  no test file to commit. I ran the three commands to show red (all
+  exit 2, no brief) and did not run the isolation script or make a red
+  commit. That is a skipped gate; I judged it inapplicable and I am
+  recording it here, not hiding it. It is also ceremony in the plain
+  sense: a step whose cost is paid and whose purpose is absent [S4].
+- **Overhead visible in the history.** Across 16 commits, 100 file
+  touches are under `specs/` and 4 under `docs/research/` (counted from
+  `git log --name-only`). This project is in a planning phase, so a high
+  `specs/` share is expected; the figure shows where the effort went and
+  does not show waste [S4].
+- **Timestamps that cannot be work time.** `execution-status.yaml` gives
+  e02s01 a start of 13:31:19 and an end of 13:33:24, 2 minutes 5 seconds
+  for a 198-line brief; e01s03 shows 2 hours 34 minutes [S4]. I infer
+  the fields mark the wrap-up of a story and not its work; I did not
+  check how they are written.

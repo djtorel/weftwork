@@ -23,7 +23,7 @@ tasks:
     verify: >-
       grep -Eqi 'ceremony' docs/research/R2-bigpowers.md
       && grep -Eqi 'opensrc' docs/research/R2-bigpowers.md
-    status: todo
+    status: passing
   - id: 3
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
