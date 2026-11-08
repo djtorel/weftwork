@@ -1,0 +1,82 @@
+---
+story_id: e02s03
+verified_at: "2026-11-08T22:41:23Z"
+verifier: verify-work
+branch: e02s03-r3-workflow-landscape
+risk: P2
+mode: default (P2 skips tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e02s03-r3-workflow-landscape
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-08T22:41:23Z"
+    note: "Single contiguous run; output below."
+    output: |
+      python-env: Using python3
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+  terminal_verdict:
+    command: >-
+      bash tools/check-brief.sh
+      docs/research/R3-workflow-landscape.md R3
+    exit_code: 0
+    captured_at: "2026-11-08T23:19:20Z"
+    note: >-
+      Single run after the review round 2 edits. Warns on 6 undated
+      sources (S7-S10 host docs, S15 comparison page, S22 local skill).
+    output: |
+      warning: 6 undated source(s)
+      check-brief: OK (R3)
+  build:
+    passed: true
+    skipped: true
+    reason: "No build step; the story ships a research brief only."
+  typecheck:
+    passed: true
+    skipped: true
+    reason: "No code; no type checker in the repo."
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  smoke:
+    passed: true
+    skipped: true
+    reason: "No app process."
+  tests:
+    skipped: true
+    reason: "P2: tests skipped by risk policy."
+  security_scan:
+    skipped: true
+    reason: "P2: security scan skipped by risk policy."
+  blind_spot_check:
+    passed: true
+    command: "bash scripts/check-blind-spots.sh"
+    result: "0 HIGH, 1 MEDIUM, 0 LOW"
+    finding: >-
+      MEDIUM double-tag in
+      specs/epics/archive/e01-foundations/e01s03-tasks.yaml (e01s02).
+      The finding is in the archived e01s03 tasks file. The e01
+      gate-trace waiver in specs/state.yaml already records it as left
+      as is. Warns only.
+  completeness_critic:
+    passed: true
+    command: "bash scripts/lib/completeness-critic.sh"
+    result: "BLOCKER=0 WARNING=0 FILLED=1"
+    note: >-
+      First run: BLOCKER (zero explicit story-tag links for e02s03) and WARNING
+      (active_story none). Fixed by setting state.yaml active_story to e02s03
+      and regenerating specs/traceability-matrix.json with
+      scripts/trace-stories.sh. Both are in the working tree.
+  manual:
+    skipped: true
+    reason: "P2: step-by-step UAT skipped by risk policy."
+  gaps:
+    closed: true
+    count: 0

@@ -8,7 +8,7 @@ development_status:
   e02: in_progress
   e02s01: done
   e02s02: done
-  e02s03: backlog
+  e02s03: done
   e02s04: backlog
   e03: backlog
   e03s01: backlog
@@ -111,12 +111,14 @@ stories:
     tasks_passing: 3
     tasks_failing: 0
   e02s03:
-    status: backlog
+    status: done
+    started_at: "2026-11-08T15:19:54-07:00"
+    completed_at: "2026-11-08T16:29:11-07:00"
     title: R3 workflow landscape
     bcps: 3
     epic: e02
-    tasks_total: 3
-    tasks_passing: 0
+    tasks_total: 4
+    tasks_passing: 4
     tasks_failing: 0
   e02s04:
     status: backlog
