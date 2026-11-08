@@ -21,36 +21,33 @@ waivers:
   date: 2026-11-08
   scope: e01 only
 - what: gate-trace FAIL (rule R1) for e01s03
-  why: R1 fails any undone story with 0 code tags. All 14 undone stories have
-    none, because the project has no code, so the gate cannot pass until code
-    exists. The owner chose to waive it for e01. Oracle links are 96 percent
-    heuristic; completeness-critic had 0 blockers; one MEDIUM blind spot
-    (double-tag in e01s03-tasks.yaml, from depends_on) was left as is.
+  why: R1 fails any undone story with 0 code tags. All 14 undone stories have none,
+    because the project has no code, so the gate cannot pass until code exists. The
+    owner chose to waive it for e01. Oracle links are 96 percent heuristic; completeness-critic
+    had 0 blockers; one MEDIUM blind spot (double-tag in e01s03-tasks.yaml, from depends_on)
+    was left as is.
   date: 2026-11-08
   scope: e01 only
 - what: security-review threat model for e02 (build-epic step 0)
-  why: No product code. e02 writes research briefs only; the executable
-    surface is check-brief.sh, as in e01. Briefs read web pages, GitHub
-    metadata and the local .pi/gsd copy, read only. The owner chose to
-    waive it.
+  why: No product code. e02 writes research briefs only; the executable surface is
+    check-brief.sh, as in e01. Briefs read web pages, GitHub metadata and the local
+    .pi/gsd copy, read only. The owner chose to waive it.
   date: 2026-11-08
   scope: e02 only
 handoff:
   next_skill: kickoff-branch
   next_story: e02s02
-  note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md,
-    audit in specs/verifications/AUDIT-e02-e02s01.md. Next is e02s02 (R2
-    bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started in
-    a fresh session with kickoff-branch. The e02 threat model is waived
-    (see waivers). R1 left open questions for R10 (catalog size,
-    verifier stub catch rate) and a candidate story to compare a current
-    GSD release with the local 1.30.0 copy.'
+  note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md, audit in specs/verifications/AUDIT-e02-e02s01.md.
+    Next is e02s02 (R2 bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started
+    in a fresh session with kickoff-branch. The e02 threat model is waived (see waivers).
+    R1 left open questions for R10 (catalog size, verifier stub catch rate) and a
+    candidate story to compare a current GSD release with the local 1.30.0 copy.'
 metrics:
   skill_timings:
     survey-context:
-      calls: 1
-      total_seconds: 25.0
-      avg_seconds: 25.0
+      calls: 2
+      total_seconds: 32.0
+      avg_seconds: 16.0
     plan-work:
       calls: 2
       total_seconds: 70.0
