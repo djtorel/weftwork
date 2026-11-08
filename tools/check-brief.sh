@@ -30,6 +30,7 @@ section() {
 
 check_sources() {
   local line id undated=0 n=0
+  source_ids=$(section "$brief" "## Sources" | grep -Eo '^- \[S[0-9]+\]' | cut -c3-)
   while IFS= read -r line; do
     n=$((n + 1))
     id=$(grep -Eo '^- \[S[0-9]+\]' <<<"$line")
@@ -45,6 +46,34 @@ check_sources() {
   [[ $undated -eq 0 ]] || echo "warning: $undated undated source(s)" >&2
 }
 
+# check_verdicts <hypothesis>...: one valid, sourced verdict line each
+check_verdicts() {
+  local h line word ref
+  if [[ $# -eq 0 ]]; then
+    echo "check-brief: none assigned (no hypotheses for this R-id)"
+    return
+  fi
+  for h in "$@"; do
+    line=$(section "$brief" "## Verdicts" | grep -E "^- $h:" | head -n 1)
+    if [[ -z $line ]]; then
+      fail "no verdict for $h in ## Verdicts"
+      continue
+    fi
+    word=$(sed -E 's/^- [^:]+: *([A-Za-z]+).*/\1/' <<<"$line")
+    case $word in
+      confirmed | refined | refuted) ;;
+      *) fail "$h: verdict word '$word' is not confirmed, refined or refuted" ;;
+    esac
+    if ! grep -Eq '\[S[0-9]+\]' <<<"$line"; then
+      fail "$h: verdict cites no [S<n>] source"
+    fi
+    while IFS= read -r ref; do
+      grep -qxF -- "$ref" <<<"$source_ids" ||
+        fail "$h: verdict cites $ref, which is not in ## Sources"
+    done < <(grep -Eo '\[S[0-9]+\]' <<<"$line")
+  done
+}
+
 fails=0
 fail() {
   echo "FAIL $brief: $*" >&2
@@ -53,7 +82,7 @@ fail() {
 
 brief_check() {
   brief=$1
-  local rid=$2 mode=$3 ctx query ids h
+  local rid=$2 mode=$3 ctx query ids hyps h
   if [[ ! -f $brief ]]; then
     echo "check-brief: no such file: $brief" >&2
     return 2
@@ -68,11 +97,13 @@ brief_check() {
     echo "check-brief: unknown R-id '$rid'; valid: ${ids[*]}" >&2
     return 2
   fi
+  mapfile -t hyps < <(sed -n 's/^H //p' <<<"$query")
   for h in "${REQUIRED[@]}"; do
     if [[ $mode == sources && $h != "## Sources" ]]; then continue; fi
     grep -qxF -- "$h" "$brief" || fail "missing section '$h'"
   done
   check_sources
+  [[ $mode == sources ]] || check_verdicts "${hyps[@]}"
   if [[ $fails -gt 0 ]]; then
     return 1
   fi
