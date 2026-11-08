@@ -45,10 +45,12 @@ by `tools/check-brief.sh` from e01s01.
 
 #### ADDED: Candidate new stories section
 An H2 section `## Candidate new stories`. Each entry is one bullet:
-`- <title> — reason: <one line> — touches: <hypotheses or goals>`.
+`- <title> — reason: <one line, cites a primary source [S<n>]> — touches:
+<hypotheses or goals>`. Write each bullet on ONE line: the verify
+commands read the section line by line.
 Candidates must not repeat a story already in `release-plan.yaml`.
 
-## Acceptance criteria (Gherkin)
+## 4. Acceptance criteria (Gherkin)
 
 These IDs are local to this story. The e01 test plan has no scenarios
 for it (its §4 says the verify commands here are grep checks).
@@ -62,7 +64,7 @@ Scenario: AC-e01s02-01 draft brief has dated sources
 Scenario: AC-e01s02-02 candidates are well formed
   Given the Candidate new stories section
   Then it has at least one bullet
-  And every bullet has both "reason:" and "touches:"
+  And every bullet has "reason:" with an [S<n>] citation, then "touches:"
 
 Scenario: AC-e01s02-03 full brief passes
   When check-brief.sh runs on the R0 brief with R-id R0

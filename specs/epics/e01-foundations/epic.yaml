@@ -4,7 +4,7 @@ title: Foundations (wave 1)
 wsjf: 6.25
 total_bcps: 14
 risk: P1
-status: todo
+status: in_progress
 depends_on: []
 done_when: >-
   R14, R0 and R4 briefs pass tools/check-brief.sh and
@@ -14,12 +14,12 @@ stories:
     title: 'R14 legacy retrospective (tracer: builds the
       checker)'
     bcps: 3
-    status: todo
+    status: done
     tasks: e01s01-tasks.yaml
   - id: e01s04
     title: Minimal CI (GitHub Actions; runs before e01s02)
     bcps: 3
-    status: todo
+    status: done
     tasks: e01s04-tasks.yaml
   - id: e01s02
     title: 'R0 discovery sweep (output: candidate new
