@@ -45,7 +45,7 @@ epics:
 
 stories:
   e01s01:
-    status: backlog
+    status: done
     title: 'R14 legacy retrospective (tracer: builds the checker)'
     bcps: 3
     epic: e01

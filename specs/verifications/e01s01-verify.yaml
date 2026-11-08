@@ -22,7 +22,7 @@ phases:
   terminal_verdict:
     command: bash tools/check-brief.sh --selftest
     exit_code: 0
-    note: Single run, last line "check-brief: selftest OK"
+    note: 'Single run; last line was "check-brief: selftest OK"'
   manual:
     steps:
       - step: Remove the H4 verdict from a copy of the R14 brief
@@ -40,5 +40,7 @@ phases:
   gaps:
     closed: true
     open_items:
-      - Owner has not confirmed why pi-flow was archived (brief says not recorded)
-      - Four guard-written lines in ../pi-flow-legacy/.flow/ledger.yaml await a decision
+      - Owner has not confirmed why pi-flow was archived
+        (brief says not recorded)
+      - Four guard-written lines in the legacy .flow/ledger.yaml
+        await an owner decision
