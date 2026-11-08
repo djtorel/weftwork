@@ -9,9 +9,28 @@ set -uo pipefail
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 HERE="$(dirname "$SELF")"
 
-# check_all <dir>: RED stub, replaced in the GREEN step
+# check_all <dir>: run check-brief.sh on each R<n>-<slug>.md in <dir>.
+# A file that starts with R plus a digit but is not named R<n>-<slug>.md
+# is an error, and so is a directory with no brief. Other files are
+# ignored.
 check_all() {
-  return 0
+  local f base n=0 rc=0
+  shopt -s nullglob
+  for f in "$1"/R[0-9]*; do
+    base=$(basename "$f")
+    if [[ $base =~ ^(R[0-9]+)-.+\.md$ ]]; then
+      n=$((n + 1))
+      bash "$HERE/check-brief.sh" "$f" "${BASH_REMATCH[1]}" || rc=1
+    else
+      echo "FAIL $f: name must match R<n>-<slug>.md" >&2
+      rc=1
+    fi
+  done
+  if [[ $n -eq 0 ]]; then
+    echo "check-briefs: no R<n>-<slug>.md brief in $1" >&2
+    rc=1
+  fi
+  return $rc
 }
 
 write_context() {
