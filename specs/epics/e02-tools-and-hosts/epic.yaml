@@ -27,5 +27,5 @@ stories:
   - id: e02s04
     title: R5 harness capability matrix
     bcps: 5
-    status: todo
+    status: in_progress
     tasks: e02s04-tasks.yaml

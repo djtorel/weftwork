@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e02
-active_story: none
-phase: between-stories
+active_story: e02s04
+phase: in-story
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e02s04-r5-harness-capability-matrix
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -50,41 +50,36 @@ waivers:
   date: 2026-11-08
   scope: e02 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e02s04
-  note: 'e02s03 (R3 workflow landscape) is released: brief docs/research/R3-workflow-landscape.md,
-    evidence in specs/verifications/e02s03-verify.yaml and AUDIT-e02-e02s03.md. Next
-    is e02s04 (R5 harness capability matrix, 5 BCPs, tasks in e02s04-tasks.yaml),
-    started in a fresh session with kickoff-branch. It has no story spec yet: run
-    plan-work first to write e02s04-<slug>.md and harden its tasks, as for e02s03.
-    Start the branch with git checkout -b in the primary checkout, not a worktree
-    (BUG-002, AGENTS.md Workspace Facts). Waivers in force for e02: threat model,
-    gate-trace R1, plan-consistency-check findings on e02s01, e02s02, e02s04. Decide
-    the e02s04 risk level; the verify-work risk field defaults to P1 when a story
-    declares none. Doc-only stories cannot satisfy develop-tdd''s red-commit gate;
-    name the skip in the PR body. Add a Story: e02s04 trailer to every
-    commit (CONVENTIONS.md), and note the branch SHA range before the
-    squash merge so record-cycle-time.sh can append the ledger row. Open
-    items: BUG-003 (audit-code verify line fails
-    in this repo; owner chooses to report upstream or ignore) and the review process
-    lesson that total_items is checks performed plus findings. R3 left candidate stories:
-    measure each tool''s always-loaded listing in tokens (with R5), read the Claude
-    Code plan-mode guidance and Kiro steering and hooks pages, and re-check BMAD after
-    v7 ships (mid-November 2026).'
+  note: 'e02s04 (R5 harness capability matrix) is planned and its branch e02s04-r5-harness-capability-matrix
+    exists (git checkout -b, not a worktree; BUG-002). Spec: specs/epics/e02-tools-and-hosts/e02s04-r5-harness-capabilities.md;
+    6 tasks in e02s04-tasks.yaml, verify commands tested on fixtures 2026-11-08. Owner
+    decisions 2026-11-08: risk P2; ../pi-flow-legacy may be read, read only; evidence
+    is host docs and repositories plus the locally installed pi 1.5.0 and Claude Code
+    2.1.319, no trials; token measurement of skill listings is out of scope. Next:
+    develop-tdd (doc-only; it cannot satisfy the red-commit gate, name the skip in
+    the PR body). Add a Story: e02s04 trailer to every commit and note the branch
+    SHA range before the squash merge. Waivers in force for e02: threat model, gate-trace
+    R1, plan-consistency-check findings on e02s01, e02s02, e02s04. Open items: BUG-003
+    (owner chooses to report upstream or ignore); R3 candidate stories (token measurement
+    with R5, Kiro steering and hooks pages, BMAD v7 re-check mid-November 2026).'
 metrics:
+  story_start: '2026-11-08T23:54:46Z'
   skill_timings:
     survey-context:
-      calls: 3
-      total_seconds: 46.0
-      avg_seconds: 15.333333333333334
+      calls: 4
+      total_seconds: 57.0
+      avg_seconds: 14.25
     plan-work:
-      calls: 3
-      total_seconds: 155.0
-      avg_seconds: 51.666666666666664
+      calls: 4
+      total_seconds: 369.0
+      avg_seconds: 92.25
     develop-tdd:
       calls: 4
       total_seconds: 1118.0
       avg_seconds: 279.5
+      _start: '2026-11-08T23:57:24Z'
     verify-work:
       calls: 3
       total_seconds: 142.0
