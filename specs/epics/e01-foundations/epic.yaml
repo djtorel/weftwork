@@ -25,7 +25,7 @@ stories:
     title: 'R0 discovery sweep (output: candidate new
       stories)'
     bcps: 3
-    status: todo
+    status: done
     tasks: e01s02-tasks.yaml
   - id: e01s03
     title: R4 research literature (recent agentic coding

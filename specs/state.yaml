@@ -16,10 +16,10 @@ waivers:
   scope: e01 only
 handoff:
   next_skill: develop-tdd
-  note: 'e01s02 planned (plan-work): spec and tasks reviewed, task 2 verify now requires
-    an [S<n>] citation per candidate. Plan committed on branch e01s02-r0-discovery-sweep,
-    which carries the plan and the story work. pi-flow-legacy is reference only (owner):
-    do not touch it. Next: develop-tdd for e01s02, then e01s03.'
+  note: 'e01s02 done: docs/research/R0-discovery-sweep.md, 3 of 3 verifies exit 0,
+    owner confirmed the human check, 6 candidate stories for the e01s03 re-plan checkpoint.
+    Not committed; waiting on owner go-ahead. Next: develop-tdd for e01s03. pi-flow-legacy
+    is reference only (owner): do not touch it.'
 metrics:
   skill_timings:
     survey-context:
@@ -30,3 +30,7 @@ metrics:
       calls: 1
       total_seconds: 42.0
       avg_seconds: 42.0
+    develop-tdd:
+      calls: 1
+      total_seconds: 287.0
+      avg_seconds: 287.0
