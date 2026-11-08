@@ -120,6 +120,9 @@ stories:
     tasks_total: 4
     tasks_passing: 4
     tasks_failing: 0
+    effort_hours: 1.1011
+    lead_time_minutes: 74
+    bcp_per_hour: 2.7
   e02s04:
     status: backlog
     title: R5 harness capability matrix

@@ -62,7 +62,10 @@ handoff:
     gate-trace R1, plan-consistency-check findings on e02s01, e02s02, e02s04. Decide
     the e02s04 risk level; the verify-work risk field defaults to P1 when a story
     declares none. Doc-only stories cannot satisfy develop-tdd''s red-commit gate;
-    name the skip in the PR body. Open items: BUG-003 (audit-code verify line fails
+    name the skip in the PR body. Add a Story: e02s04 trailer to every
+    commit (CONVENTIONS.md), and note the branch SHA range before the
+    squash merge so record-cycle-time.sh can append the ledger row. Open
+    items: BUG-003 (audit-code verify line fails
     in this repo; owner chooses to report upstream or ignore) and the review process
     lesson that total_items is checks performed plus findings. R3 left candidate stories:
     measure each tool''s always-loaded listing in tokens (with R5), read the Claude
