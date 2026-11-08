@@ -154,6 +154,13 @@ research_stories:
       model judgment vs deterministic checks. Also SEED §9: engine
       CLI vs library, where state lives when two hosts share a
       repo'
+  - id: R15
+    wave: 3
+    title: Run termination
+    question: 'Stop conditions for autonomous loops: completion
+      detection, dual exit checks, circuit breakers, rate limits and
+      budget ceilings. Search for peer-reviewed or arXiv studies and
+      open the unverified leads listed in R0'
   - id: R10
     wave: 4
     title: Evaluation
@@ -179,6 +186,7 @@ waves:
     - R11
     - R12
     - R13
+    - R15
   4:
     - R10
 hypotheses:
@@ -274,6 +282,7 @@ hypotheses:
       ceilings stop the run; escalations logged
     tested_by:
       - R9
+      - R15
   - id: H16
     claim: 'Engine split: host-agnostic engine + thin adapters
       + skills'

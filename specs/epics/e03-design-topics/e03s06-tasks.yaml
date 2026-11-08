@@ -2,7 +2,7 @@
 story_id: e03s06
 title: R12 context and memory
 status: todo
-bcps: 3
+bcps: 5
 research_story: R12
 brief: docs/research/R12-context-memory.md
 tasks:
@@ -16,6 +16,15 @@ tasks:
       R12 --sources
     status: todo
   - id: 2
+    description: >-
+      Compare a git-backed tracker with plain spec files
+      against H8 (no bespoke schema). Read the R5 verdict
+      for H8 first
+    verify: >-
+      grep -Eqi 'git-backed' docs/research/R12-context-memory.md
+      && grep -Eqi 'plain' docs/research/R12-context-memory.md
+    status: todo
+  - id: 3
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
       for every hypothesis assigned to R12 in planning-context.yaml,

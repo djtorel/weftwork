@@ -19,10 +19,11 @@ epics:
     bcps: 14
     risk: P1
     depends_on: []
-    capsule_dir: epics/e01-foundations
+    capsule_dir: epics/archive/e01-foundations
     note: >-
       Builds the brief checker and can reshape later epics, so it runs
-      first and ends in a re-plan checkpoint.
+      first and ends in a re-plan checkpoint. Done and archived by
+      change-request 2026-11-08.
   - id: e02
     title: Tools and hosts (wave 2)
     wsjf: 3.6               # (7 + 5 + 6) / 5
@@ -32,11 +33,16 @@ epics:
     capsule_dir: epics/e02-tools-and-hosts
   - id: e03
     title: Design topics (wave 3)
-    wsjf: 2.0               # (6 + 4 + 6) / 8
-    bcps: 27
+    wsjf: 1.6               # (6 + 4 + 6) / 10
+    bcps: 41
     risk: P2
     depends_on: [e02]
     capsule_dir: epics/e03-design-topics
+    note: >-
+      Rescored by change-request 2026-11-08 after the e01 re-plan
+      checkpoint: new R15 story, and added topics or tasks in R7, R9,
+      R11 and R12. Close to the 1.5 cut threshold; the R15 story is the
+      first to cut if the research program needs to shrink.
   - id: e04
     title: Evaluation and synthesis (wave 4)
     wsjf: 4.5               # (7 + 3 + 8) / 4
@@ -59,3 +65,5 @@ epics:
       Branch protection, PR template, environment setup, porting the
       spec validator into tools/. Sliced with slice-tasks when e04 is
       done; the stack choice (R8) shapes it. Minimal CI is e01s04.
+      Input from the e01 checkpoint: agents in CI through GitHub
+      Actions (R0 candidate 3).

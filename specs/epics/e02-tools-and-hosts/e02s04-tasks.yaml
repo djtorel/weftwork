@@ -19,8 +19,10 @@ tasks:
     description: >-
       Matrix of pi, Claude Code, opencode, Codex CLI and
       Gemini CLI: hooks, subagents, skills, plugins, worktrees,
-      ask-user path, per-dispatch model and effort. Name
-      the shared core
+      ask-user path, per-dispatch model and effort, and how
+      each host gets its instruction and skill files
+      (generated, committed or managed blocks). Name the
+      shared core
     verify: >-
       grep -Eqi 'pi' docs/research/R5-harness-capabilities.md
       && grep -Eqi 'Claude Code' docs/research/R5-harness-capabilities.md
@@ -28,6 +30,7 @@ tasks:
       && grep -Eqi 'Codex' docs/research/R5-harness-capabilities.md
       && grep -Eqi 'Gemini' docs/research/R5-harness-capabilities.md
       && grep -Eqi 'shared' docs/research/R5-harness-capabilities.md
+      && grep -Eqi 'generat' docs/research/R5-harness-capabilities.md
     status: todo
   - id: 3
     description: >-

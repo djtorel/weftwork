@@ -2,7 +2,7 @@
 story_id: e03s04
 title: R9 model routing and cost efficiency
 status: todo
-bcps: 5
+bcps: 8
 research_story: R9
 brief: docs/research/R9-model-routing.md
 tasks:
@@ -19,15 +19,28 @@ tasks:
     description: >-
       Cover task sizing, model size vs reasoning effort,
       escalate-vs-up-front, default tier per role, token
-      efficiency, local models as a tier, budgets
+      efficiency, local models as a tier, budgets, and
+      tool-definition context cost with code-based tool
+      access (the only source so far is a vendor post: label
+      its claims unproven)
     verify: >-
       grep -Eqi 'sizing' docs/research/R9-model-routing.md
       && grep -Eqi 'reasoning effort' docs/research/R9-model-routing.md
       && grep -Eqi 'escalat' docs/research/R9-model-routing.md
       && grep -Eqi 'local model' docs/research/R9-model-routing.md
       && grep -Eqi 'budget' docs/research/R9-model-routing.md
+      && grep -Eqi 'tool.definition' docs/research/R9-model-routing.md
     status: todo
   - id: 3
+    description: >-
+      Find evidence on coding tasks for model routing and for
+      reasoning effort. The R4 papers cover chat and reasoning
+      benchmarks only. Cite it, or state that none exists
+    verify: >-
+      grep -Eqi 'coding task' docs/research/R9-model-routing.md
+      && grep -Eqi 'routing' docs/research/R9-model-routing.md
+    status: todo
+  - id: 4
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
       for every hypothesis assigned to R9 in planning-context.yaml,

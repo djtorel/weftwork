@@ -2,7 +2,7 @@
 story_id: e03s02
 title: R7 agent review and agent-answered decisions
 status: todo
-bcps: 3
+bcps: 5
 research_story: R7
 brief: docs/research/R7-review-and-decisions.md
 tasks:
@@ -16,6 +16,16 @@ tasks:
       R7 --sources
     status: todo
   - id: 2
+    description: >-
+      Search for sources on mutation testing in review (H14) and
+      on reversibility classes for auto-answered decisions (H13).
+      The R4 brief found none. Cite them, or state they are
+      unsourced
+    verify: >-
+      grep -Eqi 'mutation' docs/research/R7-review-and-decisions.md
+      && grep -Eqi 'reversib' docs/research/R7-review-and-decisions.md
+    status: todo
+  - id: 3
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
       for every hypothesis assigned to R7 in planning-context.yaml,

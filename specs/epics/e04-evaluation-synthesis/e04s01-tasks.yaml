@@ -19,13 +19,17 @@ tasks:
     description: >-
       Define the arms (plain, evidence gates, full ceremony,
       fixed tier, routed), the task set, and the measures
-      (pass rate, cost per accepted task)
+      (pass rate, cost per accepted task), plus patch correctness
+      against a stronger oracle than the project's own tests
+      and quality drift over long tasks
     verify: >-
       grep -Eqi 'plain' docs/research/R10-evaluation.md
       && grep -Eqi 'gates' docs/research/R10-evaluation.md
       && grep -Eqi 'ceremony' docs/research/R10-evaluation.md
       && grep -Eqi 'routed' docs/research/R10-evaluation.md
       && grep -Eqi 'cost per accepted' docs/research/R10-evaluation.md
+      && grep -Eqi 'oracle' docs/research/R10-evaluation.md
+      && grep -Eqi 'drift' docs/research/R10-evaluation.md
     status: todo
   - id: 3
     description: >-
