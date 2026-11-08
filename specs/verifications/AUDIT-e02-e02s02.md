@@ -1,7 +1,7 @@
 # Audit: e02s02 (R2 bigpowers in depth)
 
 Mode: full checklist, self-review by the coding agent. Refreshed after
-request-review round 3.
+request-review round 5.
 Diff: `git diff main...HEAD` on branch `e02s02-r2-bigpowers`. Run
 `git diff --stat main...HEAD` for current figures; this report does not
 pin them, because each review round changes them. No product code. One
@@ -12,7 +12,7 @@ new executable: `tools/check-gate-ignores.sh`. Churn ranking
 
 Result: **all items pass** or are N/A with a reason. This needed a
 regression test for BUG-002 after the first pass, and fixes from review
-rounds 1 to 3 (see the round sections).
+rounds 1 to 5 (see the round sections).
 
 ## Supply Chain & Security
 
@@ -205,6 +205,23 @@ Fixed:
   and 4 remain stale.
 - Handoff: release-branch timer origin corrected to e01s03.
 
+## Review round 5 (final)
+
+Reviewers A (94.4) and B (95.5): AND-gate PASS, no must-fix. Applied
+after the pass, without a further round (cap is 5):
+
+- Brief: a third hook limit (generated-path patterns are relative, so
+  the absolute paths Claude Code's edit tools send are not blocked;
+  the test lock reads `state.yaml` from the current directory). Method
+  names `hooks/pre-tool-use.sh` and build-epic's `started_at` line.
+  "Full manual UAT path (P1)" replaces "strictest". The on-demand skill
+  loading claim is scoped to this session's host, for R5 to check.
+- BUG-002: the first "0 findings" blind-spot run is marked as most
+  likely reading a stale trace matrix; the re-run result is stated.
+- Verify evidence and this report: round references brought to 5.
+- Handoff: gate-trace R1 will FAIL for e02s02 (no code tags); the e01
+  waiver does not cover it, so the owner must decide an e02 waiver.
+
 ## Red Flags (rationalizations caught)
 
 - I was tempted to call the regression-test item N/A because the fix is
@@ -221,5 +238,5 @@ Fixed:
 ## Verdict
 
 PASS. Preflight (`yamllint specs && bash scripts/validate-specs-yaml.sh
-&& bash tools/check-gate-ignores.sh`) exits 0. Next: request-review
-round 5.
+&& bash tools/check-gate-ignores.sh`) exits 0. Next: release-branch,
+after the owner re-confirms UAT steps 1, 3 and 4.

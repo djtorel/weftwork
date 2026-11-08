@@ -61,7 +61,10 @@ worktree. Gate outputs regenerated on every run are gitignored:
 `specs/verifications/ADVERSARIAL_LATEST.yaml`.
 
 e02s02 was moved from the worktree to the primary checkout; the gates
-then ran on the branch: blind spots 0 findings, completeness critic
+then ran on the branch: blind spots 0 findings (a run that most likely
+read a stale trace matrix; the round-4 re-run, with the matrix
+regenerated first, reports 0 HIGH and 1 MEDIUM, the e01 double-tag the
+e01 waiver records), completeness critic
 `BLOCKER=0 WARNING=0`.
 
 ## Verify

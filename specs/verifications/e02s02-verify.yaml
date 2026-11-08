@@ -119,7 +119,7 @@ stale_since:
   commit: 07d09ba
   reason: >-
     audit-code added tools/check-gate-ignores.sh and its CI and
-    Preflight wiring (07d09ba, fdfb40a); request-review rounds 1 to 3
+    Preflight wiring (07d09ba, fdfb40a); request-review rounds 1 to 5
     then changed the brief, the script and .yamllint.
   affected:
     - >-
