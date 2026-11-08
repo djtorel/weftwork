@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e02s03
 title: R3 workflow landscape
-status: in_progress
+status: done
 bcps: 3
 type: research
 context: infra
