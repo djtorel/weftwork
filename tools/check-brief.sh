@@ -184,6 +184,8 @@ cases_basics() {
   expect SC-e01s01-P1-04 2 'R0.*R1.*R2' "$T/ok.md" R99 || return 1
   expect SC-e01s01-P2-08 2 "$T/absent.md" "$T/absent.md" R1 || return 1
   expect usage 2 'Usage' || return 1
+  CTX="$T/none.yaml" expect ctx-unreadable 2 'cannot read' "$T/ok.md" R1 ||
+    return 1
 }
 
 cases_sources() {

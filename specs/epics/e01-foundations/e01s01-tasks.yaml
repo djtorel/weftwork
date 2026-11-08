@@ -4,6 +4,8 @@ story_id: e01s01
 title: 'R14 legacy retrospective (tracer: builds the checker)'
 status: done
 bcps: 3
+type: feat
+context: infra
 spec: e01s01-r14-legacy-retrospective.md
 research_story: R14
 brief: docs/research/R14-legacy-retrospective.md
