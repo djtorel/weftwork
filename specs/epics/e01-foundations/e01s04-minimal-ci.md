@@ -48,8 +48,9 @@ with `R` plus a digit but does not match `R<n>-<slug>.md` is an error.
 Other files, such as `SYNTHESIS.md`, are ignored.
 
 #### ADDED: CI workflow
-`.github/workflows/ci.yml` runs on `pull_request` and on `push` to
-`main`. Steps: checkout, Python, `pip install pyyaml yamllint`,
+`.github/workflows/ci.yml` runs on `pull_request`, on `push` to
+`main`, and on `workflow_dispatch` (so a throwaway branch can be run
+without a PR; see AC-e01s04-06). Steps: checkout, Python, `pip install pyyaml yamllint`,
 `yamllint specs`, `bash tools/check-brief.sh --selftest`,
 `bash tools/check-briefs.sh`.
 
@@ -88,17 +89,18 @@ Scenario: AC-e01s04-05 CI is green on a real PR
 
 Scenario: AC-e01s04-06 CI goes red on a broken brief
   Given a throwaway branch whose brief lacks a required section
+  When the workflow is dispatched on that branch
   Then the workflow run concludes failure
 ```
 
-## 5. Dependencies (slopcheck)
+## 4. Dependencies (slopcheck)
 
 - `actions/checkout`, `actions/setup-python`: GitHub-owned. `[OK]`.
   Confirm the current major version from each action's releases page
   before writing the file. Do not copy a version from memory.
 - `yamllint`, `PyYAML`: mature, already used locally. `[OK]`.
 
-## 6. Out of scope
+## 5. Out of scope
 
 - Branch protection, required checks, PR template (e05; each changes
   repo settings and needs owner approval).
@@ -106,7 +108,7 @@ Scenario: AC-e01s04-06 CI goes red on a broken brief
 - Porting `validate-specs-yaml.sh` into `tools/` (e05).
 - Link checking, caching, matrix builds.
 
-## 7. Risks
+## 6. Risks
 
 - **Draft briefs fail CI.** The gate checks every brief in
   `docs/research/`. A half-written brief on a PR goes red. Detect: red on
@@ -114,11 +116,15 @@ Scenario: AC-e01s04-06 CI goes red on a broken brief
   story.
 - **CI runs a subset of local preflight.** A passing CI does not prove
   `validate-specs-yaml.sh` passes. Local preflight stays required.
-- **Task 5 and 6 are outward-facing.** They push a branch and open a PR
-  on `djtorel/weftwork`. Each needs the owner's go-ahead.
+- **Tasks 4 and 5 are outward-facing.** They push branches, open a PR
+  and dispatch a workflow run on `djtorel/weftwork`. Each needs the
+  owner's go-ahead.
+- **`state.yaml` must pass `yamllint specs` before the first PR.** CI
+  runs that command; a red `state.yaml` makes AC-e01s04-05 fail.
 
 ## Verification Script (human)
 
 1. `bash tools/check-briefs.sh` — exit 0, one `OK` line per brief.
 2. Open the PR; the CI check shows green.
-3. Open the throwaway run; it shows red on the broken brief.
+3. Open the dispatched run on the throwaway branch; it shows red on
+   the broken brief.
