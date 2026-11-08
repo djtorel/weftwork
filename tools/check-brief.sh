@@ -131,6 +131,15 @@ selftest() {
   expect SC-e01s01-P1-04 2 'R0.*R1.*R2' "$T/ok.md" R99 || return 1
   expect SC-e01s01-P2-08 2 "$T/absent.md" "$T/absent.md" R1 || return 1
   expect usage 2 'Usage' || return 1
+
+  mutate "$T/noacc.md" '/\[S1\]/s/accessed: [0-9-]*//'
+  expect SC-e01s01-P1-03a 1 'S1' "$T/noacc.md" R1 || return 1
+  mutate "$T/nopub.md" '/\[S2\]/s/published: [0-9-]*//'
+  expect SC-e01s01-P1-03b 1 'S2' "$T/nopub.md" R1 || return 1
+  mutate "$T/undated.md" '/\[S2\]/s/published: [0-9-]*/published: undated/'
+  expect undated-warns 0 'warning: 1 undated' "$T/undated.md" R1 || return 1
+  sed -n '/^## Sources/,/^$/p' "$T/ok.md" > "$T/draft.md"
+  expect SC-e01s01-P2-07 0 'OK' "$T/draft.md" R1 --sources || return 1
   echo "check-brief: selftest OK"
 }
 
