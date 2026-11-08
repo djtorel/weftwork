@@ -145,3 +145,123 @@ These are single observations in one small project, not rates.
   for a 198-line brief; e01s03 shows 2 hours 34 minutes [S4]. I infer
   the fields mark the wrap-up of a story and not its work; I did not
   check how they are written.
+
+## Verdicts
+
+- H6: refined - bigpowers does both at once and in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1], but the only code that blocks a tool call is one git hook, `hooks/pre-tool-use.sh` [S1]; the gates the agent met in e02s02 were instructions it had to weigh against other rules, and one conflicted with the project's `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus a small hard block for git"; no source tests that this order beats the reverse, and [S7] finds that passing tests can overstate correctness, which argues for gates that run a check over gates that ask the agent to confirm.
+- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `lite` test plan in `state.yaml`, recorded waivers) [S1][S4], but the owner or the agent picks the tier and nothing scores risk; the research story was routed through the code-shaped red/green gate anyway, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony; the one hint is [S7], that unscaled test checks can mislead.
+- H10: refined - 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1] refute "small catalog" for this tool, and the package ships `search-skills` ("find the right skill from natural-language intent") and `using-bigpowers` ("which skill to call first") to cope with its own size [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here, though [S5] gives a reason to expect cost for long contexts and [S8] finds that extra context files raise cost without a general gain.
+
+None is `confirmed`: no source tests bigpowers, or its design choices, as
+a treatment. None is `refuted`: the tool's design is consistent with H6
+and H7 in shape, and only the "small catalog" half of H10 is
+contradicted, which is why that one is `refined` and not `confirmed`.
+
+## Implications for weftwork
+
+- Keep the one thing that works as a block: a hook that stops a tool
+  call (git safety, protected branches) [S1]. It does not depend on the
+  agent obeying prose. R13 should decide what else deserves that form.
+- A gate written as prose is a request. This session showed a request
+  and a repo rule disagreeing and the agent choosing [S4]. weftwork's
+  rules should have one owner, with the gate text checked against the
+  repo rules at install time. This is an inference from [S4], not a
+  measured rate.
+- Tier the work by what the change is. A research brief with a
+  `verify:` command needs the command and the evidence, not a test-only
+  commit [S4]. Tiers should come from a rule (for example, files
+  touched and file kind), not from the owner's memory of a skill list.
+- Do not ship a helper that rewrites the state file in a different
+  style from the one the repository lints [S1][S4]. State writes need an
+  atomic, format-preserving writer, or the state file should be written
+  by one tool only. R12 and R13 should treat this as a requirement.
+- Check documented commands against the real CLI. The `opensrc search`
+  drift [S4] is a test weftwork can run in CI: extract fenced commands
+  from skills and run `--help` on each binary.
+- Run Preflight where the work happens. A worktree that lacks the
+  project's scripts cannot run its own gate [S4]; weftwork's layout
+  should not depend on a gitignored symlink.
+- Keep one phase vocabulary and one count, generated from the files
+  [S1]. Three vocabularies and a stale count show hand-kept summaries
+  drift within a version.
+- Copy the handoff idea (each step names the next step and writes it to
+  one YAML file) [S1], and keep the cost visible: here it produced a
+  dirty tree after two skills [S4].
+- Do not copy the size or the release pace: 80 skills, and 13 releases
+  in four days to v2.96.0 [S1][S2]. A host adapter pinned to this would
+  go stale within a week.
+
+## Earns its place vs ceremony
+
+Verdict labels: earns its place, ceremony, unproven. A verdict rests on
+the cited source only. Where a source is missing the label is
+`unproven`, with the direction of any signal.
+
+- Git safety hook (`pre-tool-use.sh`: dangerous commands, Conventional
+  Commits, protected branches): unproven, positive signal. It is a hard
+  block and does not rely on the agent reading prose [S1]. I did not
+  see it fire, so I have no catch rate [S4].
+- "HARD GATE" prose in 74 of 80 skills: unproven. No data on how often
+  agents follow them; one observed conflict with a repo rule [S4].
+- `survey-context` (read specs, name a phase, suggest a skill): unproven.
+  It gave a correct next step in e02s02, but `state.yaml`'s own handoff
+  note already said the same thing [S4], so the information gain was
+  small and the cost included a dirty tree.
+- `bp-timing.sh` and the `metrics.skill_timings` block: ceremony. The
+  skill that starts the timer calls the result informational [S4], and
+  the helper caused BUG-001 and a dirty tree twice [S1][S4].
+- `kickoff-branch` (clean default branch, worktree, clean baseline):
+  unproven. The branch and worktree worked and kept `main` clean [S4];
+  the baseline step could not run here because the worktree lacks
+  `scripts/` [S4].
+- `develop-tdd` two-commit red/green policy on a doc-only story:
+  ceremony, in this case. There is no test file, and I skipped the
+  isolation check [S4]. For code it is unproven here: no code ran.
+- Per-task `verify:` commands in `eNNsYY-tasks.yaml`: earns its place,
+  on this project's evidence. Each task has a runnable check, three
+  of them gave exit 2 before the brief and exit 0 after, a before and
+  after result no prose gate in the session gave [S4]. This fits [S6]:
+  a check that runs beats the author's own confirmation. One caveat: the task 2
+  command (`grep` for two words) passed on the word "ceremony" already
+  in the intro, so it is weaker than the task suggests [S4].
+- Fresh-context reviewer (`request-review`, after `audit-code` self
+  review): unproven, positive signal. [S6] finds that models struggle
+  to correct themselves without external feedback, and a reviewer with a
+  clean context is an outside check, though it is still a model [S1].
+- Planning spine (`scope-work`, `slice-tasks`, `plan-work`) plus WSJF
+  release index: unproven. It produced the structure this research
+  program runs on, and the history shows 100 file touches under `specs/`
+  against 4 under `docs/research/` in 16 commits [S4]; I have no
+  comparison with a lighter plan.
+- A/B and ablation tests (`tests/test_ab_*.py`): unproven. They test
+  skill subsets against each other [S1], which is the right kind of
+  evidence, but I did not run them or read results.
+- "94 percent quality threshold" and the receipts page: unproven. The
+  README states the figure [S1]; I did not read how it is computed.
+- 80-skill catalog: ceremony for weftwork's purpose, by scope. Eighteen
+  Sustain skills (VPS hardening, Allure reports, a wiki) are not needed
+  to run coding agents on one repository [S1]. This is a scope
+  judgment, not a measurement.
+- Per-model routing: not present in what I read. [S9] shows routing cuts
+  cost; R9 owns the question, and bigpowers gives no input to it here.
+
+## Open questions
+
+- Does v2.96.0 still look like v2.93.3? There are 12 newer releases [S2];
+  a story could install the current release and recount skills, scripts
+  and hooks. Candidate new story, parallel to the one R1 proposed for GSD.
+- Is the `opensrc search` drift fixed upstream, and does any bigpowers
+  check test documented commands? I did not read `audit-compliance.sh`,
+  `validate-doctrine.sh` or `check-skill-links.py` [S1].
+- How often do agents skip or bend a "HARD GATE"? One session is not a
+  rate. R10 could count gate follow-through across logged runs; this
+  repository has the e01 and e02 session records.
+- What do the A/B ablation tests show about which skills change
+  outcomes? The tests exist [S1]; I did not run them. R10 should.
+- I read three skill bodies and part of a fourth out of 80. The other 76
+  may carry more or less ceremony than this sample suggests.
+- How do bigpowers and GSD [S10] differ in cost and outcome on the same
+  task? Only a run of both can answer that; R10 could design it.
+- I did not read the README sections on pi support and the MCP server, or
+  the `bigpowers-showcase` repository that the README offers as a worked
+  example [S1]. R5 owns host support.

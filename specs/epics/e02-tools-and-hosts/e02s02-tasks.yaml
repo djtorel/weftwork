@@ -32,4 +32,4 @@ tasks:
       vs ceremony verdicts, and open questions
     verify: bash tools/check-brief.sh docs/research/R2-bigpowers.md
       R2
-    status: todo
+    status: passing
