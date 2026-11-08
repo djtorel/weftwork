@@ -1,6 +1,6 @@
 ---
 story_id: e02s02
-verified_at: "2026-11-08T21:30:00Z"
+verified_at: "2026-11-08T21:27:05Z"
 verifier: verify-work
 risk: P1
 risk_source: >-
@@ -139,9 +139,22 @@ stale_since:
       preflight: now includes tools/check-gate-ignores.sh; see
       recheck below
   recheck:
-    command: >-
-      yamllint specs && bash scripts/validate-specs-yaml.sh &&
-      bash tools/check-gate-ignores.sh
-    exit_code: 0
-    note: "run after round 2 fixes, single run"
+    captured_at: "2026-11-08T22:02:42Z"
+    note: >-
+      Full automated re-run after review round 4 fixes, on the branch
+      in the primary checkout. Supersedes the earlier tests,
+      terminal_verdict, blind_spots, completeness_critic, adversarial
+      and preflight results. Only the manual steps listed in affected
+      remain stale.
+    results:
+      preflight: >-
+        exit 0 (yamllint specs && bash scripts/validate-specs-yaml.sh
+        && bash tools/check-gate-ignores.sh)
+      task_verifies: "tasks 1, 2 and 3 all exit 0"
+      blind_spots: >-
+        1 finding (0 HIGH, 1 MEDIUM): double-tag in the archived
+        e01s03-tasks.yaml, the blind spot the e01 gate-trace waiver
+        already records. MEDIUM does not block.
+      completeness_critic: "BLOCKER=0 WARNING=0 FILLED=1"
+      adversarial: "PASS"
 story_done: false
