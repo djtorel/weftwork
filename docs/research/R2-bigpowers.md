@@ -6,7 +6,7 @@ ceremony. Same questions as R1 [S10].
 
 Method: read the installed package at the path in [S1] read-only (file
 counts and line counts by `find`, `wc` and `grep`; the README top, the
-skill index, the git hooks, the test file heads), read upstream
+skill index, `hooks/pre-tool-use.sh`, the test file heads), read upstream
 metadata with `gh api` [S2][S3], and record what happened when this
 repository used the skills in its own sessions [S4]. I ran no bigpowers
 script for measurement, and I did not read most skill bodies end to
@@ -14,7 +14,8 @@ end. I read the five that ran in the sessions that produced this story
 (`survey-context`, `kickoff-branch`, `develop-tdd`, `verify-work`,
 `audit-code`; the harness loaded their text when they ran), the
 `opensrc` part of `research-first`, the
-risk-score section of `assess-impact`, and the timing parts of
+risk-score section of `assess-impact`, the `started_at` line of
+`build-epic`, and the timing parts of
 `stocktake-skills`. Every statement about what a
 skill does comes from that reading; none comes from a controlled run.
 The package lives outside this repository (`scripts/` here is a
@@ -62,9 +63,13 @@ that are not Conventional Commits, subjects over 72 characters and
 (`.cursor/rules/`, `.gemini/extensions/`, `.windsurf/`) and locks test
 files while `active_flow: fix_bug` is set and a recent commit is a
 `test:` red commit [S1]. That last rule is a TDD gate enforced in code.
-Two limits: the commit-message checks read only inline `-m` messages,
-and in `gemini` mode a denial prints a decision without exiting, so the
-script runs on [S1].
+Three limits: the commit-message checks read only inline `-m`
+messages; in `gemini` mode a denial prints a decision without exiting,
+so the script runs on; and the generated-path patterns are anchored
+relative paths (`^\.cursor/rules/`), so an absolute `file_path`, which
+is what this session's Claude Code edit tools send, is not blocked [S1]
+[S4]. The test lock matches absolute paths but reads `specs/state.yaml`
+from the current directory [S1].
 `hooks/pre/bash.sh`, `extensions/omp-hooks.ts` and
 `skills/guard-git/scripts/block-dangerous-git.sh` hold further blocking
 logic that I counted but did not read [S1]. This repository's
@@ -182,7 +187,7 @@ These are single observations in one small project, not rates.
 
 - H6: refined - bigpowers puts most gates in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1]; a smaller set is code, a hook that denies tool calls for git safety, commit format, edits to generated files and test edits during a `fix_bug` red phase [S1]; the hook is not registered in this repository's settings (user level unchecked), and the prose gates the agent met in e02s02 were instructions it weighed against other rules, one of them in conflict with `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus code blocks for a few narrow, mechanical rules, which only work once installed"; no source tests that this order beats the reverse. [S6] finds that models struggle to correct themselves without outside feedback, which favours gates that run a check over gates that ask the agent to confirm.
 - H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `test_plan` field in `state.yaml` that can be `waived`, recorded waivers) [S1][S4], and `verify-work` scales its depth by a declared `risk:` field (P0 to P3; P2 and P3 skip tests, the security scan and manual UAT; a missing field means P1) [S1]. bigpowers does score risk in one place: `assess-impact --lightweight`, run as `build-epic` step 2, has the agent assign a 1 to 10 score from fan-in, fan-out and recent churn, and a score above 7 requires a `grill-me` session [S1]. That score comes from a prose rubric the agent applies, gates only `grill-me`, and does not set the `risk:` field that `verify-work` reads, so verification depth stays declared. In e02s02 the story had no field, so the P1 default forced manual UAT on a doc-only story whose epic says P2, and the research story was routed through the code-shaped red/green gate, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony. [S7] does not help here: it shows that a too-narrow test run lets wrong patches pass, which warns against cutting checks, not for or against scaling them.
-- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") suggest the size needs coping with [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. Skills load on demand, so the whole catalog is not one long context; only the listing of names and descriptions is always present. [S5] finds that models use information in the middle of long contexts worse than at the start or end, a reason to expect a cost from long listings, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
+- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") suggest the size needs coping with [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. In this session's host, skills loaded on demand and only the listing of names and descriptions was always present [S4]; R5 should check other hosts. [S5] finds that models use information in the middle of long contexts worse than at the start or end, a reason to expect a cost from long listings, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
 
 None is `confirmed`: no source tests bigpowers, or its design choices, as
 a treatment. None is `refuted`: the tool's design is consistent with H6
@@ -247,7 +252,7 @@ the cited source only. Where a source is missing the label is
   agents follow them; one observed conflict with a repo rule [S4].
 - `verify-work` risk tiers (declared `risk:` P0 to P3, default P1):
   unproven, negative signal here. The story declared no field, so the
-  default forced the strictest manual path on a doc-only story whose
+  default forced the full manual UAT path (P1) on a doc-only story whose
   epic declares P2 [S1][S4].
 - `survey-context` (read specs, name a phase, suggest a skill): unproven.
   It gave a correct next step in e02s02, but `state.yaml`'s own handoff
