@@ -102,6 +102,7 @@ stories:
     tasks_failing: 0
   e02s02:
     status: in_progress
+    started_at: "2026-11-08T13:49:17-07:00"
     title: R2 bigpowers in depth
     bcps: 3
     epic: e02

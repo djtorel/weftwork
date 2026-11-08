@@ -74,7 +74,14 @@ regenerate the critic's inputs, which are gitignored and absent in a
 fresh clone.
 
 Regression test: `bash tools/check-gate-ignores.sh`, run in Preflight
-and CI. It fails if any gate output path stops being gitignored.
+and CI. It fails if a listed gate output path is tracked, is not
+ignored, is re-included by a `!` rule, or is ignored only by a global
+or `.git/info/exclude` rule. It checks six sample paths, so a rule
+narrowed to exactly those paths would still pass.
+
+Escape hatch: if the check blocks wrongly, the owner records a
+one-time waiver in `specs/state.yaml` `waivers` (what, why, date,
+scope), as for other gates.
 
 ## Recurrence
 
