@@ -1,34 +1,58 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s02
 title: 'R0 discovery sweep (output: candidate new stories)'
 status: todo
 bcps: 3
+type: research
+context: infra
+spec: e01s02-r0-discovery-sweep.md
 research_story: R0
 brief: docs/research/R0-discovery-sweep.md
 tasks:
   - id: 1
+    status: todo
+    risk: P2
+    scenarios: [AC-e01s02-01]
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates), seeded from the awesome lists, and cite papers
+      wherever literature exists on the topic
     verify: >-
       bash tools/check-brief.sh docs/research/R0-discovery-sweep.md
-      R0 --sources
-    status: todo
+      R0 --sources && grep -Eq
+      'subinium/awesome-claude-code|ithiria894|VoltAgent'
+      docs/research/R0-discovery-sweep.md
+    allure:
+      severity: normal
   - id: 2
-    description: >-
-      List candidate new stories, each with a one-line
-      reason and the hypotheses or goals it touches
-    verify: >-
-      grep -q '^## Candidate new stories' docs/research/R0-discovery-sweep.md
     status: todo
-  - id: 3
+    risk: P2
+    scenarios: [AC-e01s02-02]
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R0 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      List candidate new stories under '## Candidate new
+      stories', one bullet each: title, 'reason:' with a
+      source, 'touches:' with the hypotheses or goals. At
+      least one bullet; every bullet has both fields
+    verify: >-
+      test $(awk '$0=="## Candidate new stories"{f=1;next}
+      /^## /{f=0} f&&/^- /' docs/research/R0-discovery-sweep.md
+      | grep -Ec 'reason:.*touches:') -ge 1 && test $(awk
+      '$0=="## Candidate new stories"{f=1;next} /^## /{f=0}
+      f&&/^- /' docs/research/R0-discovery-sweep.md | grep -Evc
+      'reason:.*touches:') -eq 0
+    allure:
+      severity: normal
+  - id: 3
+    status: todo
+    risk: P1
+    scenarios: [AC-e01s02-03]
+    description: >-
+      R0 has no assigned hypotheses: write '## Verdicts' saying
+      'none assigned'. Add implications for weftwork,
+      earns-its-place vs ceremony verdicts, and open questions
     verify: >-
       bash tools/check-brief.sh docs/research/R0-discovery-sweep.md
-      R0
-    status: todo
+      R0 | grep -q 'none assigned'
+    allure:
+      severity: high

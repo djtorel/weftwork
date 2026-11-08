@@ -22,6 +22,7 @@ to an R-id (`hypotheses[].tested_by`).
 | SC-e01s01-P1-03 | A source with no access date or no publication date exits non-zero | P1 | Integration | same |
 | SC-e01s01-P1-04 | An unknown R-id exits non-zero with a message listing valid ids | P1 | Integration | same |
 | SC-e01s01-P1-05 | A verdict word outside confirmed, refined, refuted exits non-zero | P1 | Integration | same |
+| SC-e01s01-P1-10 | A verdict that cites a `[S<n>]` absent from Sources exits non-zero and names that hypothesis (added by plan-work, 2026-11-07: brief_rules require verdicts with sources) | P1 | Integration | same |
 | SC-e01s01-P2-06 | R0 and R11 have no assigned hypotheses: the checker says "none assigned" and does not pass silently | P2 | Integration | same |
 | SC-e01s01-P2-07 | `--sources` checks only the source section, so a draft brief passes task 1 | P2 | Integration | same |
 | SC-e01s01-P2-08 | A missing brief file exits non-zero with the path in the message | P2 | Unit | same |

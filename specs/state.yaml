@@ -8,7 +8,7 @@ phase: between-stories
 test_plan: lite
 vcs:
   kind: git
-  branch: docs/research-planning
+  branch: docs/e01s01-plan
 waivers:
   - what: security-review threat model for e01 (build-epic step 0)
     why: >-
@@ -18,9 +18,8 @@ waivers:
     date: 2026-11-07
     scope: e01 only
 handoff:
-  next_skill: plan-work
+  next_skill: audit-code
   note: >-
-    Next: plan-work for e01s01 (R14 retrospective and the brief
-    checker). Planning spine is done through slice-tasks and
-    plan-release. Conventions, glossary and the e01 lite test plan
-    exist. Start a new session first.
+    e01s01 verified; archive reason recorded in the R14 brief.
+    pi-flow-legacy is reference only (owner): do not touch it. Next:
+    plan-work for e01s02 and e01s03. Branch docs/e01s01-plan.

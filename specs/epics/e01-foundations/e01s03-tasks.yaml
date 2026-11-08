@@ -1,47 +1,85 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s03
 title: R4 research literature (recent agentic coding papers)
 status: todo
 bcps: 5
+type: research
+context: infra
+spec: e01s03-r4-research-literature.md
 research_story: R4
 brief: docs/research/R4-research-literature.md
+depends_on: [e01s02]
 tasks:
   - id: 1
+    status: todo
+    risk: P2
+    scenarios: [AC-e01s03-01]
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates). Cite papers: at least 8 sources carry an arXiv:
+      or doi: id, a floor of one paper per topic
     verify: >-
       bash tools/check-brief.sh docs/research/R4-research-literature.md
-      R4 --sources
-    status: todo
+      R4 --sources && test $(grep -Ec
+      '^- \[S[0-9]+\].*(arXiv:|doi:)'
+      docs/research/R4-research-literature.md) -ge 8
+    allure:
+      severity: normal
   - id: 2
-    description: >-
-      Paper table: each paper with year, venue, topic
-      and a verdict of applicable, interesting or not
-      relevant. Cover ACI, planning, multi-agent, self-verification,
-      review/debate, context engineering, routing, benchmarks
-    verify: >-
-      grep -Eqi 'applicable' docs/research/R4-research-literature.md
-      && grep -Eqi 'not relevant' docs/research/R4-research-literature.md
-      && grep -Eqi 'routing' docs/research/R4-research-literature.md
     status: todo
-  - id: 3
+    risk: P2
+    scenarios: [AC-e01s03-02]
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R4 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Paper table under '## Papers', header '| Paper | Year |
+      Venue | Topic | Verdict |'. Topics: ACI, planning,
+      multi-agent, self-verification, review/debate, context
+      engineering, routing, benchmarks; each at least once.
+      Verdict is applicable, interesting or not relevant
+    verify: >-
+      B=docs/research/R4-research-literature.md; grep -qiF '| ACI |'
+      $B && grep -qiF '| planning |' $B && grep -qiF '| multi-agent |'
+      $B && grep -qiF '| self-verification |' $B && grep -qiF
+      '| review/debate |' $B && grep -qiF '| context engineering |' $B
+      && grep -qiF '| routing |' $B && grep -qiF '| benchmarks |' $B
+      && test $(grep -E '^\|' $B | grep -Ev '^\| *(Paper|-)' |
+      grep -Eivc '\| *(applicable|interesting|not relevant) *\|$')
+      -eq 0 && test $(grep -E '^\|' $B | grep -Ev '^\| *(Paper|-)' |
+      grep -Evc '^\| [^|]*\[S[0-9]+\]') -eq 0
+    allure:
+      severity: normal
+  - id: 3
+    status: todo
+    risk: P1
+    scenarios: [AC-e01s03-03]
+    description: >-
+      Add a sourced verdict (confirmed/refined/refuted) for
+      H1, H2, H13, H14 and H18, plus implications for weftwork,
+      earns-its-place vs ceremony verdicts, and open questions
     verify: >-
       bash tools/check-brief.sh docs/research/R4-research-literature.md
       R4
-    status: todo
+    allure:
+      severity: high
   - id: 4
-    description: >-
-      Record the post-e01 re-plan checkpoint after the
-      R14, R0 and R4 briefs exist: which later stories
-      change, or 'no change', with reasons
-    verify: >-
-      test -f specs/checkpoints/e01-replan.md && grep
-      -Eqi 'no change|change' specs/checkpoints/e01-replan.md
     status: todo
+    risk: P1
+    scenarios: [AC-e01s03-04]
+    description: >-
+      After e01s02 is done, record the re-plan checkpoint in
+      specs/checkpoints/e01-replan.md: a 'Decision: no change'
+      or 'Decision: change' line and one section each for e02,
+      e03 and e04 giving the change or the reason for none.
+      Reads the R14, R0 and R4 briefs
+    verify: >-
+      bash tools/check-brief.sh docs/research/R14-legacy-retrospective.md
+      R14 && bash tools/check-brief.sh
+      docs/research/R0-discovery-sweep.md R0 && bash
+      tools/check-brief.sh docs/research/R4-research-literature.md
+      R4 && grep -Eq '^Decision: (no change|change)$'
+      specs/checkpoints/e01-replan.md && grep -q '^## e02'
+      specs/checkpoints/e01-replan.md && grep -q '^## e03'
+      specs/checkpoints/e01-replan.md && grep -q '^## e04'
+      specs/checkpoints/e01-replan.md
+    allure:
+      severity: high
