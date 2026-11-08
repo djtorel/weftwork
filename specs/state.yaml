@@ -35,7 +35,7 @@ waivers:
   date: 2026-11-08
   scope: e02 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: verify-work
   next_story: e02s02
   note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md, audit in specs/verifications/AUDIT-e02-e02s01.md.
     Next is e02s02 (R2 bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started
@@ -53,9 +53,9 @@ metrics:
       total_seconds: 70.0
       avg_seconds: 35.0
     develop-tdd:
-      calls: 2
-      total_seconds: 473.0
-      avg_seconds: 236.5
+      calls: 3
+      total_seconds: 905.0
+      avg_seconds: 301.6666666666667
     verify-work:
       calls: 1
       total_seconds: 63.0
