@@ -1,0 +1,19 @@
+# Machine-local agent tooling, not project source.
+# scripts/ is a symlink into this machine's global bigpowers install (mise node path).
+/scripts
+# pi per-project install (GSD copy, local agents/settings).
+.pi/
+# bigpowers dashboard artifacts and local config.
+.bigpowers/
+# Agent worktrees.
+.worktrees/
+
+# Secrets.
+.env
+.env.*
+
+node_modules/
+coverage/
+dist/
+*.log
+.DS_Store

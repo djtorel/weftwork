@@ -1,0 +1,329 @@
+---
+# specs/planning-context.yaml
+# Written by elaborate-spec (2026-11-07); consumed by scope-work and
+# slice-tasks. Phase: research program, scoped BEFORE the product spec.
+feature_name: weftwork research program (pre-spec)
+problem_statement: 'Agentic coding on complex projects is unreliable:
+  agents re-investigate the codebase for every task, self-certify
+  their work, drift from stack conventions, stall on questions
+  nobody is there to answer, and run one at a time when the work
+  could run in parallel. Existing workflows (GSD, bigpowers, Spec
+  Kit, BMAD, ...) each solve part of this, with uneven ceremony.
+  The end goal is an owned, host-agnostic agentic coding workflow
+  (pi and Claude Code first; room for opencode and others) plus
+  the tools, skills, and strategies that make complex software
+  reliable to build with agents, including parallel multi-agent
+  work and automated review/decisions later. Before any of that
+  is specified, a research program must test the ideas in docs/SEED-SPEC.md
+  against evidence and surface what we have not thought of.
+
+  '
+end_goal:
+  - 'Own agentic coding workflow: discuss -> research -> plan
+    -> build -> verify -> review -> integrate'
+  - 'Host-agnostic: pi and Claude Code first; designed to extend
+    to opencode, Codex CLI, Gemini CLI, etc.'
+  - Foundations that support multi-agent parallelism in one codebase
+    (state, handoffs, worktrees, merge conflicts)
+  - Agents review and decide automatically where safe; escalate
+    to the human otherwise
+  - 'Code quality is central: agents find and follow stack conventions,
+    write clean maintainable code (SOLID or whatever fits the
+    stack), keep docs current'
+  - 'Cost-efficient model routing: right model size and reasoning
+    effort for each job'
+success_criteria:
+  - Briefs R0-R14 exist in docs/research/, plus any stories R0
+    adds
+  - Every brief follows brief_rules below
+  - Every hypothesis H1-H20 has a verdict (confirmed / refined
+    / refuted) with sources
+  - Together the briefs give enough evidence to elaborate the
+    v1 spec and answer open_question_for_this_phase
+open_question_for_this_phase: 'What is the minimum useful first
+  release (SEED-SPEC §9)? Deliberately left open; this research
+  phase must answer it.
+
+  '
+constraints:
+  - 'Findings grounded in evidence: papers, measurements, dated
+    sources. Practitioner opinion alone is not enough where literature
+    exists'
+  - Research runs in waves, at most 2 agents at a time
+  - Portable artifacts only (markdown/YAML); briefs live in docs/research/
+  - docs/SEED-SPEC.md stays provisional until the briefs are in
+out_of_scope:
+  - Locking the architecture
+  - Choosing the v1 slice
+  - Writing any product code
+  - Hardening gates before the loop exists
+brief_rules:
+  location: docs/research/<ID>-<slug>.md
+  required:
+    - Dated sources (access date + publication date)
+    - Papers cited wherever literature exists on the topic
+    - 'Verdict on each assigned hypothesis: confirmed / refined
+      / refuted, with sources'
+    - Implications for weftwork
+    - Earns-its-place vs ceremony verdicts
+    - Open questions (and candidate new stories, if any)
+research_stories:
+  - id: R0
+    wave: 1
+    title: Discovery sweep
+    question: Wide, shallow scan for topics we have not thought
+      of; output is candidate new stories
+  - id: R4
+    wave: 1
+    title: Research literature
+    question: 'Recent (mostly 2024-2026) papers on agentic coding:
+      agent-computer interfaces, planning/decomposition, multi-agent
+      coding, self-verification and test-driven agents, agent
+      review/debate, context engineering, model routing/cascades
+      (RouteLLM, FrugalGPT, ...), what SWE-bench-style benchmarks
+      do and don''t show. Each paper gets a verdict: applicable
+      / interesting / not relevant'
+  - id: R14
+    wave: 1
+    title: pi-flow-legacy retrospective
+    question: 'What worked, what was ceremony, which gates caught
+      real failures, why it was archived. Sources: ../pi-flow-legacy/specs
+      (DECISIONS, OPEN-QUESTIONS, VERIFICATION, spikes, SPEC-01..04)'
+  - id: R1
+    wave: 2
+    title: GSD in depth
+    question: What it does; which parts earn their place, which
+      are ceremony
+  - id: R2
+    wave: 2
+    title: bigpowers in depth
+    question: Same questions as R1
+  - id: R3
+    wave: 2
+    title: Workflow landscape
+    question: Spec Kit, OpenSpec, BMAD, Kiro, Superpowers, Claude
+      Code/Codex/Cline/Aider practices, credible practitioner
+      post-mortems
+  - id: R5
+    wave: 2
+    title: Harness capability matrix
+    question: 'pi, Claude Code, opencode, Codex CLI, Gemini CLI:
+      hooks, subagents, skills, plugins, worktrees, ask-user path,
+      per-dispatch model and effort choice. The shared features
+      set the agnostic core'
+  - id: R6
+    wave: 3
+    title: Multi-agent in one codebase
+    question: Shared state, handoffs, worktrees, file scopes,
+      merge conflicts, integration
+  - id: R7
+    wave: 3
+    title: Agent review and agent-answered decisions
+    question: What works, avoiding self-agreement, when to escalate
+      to a human
+  - id: R8
+    wave: 3
+    title: Code quality and conventions
+    question: How agents find and follow stack conventions; which
+      principles fit (SOLID, functional core, ...); enforcement
+      by tools (linters, AST rules, architecture tests); keeping
+      docs current
+  - id: R9
+    wave: 3
+    title: Model routing and cost efficiency
+    question: Sizing tasks before dispatch (planner vs deterministic
+      signals); model size vs reasoning effort; escalate-on-failure
+      vs right-tier-up-front; default tier per role; token efficiency
+      (cache hits, context per dispatch, per-subsystem dispatch);
+      local models as a tier with limited parallelism; budgets
+  - id: R11
+    wave: 3
+    title: Security and permissions
+    question: Sandboxing, secrets, destructive commands, prompt
+      injection from repo content, for autonomous agents
+  - id: R12
+    wave: 3
+    title: Context and memory
+    question: Compaction, durable state, handoffs across long
+      sessions, avoiding re-investigation
+  - id: R13
+    wave: 3
+    title: Enforcement design
+    question: 'Advisory skills vs enforced hooks/engine gates;
+      ceremony scaled to risk; escape hatches; gate retirement;
+      model judgment vs deterministic checks. Also SEED §9: engine
+      CLI vs library, where state lives when two hosts share a
+      repo'
+  - id: R10
+    wave: 4
+    title: Evaluation
+    question: 'Small task set comparing: plain agent, agent +
+      evidence gates, full ceremony, and fixed-tier vs routed.
+      Measures pass rate and cost per accepted task; tests H1,
+      H4, H7, H17, H19, H20 directly'
+waves:
+  1:
+    - R0
+    - R4
+    - R14
+  2:
+    - R1
+    - R2
+    - R3
+    - R5
+  3:
+    - R6
+    - R7
+    - R8
+    - R9
+    - R11
+    - R12
+    - R13
+  4:
+    - R10
+hypotheses:
+  - id: H1
+    claim: 'Evidence over claims: done = declared command the
+      harness watched exit 0 after the last edit; self-reports
+      don''t count'
+    tested_by:
+      - R4
+      - R7
+      - R10
+  - id: H2
+    claim: 'Deterministic where possible: stack facts, commands,
+      gate verdicts come from code, not the model'
+    tested_by:
+      - R4
+      - R8
+      - R13
+  - id: H3
+    claim: 'We lint our own output: every command/version in AGENTS.md
+      resolves to the repo'
+    tested_by:
+      - R8
+      - R12
+  - id: H4
+    claim: 'Gates earn their keep: logged escape hatch, overridden
+      gates retired, no hard gate without an observed failure'
+    tested_by:
+      - R13
+      - R14
+  - id: H5
+    claim: 'Merge-safe generated files: hashed managed blocks;
+      human edits never overwritten'
+    tested_by:
+      - R8
+      - R13
+  - id: H6
+    claim: Workflow first, enforcement second
+    tested_by:
+      - R14
+      - R1
+      - R2
+  - id: H7
+    claim: Ceremony proportional to risk
+    tested_by:
+      - R1
+      - R2
+      - R3
+      - R13
+  - id: H8
+    claim: Portable artifacts (AGENTS.md, SKILL.md, plain YAML/markdown);
+      no bespoke schema
+    tested_by:
+      - R5
+  - id: H9
+    claim: 'Not a new runtime: compose hosts'' subagent/worktree
+      machinery via thin adapters'
+    tested_by:
+      - R5
+  - id: H10
+    claim: Small skill catalog, one entry command per host
+    tested_by:
+      - R1
+      - R2
+      - R3
+  - id: H11
+    claim: Dispatch per subsystem, not per task, to avoid re-learning
+      the codebase
+    tested_by:
+      - R6
+      - R12
+  - id: H12
+    claim: Disjoint file scopes checked before dispatch; integrator
+      re-verifies merged result
+    tested_by:
+      - R6
+  - id: H13
+    claim: Reviewer/decider use a different model and fresh context;
+      auto-answers limited by reversibility class
+    tested_by:
+      - R4
+      - R7
+  - id: H14
+    claim: Review checks evidence (tests run, mutations tried),
+      not opinion
+    tested_by:
+      - R4
+      - R7
+  - id: H15
+    claim: Tiers not model names; escalate after N failures; budget
+      ceilings stop the run; escalations logged
+    tested_by:
+      - R9
+  - id: H16
+    claim: 'Engine split: host-agnostic engine + thin adapters
+      + skills'
+    tested_by:
+      - R5
+      - R13
+  - id: H17
+    claim: Routing simple tasks to cheaper models keeps pass rate
+      while cutting cost per accepted task
+    tested_by:
+      - R9
+      - R10
+  - id: H18
+    claim: Reasoning effort is a separate, useful knob alongside
+      model size
+    tested_by:
+      - R4
+      - R9
+  - id: H19
+    claim: Start cheap and escalate on failure is cheaper overall
+      than picking the tier up front
+    tested_by:
+      - R9
+      - R10
+  - id: H20
+    claim: Deterministic task-sizing signals are reliable enough
+      to route on
+    tested_by:
+      - R9
+      - R10
+key_decisions:
+  - decision: Research program before product spec
+    rationale: Avoid locking in seed-spec ideas before testing
+      them; find what we haven't thought of
+  - decision: Seed principles become a hypothesis register, not
+      carried-forward rules
+    rationale: Nothing from the seed survives just because it
+      was written first, and nothing is dropped silently
+  - decision: Host-agnostic design; pi and Claude Code first
+    rationale: User wants room for opencode and other harnesses;
+      R5 sets the shared core
+  - decision: Papers are both a dedicated story (R4) and a rule
+      for every brief
+    rationale: Literature overlaps nearly every topic
+  - decision: R0, R4, R14 run first
+    rationale: They can add or reshape later stories; R14 is the
+      owner's own record of observed failures
+  - decision: R10 evaluation runs last and includes ceremony and
+      routing arms
+    rationale: Needs a candidate workflow; measures H1/H4/H7/H17/H19/H20
+      instead of arguing them
+  - decision: Model routing covers both model size and reasoning
+      effort, plus token efficiency
+    rationale: Owner's goal is lower cost/token usage without
+      losing quality
