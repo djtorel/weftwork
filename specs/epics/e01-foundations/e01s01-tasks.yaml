@@ -1,53 +1,132 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s01
 title: 'R14 legacy retrospective (tracer: builds the checker)'
 status: todo
 bcps: 3
+spec: e01s01-r14-legacy-retrospective.md
 research_story: R14
 brief: docs/research/R14-legacy-retrospective.md
 tasks:
   - id: 1
     status: todo
+    risk: P1
+    scenarios: [SC-e01s01-P1-01, SC-e01s01-P1-04, SC-e01s01-P2-08]
     description: >-
-      Write tools/check-brief.sh: given a brief, an R
-      id and optional --sources, checks required sections,
-      dated sources, and a verdict for each hypothesis
-      that planning-context.yaml assigns to the R id.
-      Include a --selftest that fails on a bad fixture
+      RED then GREEN. Write tools/check-brief.sh with --selftest
+      and fixture builders in mktemp -d. Cover: complete brief
+      passes (exit 0), unknown R-id (exit 2, lists valid ids),
+      missing file (exit 2, names path). Required-section
+      check included. The selftest asserts the passing fixture
+      exits 0 before any rejection case (anti-vacuity)
     verify: >-
       test -x tools/check-brief.sh && bash tools/check-brief.sh
       --selftest
+    allure:
+      severity: high
+      categories: ["checker", "integration"]
   - id: 2
-    description: >-
-      Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
-    verify: >-
-      bash tools/check-brief.sh docs/research/R14-legacy-retrospective.md
-      R14 --sources
     status: todo
+    risk: P1
+    scenarios: [SC-e01s01-P1-03, SC-e01s01-P2-07]
+    description: >-
+      Add the sources check and --sources mode. A source needs
+      accessed and published dates (published may be undated,
+      with a counted warning). --sources checks only the
+      Sources section
+    verify: >-
+      bash tools/check-brief.sh --selftest
+    allure:
+      severity: high
+      categories: ["checker", "integration"]
   - id: 3
-    description: >-
-      Read pi-flow-legacy DECISIONS, OPEN-QUESTIONS, VERIFICATION,
-      spikes and SPEC-01..04; cite each by path
-    verify: >-
-      grep -Eqi 'pi-flow-legacy/specs' docs/research/R14-legacy-retrospective.md
     status: todo
+    risk: P1
+    scenarios:
+      - SC-e01s01-P1-02
+      - SC-e01s01-P1-05
+      - SC-e01s01-P1-10
+      - SC-e01s01-P2-06
+    description: >-
+      Add the verdict check. Read hypotheses[].tested_by from
+      planning-context.yaml (PLANNING_CONTEXT overrides the
+      path). Fail and name a missing hypothesis, a verdict
+      word outside confirmed/refined/refuted, or a [S<n>]
+      that is not in Sources. Print "none assigned" for an
+      R-id with no hypotheses
+    verify: >-
+      bash tools/check-brief.sh --selftest
+    allure:
+      severity: high
+      categories: ["checker", "integration"]
   - id: 4
-    description: >-
-      For each gate: caught a real failure, never fired,
-      or was overridden; and why the project was archived
-    verify: >-
-      grep -Eqi 'caught' docs/research/R14-legacy-retrospective.md
-      && grep -Eqi 'archived' docs/research/R14-legacy-retrospective.md
     status: todo
+    risk: P2
+    scenarios: [SC-e01s01-P2-09]
+    description: >-
+      Selftest hygiene: it leaves the repo untouched and the
+      script is shellcheck clean. Add scenario SC-e01s01-P1-10
+      to specs/tech-architecture/e01-TEST_PLAN_LATEST.md
+    verify: >-
+      shellcheck tools/check-brief.sh
+      && B=$(git status --porcelain)
+      && bash tools/check-brief.sh --selftest
+      && test "$B" = "$(git status --porcelain)"
+      && grep -q 'SC-e01s01-P1-10'
+      specs/tech-architecture/e01-TEST_PLAN_LATEST.md
+    allure:
+      severity: normal
+      categories: ["checker", "hygiene"]
   - id: 5
-    description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R14 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
-    verify: >-
-      bash tools/check-brief.sh docs/research/R14-legacy-retrospective.md
-      R14
     status: todo
+    risk: P2
+    description: >-
+      Read the nine legacy inputs and cite each by path in
+      ## Sources, with accessed and published dates. Read
+      VERIFICATION.md in slices (1298 lines). Add papers
+      where literature exists on gates and verification.
+      Draft the brief skeleton with all five required headings
+    verify: >-
+      for f in DECISIONS OPEN-QUESTIONS VERIFICATION spikes
+      SPEC-01 SPEC-02 SPEC-03 SPEC-04;
+      do grep -q "pi-flow-legacy/specs/.*$f"
+      docs/research/R14-legacy-retrospective.md || exit 1; done
+      && bash tools/check-brief.sh
+      docs/research/R14-legacy-retrospective.md R14 --sources
+    allure:
+      severity: normal
+      categories: ["research", "R14"]
+  - id: 6
+    status: todo
+    risk: P2
+    description: >-
+      Write ## Gate review (one row per legacy gate, numbered
+      G1.., outcome exactly one of caught, never-fired,
+      overridden, each with an evidence cite) and
+      ## Why archived
+    verify: >-
+      F=docs/research/R14-legacy-retrospective.md
+      && grep -q '^## Gate review' $F
+      && grep -q '^## Why archived' $F
+      && grep -Eq '^\| *G1 ' $F
+      && test -z "$(awk '/^## Gate review/{g=1;next} /^## /{g=0}
+      g && /^\| *G[0-9]+ /' $F
+      | grep -Ev 'caught|never-fired|overridden')"
+    allure:
+      severity: normal
+      categories: ["research", "R14"]
+  - id: 7
+    status: todo
+    risk: P1
+    description: >-
+      Add verdicts for H4 and H6 (confirmed/refined/refuted,
+      each citing a [S<n>]), implications for weftwork,
+      earns-its-place vs ceremony verdicts, open questions.
+      Run the full preflight
+    verify: >-
+      bash tools/check-brief.sh
+      docs/research/R14-legacy-retrospective.md R14
+      && yamllint specs && bash scripts/validate-specs-yaml.sh
+    allure:
+      severity: high
+      categories: ["research", "R14"]
