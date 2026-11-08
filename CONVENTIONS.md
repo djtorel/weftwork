@@ -16,7 +16,7 @@ Add the code-style and test sections when the stack is chosen (see R8, `docs/res
 - NEVER work on `main`. Start every task on a feature branch.
 - A guard hook blocks direct commits to `main`.
 - NEVER commit, push, or land a branch without the owner's go-ahead.
-- Landing is currently a decision for the owner. No remote exists yet.
+- Landing is currently a decision for the owner.
 
 ## Boundaries
 

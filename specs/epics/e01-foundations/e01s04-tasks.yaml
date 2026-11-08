@@ -44,7 +44,7 @@ tasks:
     allure:
       severity: normal
   - id: 3
-    status: todo
+    status: done
     risk: P3
     description: >-
       Fix the stale remote text: AGENTS.md CI row names
