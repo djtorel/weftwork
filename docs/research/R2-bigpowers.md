@@ -10,10 +10,12 @@ skill index, the git hooks, the test file heads), read upstream
 metadata with `gh api` [S2][S3], and record what happened when this
 repository used the skills in its own sessions [S4]. I ran no bigpowers
 script for measurement, and I did not read most skill bodies end to
-end. I read the three that ran in the sessions that produced this story
-(`survey-context`, `kickoff-branch`, `develop-tdd`; the harness loaded
-their text when they ran, and `survey-context` called `bp-timing.sh`)
-and the `opensrc` part of `research-first`. Every statement about what a
+end. I read the five that ran in the sessions that produced this story
+(`survey-context`, `kickoff-branch`, `develop-tdd`, `verify-work`,
+`audit-code`; the harness loaded their text when they ran, and all but
+`kickoff-branch` called `bp-timing.sh`), the `opensrc` part of `research-first`, the
+risk-score section of `assess-impact`, and the timing parts of
+`stocktake-skills`. Every statement about what a
 skill does comes from that reading; none comes from a controlled run.
 The package lives outside this repository (`scripts/` here is a
 gitignored symlink into it), so [S1] is machine-local evidence; a reader
@@ -121,10 +123,11 @@ These are single observations in one small project, not rates.
   one file) and not an upstream report. The workaround stops the lint
   failure but not the dirty tree: `survey-context` left `state.yaml`
   modified (16 lines added, 19 removed, mostly re-wrapped text), and
-  `develop-tdd` modified it again [S4]. The timings have one consumer
+  `develop-tdd` modified it again [S4]. The timings have two consumers
   that I found: `validate-skill-catalog.sh` lists skills with zero calls
-  in `metrics.skill_timings` as archive candidates [S1]. That use is
-  for the bigpowers maintainers' catalog, not for this project.
+  in `metrics.skill_timings` as archive candidates, and
+  `stocktake-skills` reports on them [S1]. Both serve the bigpowers
+  maintainers' catalog, not this project.
 - **Rules from three layers disagree.** `kickoff-branch` offers to
   commit a dirty `specs/` tree on `main` as `chore(state): checkpoint
   before kickoff`; this repository's `CONVENTIONS.md` and `AGENTS.md`
@@ -138,8 +141,8 @@ These are single observations in one small project, not rates.
   (exit 127). I then ran the primary checkout's copies by absolute path.
   Those scripts set their repository root from the path they are
   called through
-  (`validate-specs-yaml.sh` line 15, `completeness-critic.sh`,
-  `skill-common.sh`), so they checked the primary checkout on `main`,
+  (`scripts/validate-specs-yaml.sh` line 15,
+  `scripts/lib/completeness-critic.sh`, `scripts/lib/skill-common.sh`), so they checked the primary checkout on `main`,
   not the worktree [S1]. My early "validator OK" was therefore not
   evidence for the story branch, and the blind-spot run wrote an
   untracked file into `main`. The story had to leave the worktree; the
@@ -176,8 +179,8 @@ These are single observations in one small project, not rates.
 ## Verdicts
 
 - H6: refined - bigpowers puts most gates in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1]; a smaller set is code, a hook that denies tool calls for git safety, commit format, edits to generated files and test edits during a `fix_bug` red phase [S1]; the hook is not registered in this repository's settings (user level unchecked), and the prose gates the agent met in e02s02 were instructions it weighed against other rules, one of them in conflict with `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus code blocks for a few narrow, mechanical rules, which only work once installed"; no source tests that this order beats the reverse. [S6] finds that models struggle to correct themselves without outside feedback, which favours gates that run a check over gates that ask the agent to confirm.
-- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `lite` test plan in `state.yaml`, recorded waivers) [S1][S4], and `verify-work` scales its depth by a declared `risk:` field (P0 to P3; P2 and P3 skip tests, the security scan and manual UAT; a missing field means P1) [S1]. Tiers are declared, not computed, and nothing scores risk. In e02s02 the story had no field, so the P1 default forced manual UAT on a doc-only story whose epic says P2, and the research story was routed through the code-shaped red/green gate, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony. [S7] does not help here: it shows that a too-narrow test run lets wrong patches pass, which warns against cutting checks, not for or against scaling them.
-- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") exist because of the size [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. Skills load on demand, so the whole catalog is not one long context; only the listing of names and descriptions is always present. [S5] finds that models use information in the middle of long contexts worse than at the start or end, a reason to expect a cost from long listings, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
+- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `test_plan` field in `state.yaml` that can be `waived`, recorded waivers) [S1][S4], and `verify-work` scales its depth by a declared `risk:` field (P0 to P3; P2 and P3 skip tests, the security scan and manual UAT; a missing field means P1) [S1]. bigpowers does score risk in one place: `assess-impact --lightweight`, run as `build-epic` step 2, has the agent assign a 1 to 10 score from fan-in, fan-out and recent churn, and a score above 7 requires a `grill-me` session [S1]. That score comes from a prose rubric the agent applies, gates only `grill-me`, and does not set the `risk:` field that `verify-work` reads, so verification depth stays declared. In e02s02 the story had no field, so the P1 default forced manual UAT on a doc-only story whose epic says P2, and the research story was routed through the code-shaped red/green gate, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony. [S7] does not help here: it shows that a too-narrow test run lets wrong patches pass, which warns against cutting checks, not for or against scaling them.
+- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") suggest the size needs coping with [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. Skills load on demand, so the whole catalog is not one long context; only the listing of names and descriptions is always present. [S5] finds that models use information in the middle of long contexts worse than at the start or end, a reason to expect a cost from long listings, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
 
 None is `confirmed`: no source tests bigpowers, or its design choices, as
 a treatment. None is `refuted`: the tool's design is consistent with H6
@@ -200,11 +203,13 @@ practice while its coping tools point the same way as the hypothesis.
   measured rate.
 - Tier the work by what the change is. A research brief with a
   `verify:` command needs the command and the evidence, not a test-only
-  commit [S4]. Tiers should come from a rule (for example, files
-  touched and file kind), not from the owner's memory of a skill list.
+  commit [S4]. bigpowers already computes a risk score
+  (`assess-impact`) but does not feed it to verification depth [S1].
+  weftwork should wire a computed score into the tier that sets
+  verification depth, rather than keep the two apart.
 - Do not ship a helper that rewrites the state file in a different
-  style from the one the repository lints [S1][S4]. State writes need an
-  atomic, format-preserving writer, or the state file should be written
+  style from the one the repository lints [S1][S4]. State writes need a
+  format-preserving writer, or the state file should be written
   by one tool only. R12 and R13 should treat this as a requirement.
 - Check documented commands against the real CLI. The `opensrc search`
   drift [S4] is a test weftwork can run in CI: extract fenced commands
@@ -247,7 +252,7 @@ the cited source only. Where a source is missing the label is
   note already said the same thing [S4], so the information gain was
   small and the cost included a dirty tree.
 - `bp-timing.sh` and the `metrics.skill_timings` block: unproven,
-  negative signal. Its one consumer that I found serves the bigpowers
+  negative signal. Its two consumers that I found serve the bigpowers
   catalog, not this project [S1], and the helper caused BUG-001 and left
   a dirty tree after most skill calls in this story [S1][S4].
 - `kickoff-branch` (clean default branch, worktree, clean baseline):
@@ -302,8 +307,8 @@ the cited source only. Where a source is missing the label is
 - Is the blocking hook registered anywhere for this project's agents?
   It is not in this repository's settings [S4]; I did not check
   user-level settings, which is outside the repository.
-- I read three skill bodies and part of a fourth out of 80. The other 76
-  may carry more or less ceremony than this sample suggests.
+- I read five skill bodies and parts of three more out of 80. The
+  others may carry more or less ceremony than this sample suggests.
 - How do bigpowers and GSD [S10] differ in cost and outcome on the same
   task? Only a run of both can answer that; R10 could design it.
 - I did not read the README sections on pi support and the MCP server, or
