@@ -12,8 +12,8 @@ repository used the skills in its own sessions [S4]. I ran no bigpowers
 script for measurement, and I did not read most skill bodies end to
 end. I read the five that ran in the sessions that produced this story
 (`survey-context`, `kickoff-branch`, `develop-tdd`, `verify-work`,
-`audit-code`; the harness loaded their text when they ran, and all but
-`kickoff-branch` called `bp-timing.sh`), the `opensrc` part of `research-first`, the
+`audit-code`; the harness loaded their text when they ran), the
+`opensrc` part of `research-first`, the
 risk-score section of `assess-impact`, and the timing parts of
 `stocktake-skills`. Every statement about what a
 skill does comes from that reading; none comes from a controlled run.
@@ -26,7 +26,7 @@ without it must use upstream [S2].
 - [S1] bigpowers local install, `/home/domtorr/.local/share/mise/installs/node/26.7.0/lib/node_modules/bigpowers` (`package.json` reads version 2.93.3; 2,103 files outside `node_modules`; 80 skill directories; `SKILL-INDEX.md`, `README.md`, `hooks/pre-tool-use.sh`, `scripts/`, `tests/`, `constitution.md`). "Published" is the v2.93.3 release date [S3] - accessed: 2026-11-08 published: 2026-11-04
 - [S2] danielvm-git/bigpowers, upstream repository metadata via `gh api repos/danielvm-git/bigpowers` (MIT; created 2026-04-24; last push 2026-11-08; 288 stars) and the release list (newest listed: v2.96.0, 2026-11-08), https://github.com/danielvm-git/bigpowers - accessed: 2026-11-08 published: 2026-11-08
 - [S3] danielvm-git/bigpowers release v2.93.3, `gh api repos/danielvm-git/bigpowers/releases/tags/v2.93.3` - accessed: 2026-11-08 published: 2026-11-04
-- [S4] weftwork first-hand record: `specs/bugs/BUG-001-state-yaml-lint-red.md`, `specs/state.yaml`, `specs/bugs/BUG-002-gates-skip-worktree.md`, `specs/execution-status.yaml`, `git log` (`main` at `8a7b1b1`, 16 commits), `specs/product/SCOPE_LATEST.yaml` (line 201), `.claude/settings.local.json` (machine-local), `npx opensrc --help` and `npx opensrc search lodash` (opensrc 0.7.3), and the survey-context, kickoff-branch and develop-tdd sessions for e02s02 - accessed: 2026-11-08 published: 2026-11-08
+- [S4] weftwork first-hand record: `specs/bugs/BUG-001-state-yaml-lint-red.md`, `specs/state.yaml`, `specs/bugs/BUG-002-gates-skip-worktree.md`, `specs/execution-status.yaml`, `git log` (`main` at `8a7b1b1`, 16 commits), `specs/product/SCOPE_LATEST.yaml` (line 201), `.claude/settings.local.json` (machine-local), `npx opensrc --help` and `npx opensrc search lodash` (opensrc 0.7.3), `specs/verifications/e02s02-verify.yaml`, `specs/epics/e02-tools-and-hosts/epic.yaml`, and the survey-context, kickoff-branch, develop-tdd, verify-work and audit-code sessions for e02s02 - accessed: 2026-11-08 published: 2026-11-08
 - [S5] Liu et al., "Lost in the Middle: How Language Models Use Long Contexts", TACL 2024, arXiv:2307.03172, https://arxiv.org/abs/2307.03172 (abstract and publication date read from the arXiv API) - accessed: 2026-11-08 published: 2023-07-06
 - [S6] Huang et al., "Large Language Models Cannot Self-Correct Reasoning Yet", ICLR 2024, arXiv:2310.01798, https://arxiv.org/abs/2310.01798 (as read in R4 [S8]) - accessed: 2026-11-08 published: 2023-10-03
 - [S7] Wang, Pradel and Liu, "Are 'Solved Issues' in SWE-bench Really Solved Correctly? An Empirical Study", ICSE 2026, arXiv:2503.15223, https://arxiv.org/abs/2503.15223 (as read in R4 [S18]) - accessed: 2026-11-08 published: 2025-03-19
@@ -50,7 +50,8 @@ Measured from [S1], by file count, line count and `grep`:
 
 The 80 skills (79 live; `define-success` is a 15-line tombstone) split by lifecycle phase as the generated skill index
 lists them [S1]: Discover 8, Design 7, Plan 9, Build 17, Verify 19,
-Release 2, Sustain 18. The README sells it as "a 6-phase lifecycle with
+Release 2, Sustain 18. Every skill declares a `model:` (49 sonnet, 24
+haiku, 7 opus) and an `effort:` in its frontmatter [S1]. The README sells it as "a 6-phase lifecycle with
 hard gates, a 94% quality threshold, and a YAML cockpit
 (`specs/state.yaml`)" for solo developers [S1]. Of the 80 skills, 74
 contain the words "HARD GATE" (150 mentions in all). Some gates are also
@@ -72,7 +73,7 @@ check user-level settings, which are outside the repository [S4].
 `CONVENTIONS.md` says "A guard hook blocks direct commits to `main`";
 whether that is this hook, registered at user level, is unchecked.
 
-The flow, from the three skills that ran here and the README [S1][S4]:
+The flow, from the skills that ran here and the README [S1][S4]:
 
 1. Discover: `survey-context` reads `specs/` and `CONVENTIONS.md`,
    names a phase and a next skill, and writes timing metrics to
@@ -172,9 +173,10 @@ These are single observations in one small project, not rates.
   does not show waste [S4].
 - **Timestamps that cannot be work time.** `execution-status.yaml` gives
   e02s01 a start of 13:31:19 and an end of 13:33:24, 2 minutes 5 seconds
-  for a 198-line brief; e01s03 shows 2 hours 34 minutes [S4]. I infer
-  the fields mark the wrap-up of a story and not its work; I did not
-  check how they are written.
+  for a 198-line brief; e01s03 shows 2 hours 34 minutes [S4]. `build-epic`
+  says to write `started_at` at story start [S1], so the short e02s01
+  interval points to `started_at` written late, at wrap-up, not to the
+  field's design.
 
 ## Verdicts
 
@@ -203,10 +205,10 @@ practice while its coping tools point the same way as the hypothesis.
   measured rate.
 - Tier the work by what the change is. A research brief with a
   `verify:` command needs the command and the evidence, not a test-only
-  commit [S4]. bigpowers already computes a risk score
-  (`assess-impact`) but does not feed it to verification depth [S1].
-  weftwork should wire a computed score into the tier that sets
-  verification depth, rather than keep the two apart.
+  commit [S4]. bigpowers already has the agent assign a risk score
+  (`assess-impact`, a prose rubric) but does not feed it to verification
+  depth [S1]. A candidate for R13 or R10 to test: compute the score in
+  code and let it set verification depth. No source here tests that.
 - Do not ship a helper that rewrites the state file in a different
   style from the one the repository lints [S1][S4]. State writes need a
   format-preserving writer, or the state file should be written
@@ -266,13 +268,15 @@ the cited source only. Where a source is missing the label is
 - Per-task `verify:` commands in `eNNsYY-tasks.yaml`: earns its place,
   on this project's evidence. Each task has a runnable check, three
   of them gave exit 2 before the brief and exit 0 after, a before and
-  after result no prose gate in the session gave [S4]. This fits [S6]:
-  a check that runs beats the author's own confirmation. One
+  after result no prose gate in the session gave [S4]. This fits [S6]
+  (reasoning tasks, not code): a check that runs beats the author's own
+  confirmation. One
   caveat: the task 2 command (`grep` for two words) passed on the word "ceremony" already
   in the intro, so it is weaker than the task suggests [S4].
 - Fresh-context reviewer (`request-review`, after `audit-code` self
   review): unproven, positive signal. [S6] finds that models struggle
-  to correct themselves without external feedback, and a reviewer with a
+  to correct themselves without external feedback (on reasoning tasks,
+  not code), and a reviewer with a
   clean context is an outside check, though it is still a model [S1].
 - Planning spine (`scope-work`, `slice-tasks`, `plan-work`) plus WSJF
   release index: unproven. It produced the structure this research
@@ -284,12 +288,17 @@ the cited source only. Where a source is missing the label is
   evidence, but I did not run them or read results.
 - "94 percent quality threshold" and the receipts page: unproven. The
   README states the figure [S1]; I did not read how it is computed.
-- 80-skill catalog: ceremony for weftwork's purpose, by scope. Eighteen
+- 80-skill catalog: unproven, negative signal for weftwork's purpose
+  (a scope judgment, not a sourced verdict). Eighteen
   Sustain skills (VPS hardening, a wiki, a visual dashboard) are not needed
   to run coding agents on one repository [S1]. This is a scope
   judgment, not a measurement.
-- Per-model routing: not present in what I read. [S9] shows routing can cut
-  cost at similar quality on general benchmarks, not coding; R9 owns the question, and bigpowers gives no input to it here.
+- Per-skill model routing: present as static frontmatter. Every
+  SKILL.md declares `model:` (49 sonnet, 24 haiku, 7 opus) and
+  `effort:` (76 standard, 4 light) [S1]. Unproven: whether a host honours
+  the field, and whether the cheaper models hold quality, is unmeasured
+  here. [S9] shows routing can cut cost at similar quality on general
+  benchmarks, not coding. R9 owns the question.
 
 ## Open questions
 
