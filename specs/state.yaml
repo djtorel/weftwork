@@ -1,5 +1,5 @@
 workflow_mode: solo-git
-active_flow: planning
+active_flow: build_epic
 active_epic: e01
 active_story: none
 phase: between-stories
@@ -15,12 +15,14 @@ waivers:
   date: 2026-11-07
   scope: e01 only
 handoff:
-  next_skill: kickoff-branch
-  note: 'e01s02 released via PR: docs/research/R0-discovery-sweep.md, 3 of 3 verifies
-    exit 0, owner confirmed the human check, 6 candidate stories for the e01s03 re-plan
-    checkpoint. Next: kickoff-branch, then develop-tdd for e01s03 (plan already exists;
-    task 4 needs the owner to pick R0 candidates). pi-flow-legacy is reference only
-    (owner): do not touch it.'
+  next_skill: build-epic
+  note: 'Start e01s03 (R4 research literature) in a FRESH session with build-epic, one
+    step per invocation, from step 1. The plan exists in specs/epics/e01-foundations,
+    so step 2 is a review. e01s01, e01s02 and e01s04 are done and released (PR #8 was
+    the last); they never ran verify-work or audit-code and the owner chose not to
+    redo them. Task 4 (re-plan checkpoint) needs the owner to pick from the 6 candidate
+    stories in docs/research/R0-discovery-sweep.md first. Flow Discipline rules are in
+    AGENTS.md. pi-flow-legacy is reference only (owner): do not touch it.'
 metrics:
   skill_timings:
     survey-context:
