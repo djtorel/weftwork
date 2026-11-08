@@ -238,5 +238,5 @@ after the pass, without a further round (cap is 5):
 ## Verdict
 
 PASS. Preflight (`yamllint specs && bash scripts/validate-specs-yaml.sh
-&& bash tools/check-gate-ignores.sh`) exits 0. Next: release-branch,
-after the owner re-confirms UAT steps 1, 3 and 4.
+&& bash tools/check-gate-ignores.sh`) exits 0. Next: release-branch.
+The owner re-confirmed UAT steps 1, 3 and 4 after round 5.

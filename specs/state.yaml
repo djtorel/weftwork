@@ -42,20 +42,16 @@ handoff:
     e02s02-r2-bigpowers, in the primary checkout (no worktree, see
     BUG-002). Brief docs/research/R2-bigpowers.md; evidence in
     specs/verifications/e02s02-verify.yaml and AUDIT-e02-e02s02.md.
-    request-review: round 1 failed (A 81.6, B 82.9), round 2 failed
-    (A 91.3, B 91.7), round 3 failed (A 87.8, B 90.9, one must-fix),
-    round 4 failed (A 95.3 with one must-fix, B 92.1), round 5 PASSED
-    (A 94.4, B 95.5, no must-fix); its should-fix items are applied.
-    Next is release-branch. Owner decisions first: gate-trace rule R1
-    will FAIL for e02s02 (no code tags) and the e01 waiver does not
-    cover it, so the owner must waive it for e02 or not. Then release-branch. Stale gate: verify-work evidence
-    predates review fixes (see stale_since in e02s02-verify.yaml); the
-    owner should re-confirm UAT steps 1, 3 and 4 (sources, verdicts,
-    first-hand findings) before release. The release-branch timer has
-    a stale _start from e01s03 (2026-11-08 12:26 local); its next end
-    will record hours. The
-    PR body must name that stale gate, the skipped develop-tdd
-    red-commit gate (doc-only story), and every gate passed or waived.
+    request-review passed on round 5 of 5 (A 94.4, B 95.5, no
+    must-fix); rounds 1 to 4 failed and their fixes are recorded in the
+    audit. The owner re-confirmed UAT steps 1, 3 and 4 after round 5,
+    so the verify evidence is current. Owner decision before
+    release-branch: gate-trace rule R1 will FAIL for e02s02 (no code
+    tags) and the e01 waiver does not cover it. The release-branch
+    timer has a stale _start from e01s03 (2026-11-08 12:26 local); its
+    next end will record hours. The PR body must name the skipped
+    develop-tdd red-commit gate (doc-only story), the gate-trace
+    outcome, and every gate passed or waived.
 metrics:
   skill_timings:
     survey-context:
