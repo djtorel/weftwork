@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e01s01
 title: 'R14 legacy retrospective (tracer: builds the checker)'
-status: todo
+status: done
 bcps: 3
 spec: e01s01-r14-legacy-retrospective.md
 research_story: R14
@@ -78,7 +78,7 @@ tasks:
       severity: normal
       categories: ["checker", "hygiene"]
   - id: 5
-    status: todo
+    status: done
     risk: P2
     description: >-
       Read the nine legacy inputs and cite each by path in
@@ -97,7 +97,7 @@ tasks:
       severity: normal
       categories: ["research", "R14"]
   - id: 6
-    status: todo
+    status: done
     risk: P2
     description: >-
       Write ## Gate review (one row per legacy gate, numbered
@@ -116,7 +116,7 @@ tasks:
       severity: normal
       categories: ["research", "R14"]
   - id: 7
-    status: todo
+    status: done
     risk: P1
     description: >-
       Add verdicts for H4 and H6 (confirmed/refined/refuted,

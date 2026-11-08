@@ -20,6 +20,7 @@ waivers:
 handoff:
   next_skill: develop-tdd
   note: >-
-    e01s01 tasks 1-4 done (tools/check-brief.sh, selftest green,
-    shellcheck clean). Tasks 5-7 remain: write the R14 brief from
-    ../pi-flow-legacy/specs. Branch docs/e01s01-plan, nothing pushed.
+    e01s01 done: checker (selftest green) and R14 brief pass
+    check-brief. Owner must confirm why pi-flow was archived (brief
+    says not recorded). Next: plan-work for e01s02 and e01s03, then
+    verify-work for e01s01. Branch docs/e01s01-plan, nothing pushed.
