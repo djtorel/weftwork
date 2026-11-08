@@ -1,18 +1,18 @@
 # Audit: e02s02 (R2 bigpowers in depth)
 
 Mode: full checklist, self-review by the coding agent. Refreshed after
-request-review round 1.
-Diff: `git diff main...HEAD` on branch `e02s02-r2-bigpowers` at
-`a425634`, 14 files, +699 / -42, before this report's own update. No
-product code. One new executable: `tools/check-gate-ignores.sh`.
-Churn ranking (`bp-churn-rank.sh`) top files: `specs/state.yaml`,
+request-review round 3.
+Diff: `git diff main...HEAD` on branch `e02s02-r2-bigpowers`. Run
+`git diff --stat main...HEAD` for current figures; this report does not
+pin them, because each review round changes them. No product code. One
+new executable: `tools/check-gate-ignores.sh`. Churn ranking
+(`bp-churn-rank.sh`) top files: `specs/state.yaml`,
 `specs/execution-status.yaml`,
 `specs/epics/e02-tools-and-hosts/e02s02-tasks.yaml`.
 
-Result: **all items pass** or are N/A with a reason. Two passes were
-needed: a regression test was added for BUG-002 after the first pass,
-and the round-1 review found further faults that are fixed (see
-"Review round 1").
+Result: **all items pass** or are N/A with a reason. This needed a
+regression test for BUG-002 after the first pass, and fixes from review
+rounds 1 to 3 (see the round sections).
 
 ## Supply Chain & Security
 
@@ -57,7 +57,7 @@ and the round-1 review found further faults that are fixed (see
   block, a 3-line Workspace Facts entry in AGENTS.md,
   `tools/check-gate-ignores.sh`, the Preflight row in AGENTS.md and
   CONVENTIONS.md, a CI step in `.github/workflows/ci.yml`,
-  `ignore-from-file: .gitignore` in `.yamllint`, and the bug record.
+  an ignore entry for the one YAML gate output in `.yamllint`, and the bug record.
 - ✓ BUG-001 record: one wording fix (three skipped rules, not two).
 - ✓ No speculative features.
 
@@ -153,6 +153,32 @@ subject; CONVENTIONS says tooling uses `chore`. The history is
 unpushed, but a squash merge replaces the subject, so it was not
 rewritten.
 
+## Review round 3
+
+Reviewers A (87.8) and B (90.9, one must-fix) failed the AND-gate.
+Fixed:
+
+- Must-fix: H7 said "nothing scores risk". `assess-impact
+  --lightweight` (build-epic step 2) scores risk 1 to 10 from fan-in,
+  fan-out and churn and gates `grill-me` above 7; it does not set the
+  `risk:` field verify-work reads. H7 and the tiering implication
+  rewritten.
+- Check script: a `!` re-include rule passed (both reviewers). It now
+  also requires `git check-ignore -q`. Shown red with a re-include
+  rule; earlier cases still behave.
+- Brief: method names the five skills that ran and the parts of three
+  more that were read; `stocktake-skills` added as a second timing
+  consumer; `test_plan` wording fixed (`waived` is the documented
+  value); "atomic" dropped; coping tools "suggest", not "exist because
+  of"; script paths given in full.
+- Verify evidence: `stale_since` set to `07d09ba`, reason corrected,
+  UAT steps 1 and 4 added to step 3 for owner re-confirmation; the
+  handoff note asks for all three.
+- BUG-002: regression scope and its six-sample limit stated; escape
+  hatch named (owner waiver in `state.yaml`).
+- `.yamllint`: list trimmed to the one YAML gate output.
+- `execution-status.yaml`: e02s02 `started_at` from the kickoff commit.
+
 ## Red Flags (rationalizations caught)
 
 - I was tempted to call the regression-test item N/A because the fix is
@@ -170,4 +196,4 @@ rewritten.
 
 PASS. Preflight (`yamllint specs && bash scripts/validate-specs-yaml.sh
 && bash tools/check-gate-ignores.sh`) exits 0. Next: request-review
-round 2.
+round 4.
