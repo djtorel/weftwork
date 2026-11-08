@@ -19,7 +19,9 @@ tasks:
     description: >-
       Compare a git-backed tracker with plain spec files
       against H8 (no bespoke schema). Read the R5 verdict
-      for H8 first
+      for H8 first. Compare the storage format only: where
+      state lives when two hosts share a repo is R13's
+      question
     verify: >-
       grep -Eqi 'git-backed' docs/research/R12-context-memory.md
       && grep -Eqi 'plain' docs/research/R12-context-memory.md
