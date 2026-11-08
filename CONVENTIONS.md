@@ -10,6 +10,10 @@ Add the code-style and test sections when the stack is chosen (see R8, `docs/res
 - Types: `feat` (minor), `fix` and `perf` (patch), `docs`, `chore`, `style`, `refactor`, `test` (no bump).
 - Research and planning work uses `docs`. Tooling uses `chore`.
 - NEVER add `Co-authored-by` or any AI attribution footer to a commit.
+- Every commit on a story branch carries a `Story: <story-id>` trailer, for
+  example `Story: e02s04`, after a blank line in the body. It is not an
+  attribution footer. `scripts/record-cycle-time.sh` attributes effort by
+  this trailer and refuses to record a story whose commits lack it.
 
 ## Git
 
