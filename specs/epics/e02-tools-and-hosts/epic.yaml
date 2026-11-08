@@ -17,7 +17,7 @@ stories:
   - id: e02s02
     title: R2 bigpowers in depth
     bcps: 3
-    status: in_progress
+    status: done
     tasks: e02s02-tasks.yaml
   - id: e02s03
     title: R3 workflow landscape
