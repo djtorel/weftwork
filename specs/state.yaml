@@ -1,14 +1,18 @@
 ---
 # Session state for bigpowers. Update through the skills, not by hand.
 workflow_mode: solo-git
-active_flow: planning
+active_flow: fix_bug
 active_epic: e01
 active_story: none
 phase: between-stories
 test_plan: lite
 vcs:
   kind: git
-  branch: docs/e01s01-plan
+  branch: docs/e01s04-plan-fixes
+bug_cycle:
+  bug: BUG-001
+  current_step: 5
+  completed_steps: [1, 2, 3, 4]
 waivers:
   - what: security-review threat model for e01 (build-epic step 0)
     why: >-
@@ -18,8 +22,16 @@ waivers:
     date: 2026-11-07
     scope: e01 only
 handoff:
-  next_skill: audit-code
+  next_skill: release-branch
   note: >-
-    e01s01 verified; archive reason recorded in the R14 brief.
-    pi-flow-legacy is reference only (owner): do not touch it. Next:
-    plan-work for e01s02 and e01s03. Branch docs/e01s01-plan.
+    BUG-001 fixed (state.yaml lint). e01s04 plan fixes are on branch
+    docs/e01s04-plan-fixes, uncommitted. pi-flow-legacy is reference
+    only (owner): do not touch it. After landing: clear bug_cycle, set
+    active_flow back to planning, then kickoff-branch and develop-tdd
+    for e01s04 task 1. Story order: e01s04, e01s02, e01s03.
+metrics:
+  skill_timings:
+    survey-context:
+      calls: 1
+      total_seconds: 25.0
+      avg_seconds: 25.0

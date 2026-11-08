@@ -1,0 +1,14 @@
+---
+# Default rules, except for specs/state.yaml. The bigpowers timing helper
+# (scripts/bp-timing.sh) rewrites that one file with PyYAML on every
+# skill call. PyYAML does not indent lists and can exceed 80 columns, so
+# the two rules it breaks skip that file only. See BUG-001.
+extends: default
+
+rules:
+  indentation:
+    ignore: |
+      specs/state.yaml
+  line-length:
+    ignore: |
+      specs/state.yaml
