@@ -4,7 +4,7 @@ title: Foundations (wave 1)
 wsjf: 6.25
 total_bcps: 14
 risk: P1
-status: in_progress
+status: done
 depends_on: []
 done_when: >-
   R14, R0 and R4 briefs pass tools/check-brief.sh and
@@ -31,5 +31,5 @@ stories:
     title: R4 research literature (recent agentic coding
       papers)
     bcps: 5
-    status: todo
+    status: done
     tasks: e01s03-tasks.yaml

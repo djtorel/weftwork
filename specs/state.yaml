@@ -14,15 +14,31 @@ waivers:
     which the owner named for R14.
   date: 2026-11-07
   scope: e01 only
+- what: plan-consistency-check MED findings (status ledger) for e01s01, e01s02, e01s04
+  why: The checker wants failing/passing task statuses. CONVENTIONS.md line 52 sets
+    todo, in_progress, done. The owner chose to keep the project convention. Whether
+    to adopt the ledger is a question for R2.
+  date: 2026-11-08
+  scope: e01 only
+- what: gate-trace FAIL (rule R1) for e01s03
+  why: R1 fails any undone story with 0 code tags. All 14 undone stories have
+    none, because the project has no code, so the gate cannot pass until code
+    exists. The owner chose to waive it for e01. Oracle links are 96 percent
+    heuristic; completeness-critic had 0 blockers; one MEDIUM blind spot
+    (double-tag in e01s03-tasks.yaml, from depends_on) was left as is.
+  date: 2026-11-08
+  scope: e01 only
 handoff:
-  next_skill: build-epic
-  note: 'Start e01s03 (R4 research literature) in a FRESH session with build-epic, one
-    step per invocation, from step 1. The plan exists in specs/epics/e01-foundations,
-    so step 2 is a review. e01s01, e01s02 and e01s04 are done and released (PR #8 was
-    the last); they never ran verify-work or audit-code and the owner chose not to
-    redo them. Task 4 (re-plan checkpoint) needs the owner to pick from the 6 candidate
-    stories in docs/research/R0-discovery-sweep.md first. Flow Discipline rules are in
-    AGENTS.md. pi-flow-legacy is reference only (owner): do not touch it.'
+  next_skill: kickoff-branch
+  next_story: e02s01
+  note: 'e01 is released: e01s01-e01s04 done. Start in a FRESH session. The owner
+    must decide first: run change-request to apply the e01 re-plan checkpoint
+    (specs/checkpoints/e01-replan.md) to release-plan.yaml and the e02-e04 capsules.
+    That adds one e03 story, folds candidates into R5, R9, R11 and R12, and adds work
+    to R7 and R10. It also archives the e01 capsule and fixes its capsule_dir, which
+    this release deferred. e02s01 (R1 GSD in depth) is provisional until then. Open
+    items: the owner has not yet picked the new story size; gate-trace is waived for
+    e01 only. pi-flow-legacy is reference only.'
 metrics:
   skill_timings:
     survey-context:
@@ -30,10 +46,23 @@ metrics:
       total_seconds: 25.0
       avg_seconds: 25.0
     plan-work:
-      calls: 1
-      total_seconds: 42.0
-      avg_seconds: 42.0
+      calls: 2
+      total_seconds: 70.0
+      avg_seconds: 35.0
     develop-tdd:
+      calls: 2
+      total_seconds: 473.0
+      avg_seconds: 236.5
+    verify-work:
       calls: 1
-      total_seconds: 287.0
-      avg_seconds: 287.0
+      total_seconds: 63.0
+      avg_seconds: 63.0
+    audit-code:
+      calls: 1
+      total_seconds: 53.0
+      avg_seconds: 53.0
+    release-branch:
+      calls: 0
+      total_seconds: 0
+      avg_seconds: 0
+      _start: '2026-11-08T19:26:11Z'

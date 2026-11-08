@@ -98,6 +98,10 @@ Required headings, in `brief_rules` order: `## Sources`, `## Verdicts`,
 `## Implications for weftwork`, `## Earns its place vs ceremony`,
 `## Open questions`, plus `## Papers` for the table.
 
+The paper table is the only table. Write `## Earns its place vs ceremony`
+as a bullet list, not a table as in R0 and R14: task 2's verify reads
+every `|` row in the brief as a paper row.
+
 ## 6. Out of scope
 
 - Judging claims in the papers beyond a verdict and a reason.

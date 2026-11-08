@@ -1,9 +1,9 @@
 ---
 development_status:
-  e01: backlog
+  e01: done
   e01s01: done
   e01s02: done
-  e01s03: backlog
+  e01s03: done
   e01s04: done
   e02: backlog
   e02s01: backlog
@@ -25,7 +25,7 @@ development_status:
 
 epics:
   e01:
-    status: backlog
+    status: done
     title: Foundations (wave 1)
     wsjf: 6.25
     total_bcps: 14
@@ -70,12 +70,14 @@ stories:
     tasks_failing: 0
     risk_max: P1
   e01s03:
-    status: backlog
+    status: done
+    started_at: "2026-11-08T10:09:22-07:00"
+    completed_at: "2026-11-08T12:43:56-07:00"
     title: R4 research literature (recent agentic coding papers)
     bcps: 5
     epic: e01
     tasks_total: 4
-    tasks_passing: 0
+    tasks_passing: 4
     tasks_failing: 0
     risk_max: P1
   e01s04:
