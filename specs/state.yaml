@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e02
-active_story: e02s01
-phase: story-built-awaiting-release
+active_story: none
+phase: between-stories
 test_plan: lite
 vcs:
   kind: git
-  branch: docs/e02s01-r1-gsd
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -29,19 +29,16 @@ waivers:
   date: 2026-11-08
   scope: e01 only
 handoff:
-  next_skill: commit-message
-  next_story: e02s01
-  note: 'e02s01 (R1 GSD) is built on branch docs/e02s01-r1-gsd and not
-    committed. Brief docs/research/R1-gsd.md passes check-brief.
-    audit-code --gate passed (specs/verifications/AUDIT-e02-e02s01.md).
-    Open: build-epic step 0 (threat model) was not run for e02 and the
-    e01 waiver covers e01 only; the owner must waive it or request it.
-    Owner go-ahead needed to commit. Then release-branch, and start
-    e02s02 in a fresh session.'
-epic_cycle:
-  story: e02s01
-  step: 7
-  audit_result: pass
+  next_skill: kickoff-branch
+  next_story: e02s02
+  note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md,
+    audit in specs/verifications/AUDIT-e02-e02s01.md. Next is e02s02 (R2
+    bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started in
+    a fresh session with kickoff-branch. Decide first: the e02 threat
+    model (build-epic step 0) was never written or waived; the e01 waiver
+    covers e01 only. R1 left open questions for R10 (catalog size,
+    verifier stub catch rate) and a candidate story to compare a current
+    GSD release with the local 1.30.0 copy.'
 metrics:
   skill_timings:
     survey-context:
