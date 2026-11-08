@@ -49,8 +49,8 @@ text: `## Sources`, `## Verdicts`, `## Implications for weftwork`,
 #### ADDED: `tools/check-brief.sh <brief> <R-id> [--sources]`
 
 - Exit 0: all checks pass. Exit 1: a check failed. Exit 2: usage error
-  (bad R-id, missing file). Every failure names the file, section and
-  hypothesis or source at fault.
+  (bad R-id, missing file). Every failure names the file and the
+  hypothesis, source or section at fault.
 - The R-id list and hypothesis assignment come from
   `specs/planning-context.yaml` (`research_stories[].id`,
   `hypotheses[].tested_by`). Env `PLANNING_CONTEXT` overrides the path
@@ -124,7 +124,7 @@ breaks one thing (test plan §2).
 
 ## 5. R14 brief content
 
-- Sources: the nine inputs named in `planning-context.yaml`, each cited
+- Sources: the eight inputs named in `planning-context.yaml`, each cited
   by path (`../pi-flow-legacy/specs/` DECISIONS, OPEN-QUESTIONS,
   VERIFICATION, spikes/, SPEC-01..04), plus papers where literature
   exists on gates or verification.

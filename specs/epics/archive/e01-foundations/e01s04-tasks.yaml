@@ -64,7 +64,7 @@ tasks:
       OUTWARD-FACING, needs owner go-ahead. Push the branch, open a
       PR, and wait for the checks. Every check concludes success
     verify: >-
-      gh pr checks --watch
+      gh pr checks 5
     allure:
       severity: normal
   - id: 5
