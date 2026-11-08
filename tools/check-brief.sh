@@ -163,6 +163,17 @@ selftest() {
   expect undated-warns 0 'warning: 1 undated' "$T/undated.md" R1 || return 1
   sed -n '/^## Sources/,/^$/p' "$T/ok.md" > "$T/draft.md"
   expect SC-e01s01-P2-07 0 'OK' "$T/draft.md" R1 --sources || return 1
+
+  mutate "$T/nov.md" '/^- H2:/d'
+  expect SC-e01s01-P1-02 1 'H2' "$T/nov.md" R1 || return 1
+  mutate "$T/word.md" '/^- H2:/s/refined/probably/'
+  expect SC-e01s01-P1-05 1 'H2' "$T/word.md" R1 || return 1
+  mutate "$T/ghost.md" '/^- H2:/s/\[S2\]/[S9]/'
+  expect SC-e01s01-P1-10 1 'H2.*S9' "$T/ghost.md" R1 || return 1
+  mutate "$T/nocite.md" '/^- H1:/s/ \[S1\]//'
+  expect verdict-no-source 1 'H1' "$T/nocite.md" R1 || return 1
+  expect SC-e01s01-P2-06 0 'none assigned' "$T/ok.md" R0 || return 1
+  expect other-rid-missing-H3 1 'H3' "$T/ok.md" R2 || return 1
   echo "check-brief: selftest OK"
 }
 
