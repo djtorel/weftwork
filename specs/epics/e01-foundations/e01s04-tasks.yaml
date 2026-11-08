@@ -1,0 +1,82 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+story_id: e01s04
+title: Minimal CI (GitHub Actions)
+status: todo
+bcps: 3
+type: chore
+context: infra
+spec: e01s04-minimal-ci.md
+tasks:
+  - id: 1
+    status: todo
+    risk: P1
+    scenarios: [AC-e01s04-01, AC-e01s04-02, AC-e01s04-03, AC-e01s04-04]
+    description: >-
+      RED then GREEN. Write tools/check-briefs.sh and cover it in a
+      selftest built in mktemp -d (never inside the repo). The
+      passing fixture exits 0 first (anti-vacuity); then break one
+      thing per case: a bad brief (exit 1, names it), a mis-named
+      R7_notes.md (exit 1), an empty set (exit 1). SYNTHESIS.md is
+      ignored
+    verify: >-
+      test -x tools/check-briefs.sh && bash tools/check-briefs.sh
+      --selftest && bash tools/check-briefs.sh
+    allure:
+      severity: high
+  - id: 2
+    status: todo
+    risk: P2
+    description: >-
+      Write .github/workflows/ci.yml: triggers pull_request and push
+      to main; steps checkout, setup-python, pip install pyyaml
+      yamllint, yamllint specs, check-brief.sh --selftest,
+      check-briefs.sh. Confirm current action majors first
+    verify: >-
+      yamllint .github/workflows/ci.yml && python3 -I -c "import yaml;
+      d=yaml.safe_load(open('.github/workflows/ci.yml'));
+      t=d.get(True,d.get('on'));
+      assert 'pull_request' in t and 'push' in t" && grep -q
+      'check-briefs.sh' .github/workflows/ci.yml && grep -q
+      'yamllint specs' .github/workflows/ci.yml
+    allure:
+      severity: normal
+  - id: 3
+    status: todo
+    risk: P3
+    description: >-
+      Fix the stale remote text: AGENTS.md CI row names
+      .github/workflows/ci.yml; CONVENTIONS.md drops 'No remote
+      exists yet'. Edit AGENTS.md only (CLAUDE.md is a symlink)
+    verify: >-
+      ! grep -q 'no remote yet' AGENTS.md && ! grep -q
+      'No remote exists yet' CONVENTIONS.md && grep -q
+      'ci.yml' AGENTS.md
+    allure:
+      severity: minor
+  - id: 4
+    status: todo
+    risk: P2
+    scenarios: [AC-e01s04-05]
+    description: >-
+      OUTWARD-FACING, needs owner go-ahead. Push the branch, open a
+      PR, and wait for the checks. Every check concludes success
+    verify: >-
+      gh pr checks --watch
+    allure:
+      severity: normal
+  - id: 5
+    status: todo
+    risk: P2
+    scenarios: [AC-e01s04-06]
+    description: >-
+      OUTWARD-FACING, needs owner go-ahead. Anti-vacuity: push a
+      throwaway branch ci-negative-test whose brief lacks one
+      required section; the run must conclude failure. Then delete
+      the throwaway branch (remote and local) and never open a PR
+      from it
+    verify: >-
+      test "$(gh run list --branch ci-negative-test --limit 1 --json
+      conclusion --jq '.[0].conclusion')" = failure
+    allure:
+      severity: high

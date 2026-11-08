@@ -1,0 +1,17 @@
+---
+id: e05
+title: Repository and environment setup (wave 5)
+wsjf: 2.5
+total_bcps: 8
+risk: P2
+status: todo
+depends_on:
+  - e04
+done_when: >-
+  main is protected with the CI check required, a PR template carries
+  the provenance marker, and one command sets up the toolchain
+stories: []
+# Candidate stories, to be sliced with slice-tasks when e04 is done:
+#   GitHub settings (protect main, required check, PR template)
+#   Environment setup (one command installs yamllint and PyYAML)
+#   Port validate-specs-yaml.sh into tools/ so CI can run it
