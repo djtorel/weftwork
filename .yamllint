@@ -6,15 +6,12 @@
 # See BUG-001.
 extends: default
 
-# Gate outputs are gitignored and regenerated; do not lint them.
-# Listed here, not via ignore-from-file, which crashes when yamllint
-# runs from a subdirectory. All paths in this file match from the
-# repository root, so run yamllint there, as Preflight does. Keep in
-# step with .gitignore (BUG-002).
+# The one gitignored gate output that is YAML; yamllint skips the
+# others (JSON, Markdown) by default. Listed here, not via
+# ignore-from-file, which crashes when yamllint runs from a
+# subdirectory. All paths in this file match from the repository root,
+# so run yamllint there, as Preflight does (BUG-002).
 ignore: |
-  specs/blind-spots.json
-  specs/traceability-matrix.json
-  specs/codebase-wiki/
   specs/verifications/ADVERSARIAL_LATEST.yaml
 
 rules:

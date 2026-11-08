@@ -28,9 +28,11 @@ for p in "${PATHS[@]}"; do
   if git ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then
     echo "FAIL $p: gate output is tracked; run git rm --cached" >&2
     rc=1
-  elif [[ $(git check-ignore -v -- "$p" | cut -d: -f1) != .gitignore ]]; then
-    # -v names the matching file; a global or .git/info/exclude match
-    # would pass here but not in CI.
+  elif ! git check-ignore -q -- "$p" ||
+    [[ $(git check-ignore -v -- "$p" | cut -d: -f1) != .gitignore ]]; then
+    # -q fails on a "!" re-include rule (-v alone exits 0 for it). -v
+    # names the matching file: a global or .git/info/exclude match would
+    # pass here but not in CI. Only the root .gitignore counts.
     echo "FAIL $p: gate output is not ignored by .gitignore (see BUG-002)" >&2
     rc=1
   fi
