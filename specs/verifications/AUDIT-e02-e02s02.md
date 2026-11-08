@@ -179,6 +179,32 @@ Fixed:
 - `.yamllint`: list trimmed to the one YAML gate output.
 - `execution-status.yaml`: e02s02 `started_at` from the kickoff commit.
 
+## Review round 4
+
+Reviewers A (95.3, one must-fix) and B (92.1) failed the AND-gate.
+Fixed:
+
+- Must-fix: the brief said per-model routing was absent. Every
+  SKILL.md declares `model:` (49 sonnet, 24 haiku, 7 opus) and
+  `effort:`; the overview and the earns-its-place entry now say so.
+- The tiering implication no longer says bigpowers "computes" a risk
+  score (it is a prose rubric the agent applies), and wiring a computed
+  score into verification depth is a candidate to test, not a
+  direction.
+- [S4] now lists the verify-work and audit-code sessions,
+  `e02s02-verify.yaml` and `epic.yaml`; "the three skills that ran"
+  corrected. The claim about which skills called `bp-timing.sh`
+  dropped (audit-code's text has no timing line, yet this run timed it).
+- [S6] uses carry its "reasoning tasks, not code" limit. The catalog
+  verdict is labelled a scope judgment. The timestamp finding cites
+  build-epic's `started_at` rule.
+- Verify evidence: `verified_at` set to the real capture time; a full
+  automated re-run recorded (Preflight, task verifies, blind spots,
+  critic, adversarial). Blind spots now report one MEDIUM finding, the
+  e01 double-tag the e01 waiver records. Only manual UAT steps 1, 3
+  and 4 remain stale.
+- Handoff: release-branch timer origin corrected to e01s03.
+
 ## Red Flags (rationalizations caught)
 
 - I was tempted to call the regression-test item N/A because the fix is
@@ -196,4 +222,4 @@ Fixed:
 
 PASS. Preflight (`yamllint specs && bash scripts/validate-specs-yaml.sh
 && bash tools/check-gate-ignores.sh`) exits 0. Next: request-review
-round 4.
+round 5.
