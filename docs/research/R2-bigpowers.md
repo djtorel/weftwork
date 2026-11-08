@@ -24,8 +24,8 @@ without it must use upstream [S2].
 - [S1] bigpowers local install, `/home/domtorr/.local/share/mise/installs/node/26.7.0/lib/node_modules/bigpowers` (`package.json` reads version 2.93.3; 2,103 files outside `node_modules`; 80 skill directories; `SKILL-INDEX.md`, `README.md`, `hooks/pre-tool-use.sh`, `scripts/`, `tests/`, `constitution.md`). "Published" is the v2.93.3 release date [S3] - accessed: 2026-11-08 published: 2026-11-04
 - [S2] danielvm-git/bigpowers, upstream repository metadata via `gh api repos/danielvm-git/bigpowers` (MIT; created 2026-04-24; last push 2026-11-08; 288 stars) and the release list (newest listed: v2.96.0, 2026-11-08), https://github.com/danielvm-git/bigpowers - accessed: 2026-11-08 published: 2026-11-08
 - [S3] danielvm-git/bigpowers release v2.93.3, `gh api repos/danielvm-git/bigpowers/releases/tags/v2.93.3` - accessed: 2026-11-08 published: 2026-11-04
-- [S4] weftwork first-hand record: `specs/bugs/BUG-001-state-yaml-lint-red.md`, `specs/state.yaml`, `specs/bugs/BUG-002-gates-skip-worktree.md`, `specs/execution-status.yaml`, `git log` (16 commits at HEAD `8a7b1b1`), `npx opensrc --help` and `npx opensrc search lodash` (opensrc 0.7.3), and the survey-context, kickoff-branch and develop-tdd sessions for e02s02 - accessed: 2026-11-08 published: 2026-11-08
-- [S5] Liu et al., "Lost in the Middle: How Language Models Use Long Contexts", TACL 2024, arXiv:2307.03172, https://arxiv.org/abs/2307.03172 (as cited in R1 [S4]; verdict rests on the abstract, not re-read here) - accessed: 2026-11-08 published: 2023-07-06
+- [S4] weftwork first-hand record: `specs/bugs/BUG-001-state-yaml-lint-red.md`, `specs/state.yaml`, `specs/bugs/BUG-002-gates-skip-worktree.md`, `specs/execution-status.yaml`, `git log` (`main` at `8a7b1b1`, 16 commits), `specs/product/SCOPE_LATEST.yaml` (line 201), `.claude/settings.local.json` (machine-local), `npx opensrc --help` and `npx opensrc search lodash` (opensrc 0.7.3), and the survey-context, kickoff-branch and develop-tdd sessions for e02s02 - accessed: 2026-11-08 published: 2026-11-08
+- [S5] Liu et al., "Lost in the Middle: How Language Models Use Long Contexts", TACL 2024, arXiv:2307.03172, https://arxiv.org/abs/2307.03172 (abstract and publication date read from the arXiv API) - accessed: 2026-11-08 published: 2023-07-06
 - [S6] Huang et al., "Large Language Models Cannot Self-Correct Reasoning Yet", ICLR 2024, arXiv:2310.01798, https://arxiv.org/abs/2310.01798 (as read in R4 [S8]) - accessed: 2026-11-08 published: 2023-10-03
 - [S7] Wang, Pradel and Liu, "Are 'Solved Issues' in SWE-bench Really Solved Correctly? An Empirical Study", ICSE 2026, arXiv:2503.15223, https://arxiv.org/abs/2503.15223 (as read in R4 [S18]) - accessed: 2026-11-08 published: 2025-03-19
 - [S8] Gloaguen et al., "Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?", arXiv:2602.11988, https://arxiv.org/abs/2602.11988 (latest version, v3, as read in R4 [S14]) - accessed: 2026-11-08 published: 2026-02-12
@@ -46,7 +46,7 @@ Measured from [S1], by file count, line count and `grep`:
 | host extension (`extensions/omp-hooks.ts`) | 1 file | 607 lines |
 | profiles, kernel, templates, docs | 4, 3, 1, 5 files | not counted |
 
-The 80 skills split by lifecycle phase as the generated skill index
+The 80 skills (79 live; `define-success` is a 15-line tombstone) split by lifecycle phase as the generated skill index
 lists them [S1]: Discover 8, Design 7, Plan 9, Build 17, Verify 19,
 Release 2, Sustain 18. The README sells it as "a 6-phase lifecycle with
 hard gates, a 94% quality threshold, and a YAML cockpit
@@ -59,11 +59,16 @@ that are not Conventional Commits, subjects over 72 characters and
 (`.cursor/rules/`, `.gemini/extensions/`, `.windsurf/`) and locks test
 files while `active_flow: fix_bug` is set and a recent commit is a
 `test:` red commit [S1]. That last rule is a TDD gate enforced in code.
+Two limits: the commit-message checks read only inline `-m` messages,
+and in `gemini` mode a denial prints a decision without exiting, so the
+script runs on [S1].
 `hooks/pre/bash.sh`, `extensions/omp-hooks.ts` and
 `skills/guard-git/scripts/block-dangerous-git.sh` hold further blocking
 logic that I counted but did not read [S1]. This repository's
 `.claude/settings.local.json` does not register the hook; I did not
-check user-level settings [S4].
+check user-level settings, which are outside the repository [S4].
+`CONVENTIONS.md` says "A guard hook blocks direct commits to `main`";
+whether that is this hook, registered at user level, is unchecked.
 
 The flow, from the three skills that ran here and the README [S1][S4]:
 
@@ -110,8 +115,8 @@ These are single observations in one small project, not rates.
   80 [S1].
 - **The timing helper dirties the tree and breaks lint.**
   `scripts/bp-timing.sh` rewrites `state.yaml` with `yaml.dump` (lines
-  40 and 68), which drops the `---` start and the comments and does not
-  indent sequences or wrap lines [S1]; this is BUG-001 [S4]. The owner
+  40 and 68), which drops the `---` start and the comments, does not
+  indent sequences, and re-wraps long scalars past 80 columns [S1]; this is BUG-001 [S4]. The owner
   chose a local workaround (a `.yamllint` that skips three rules for that
   one file) and not an upstream report. The workaround stops the lint
   failure but not the dirty tree: `survey-context` left `state.yaml`
@@ -124,20 +129,24 @@ These are single observations in one small project, not rates.
   commit a dirty `specs/` tree on `main` as `chore(state): checkpoint
   before kickoff`; this repository's `CONVENTIONS.md` and `AGENTS.md`
   say never commit to `main` [S4]. The agent had to pick. I put the
-  commit on the new branch and told the owner [S4].
+  commit on the new branch and told the owner [S4]. The skill also
+  conflicts with itself: its HARD GATE forbids direct Git work on
+  `main`, while its checkpoint commit runs on the default branch [S1].
 - **The kickoff worktree could not run the gates (BUG-002).**
   `scripts/` is a gitignored symlink, so a new worktree has none:
   `bash scripts/validate-specs-yaml.sh` there fails with "No such file"
   (exit 127). I then ran the primary checkout's copies by absolute path.
-  Those scripts set their repository root from their own path
+  Those scripts set their repository root from the path they are
+  called through
   (`validate-specs-yaml.sh` line 15, `completeness-critic.sh`,
   `skill-common.sh`), so they checked the primary checkout on `main`,
   not the worktree [S1]. My early "validator OK" was therefore not
   evidence for the story branch, and the blind-spot run wrote an
   untracked file into `main`. The story had to leave the worktree; the
   gates then ran on the branch in the primary checkout [S4]. The
-  skill's step 4 says to run Preflight in the worktree, which this
-  layout cannot do [S4].
+  skill's "Verify clean baseline" step (one of two steps headed "4.")
+  runs Preflight after creating the worktree, which this layout cannot
+  do [S1][S4].
 - **Three phase vocabularies.** `survey-context` names a 6-phase loop
   (Discover, Elaborate, Plan, Build, Verify, Release) and then maps the
   project onto a table of ten labels (Discover, Design, Plan, Initiate,
@@ -166,9 +175,9 @@ These are single observations in one small project, not rates.
 
 ## Verdicts
 
-- H6: refined - bigpowers puts most gates in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1]; a smaller set is code, a hook that denies tool calls for git safety, commit format, edits to generated files and test edits during a `fix_bug` red phase [S1]; the hook is not registered in this repository, and the prose gates the agent met in e02s02 were instructions it weighed against other rules, one of them in conflict with `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus code blocks for a few narrow, mechanical rules, which only work once installed"; no source tests that this order beats the reverse. [S6] finds that models struggle to correct themselves without outside feedback, which favours gates that run a check over gates that ask the agent to confirm.
-- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `lite` test plan in `state.yaml`, recorded waivers) [S1][S4], but the owner or the agent picks the tier and nothing scores risk; the research story was routed through the code-shaped red/green gate anyway, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony. [S7] does not help here: it shows that a too-narrow test run lets wrong patches pass, which warns against cutting checks, not for or against scaling them.
-- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") exist because of the size [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. Skills load on demand, so the whole catalog is not one long context; only the listing of names and descriptions is always present. [S5] gives a reason to expect a cost from long contexts, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
+- H6: refined - bigpowers puts most gates in prose: 74 of 80 skills carry a "HARD GATE" line (150 mentions) [S1]; a smaller set is code, a hook that denies tool calls for git safety, commit format, edits to generated files and test edits during a `fix_bug` red phase [S1]; the hook is not registered in this repository's settings (user level unchecked), and the prose gates the agent met in e02s02 were instructions it weighed against other rules, one of them in conflict with `CONVENTIONS.md` [S4]. So "workflow first, enforcement second" is better stated as "workflow with prose gates, plus code blocks for a few narrow, mechanical rules, which only work once installed"; no source tests that this order beats the reverse. [S6] finds that models struggle to correct themselves without outside feedback, which favours gates that run a check over gates that ask the agent to confirm.
+- H7: refined - bigpowers has tiers (`quick-fix` for data-only changes, a `lite` test plan in `state.yaml`, recorded waivers) [S1][S4], and `verify-work` scales its depth by a declared `risk:` field (P0 to P3; P2 and P3 skip tests, the security scan and manual UAT; a missing field means P1) [S1]. Tiers are declared, not computed, and nothing scores risk. In e02s02 the story had no field, so the P1 default forced manual UAT on a doc-only story whose epic says P2, and the research story was routed through the code-shaped red/green gate, which is ceremony not scaled to risk [S4]. No source tests risk-scaled ceremony. [S7] does not help here: it shows that a too-narrow test run lets wrong patches pass, which warns against cutting checks, not for or against scaling them.
+- H10: refined - bigpowers is a counter-example in practice: 80 skills, 6,887 lines, 19 in Verify and 18 in Sustain [S1]. Its own coping tools support the hypothesis: `search-skills` ("Find the right bigpowers skill from natural-language intent") and `using-bigpowers` ("tells you which skill to call first") exist because of the size [S1], which supports "one entry command per host"; it has at least four candidate entry points (`using-bigpowers`, `orchestrate-project`, `search-skills`, `survey-context`), not one. Whether the size costs accuracy is unmeasured here. Skills load on demand, so the whole catalog is not one long context; only the listing of names and descriptions is always present. [S5] finds that models use information in the middle of long contexts worse than at the start or end, a reason to expect a cost from long listings, and [S8] finds that extra context files raise cost without a general gain, but neither tests a skill listing.
 
 None is `confirmed`: no source tests bigpowers, or its design choices, as
 a treatment. None is `refuted`: the tool's design is consistent with H6
@@ -180,8 +189,9 @@ practice while its coping tools point the same way as the hypothesis.
 - Keep code blocks for narrow, mechanical rules: a hook that stops a
   tool call (git safety, protected branches, commit format, generated
   files, a test lock during a fix) [S1]. It does not depend on the agent
-  obeying prose. It also does nothing until it is installed, and here
-  it was not [S4]; weftwork's install step must register it and check
+  obeying prose. It also does nothing until it is installed, and this
+  repository's settings do not register it (user level unchecked)
+  [S4]; weftwork's install step must register it and check
   that it is live. R13 should decide what else deserves that form.
 - A gate written as prose is a request. This session showed a request
   and a repo rule disagreeing and the agent choosing [S4]. weftwork's
@@ -224,9 +234,14 @@ the cited source only. Where a source is missing the label is
   branches, commit format, generated paths, test lock during
   `fix_bug`): unproven, positive signal. It is a hard block and does not
   rely on the agent reading prose [S1]. It is not registered in this
-  repository and never fired here, so I have no catch rate [S4].
+  repository's settings (user level unchecked), and no block was
+  observed here, so I have no catch rate [S4].
 - "HARD GATE" prose in 74 of 80 skills: unproven. No data on how often
   agents follow them; one observed conflict with a repo rule [S4].
+- `verify-work` risk tiers (declared `risk:` P0 to P3, default P1):
+  unproven, negative signal here. The story declared no field, so the
+  default forced the strictest manual path on a doc-only story whose
+  epic declares P2 [S1][S4].
 - `survey-context` (read specs, name a phase, suggest a skill): unproven.
   It gave a correct next step in e02s02, but `state.yaml`'s own handoff
   note already said the same thing [S4], so the information gain was
@@ -247,8 +262,8 @@ the cited source only. Where a source is missing the label is
   on this project's evidence. Each task has a runnable check, three
   of them gave exit 2 before the brief and exit 0 after, a before and
   after result no prose gate in the session gave [S4]. This fits [S6]:
-  a check that runs beats the author's own confirmation. One caveat: the task 2
-  command (`grep` for two words) passed on the word "ceremony" already
+  a check that runs beats the author's own confirmation. One
+  caveat: the task 2 command (`grep` for two words) passed on the word "ceremony" already
   in the intro, so it is weaker than the task suggests [S4].
 - Fresh-context reviewer (`request-review`, after `audit-code` self
   review): unproven, positive signal. [S6] finds that models struggle
@@ -268,8 +283,8 @@ the cited source only. Where a source is missing the label is
   Sustain skills (VPS hardening, a wiki, a visual dashboard) are not needed
   to run coding agents on one repository [S1]. This is a scope
   judgment, not a measurement.
-- Per-model routing: not present in what I read. [S9] shows routing cuts
-  cost; R9 owns the question, and bigpowers gives no input to it here.
+- Per-model routing: not present in what I read. [S9] shows routing can cut
+  cost at similar quality on general benchmarks, not coding; R9 owns the question, and bigpowers gives no input to it here.
 
 ## Open questions
 
