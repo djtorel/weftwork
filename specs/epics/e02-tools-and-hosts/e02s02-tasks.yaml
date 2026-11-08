@@ -14,7 +14,7 @@ tasks:
     verify: >-
       bash tools/check-brief.sh docs/research/R2-bigpowers.md
       R2 --sources
-    status: todo
+    status: passing
   - id: 2
     description: >-
       Record first-hand findings from using bigpowers
