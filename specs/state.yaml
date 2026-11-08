@@ -20,7 +20,6 @@ waivers:
 handoff:
   next_skill: audit-code
   note: >-
-    e01s01 verified (specs/verifications/e01s01-verify.yaml). Open:
-    owner to confirm why pi-flow was archived, and decide on the four
-    stray ledger lines in ../pi-flow-legacy. Then audit-code, and
+    e01s01 verified; archive reason recorded in the R14 brief.
+    pi-flow-legacy is reference only (owner): do not touch it. Next:
     plan-work for e01s02 and e01s03. Branch docs/e01s01-plan.

@@ -39,8 +39,7 @@ phases:
         passed: true
   gaps:
     closed: true
-    open_items:
-      - Owner has not confirmed why pi-flow was archived
-        (brief says not recorded)
-      - Four guard-written lines in the legacy .flow/ledger.yaml
-        await an owner decision
+    open_items: []
+    notes:
+      - Archive reason supplied by owner and added to the brief.
+      - Owner ruled pi-flow-legacy is reference only; its ledger is untouched.

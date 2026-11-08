@@ -23,6 +23,7 @@ its last commit in `../pi-flow-legacy` (git, not file mtime).
 - [S10] pi-flow-legacy event ledger, `../pi-flow-legacy/.flow/ledger.yaml` (counted by `kind:`; excludes 4 events dated 2026-11-08 written by the live guard about weftwork files) - accessed: 2026-11-07 published: 2026-10-25
 - [S11] pi-flow-legacy STATE.md, `../pi-flow-legacy/specs/STATE.md` (resume point, not on the planning-context list; read for why-archived and review-finding counts) - accessed: 2026-11-07 published: 2026-10-25
 - [S12] Huang et al., "Large Language Models Cannot Self-Correct Reasoning Yet", ICLR 2024, arXiv:2310.01798, https://arxiv.org/abs/2310.01798 - accessed: 2026-11-07 published: 2023-10-03
+- [S14] Owner statement (dom), given in session; not a file - accessed: 2026-11-07 published: 2026-11-07
 - [S13] Wang, Pradel, Liu, "Are 'Solved Issues' in SWE-bench Really Solved Correctly?", ICSE 2026, arXiv:2503.15223, https://arxiv.org/abs/2503.15223 - accessed: 2026-11-07 published: 2025-03-19
 
 ## Gate review
@@ -80,21 +81,24 @@ Findings behind the table:
 
 ## Why archived
 
-Not recorded. Nothing in `../pi-flow-legacy` states a reason: no
-archive note, no deprecation text, no mention of weftwork (searched
-all `.md` outside `node_modules` and the vendored GSD tree). Observed
-state at the last commit (2026-10-25, [S11]):
+Owner's reason [S14]: the project was started with local LLMs; the
+owner then had better ideas for the approach and more they wanted, so
+they chose to start fresh. It was not dropped because the gates failed.
+The repo itself records no reason (no archive note, no deprecation
+text, no mention of weftwork), so [S14] is the only source.
 
-- E01–E07 and E09 landed; E08 (delegation) core landed with six
+State at the last commit (2026-10-25, [S11]), for context:
+
+- E01-E07 and E09 landed; E08 (delegation) core landed with six
   stories open: fan-out, worktree isolation, model routing, workflow
   lint, external-runner refusal, dispatch.
 - 682 tests green, 193 decisions, 104 review findings recorded.
 - One proof outstanding: a live delegated child that completes.
 
-Inference, not evidence: the project stopped before its central claim
-(enforced delegation) was proven live, and weftwork restates the same
-thesis with a wider scope ([weftwork SEED-SPEC §1]). The owner has to
-confirm the actual reason. See Open questions.
+Consequence: the gate review above is not a verdict that enforcement
+failed. It shows enforcement was mostly unexercised when work stopped.
+The local-model origin also matters: slow children and tight context
+(timeouts, 95K-input reviewers) may be partly a local-model effect.
 
 ## Verdicts
 
@@ -142,8 +146,9 @@ confirm the actual reason. See Open questions.
 
 ## Open questions
 
-- Why was pi-flow archived? Owner to confirm; the repo does not say.
-  Candidate story: none yet; this changes what R13 should test.
+- How much of the delegation trouble (timeouts, cost per reviewer)
+  came from running on local models rather than from the design? [S14]
+  only says the project began on local LLMs. Relevant to R13 and R5.
 - Did any real, non-fixture override ever happen outside this repo?
   The ledger covers one repo and about two days of guard use.
 - Which of G1–G4 would have fired over a longer window? Needs a
