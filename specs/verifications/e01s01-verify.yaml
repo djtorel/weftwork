@@ -27,7 +27,7 @@ phases:
     steps:
       - step: Remove the H4 verdict from a copy of the R14 brief
         expected: exit 1, names H4
-        actual: exit 1, "no verdict for H4 in ## Verdicts"
+        actual: 'exit 1, "no verdict for H4 in ## Verdicts"'
         passed: true
       - step: Run the checker on the real R14 brief
         expected: exit 0
