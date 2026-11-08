@@ -6,6 +6,9 @@
 # See BUG-001.
 extends: default
 
+# Gate outputs are gitignored and regenerated; do not lint them.
+ignore-from-file: .gitignore
+
 rules:
   document-start:
     ignore: |
