@@ -7,7 +7,7 @@ development_status:
   e01s04: done
   e02: backlog
   e02s01: done
-  e02s02: backlog
+  e02s02: in_progress
   e02s03: backlog
   e02s04: backlog
   e03: backlog
@@ -101,12 +101,12 @@ stories:
     tasks_passing: 3
     tasks_failing: 0
   e02s02:
-    status: backlog
+    status: in_progress
     title: R2 bigpowers in depth
     bcps: 3
     epic: e02
     tasks_total: 3
-    tasks_passing: 0
+    tasks_passing: 3
     tasks_failing: 0
   e02s03:
     status: backlog
