@@ -1,13 +1,18 @@
 # Audit: e02s02 (R2 bigpowers in depth)
 
-Mode: full checklist, self-review by the coding agent.
-Diff: `git diff main...HEAD` on branch `e02s02-r2-bigpowers`, 8 files,
-+484 / -35. No product code. Churn ranking (`bp-churn-rank.sh`) top
-files: `specs/state.yaml`, `specs/execution-status.yaml`,
+Mode: full checklist, self-review by the coding agent. Refreshed after
+request-review round 1.
+Diff: `git diff main...HEAD` on branch `e02s02-r2-bigpowers` at
+`a425634`, 14 files, +699 / -42, before this report's own update. No
+product code. One new executable: `tools/check-gate-ignores.sh`.
+Churn ranking (`bp-churn-rank.sh`) top files: `specs/state.yaml`,
+`specs/execution-status.yaml`,
 `specs/epics/e02-tools-and-hosts/e02s02-tasks.yaml`.
 
-Result: **all items pass** or are N/A with a reason, after one fix
-(regression test for BUG-002; see Test Coverage).
+Result: **all items pass** or are N/A with a reason. Two passes were
+needed: a regression test was added for BUG-002 after the first pass,
+and the round-1 review found further faults that are fixed (see
+"Review round 1").
 
 ## Supply Chain & Security
 
@@ -15,11 +20,13 @@ Result: **all items pass** or are N/A with a reason, after one fix
 - ✓ No `[SLOP]` packages.
 - ✓ No secrets: diff scanned for `sk-`, `ghp_`, `AKIA`, private-key
   headers and `.env` references. None.
-- ✓ OWASP spot-check: docs and config only; no user input, auth, or
-  network code added. The brief reads web and GitHub metadata but
-  ships no fetching code.
-- ✓ Security review: done in verify-work by inspection of the diff
-  (no executable content changed). No HIGH findings.
+- ✓ OWASP spot-check: no user input, auth or network code. The brief
+  reads web and GitHub metadata but ships no fetching code.
+- ✓ Security pass over `tools/check-gate-ignores.sh` (added after
+  verify-work's diff inspection, which covered 3 files): fixed path
+  list, no input from arguments or environment, `--` before every path,
+  no `eval`, no network, no writes. Exit 2 outside a repository.
+- ✓ No HIGH findings.
 
 ## Provenance & Metadata
 
@@ -31,7 +38,7 @@ Result: **all items pass** or are N/A with a reason, after one fix
 
 ## Law of Demeter
 
-- N/A. No code.
+- N/A. No product code.
 
 ## CONVENTIONS.md Compliance
 
@@ -39,16 +46,20 @@ Result: **all items pass** or are N/A with a reason, after one fix
   `docs/research/` per CLAUDE.md).
 - ✓ No `gh issue create` in the diff.
 - ✓ No `gh` or curl calls to the GitHub REST API in the diff.
+- ✓ Task statuses use `todo`, `in_progress`, `done` (CONVENTIONS.md).
+  The first pass missed that the tasks file said `passing`; fixed.
 
 ## Scope
 
-- ✓ Changes limited to e02s02 (R2 brief, its tasks, its evidence) plus
-  BUG-002 fix (`.gitignore`, one line of AGENTS.md, bug record).
+- ✓ Story scope: the R2 brief, its tasks file, its verify evidence and
+  this report.
+- ✓ BUG-002 fix, required by the discovered-defects rule: `.gitignore`
+  block, a 3-line Workspace Facts entry in AGENTS.md,
+  `tools/check-gate-ignores.sh`, the Preflight row in AGENTS.md and
+  CONVENTIONS.md, a CI step in `.github/workflows/ci.yml`,
+  `ignore-from-file: .gitignore` in `.yamllint`, and the bug record.
+- ✓ BUG-001 record: one wording fix (three skipped rules, not two).
 - ✓ No speculative features.
-- ✓ No files touched outside the story scope, other than the BUG-002 fix,
-  which the discovered-defects rule requires.
-- ✓ Discovered defect logged and fixed (BUG-002). It was fixed by
-  moving the story off a worktree, not by waiving the gate.
 
 ## Boy Scout Rule
 
@@ -62,49 +73,71 @@ Result: **all items pass** or are N/A with a reason, after one fix
 ## Test Coverage
 
 - N/A Every new function has a test. No functions were added.
-- ✓ Every bug fix has a regression test. First run failed this item:
-  BUG-002 had no automated guard. Fixed by the owner's choice (option
-  1): `tools/check-gate-ignores.sh` runs `git check-ignore` on each gate
-  output path. It is wired into Preflight (AGENTS.md, CONVENTIONS.md)
-  and CI. Red against `main`'s `.gitignore` (5 FAIL lines, exit 1),
-  green on the branch (exit 0). The fix predates the test, so red was
-  shown by swapping in `main`'s `.gitignore`, not by a test-only
-  commit.
-- N/A F.I.R.S.T. No tests.
+- ✓ Every bug fix has a regression test. `tools/check-gate-ignores.sh`
+  guards BUG-002 in Preflight and CI. Shown red against `main`'s
+  `.gitignore`, red when the wiki rule is narrowed to `index.md`, red
+  with a tracked gate output ("is tracked"), exit 2 outside a
+  repository, and green from the repository root and from `specs/`.
+  The fix predates the test, so red was shown by swapping inputs, not
+  by a test-only commit.
+- N/A F.I.R.S.T. No unit tests.
 
 ## SOLID and Heuristics
 
-- N/A. No code.
+- N/A. No product code.
 
 ## Refactoring Smells
 
-- None detected in the changed prose or config.
+- Duplicated Code: the gate-output list appears in `.gitignore` and in
+  the check script. Kept on purpose, since the script is the oracle for
+  `.gitignore`; each file has a comment pointing to the other.
 
 ## Code Style (CONVENTIONS.md)
 
-- ✓ YAML lines at or under 80 columns in the new evidence file and
-  tasks file.
-- ✓ Documented exception: `specs/state.yaml` lines exceed 80 columns.
-  `.yamllint` skips line-length and indentation for that one file.
-  Owner-approved workaround for BUG-001, because `bp-timing.sh`
-  rewrites the file on every skill call. Recorded in BUG-001.
-- ✓ `yamllint specs` exits 0. One warning on the gitignored generated
-  `ADVERSARIAL_LATEST.yaml` (not in the diff).
+- ✓ YAML lines at or under 80 columns in the changed YAML, except
+  `specs/state.yaml`.
+- ✓ Documented exception: `.yamllint` skips `document-start`,
+  `indentation` and `line-length` for `specs/state.yaml`, because
+  `bp-timing.sh` rewrites it on every skill call (BUG-001).
+- ✓ `yamllint specs` exits 0 with no warnings; gitignored gate outputs
+  are no longer linted.
+
+## Review round 1
+
+Reviewers A (81.6, 2 must-fix) and B (82.9) failed the AND-gate. Fixed:
+
+- Brief: the hook blocks more than git (generated paths, a test lock
+  during `fix_bug`, commit format); H6, the overview, implications and
+  earns-its-place entry rewritten. The hook is not registered in this
+  repository.
+- Brief: [S7] no longer used for H6 or as a hint for H7; [S6] carries
+  the H6 point. H10 reworded; [S5] caveat added (skills load on demand).
+- Brief: median 86; three skipped rules; Sustain examples corrected;
+  `search-skills` quoted exactly; release count says 12 after the
+  installed copy; `skill_timings` verdict now unproven, negative signal,
+  with its consumer named; BUG-002 added as a first-hand finding;
+  `kickoff-branch` worktree mode now a negative signal.
+- BUG-002: root cause restated (missing symlink, then absolute-path
+  calls), `validate-specs-yaml.sh` listed, rejected alternative named.
+- Check script: runs from the repository top level, flags tracked
+  outputs, tests a non-index wiki path.
+- Tasks: statuses `done`. State: `vcs.branch` and handoff note current.
 
 ## Red Flags (rationalizations caught)
 
 - I was tempted to call the regression-test item N/A because the fix is
-  config, not code. The checklist does not exempt config, so it
-  failed and was fixed.
-- I was tempted to skip the AGENTS.md edit check, since the target is
-  inside a `bigpowers:learned-preferences` fence that session-state
-  manages. CONVENTIONS permits edits inside or outside fences, so it
-  passes. Risk: a future session-state write may overwrite the line.
-- Uncommitted `specs/state.yaml` change: the timing helper rewrote the
-  file again at audit start (BUG-001 recurrence). It holds metrics only.
-  It is not part of this audit's diff and is not committed here.
+  config, not code. The checklist does not exempt config, so it failed
+  and was fixed.
+- I followed the develop-tdd skill's `passing` status over the
+  project's `done`. The first pass of this audit did not catch it; the
+  review did.
+- I first wrote the hook claims from its first 25 lines. Reading the
+  whole file changed the H6 verdict.
+- `specs/state.yaml` timing rewrites ride along in commits that touch
+  `state.yaml` (for example `836e634`). They hold metrics only.
 
 ## Verdict
 
-PASS after one fix. Preflight (now including
-`tools/check-gate-ignores.sh`) exits 0. Next: `request-review`.
+PASS. Preflight (`yamllint specs && bash scripts/validate-specs-yaml.sh
+&& bash tools/check-gate-ignores.sh`) exits 0. Next: request-review
+round 2.
