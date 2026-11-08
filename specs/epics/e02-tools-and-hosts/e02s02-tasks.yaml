@@ -14,7 +14,7 @@ tasks:
     verify: >-
       bash tools/check-brief.sh docs/research/R2-bigpowers.md
       R2 --sources
-    status: passing
+    status: done
   - id: 2
     description: >-
       Record first-hand findings from using bigpowers
@@ -23,7 +23,7 @@ tasks:
     verify: >-
       grep -Eqi 'ceremony' docs/research/R2-bigpowers.md
       && grep -Eqi 'opensrc' docs/research/R2-bigpowers.md
-    status: passing
+    status: done
   - id: 3
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
@@ -32,4 +32,4 @@ tasks:
       vs ceremony verdicts, and open questions
     verify: bash tools/check-brief.sh docs/research/R2-bigpowers.md
       R2
-    status: passing
+    status: done

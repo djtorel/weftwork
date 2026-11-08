@@ -6,7 +6,7 @@ phase: verify
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e02s02-r2-bigpowers
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -37,11 +37,15 @@ waivers:
 handoff:
   next_skill: request-review
   next_story: e02s02
-  note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md, audit in specs/verifications/AUDIT-e02-e02s01.md.
-    Next is e02s02 (R2 bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started
-    in a fresh session with kickoff-branch. The e02 threat model is waived (see waivers).
-    R1 left open questions for R10 (catalog size, verifier stub catch rate) and a
-    candidate story to compare a current GSD release with the local 1.30.0 copy.'
+  note: >-
+    e02s02 (R2 bigpowers) is built and verified on branch
+    e02s02-r2-bigpowers, in the primary checkout (no worktree, see
+    BUG-002). Brief docs/research/R2-bigpowers.md; evidence in
+    specs/verifications/e02s02-verify.yaml and AUDIT-e02-e02s02.md.
+    request-review round 1 failed (A 81.6, B 82.9); fixes applied, round
+    2 is next, max 5 rounds. Then release-branch. The PR body must name
+    the skipped develop-tdd red-commit gate (doc-only story) and the
+    gates passed, waived or stale.
 metrics:
   skill_timings:
     survey-context:

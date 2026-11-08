@@ -18,21 +18,39 @@ In the worktree `../e02s02-r2-bigpowers`:
 - `bash scripts/validate-specs-yaml.sh` fails with "No such file"
   (exit 127). `scripts/` is a gitignored symlink, so a new worktree
   has none.
-- `check-blind-spots.sh`, `trace-stories.sh` and
-  `lib/completeness-critic.sh`, run by absolute path from the primary
-  checkout, read and write the primary checkout (`main`), not the
-  worktree. The critic reported `BLOCKER=1` for `main`.
+- `validate-specs-yaml.sh`, `check-blind-spots.sh`,
+  `trace-stories.sh` and `lib/completeness-critic.sh`, run by absolute
+  path from the primary checkout, read and write the primary checkout
+  (`main`), not the worktree. The validator's "OK" there was about
+  `main`'s `specs/`, not the story's. The critic reported `BLOCKER=1`
+  for `main`.
 
 ## Root cause
 
-These scripts set `REPO_ROOT` from their own path (`scripts/lib/../..`
-or `skill-common.sh` `resolve_repo_root`), not from the current
-directory. Through the `scripts/` symlink, that is always the primary
-checkout. `verify-adversarial.sh` uses `git rev-parse --show-toplevel`
-and is not affected. The scripts live in the global bigpowers install,
-so they are not fixable from this repository.
+Two causes combine:
+
+1. A new worktree has no `scripts/` symlink, because the symlink is
+   gitignored and machine-local. So the gates cannot be called by the
+   relative path the skills use.
+2. The scripts set `REPO_ROOT` from their own path, not from the
+   current directory: `validate-specs-yaml.sh` line 15
+   (`$SCRIPT_DIR/..`), `completeness-critic.sh` (`../..`) and
+   `skill-common.sh` `resolve_repo_root`. Called by absolute path
+   through the primary checkout's symlink, they resolve to the primary
+   checkout. Called through a symlink inside the worktree, they would
+   very likely resolve to the worktree, since `cd` and `pwd` keep the
+   logical path; that was not tested.
+
+`verify-adversarial.sh` uses `git rev-parse --show-toplevel` and is not
+affected. The scripts live in the global bigpowers install, so they are
+not fixable from this repository.
 
 ## Fix
+
+Rejected alternative: create the `scripts` symlink in each new
+worktree. It would likely fix cause 1 and, through the logical path,
+cause 2, but it adds a manual step to every kickoff and was not
+tested.
 
 Start story branches in the primary checkout with `git checkout -b`,
 not with a worktree. `kickoff-branch` allows a branch without a
