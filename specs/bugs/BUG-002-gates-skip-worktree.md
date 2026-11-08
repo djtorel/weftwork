@@ -51,6 +51,9 @@ then ran on the branch: blind spots 0 findings, completeness critic
 on a story branch in the primary checkout: critic exits 0, and no
 generated gate output is listed as untracked.
 
+Regression test: `bash tools/check-gate-ignores.sh`, run in Preflight
+and CI. It fails if any gate output path stops being gitignored.
+
 ## Recurrence
 
 Any story kicked off in a worktree. Owner decision (2026-11-08): fix
