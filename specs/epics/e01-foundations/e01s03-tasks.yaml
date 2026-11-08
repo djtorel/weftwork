@@ -1,0 +1,47 @@
+---
+story_id: e01s03
+title: R4 research literature (recent agentic coding papers)
+status: todo
+bcps: 5
+research_story: R4
+brief: docs/research/R4-research-literature.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R4-research-literature.md
+      R4 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Paper table: each paper with year, venue, topic
+      and a verdict of applicable, interesting or not
+      relevant. Cover ACI, planning, multi-agent, self-verification,
+      review/debate, context engineering, routing, benchmarks
+    verify: >-
+      grep -Eqi 'applicable' docs/research/R4-research-literature.md
+      && grep -Eqi 'not relevant' docs/research/R4-research-literature.md
+      && grep -Eqi 'routing' docs/research/R4-research-literature.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R4 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R4-research-literature.md
+      R4
+    status: todo
+  - id: 4
+    description: >-
+      Record the post-e01 re-plan checkpoint after the
+      R14, R0 and R4 briefs exist: which later stories
+      change, or 'no change', with reasons
+    verify: >-
+      test -f specs/checkpoints/e01-replan.md && grep
+      -Eqi 'no change|change' specs/checkpoints/e01-replan.md
+    status: todo

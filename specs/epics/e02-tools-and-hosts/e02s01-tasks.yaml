@@ -1,0 +1,35 @@
+---
+story_id: e02s01
+title: R1 GSD in depth
+status: todo
+bcps: 3
+research_story: R1
+brief: docs/research/R1-gsd.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R1-gsd.md
+      R1 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Describe what GSD does and name which parts earn
+      their place and which are ceremony, citing the local
+      .pi/gsd copy by version
+    verify: >-
+      grep -Eqi 'ceremony' docs/research/R1-gsd.md &&
+      grep -Eqi 'VERSION|version' docs/research/R1-gsd.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R1 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: bash tools/check-brief.sh docs/research/R1-gsd.md
+      R1
+    status: todo

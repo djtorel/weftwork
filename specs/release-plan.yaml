@@ -1,0 +1,49 @@
+---
+# Release index. Story status lives in execution-status.yaml, not here.
+# Order = execution order. Dependencies override raw WSJF: e04 scores
+# higher than e02 and e03 but needs both, so it runs last.
+release:
+  version: "0.1.0"          # label only; no code ships in this release
+  codename: Research program
+  status: planning
+  semantic_release: false
+  bump_hint: patch
+
+# WSJF = (business value + time criticality + risk reduction) / size,
+# each 1-10. Size follows BCPs. These scores are estimates by the
+# planner, not measurements; revise them with change-request.
+epics:
+  - id: e01
+    title: Foundations (wave 1)
+    wsjf: 6.25              # (8 + 8 + 9) / 4
+    bcps: 11
+    risk: P1
+    depends_on: []
+    capsule_dir: epics/e01-foundations
+    note: >-
+      Builds the brief checker and can reshape later epics, so it runs
+      first and ends in a re-plan checkpoint.
+  - id: e02
+    title: Tools and hosts (wave 2)
+    wsjf: 3.6               # (7 + 5 + 6) / 5
+    bcps: 14
+    risk: P2
+    depends_on: [e01]
+    capsule_dir: epics/e02-tools-and-hosts
+  - id: e03
+    title: Design topics (wave 3)
+    wsjf: 2.0               # (6 + 4 + 6) / 8
+    bcps: 27
+    risk: P2
+    depends_on: [e02]
+    capsule_dir: epics/e03-design-topics
+  - id: e04
+    title: Evaluation and synthesis (wave 4)
+    wsjf: 4.5               # (7 + 3 + 8) / 4
+    bcps: 11
+    risk: P2
+    depends_on: [e03]
+    capsule_dir: epics/e04-evaluation-synthesis
+    note: >-
+      Highest raw WSJF after e01, but it needs a candidate workflow and
+      every earlier brief, so it stays last.

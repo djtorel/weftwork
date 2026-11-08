@@ -1,0 +1,23 @@
+---
+id: e04
+title: Evaluation and synthesis (wave 4)
+wsjf: 4.5
+total_bcps: 11
+risk: P2
+status: todo
+depends_on:
+  - e03
+done_when: >-
+  R10 brief passes, and SYNTHESIS.md covers H1-H20 and
+  the minimum useful first release
+stories:
+  - id: e04s01
+    title: R10 evaluation design
+    bcps: 8
+    status: todo
+    tasks: e04s01-tasks.yaml
+  - id: e04s02
+    title: Research synthesis
+    bcps: 3
+    status: todo
+    tasks: e04s02-tasks.yaml

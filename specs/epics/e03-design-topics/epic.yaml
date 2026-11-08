@@ -1,0 +1,46 @@
+---
+id: e03
+title: Design topics (wave 3)
+wsjf: 2.0
+total_bcps: 27
+risk: P2
+status: todo
+depends_on:
+  - e02
+done_when: R6-R9 and R11-R13 briefs pass tools/check-brief.sh
+stories:
+  - id: e03s01
+    title: R6 multi-agent work in one codebase
+    bcps: 3
+    status: todo
+    tasks: e03s01-tasks.yaml
+  - id: e03s02
+    title: R7 agent review and agent-answered decisions
+    bcps: 3
+    status: todo
+    tasks: e03s02-tasks.yaml
+  - id: e03s03
+    title: R8 code quality and conventions
+    bcps: 5
+    status: todo
+    tasks: e03s03-tasks.yaml
+  - id: e03s04
+    title: R9 model routing and cost efficiency
+    bcps: 5
+    status: todo
+    tasks: e03s04-tasks.yaml
+  - id: e03s05
+    title: R11 security and permissions
+    bcps: 3
+    status: todo
+    tasks: e03s05-tasks.yaml
+  - id: e03s06
+    title: R12 context and memory
+    bcps: 3
+    status: todo
+    tasks: e03s06-tasks.yaml
+  - id: e03s07
+    title: R13 enforcement design
+    bcps: 5
+    status: todo
+    tasks: e03s07-tasks.yaml

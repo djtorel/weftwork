@@ -1,0 +1,53 @@
+---
+story_id: e01s01
+title: 'R14 legacy retrospective (tracer: builds the checker)'
+status: todo
+bcps: 3
+research_story: R14
+brief: docs/research/R14-legacy-retrospective.md
+tasks:
+  - id: 1
+    status: todo
+    description: >-
+      Write tools/check-brief.sh: given a brief, an R
+      id and optional --sources, checks required sections,
+      dated sources, and a verdict for each hypothesis
+      that planning-context.yaml assigns to the R id.
+      Include a --selftest that fails on a bad fixture
+    verify: >-
+      test -x tools/check-brief.sh && bash tools/check-brief.sh
+      --selftest
+  - id: 2
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R14-legacy-retrospective.md
+      R14 --sources
+    status: todo
+  - id: 3
+    description: >-
+      Read pi-flow-legacy DECISIONS, OPEN-QUESTIONS, VERIFICATION,
+      spikes and SPEC-01..04; cite each by path
+    verify: >-
+      grep -Eqi 'pi-flow-legacy/specs' docs/research/R14-legacy-retrospective.md
+    status: todo
+  - id: 4
+    description: >-
+      For each gate: caught a real failure, never fired,
+      or was overridden; and why the project was archived
+    verify: >-
+      grep -Eqi 'caught' docs/research/R14-legacy-retrospective.md
+      && grep -Eqi 'archived' docs/research/R14-legacy-retrospective.md
+    status: todo
+  - id: 5
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R14 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R14-legacy-retrospective.md
+      R14
+    status: todo

@@ -1,0 +1,212 @@
+---
+# specs/product/SCOPE_LATEST.yaml
+# Written by scope-work (2026-11-07) from specs/planning-context.yaml.
+# Scope: the weftwork RESEARCH PROGRAM. The product spec comes after it.
+feature_name: weftwork research program (pre-spec)
+
+core_value: >-
+  Test the ideas in docs/SEED-SPEC.md against evidence, and find what we
+  have not thought of, before the weftwork v1 spec is written.
+
+summary: >-
+  weftwork's end goal is an owned, host-agnostic agentic coding workflow
+  (pi and Claude Code first, room for opencode and others), plus the
+  tools, skills, and strategies that make complex software reliable to
+  build with agents: parallel multi-agent work in one codebase, automated
+  review and decisions where safe, enforced code quality, and
+  cost-efficient model routing.
+
+
+  This initiative is only the research that comes before that spec. It
+  delivers one brief per research story (R0-R14) in docs/research/, each
+  with dated sources, cited papers where literature exists, and verdicts
+  on the seed-spec hypotheses (H1-H20) assigned to it. A final synthesis
+  collects every verdict and answers the open question: what is the
+  minimum useful first release?
+
+
+  Work runs in four waves, one epic per wave. Wave 1 (R0, R4, R14) can
+  add or reshape later stories, so there is a re-plan checkpoint after
+  e01 before e02 starts.
+
+in_scope:
+  # e01 — wave 1: foundations (can reshape later waves)
+  - id: e01s01
+    item: "R14 pi-flow-legacy retrospective"
+  - id: e01s02
+    item: "R0 discovery sweep (output: candidate new stories)"
+  - id: e01s03
+    item: "R4 research literature (recent agentic coding papers)"
+  # e02 — wave 2: tools and hosts
+  - id: e02s01
+    item: "R1 GSD in depth"
+  - id: e02s02
+    item: "R2 bigpowers in depth"
+  - id: e02s03
+    item: "R3 workflow landscape"
+  - id: e02s04
+    item: "R5 harness capability matrix"
+  # e03 — wave 3: design topics
+  - id: e03s01
+    item: "R6 multi-agent work in one codebase"
+  - id: e03s02
+    item: "R7 agent review and agent-answered decisions"
+  - id: e03s03
+    item: "R8 code quality and conventions"
+  - id: e03s04
+    item: "R9 model routing and cost efficiency"
+  - id: e03s05
+    item: "R11 security and permissions"
+  - id: e03s06
+    item: "R12 context and memory"
+  - id: e03s07
+    item: "R13 enforcement design"
+  # e04 — wave 4: evaluation and synthesis
+  - id: e04s01
+    item: "R10 evaluation (plain vs gated vs full ceremony; fixed vs routed)"
+  - id: e04s02
+    item: >-
+      Research synthesis: H1-H20 verdict table, answer to the minimum
+      useful first release, input for the v1 spec
+
+out_of_scope:
+  - item: Locking the architecture
+    why: deferred — the research exists to inform it (H9, H16, R13)
+  - item: Choosing the v1 slice
+    why: deferred — answered by the e04s02 synthesis, not assumed now
+  - item: Writing any product code
+    why: deferred — no code until the v1 spec exists
+  - item: Hardening gates before a loop exists
+    why: not valuable — seed lesson H6, workflow first
+  - item: Rewriting docs/SEED-SPEC.md during research
+    why: >-
+      deferred — it stays the provisional input; superseded and archived
+      when the v1 spec is written
+  - item: Running research wider than 2 agents at a time
+    why: too risky — subagent research has timed out before writing
+
+constraints:
+  evidence: >-
+    Findings rest on papers, measurements, and dated sources.
+    Practitioner opinion alone is not enough where literature exists.
+  format: "Portable markdown/YAML; briefs live in docs/research/"
+  concurrency: "Waves; at most 2 research agents at a time"
+  provisional_inputs: "docs/SEED-SPEC.md stays provisional until done"
+  workflow: "Follow the bigpowers lifecycle for planning and building"
+
+success_criteria:
+  - "One brief per story in docs/research/, plus any stories R0 adds"
+  - >-
+    Each brief has dated sources, cited papers where they exist,
+    implications, earns-its-place vs ceremony verdicts, open questions
+  - "Every hypothesis H1-H20 has a verdict: confirmed/refined/refuted"
+  - "The synthesis names the minimum useful first release, with reasons"
+  - "A re-plan checkpoint after e01 is recorded (change or no change)"
+
+references:
+  - specs/planning-context.yaml
+  - docs/SEED-SPEC.md
+  - ../pi-flow-legacy/specs/
+
+# ## Prior Art
+# Light research-first pass, 2026-11-07. Looked for existing surveys,
+# comparisons, and curated lists the R-stories can start from. Only
+# titles and metadata were read unless the Seen column says "read".
+# None of these is verified evidence yet; each R-story verifies its own.
+prior_art:
+  summary: >-
+    No existing work covers the whole program (workflow + parallelism +
+    enforcement + routing + conventions), so the program is build. But
+    most stories can start from existing comparisons, surveys, and our
+    own predecessor, instead of from zero.
+  candidates:
+    - name: "Compare SDD frameworks, side by side (A. Graziano)"
+      source: https://ainativesoftware.engineering/compare
+      published: 2026-09-16
+      seen: >-
+        read (table: Spec Kit, OpenSpec, BMAD, Kiro, Agent Skills)
+      verdict: extend
+      feeds: [e02s03]
+      notes: >-
+        Secondary source by one author. Use as the R3 skeleton, add
+        GSD, Superpowers, and harness practices, and check each row
+        against the tool's own docs.
+    - name: "2026 AI Specification Frameworks Compared (BSWEN)"
+      source: >-
+        https://docs.bswen.com/blog/2026-08-07-ai-spec-frameworks-compared/
+      published: 2026-08-07
+      seen: "title and date only"
+      verdict: compose
+      feeds: [e02s01, e02s03]
+      notes: "Covers OpenSpec, Spec Kit, Superpowers, BMAD, and GSD."
+    - name: "Spec-Driven Development Tools Compared (SpecsGraph)"
+      source: "found by web search; URL not recorded"
+      seen: "title only"
+      verdict: compose
+      feeds: [e02s03]
+      notes: "Candidate; read it during R3 before relying on it."
+    - name: "awesome-claude-code and related curated lists"
+      source: >-
+        github.com/subinium/awesome-claude-code,
+        github.com/ithiria894/awesome-claude-code-workflows,
+        github.com/VoltAgent/awesome-claude-code-subagents
+      seen: "search snippets only"
+      verdict: compose
+      feeds: [e01s02, e03s01]
+      notes: >-
+        Seeds for R0 and R6: orchestration tools named include beads,
+        humanlayer, ccpm, claude-squad. Lists reflect popularity, not
+        measured results, so they find candidates and prove nothing.
+    - name: "SE-agent surveys (Semantic Scholar, year>=2024)"
+      source: >-
+        From LLMs to LLM-based Agents for Software Engineering (arXiv
+        2409.02977); LLM-Based Agents for Software Engineering: A
+        Survey; Agents in software engineering: survey, landscape, and
+        vision; LLM-Based Multi-Agent Systems for Software
+        Engineering (ACM TOSEM)
+      seen: "titles, venues, and abstracts from search results only"
+      verdict: adopt
+      feeds: [e01s03, e03s01]
+      notes: >-
+        Use as the map for R4, so R4 spends its effort on the targeted
+        topics (verification, review, context, routing) and not on
+        re-surveying. Years and authors still need checking.
+    - name: "Code as Agent Harness (survey, arXiv)"
+      source: "found via Semantic Scholar; id not recorded"
+      seen: "abstract only"
+      verdict: adopt
+      feeds: [e01s03, e02s04]
+      notes: "Frames code and execution as the agent harness (H9, H16)."
+    - name: "pi-flow-legacy specs, spikes, and security review"
+      source: ../pi-flow-legacy/specs/
+      seen: "file list only"
+      verdict: adopt
+      feeds: [e01s01, e02s04, e03s05]
+      notes: >-
+        Primary evidence for R14. Spikes on child-extension injection
+        and nested usage feed R5. security/REVIEW.md feeds R11.
+    - name: "GSD copy installed in .pi/gsd (gitignored)"
+      source: .pi/gsd/
+      seen: "file list only"
+      verdict: adopt
+      feeds: [e02s01]
+      notes: "Local source for R1; cite upstream version from VERSION."
+    - name: "bigpowers skills (install under ~/.pi/agent/npm)"
+      source: bigpowers package, skills/ and scripts/
+      seen: "planning skills read"
+      verdict: adopt
+      feeds: [e02s02]
+      notes: >-
+        Local source for R2. Finding for R2: research-first documents
+        `npx opensrc search`, but the installed opensrc has no search
+        subcommand (it suggests `fetch`), so the skill is stale there.
+  conclusion:
+    verdict: build
+    why: >-
+      Nothing found combines the pieces. Adopt and extend the sources
+      above per story. Do not rebuild surveys or comparisons.
+  story_effects:
+    - "e01s03 (R4): start from the surveys; keep every targeted topic"
+    - "e01s02 (R0): seed the sweep with the awesome lists"
+    - "e02s03 (R3): start from the two comparison pages, verify with primaries"
+    - "No story added, removed, or merged."

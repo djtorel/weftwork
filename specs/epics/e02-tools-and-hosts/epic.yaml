@@ -1,0 +1,31 @@
+---
+id: e02
+title: Tools and hosts (wave 2)
+wsjf: 3.6
+total_bcps: 14
+risk: P2
+status: todo
+depends_on:
+  - e01
+done_when: R1, R2, R3 and R5 briefs pass tools/check-brief.sh
+stories:
+  - id: e02s01
+    title: R1 GSD in depth
+    bcps: 3
+    status: todo
+    tasks: e02s01-tasks.yaml
+  - id: e02s02
+    title: R2 bigpowers in depth
+    bcps: 3
+    status: todo
+    tasks: e02s02-tasks.yaml
+  - id: e02s03
+    title: R3 workflow landscape
+    bcps: 3
+    status: todo
+    tasks: e02s03-tasks.yaml
+  - id: e02s04
+    title: R5 harness capability matrix
+    bcps: 5
+    status: todo
+    tasks: e02s04-tasks.yaml

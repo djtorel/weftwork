@@ -1,0 +1,41 @@
+---
+story_id: e02s04
+title: R5 harness capability matrix
+status: todo
+bcps: 5
+research_story: R5
+brief: docs/research/R5-harness-capabilities.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R5-harness-capabilities.md
+      R5 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Matrix of pi, Claude Code, opencode, Codex CLI and
+      Gemini CLI: hooks, subagents, skills, plugins, worktrees,
+      ask-user path, per-dispatch model and effort. Name
+      the shared core
+    verify: >-
+      grep -Eqi 'pi' docs/research/R5-harness-capabilities.md
+      && grep -Eqi 'Claude Code' docs/research/R5-harness-capabilities.md
+      && grep -Eqi 'opencode' docs/research/R5-harness-capabilities.md
+      && grep -Eqi 'Codex' docs/research/R5-harness-capabilities.md
+      && grep -Eqi 'Gemini' docs/research/R5-harness-capabilities.md
+      && grep -Eqi 'shared' docs/research/R5-harness-capabilities.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R5 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R5-harness-capabilities.md
+      R5
+    status: todo

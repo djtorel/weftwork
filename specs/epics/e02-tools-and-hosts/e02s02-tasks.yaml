@@ -1,0 +1,35 @@
+---
+story_id: e02s02
+title: R2 bigpowers in depth
+status: todo
+bcps: 3
+research_story: R2
+brief: docs/research/R2-bigpowers.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R2-bigpowers.md
+      R2 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Record first-hand findings from using bigpowers
+      in this project, including tooling drift such as
+      the opensrc search subcommand
+    verify: >-
+      grep -Eqi 'ceremony' docs/research/R2-bigpowers.md
+      && grep -Eqi 'opensrc' docs/research/R2-bigpowers.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R2 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: bash tools/check-brief.sh docs/research/R2-bigpowers.md
+      R2
+    status: todo

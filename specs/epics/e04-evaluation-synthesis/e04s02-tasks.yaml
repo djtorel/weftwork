@@ -1,0 +1,24 @@
+---
+story_id: e04s02
+title: Research synthesis
+status: todo
+bcps: 3
+research_story: synthesis
+brief: docs/research/SYNTHESIS.md
+tasks:
+  - id: 1
+    status: todo
+    description: >-
+      Table of H1-H20 with a verdict (confirmed/refined/refuted)
+      and the brief that supports it
+    verify: >-
+      for i in $(seq 1 20); do grep -q "H$i\b" docs/research/SYNTHESIS.md
+      || exit 1; done
+  - id: 2
+    status: todo
+    description: >-
+      Answer the open question: the minimum useful first
+      release, with reasons, and list inputs for the v1
+      spec
+    verify: >-
+      grep -Eqi 'minimum useful first release' docs/research/SYNTHESIS.md

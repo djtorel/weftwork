@@ -1,0 +1,27 @@
+---
+story_id: e03s01
+title: R6 multi-agent work in one codebase
+status: todo
+bcps: 3
+research_story: R6
+brief: docs/research/R6-multi-agent-codebase.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R6-multi-agent-codebase.md
+      R6 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R6 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R6-multi-agent-codebase.md
+      R6
+    status: todo

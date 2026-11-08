@@ -1,0 +1,39 @@
+---
+story_id: e04s01
+title: R10 evaluation design
+status: todo
+bcps: 8
+research_story: R10
+brief: docs/research/R10-evaluation.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R10-evaluation.md
+      R10 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Define the arms (plain, evidence gates, full ceremony,
+      fixed tier, routed), the task set, and the measures
+      (pass rate, cost per accepted task)
+    verify: >-
+      grep -Eqi 'plain' docs/research/R10-evaluation.md
+      && grep -Eqi 'gates' docs/research/R10-evaluation.md
+      && grep -Eqi 'ceremony' docs/research/R10-evaluation.md
+      && grep -Eqi 'routed' docs/research/R10-evaluation.md
+      && grep -Eqi 'cost per accepted' docs/research/R10-evaluation.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R10 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R10-evaluation.md
+      R10
+    status: todo

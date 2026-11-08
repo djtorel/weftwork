@@ -1,0 +1,30 @@
+---
+id: e01
+title: Foundations (wave 1)
+wsjf: 6.25
+total_bcps: 11
+risk: P1
+status: todo
+depends_on: []
+done_when: >-
+  R14, R0 and R4 briefs pass tools/check-brief.sh and
+  the re-plan checkpoint is recorded
+stories:
+  - id: e01s01
+    title: 'R14 legacy retrospective (tracer: builds the
+      checker)'
+    bcps: 3
+    status: todo
+    tasks: e01s01-tasks.yaml
+  - id: e01s02
+    title: 'R0 discovery sweep (output: candidate new
+      stories)'
+    bcps: 3
+    status: todo
+    tasks: e01s02-tasks.yaml
+  - id: e01s03
+    title: R4 research literature (recent agentic coding
+      papers)
+    bcps: 5
+    status: todo
+    tasks: e01s03-tasks.yaml

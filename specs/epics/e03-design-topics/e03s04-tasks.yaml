@@ -1,0 +1,39 @@
+---
+story_id: e03s04
+title: R9 model routing and cost efficiency
+status: todo
+bcps: 5
+research_story: R9
+brief: docs/research/R9-model-routing.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R9-model-routing.md
+      R9 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Cover task sizing, model size vs reasoning effort,
+      escalate-vs-up-front, default tier per role, token
+      efficiency, local models as a tier, budgets
+    verify: >-
+      grep -Eqi 'sizing' docs/research/R9-model-routing.md
+      && grep -Eqi 'reasoning effort' docs/research/R9-model-routing.md
+      && grep -Eqi 'escalat' docs/research/R9-model-routing.md
+      && grep -Eqi 'local model' docs/research/R9-model-routing.md
+      && grep -Eqi 'budget' docs/research/R9-model-routing.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R9 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R9-model-routing.md
+      R9
+    status: todo

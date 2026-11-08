@@ -1,0 +1,38 @@
+---
+story_id: e02s03
+title: R3 workflow landscape
+status: todo
+bcps: 3
+research_story: R3
+brief: docs/research/R3-workflow-landscape.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R3-workflow-landscape.md
+      R3 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Compare Spec Kit, OpenSpec, BMAD, Kiro and Superpowers,
+      verifying each row against the tool's own docs
+    verify: >-
+      grep -Eqi 'Spec Kit' docs/research/R3-workflow-landscape.md
+      && grep -Eqi 'OpenSpec' docs/research/R3-workflow-landscape.md
+      && grep -Eqi 'BMAD' docs/research/R3-workflow-landscape.md
+      && grep -Eqi 'Kiro' docs/research/R3-workflow-landscape.md
+      && grep -Eqi 'Superpowers' docs/research/R3-workflow-landscape.md
+    status: todo
+  - id: 3
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R3 in planning-context.yaml,
+      plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      bash tools/check-brief.sh docs/research/R3-workflow-landscape.md
+      R3
+    status: todo
