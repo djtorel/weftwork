@@ -6,7 +6,7 @@ development_status:
   e01s03: done
   e01s04: done
   e02: backlog
-  e02s01: backlog
+  e02s01: done
   e02s02: backlog
   e02s03: backlog
   e02s04: backlog
@@ -91,12 +91,14 @@ stories:
     tasks_failing: 0
     risk_max: P1
   e02s01:
-    status: backlog
+    status: done
+    started_at: "2026-11-08T13:31:19-07:00"
+    completed_at: "2026-11-08T13:33:24-07:00"
     title: R1 GSD in depth
     bcps: 3
     epic: e02
     tasks_total: 3
-    tasks_passing: 0
+    tasks_passing: 3
     tasks_failing: 0
   e02s02:
     status: backlog

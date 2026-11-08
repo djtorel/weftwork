@@ -12,7 +12,7 @@ stories:
   - id: e02s01
     title: R1 GSD in depth
     bcps: 3
-    status: todo
+    status: done
     tasks: e02s01-tasks.yaml
   - id: e02s02
     title: R2 bigpowers in depth

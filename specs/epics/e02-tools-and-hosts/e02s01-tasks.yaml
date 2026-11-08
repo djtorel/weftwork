@@ -1,7 +1,7 @@
 ---
 story_id: e02s01
 title: R1 GSD in depth
-status: todo
+status: done
 bcps: 3
 research_story: R1
 brief: docs/research/R1-gsd.md
@@ -14,7 +14,7 @@ tasks:
     verify: >-
       bash tools/check-brief.sh docs/research/R1-gsd.md
       R1 --sources
-    status: todo
+    status: done
   - id: 2
     description: >-
       Describe what GSD does and name which parts earn
@@ -23,7 +23,7 @@ tasks:
     verify: >-
       grep -Eqi 'ceremony' docs/research/R1-gsd.md &&
       grep -Eqi 'VERSION|version' docs/research/R1-gsd.md
-    status: todo
+    status: done
   - id: 3
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
@@ -32,4 +32,4 @@ tasks:
       vs ceremony verdicts, and open questions
     verify: bash tools/check-brief.sh docs/research/R1-gsd.md
       R1
-    status: todo
+    status: done

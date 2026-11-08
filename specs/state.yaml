@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
-active_epic: e01
-active_story: none
-phase: between-stories
+active_epic: e02
+active_story: e02s01
+phase: story-built-awaiting-release
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: docs/e02s01-r1-gsd
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -29,17 +29,19 @@ waivers:
   date: 2026-11-08
   scope: e01 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: commit-message
   next_story: e02s01
-  note: 'The e01 checkpoint is applied (change-request, on branch
-    replan-e01-checkpoint, not yet merged). e01 capsule archived. New story
-    e03s08 (R15 run termination, 5 BCPs). Resized: R7 3 to 5, R9 5 to 8, R11 3
-    to 5, R12 3 to 5; R5 and R10 unchanged. e03 is now 41 BCPs, WSJF 1.6 (cut
-    threshold 1.5). Start e02s01 (R1 GSD in depth) in a FRESH session with
-    kickoff-branch after this merges. Open: R15 is assigned to H15 only; R0 also
-    listed H4, which the owner may add. plan-consistency-check reports missing
-    story specs for every unplanned story; plan-work writes them. pi-flow-legacy
-    is reference only.'
+  note: 'e02s01 (R1 GSD) is built on branch docs/e02s01-r1-gsd and not
+    committed. Brief docs/research/R1-gsd.md passes check-brief.
+    audit-code --gate passed (specs/verifications/AUDIT-e02-e02s01.md).
+    Open: build-epic step 0 (threat model) was not run for e02 and the
+    e01 waiver covers e01 only; the owner must waive it or request it.
+    Owner go-ahead needed to commit. Then release-branch, and start
+    e02s02 in a fresh session.'
+epic_cycle:
+  story: e02s01
+  step: 7
+  audit_result: pass
 metrics:
   skill_timings:
     survey-context:
