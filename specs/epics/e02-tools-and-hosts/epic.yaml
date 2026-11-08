@@ -22,7 +22,7 @@ stories:
   - id: e02s03
     title: R3 workflow landscape
     bcps: 3
-    status: todo
+    status: in_progress
     tasks: e02s03-tasks.yaml
   - id: e02s04
     title: R5 harness capability matrix

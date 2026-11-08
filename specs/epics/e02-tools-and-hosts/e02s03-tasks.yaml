@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e02s03
 title: R3 workflow landscape
-status: todo
+status: in_progress
 bcps: 3
 type: research
 context: infra
@@ -20,7 +20,7 @@ tasks:
       bash tools/check-brief.sh docs/research/R3-workflow-landscape.md
       R3 --sources
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -37,7 +37,7 @@ tasks:
       | sed -E 's/^\| *([^|]*[^ |]) *\|.*/\1/' | sort -u | wc -l
       | grep -qx 7
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -57,7 +57,7 @@ tasks:
       docs/research/R3-workflow-landscape.md
       | grep -Ec '^- .*\[S[0-9]+\]' | awk '$1>=2{ok=1} END{exit !ok}'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -73,7 +73,7 @@ tasks:
       bash tools/check-brief.sh docs/research/R3-workflow-landscape.md
       R3
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:

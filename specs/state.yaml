@@ -41,29 +41,25 @@ waivers:
     for e01.
   date: 2026-11-08
   scope: e02 only
-- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) and
-    MED status-ledger findings for e02s01, e02s02, e02s04
-  why: e02s01 and e02s02 are released, so specs written now would be paperwork.
-    e02s04 gets its spec when it is planned. The owner chose to keep the project
-    status values todo, in_progress, done (CONVENTIONS.md), as for e01. Findings
-    for e02s03 itself are clear.
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) and MED
+    status-ledger findings for e02s01, e02s02, e02s04
+  why: e02s01 and e02s02 are released, so specs written now would be paperwork. e02s04
+    gets its spec when it is planned. The owner chose to keep the project status values
+    todo, in_progress, done (CONVENTIONS.md), as for e01. Findings for e02s03 itself
+    are clear.
   date: 2026-11-08
   scope: e02 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   next_story: e02s03
-  note: >-
-    e02s03 (R3 workflow landscape) is planned on branch
-    e02s03-r3-workflow-landscape: spec
-    e02s03-r3-workflow-landscape.md, 4 tasks in e02s03-tasks.yaml,
-    risk P2 (owner confirmed). Write the brief
-    docs/research/R3-workflow-landscape.md; its verify commands are in
-    the tasks file. Doc-only story: develop-tdd's red-commit gate
-    cannot apply; name the skip in the PR body. Waivers in force for
-    e02: threat model, gate-trace R1, plan-consistency-check findings
-    on e02s01, e02s02, e02s04. R2 left candidate stories: compare
-    bigpowers v2.96.0 with the installed 2.93.3, and count gate
-    follow-through across logged runs (for R10).
+  note: 'e02s03 (R3 workflow landscape) is planned on branch e02s03-r3-workflow-landscape:
+    spec e02s03-r3-workflow-landscape.md, 4 tasks in e02s03-tasks.yaml, risk P2 (owner
+    confirmed). Write the brief docs/research/R3-workflow-landscape.md; its verify
+    commands are in the tasks file. Doc-only story: develop-tdd''s red-commit gate
+    cannot apply; name the skip in the PR body. Waivers in force for e02: threat model,
+    gate-trace R1, plan-consistency-check findings on e02s01, e02s02, e02s04. R2 left
+    candidate stories: compare bigpowers v2.96.0 with the installed 2.93.3, and count
+    gate follow-through across logged runs (for R10).'
 metrics:
   skill_timings:
     survey-context:
@@ -75,9 +71,9 @@ metrics:
       total_seconds: 155.0
       avg_seconds: 51.666666666666664
     develop-tdd:
-      calls: 3
-      total_seconds: 905.0
-      avg_seconds: 301.6666666666667
+      calls: 4
+      total_seconds: 1118.0
+      avg_seconds: 279.5
     verify-work:
       calls: 2
       total_seconds: 119.0
