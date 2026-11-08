@@ -1,0 +1,163 @@
+---
+story_id: e02s02
+verified_at: "2026-11-08T21:27:05Z"
+verifier: verify-work
+risk: P1
+risk_source: >-
+  Epic e02 declares P2. The story declares none, so verify-work
+  uses the stricter P1 path, where manual UAT is a HARD GATE.
+branch: e02s02-r2-bigpowers (primary checkout)
+phases:
+  preflight:
+    passed: true
+    command: "yamllint specs && bash scripts/validate-specs-yaml.sh"
+    note: >-
+      First run in a worktree, where the validator had to be called
+      by absolute path (BUG-002). Re-run on the branch in the primary
+      checkout.
+  smoke:
+    passed: true
+    note: "no server; doc-only story"
+  build:
+    passed: true
+    note: "no build step in this repository; no code exists"
+  typecheck:
+    passed: true
+    note: "no code exists"
+  lint:
+    passed: true
+    command: "yamllint specs && bash scripts/validate-specs-yaml.sh"
+    note: "validator printed OK"
+  tests:
+    passed: true
+    note: "tasks 1-3 verify commands, all exit 0 on the branch"
+    commands:
+      - >-
+        bash tools/check-brief.sh docs/research/R2-bigpowers.md
+        R2 --sources
+      - >-
+        grep -Eqi 'ceremony' docs/research/R2-bigpowers.md &&
+        grep -Eqi 'opensrc' docs/research/R2-bigpowers.md
+      - >-
+        bash tools/check-brief.sh docs/research/R2-bigpowers.md R2
+  terminal_verdict:
+    command: >-
+      bash tools/check-brief.sh docs/research/R2-bigpowers.md
+      R2 --sources
+    exit_code: 0
+    captured_at: "2026-11-08T21:09:00Z"
+    stdout: "check-brief: OK (R2)"
+    note: "Single contiguous run in the worktree"
+  security_review:
+    passed: true
+    method: >-
+      inspection of the story's own changes (the brief, its tasks
+      yaml, state.yaml); the BUG-002 files were reviewed in audit-code
+    finding: >-
+      no executable content changed; URL matches are citations only
+  blind_spots:
+    passed: true
+    command: "bash scripts/check-blind-spots.sh"
+    result: "0 findings (0 HIGH, 0 MEDIUM, 0 LOW)"
+    note: >-
+      Run on the branch in the primary checkout. The first run, from
+      the worktree, evaluated main instead (BUG-002).
+  completeness_critic:
+    passed: true
+    command: >-
+      bash scripts/trace-stories.sh --json &&
+      bash scripts/lib/completeness-critic.sh
+    result: "BLOCKER=0 WARNING=0 FILLED=1"
+    caveat: >-
+      The pass is weak. The matrix links e02s02 by explicit tag only
+      through mentions in specs/state.yaml (active_story and the
+      handoff), plus a low-confidence task reference. A doc-only
+      story has no code to trace.
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    result: "defects_found: 0, passed: true"
+    note: >-
+      Output file ADVERSARIAL_LATEST.yaml is regenerated per run and
+      gitignored (BUG-002); the result is recorded here.
+  manual:
+    passed: true
+    status: "confirmed by owner, 2026-11-08"
+    steps:
+      - step: >-
+          Open docs/research/R2-bigpowers.md and check each [S<n>]
+          entry has accessed and published dates
+        expected: "Every source line carries both dates"
+        actual: "owner confirmed pass"
+        passed: true
+      - step: "Run: npx opensrc search lodash"
+        expected: >-
+          Error: unrecognized subcommand 'search', with a tip to
+          use 'fetch'
+        actual: "owner confirmed pass"
+        passed: true
+      - step: >-
+          Read the verdict lines for H6, H7 and H10 and check each
+          cites a source that supports it
+        expected: "Each verdict is refined; citations match sources"
+        actual: "owner confirmed pass"
+        passed: true
+      - step: >-
+          Read the first-hand findings and check each claim against
+          this repository
+        expected: "Claims match specs/bugs/BUG-001 and the git history"
+        actual: "owner confirmed pass"
+        passed: true
+  gaps:
+    closed: true
+    note: >-
+      The gate-tooling gap is logged as BUG-002 and fixed locally:
+      the story moved from the worktree to the primary checkout and
+      the gates re-ran there.
+verified: true
+stale_since:
+  resolved: >-
+    The owner re-confirmed UAT steps 1, 3 and 4 on 2026-11-08, after
+    review round 5. The automated gates were re-run in recheck below.
+  commit: 07d09ba
+  reason: >-
+    audit-code added tools/check-gate-ignores.sh and its CI and
+    Preflight wiring (07d09ba, fdfb40a); request-review rounds 1 to 5
+    then changed the brief, the script and .yamllint.
+  affected:
+    - >-
+      manual step 1 (sources): the [S4] and [S5] lines changed;
+      needs owner re-confirmation
+    - >-
+      manual step 3 (verdicts): the owner confirmed H6, H7 and H10
+      text that was later rewritten; needs owner re-confirmation
+    - >-
+      manual step 4 (first-hand findings): BUG-002 finding added,
+      kickoff, timing and hook text rewritten; needs owner
+      re-confirmation
+    - >-
+      security_review: covered 3 files; superseded by the security
+      pass over the new script in AUDIT-e02-e02s02.md
+    - >-
+      preflight: now includes tools/check-gate-ignores.sh; see
+      recheck below
+  recheck:
+    captured_at: "2026-11-08T22:02:42Z"
+    note: >-
+      Full automated re-run after review round 4 fixes, on the branch
+      in the primary checkout. Supersedes the earlier tests,
+      terminal_verdict, blind_spots, completeness_critic, adversarial
+      and preflight results. Only the manual steps listed in affected
+      remain stale.
+    results:
+      preflight: >-
+        exit 0 (yamllint specs && bash scripts/validate-specs-yaml.sh
+        && bash tools/check-gate-ignores.sh)
+      task_verifies: "tasks 1, 2 and 3 all exit 0"
+      blind_spots: >-
+        1 finding (0 HIGH, 1 MEDIUM): double-tag in the archived
+        e01s03-tasks.yaml, the blind spot the e01 gate-trace waiver
+        already records. MEDIUM does not block.
+      completeness_critic: "BLOCKER=0 WARNING=0 FILLED=1"
+      adversarial: "PASS"
+story_done: false

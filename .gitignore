@@ -17,3 +17,11 @@ coverage/
 dist/
 *.log
 .DS_Store
+
+# bigpowers gate outputs, regenerated on every run (BUG-002).
+# tools/check-gate-ignores.sh checks this block; keep the two in step.
+specs/blind-spots.json
+specs/traceability-matrix.json
+specs/TRACEABILITY_LATEST.md
+specs/codebase-wiki/
+specs/verifications/ADVERSARIAL_LATEST.yaml

@@ -5,9 +5,9 @@ development_status:
   e01s02: done
   e01s03: done
   e01s04: done
-  e02: backlog
+  e02: in_progress
   e02s01: done
-  e02s02: backlog
+  e02s02: done
   e02s03: backlog
   e02s04: backlog
   e03: backlog
@@ -31,7 +31,7 @@ epics:
     wsjf: 6.25
     total_bcps: 14
   e02:
-    status: backlog
+    status: in_progress
     title: Tools and hosts (wave 2)
     wsjf: 3.6
     total_bcps: 14
@@ -101,12 +101,14 @@ stories:
     tasks_passing: 3
     tasks_failing: 0
   e02s02:
-    status: backlog
+    status: done
+    started_at: "2026-11-08T13:49:17-07:00"
+    completed_at: "2026-11-08T15:12:09-07:00"
     title: R2 bigpowers in depth
     bcps: 3
     epic: e02
     tasks_total: 3
-    tasks_passing: 0
+    tasks_passing: 3
     tasks_failing: 0
   e02s03:
     status: backlog

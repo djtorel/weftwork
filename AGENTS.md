@@ -18,7 +18,9 @@ Load subdirectory context by file glob — see project-specific routing table (s
 
 ## Workspace Facts
 
-- (none yet — durable facts discovered across sessions)
+- Start story branches with `git checkout -b` in this checkout, not a git
+  worktree. bigpowers gate scripts evaluate the checkout whose `scripts/`
+  symlink they are called through, and a new worktree has none (BUG-002).
 <!-- END bigpowers:learned-preferences -->
 
 <!-- BEGIN bigpowers:project -->
@@ -35,7 +37,7 @@ Stack: none yet. The project is in a research phase and contains no product code
 | Test | N/A |
 | Build | N/A |
 | Lint | `yamllint specs` |
-| Preflight | `yamllint specs && bash scripts/validate-specs-yaml.sh` |
+| Preflight | `yamllint specs && bash scripts/validate-specs-yaml.sh && bash tools/check-gate-ignores.sh` |
 | CI | `.github/workflows/ci.yml` (GitHub Actions) |
 
 `scripts/` is a symlink to the global bigpowers install. It is gitignored and machine-local.

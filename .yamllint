@@ -6,6 +6,14 @@
 # See BUG-001.
 extends: default
 
+# The one gitignored gate output that is YAML; yamllint skips the
+# others (JSON, Markdown) by default. Listed here, not via
+# ignore-from-file, which crashes when yamllint runs from a
+# subdirectory. All paths in this file match from the repository root,
+# so run yamllint there, as Preflight does (BUG-002).
+ignore: |
+  specs/verifications/ADVERSARIAL_LATEST.yaml
+
 rules:
   document-start:
     ignore: |

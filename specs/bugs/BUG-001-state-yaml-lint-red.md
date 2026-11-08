@@ -42,6 +42,7 @@ with `>-`. Keep every value unchanged except `handoff` and `bug_cycle`.
 Every `bp-timing.sh` call rewrites the file again. Owner decision
 (2026-11-08): fix locally, do not report upstream. The repo now has a
 `.yamllint` that extends the default rules and skips only the
-`indentation` and `line-length` rules for `specs/state.yaml`. Checked
+`document-start`, `indentation` and `line-length` rules for
+`specs/state.yaml`. Checked
 by running the helper (`start` then `end`): `yamllint specs` still
 exits 0. A mis-indented list in another file still fails.

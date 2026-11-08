@@ -21,54 +21,63 @@ waivers:
   date: 2026-11-08
   scope: e01 only
 - what: gate-trace FAIL (rule R1) for e01s03
-  why: R1 fails any undone story with 0 code tags. All 14 undone stories have
-    none, because the project has no code, so the gate cannot pass until code
-    exists. The owner chose to waive it for e01. Oracle links are 96 percent
-    heuristic; completeness-critic had 0 blockers; one MEDIUM blind spot
-    (double-tag in e01s03-tasks.yaml, from depends_on) was left as is.
+  why: R1 fails any undone story with 0 code tags. All 14 undone stories have none,
+    because the project has no code, so the gate cannot pass until code exists. The
+    owner chose to waive it for e01. Oracle links are 96 percent heuristic; completeness-critic
+    had 0 blockers; one MEDIUM blind spot (double-tag in e01s03-tasks.yaml, from depends_on)
+    was left as is.
   date: 2026-11-08
   scope: e01 only
 - what: security-review threat model for e02 (build-epic step 0)
-  why: No product code. e02 writes research briefs only; the executable
-    surface is check-brief.sh, as in e01. Briefs read web pages, GitHub
-    metadata and the local .pi/gsd copy, read only. The owner chose to
-    waive it.
+  why: No product code. e02 writes research briefs only; the executable surface is
+    check-brief.sh, as in e01. Briefs read web pages, GitHub metadata and the local
+    .pi/gsd copy, read only. The owner chose to waive it.
+  date: 2026-11-08
+  scope: e02 only
+- what: gate-trace FAIL (rule R1) for e02s02
+  why: R1 fails any undone story with 0 code tags. All 13 undone stories have none,
+    because the project has no code. e02s02's matrix links are specs/state.yaml (high,
+    explicit tag) and its tasks file (low). The owner chose to waive it for e02, as
+    for e01.
   date: 2026-11-08
   scope: e02 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e02s02
-  note: 'e02s01 (R1 GSD) is released: brief docs/research/R1-gsd.md,
-    audit in specs/verifications/AUDIT-e02-e02s01.md. Next is e02s02 (R2
-    bigpowers in depth, 3 BCPs, tasks in e02s02-tasks.yaml), started in
-    a fresh session with kickoff-branch. The e02 threat model is waived
-    (see waivers). R1 left open questions for R10 (catalog size,
-    verifier stub catch rate) and a candidate story to compare a current
-    GSD release with the local 1.30.0 copy.'
+  next_story: e02s03
+  note: 'e02s02 (R2 bigpowers) is released: brief docs/research/R2-bigpowers.md, evidence
+    in specs/verifications/e02s02-verify.yaml and AUDIT-e02-e02s02.md. Next is e02s03
+    (R3 workflow landscape, 3 BCPs, tasks in e02s03-tasks.yaml), started in a fresh
+    session with kickoff-branch. Start the branch with git checkout -b in the primary
+    checkout, not a worktree (BUG-002, AGENTS.md Workspace Facts). Waivers in force
+    for e02: threat model and gate-trace R1. Doc-only stories cannot satisfy develop-tdd''s
+    red-commit gate; name the skip in the PR body. The verify-work risk field defaults
+    to P1 when a story declares none, which forces manual UAT; decide whether e02s03
+    should declare risk P2 like its epic. R2 left candidate stories: compare a current
+    bigpowers release (v2.96.0) with the installed 2.93.3, and count gate follow-through
+    across logged runs (for R10).'
 metrics:
   skill_timings:
     survey-context:
-      calls: 1
-      total_seconds: 25.0
-      avg_seconds: 25.0
+      calls: 2
+      total_seconds: 32.0
+      avg_seconds: 16.0
     plan-work:
       calls: 2
       total_seconds: 70.0
       avg_seconds: 35.0
     develop-tdd:
-      calls: 2
-      total_seconds: 473.0
-      avg_seconds: 236.5
+      calls: 3
+      total_seconds: 905.0
+      avg_seconds: 301.6666666666667
     verify-work:
-      calls: 1
-      total_seconds: 63.0
-      avg_seconds: 63.0
+      calls: 2
+      total_seconds: 119.0
+      avg_seconds: 59.5
     audit-code:
-      calls: 1
-      total_seconds: 53.0
-      avg_seconds: 53.0
+      calls: 2
+      total_seconds: 86.0
+      avg_seconds: 43.0
     release-branch:
-      calls: 0
-      total_seconds: 0
-      avg_seconds: 0
-      _start: '2026-11-08T19:26:11Z'
+      calls: 1
+      total_seconds: 47.0
+      avg_seconds: 47.0
