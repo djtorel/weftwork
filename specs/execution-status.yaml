@@ -112,7 +112,7 @@ stories:
     tasks_failing: 0
   e02s03:
     status: in_progress
-    started_at: "2026-11-08T16:00:00-07:00"
+    started_at: "2026-11-08T15:19:54-07:00"
     title: R3 workflow landscape
     bcps: 3
     epic: e02

@@ -10,7 +10,9 @@
 Risk note: the BCP heuristic (BCP 3-4) gives P1, the documentation
 heuristic gives P3. This plan uses the epic's P2. Nothing here can lose
 data or leak anything, and no code ships. The owner can overrule; P1
-forces manual UAT in verify-work.
+forces manual UAT in verify-work. Decision: owner confirmed P2 on
+2026-11-08, recorded in this spec, in `risk: P2` in
+`e02s03-tasks.yaml`, and in the `specs/state.yaml` handoff note.
 
 ## 1. Purpose
 
@@ -56,7 +58,9 @@ and a sourced verdict for H7 and H10.
 Under `## Workflow comparison`, one Markdown table with one row each for
 Spec Kit, OpenSpec, BMAD, Kiro, Superpowers, GSD and bigpowers. The tool
 name is the first cell. Each row cites at least one `[S<n>]`, and that
-source is the tool's own docs or repository. Columns cover at least:
+source is the tool's own docs or repository; for GSD and bigpowers it is
+the R1 or R2 brief, whose own first source is the tool's files. Columns
+cover at least:
 artifacts, phases, gates or checks, and ceremony level.
 
 #### ADDED: Host practices
@@ -71,7 +75,7 @@ post-mortem or field report with a `[S<n>]` cite and one line on what
 failed or worked. These are practitioner opinion; where papers exist on
 the same point, cite them too.
 
-## Acceptance criteria (Gherkin)
+## 4. Acceptance criteria (Gherkin)
 
 These IDs are local to this story. No e02 test plan exists.
 
@@ -124,7 +128,11 @@ Headings, in order: `## Sources`, `## Workflow comparison`,
 - **No literature on these tools.** Mitigation: say so in the brief
   and cite R4 papers on the underlying ideas (planning, verification).
 - **Subagent research times out.** Do the research in the parent
-  session; at most 2 subagents.
+  session; at most 2 subagents. Deviation, recorded after review: the
+  Kiro, host-docs and post-mortem pages were read by two fetch
+  subagents and came back as summaries, so those sources are
+  second-hand. The brief says so in its method section; name it in the
+  PR body. The UAT spot-check of two rows is the remedy.
 
 ## Verification Script (human)
 

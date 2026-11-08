@@ -1,8 +1,8 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e02
-active_story: none
-phase: between-stories
+active_story: e02s03
+phase: review
 test_plan: lite
 vcs:
   kind: git
@@ -50,16 +50,27 @@ waivers:
   date: 2026-11-08
   scope: e02 only
 handoff:
-  next_skill: verify-work
+  next_skill: commit-message
   next_story: e02s03
-  note: 'e02s03 (R3 workflow landscape) is planned on branch e02s03-r3-workflow-landscape:
-    spec e02s03-r3-workflow-landscape.md, 4 tasks in e02s03-tasks.yaml, risk P2 (owner
-    confirmed). Write the brief docs/research/R3-workflow-landscape.md; its verify
-    commands are in the tasks file. Doc-only story: develop-tdd''s red-commit gate
-    cannot apply; name the skip in the PR body. Waivers in force for e02: threat model,
-    gate-trace R1, plan-consistency-check findings on e02s01, e02s02, e02s04. R2 left
-    candidate stories: compare bigpowers v2.96.0 with the installed 2.93.3, and count
-    gate follow-through across logged runs (for R10).'
+  note: >-
+    e02s03 (R3 workflow landscape), branch e02s03-r3-workflow-landscape,
+    risk P2 (owner confirmed 2026-11-08). Brief
+    docs/research/R3-workflow-landscape.md; evidence in
+    specs/verifications/e02s03-verify.yaml; audit in
+    specs/verifications/AUDIT-e02-e02s03.md. Review passed in round 3 of 5 (A 100% over 35 checks, B 100% over 32,
+    zero must-fix and should-fix); rounds 1 and 2 failed (35%/50% and
+    50%/50%). Owner defined total_items as checks performed plus
+    findings. Two open consider notes: the BMAD row says "named agent
+    personas" where its README says agents and perspectives, and
+    vcs.branch still reads main until release-branch. Owner decisions
+    made 2026-11-08: the gh
+    api reads are no violation (no project rule); BUG-003 logs the
+    audit-code verify-line failure; the task 2 and 3 verify commands
+    are hardened. The e01s03 double-tag is covered by the e01 gate-trace
+    waiver. Doc-only story: name the develop-tdd red-commit skip and
+    the subagent-read sources in the PR body. Waivers in force for e02:
+    threat model, gate-trace R1, plan-consistency-check findings on
+    e02s01, e02s02, e02s04.
 metrics:
   skill_timings:
     survey-context:
@@ -75,14 +86,18 @@ metrics:
       total_seconds: 1118.0
       avg_seconds: 279.5
     verify-work:
-      calls: 2
-      total_seconds: 119.0
-      avg_seconds: 59.5
+      calls: 3
+      total_seconds: 142.0
+      avg_seconds: 47.333333333333336
     audit-code:
-      calls: 2
-      total_seconds: 86.0
-      avg_seconds: 43.0
+      calls: 3
+      total_seconds: 133.0
+      avg_seconds: 44.333333333333336
     release-branch:
       calls: 1
       total_seconds: 47.0
       avg_seconds: 47.0
+    request-review:
+      calls: 1
+      total_seconds: 307.0
+      avg_seconds: 307.0

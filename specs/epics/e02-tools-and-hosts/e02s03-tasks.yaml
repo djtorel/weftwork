@@ -32,10 +32,12 @@ tasks:
       OpenSpec, BMAD, Kiro, Superpowers, GSD and bigpowers, each row
       citing the tool's own docs or repository
     verify: >-
-      grep -E '^\| *(Spec Kit|OpenSpec|BMAD|Kiro|Superpowers|GSD|bigpowers)
-      *\|.*\[S[0-9]+\]' docs/research/R3-workflow-landscape.md
-      | sed -E 's/^\| *([^|]*[^ |]) *\|.*/\1/' | sort -u | wc -l
-      | grep -qx 7
+      R='Spec Kit|OpenSpec|BMAD|Kiro|Superpowers|GSD|bigpowers';
+      awk '/^## Workflow comparison/{f=1;next} /^## /{f=0} f'
+      docs/research/R3-workflow-landscape.md
+      | grep -E "^\| *\**($R)" | sed 's/\[S15\]//g'
+      | grep -E '\[S[0-9]+\]' | grep -Eo "^\| *\**($R)"
+      | tr -d '|* ' | sort -u | wc -l | tr -d ' ' | grep -qx 7
     risk: P2
     status: done
     allure:
@@ -49,13 +51,17 @@ tasks:
       vendor docs) and Post-mortems (at least 2 cited practitioner
       reports)
     verify: >-
-      awk '/^## Host practices/{f=1;next} /^## /{f=0} f'
-      docs/research/R3-workflow-landscape.md
-      | grep -Eo 'Claude Code|Codex CLI|Cline|Aider' | sort -u | wc -l
-      | grep -qx 4
-      && awk '/^## Post-mortems/{f=1;next} /^## /{f=0} f'
-      docs/research/R3-workflow-landscape.md
-      | grep -Ec '^- .*\[S[0-9]+\]' | awk '$1>=2{ok=1} END{exit !ok}'
+      awk '$0=="## Host practices"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R3-workflow-landscape.md
+      | sed 's/\[S15\]//g' | grep -E '\[S[0-9]+\]'
+      | grep -Eo '^- \**(Claude Code|Codex CLI|Cline|Aider)'
+      | sort -u | wc -l | tr -d ' ' | grep -qx 4
+      && awk '$0=="## Post-mortems"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R3-workflow-landscape.md
+      | sed 's/\[S15\]//g' | grep -Ec '\[S[0-9]+\]'
+      | awk '$1>=2{ok=1} END{exit !ok}'
     risk: P2
     status: done
     allure:

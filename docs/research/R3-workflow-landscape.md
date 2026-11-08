@@ -15,12 +15,15 @@ subagents that returned summaries with short quotes; I did not open
 those pages myself, so every statement drawn from [S5]-[S14] is
 second-hand through a summary. The Graziano comparison page [S15] is a
 secondary source by one author. I used it to choose the columns of the
-table and to cross-check, never as the only support for a row.
-GSD and bigpowers rows summarize R1 and R2 [S16][S17] and add no new
-research. I ran none of these tools. One practitioner report, EPAM's
+table and to cross-check, never as the only support for a row. I did
+not read the BSWEN and SpecsGraph comparisons that the scope seeds
+named. The GSD and bigpowers rows summarize R1 and R2 [S16][S17], which
+rest on those briefs' own reading of each tool's files (R1 [S1], R2
+[S1]), and add no new research. I ran none of these tools. One practitioner report, EPAM's
 Spec Kit brownfield post, returned HTTP 403 and is not used. No
 tool-versus-tool controlled study was found; the papers cited are
 background on the ideas inside these workflows, not tests of the tools.
+Paper verdicts are reused from R4 [S18], not re-read.
 
 ## Sources
 
@@ -45,21 +48,21 @@ background on the ideas inside these workflows, not tests of the tools.
 - [S19] Huang et al., "Large Language Models Cannot Self-Correct Reasoning Yet", ICLR 2024, arXiv:2310.01798, https://arxiv.org/abs/2310.01798 (as read in R4 [S8]) - accessed: 2026-11-08 published: 2023-10-03
 - [S20] Gloaguen et al., "Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?", arXiv:2602.11988, https://arxiv.org/abs/2602.11988 (as read in R4 [S14]) - accessed: 2026-11-08 published: 2026-02-12
 - [S21] Wang, Pradel and Liu, "Are 'Solved Issues' in SWE-bench Really Solved Correctly? An Empirical Study", ICSE 2026, arXiv:2503.15223, https://arxiv.org/abs/2503.15223 (as read in R4 [S18]) - accessed: 2026-11-08 published: 2025-03-19
-- [S22] Xia et al., "Agentless: Demystifying LLM-based Software Engineering Agents", arXiv:2407.01489, https://arxiv.org/abs/2407.01489 (as read in R4 [S3]) - accessed: 2026-11-08 published: 2024-07-01
+- [S22] bigpowers `plan-work` skill, `/home/domtorr/.claude/skills/plan-work/SKILL.md` (section "Requirement delta tags": ADDED, MODIFIED, REMOVED, RENAMED, "OpenSpec-style"; machine-local) - accessed: 2026-11-08 published: undated
 - [S23] Liu et al., "Lost in the Middle: How Language Models Use Long Contexts", TACL 2024, arXiv:2307.03172, https://arxiv.org/abs/2307.03172 (as read in R2 [S5]) - accessed: 2026-11-08 published: 2023-07-06
 
 ## Workflow comparison
 
 Each row is stated from the tool's own page; the GSD and bigpowers rows
-restate R1 and R2. "Ceremony" is my reading of how many mandatory steps
+restate R1 and R2. The columns follow the criteria compared on [S15]. "Ceremony" is my reading of how many mandatory steps
 the tool puts between an idea and code, not a measurement.
 
 | Tool | Unit of work | Artifacts | Phases and gates | Ceremony |
 | ---- | ------------ | --------- | ---------------- | -------- |
 | Spec Kit | a feature or an application; bug fixing and idea assessment ship as optional extensions [S1] | constitution, then per-feature spec, plan and tasks [S1] | `constitution`, `specify`, `plan`, `tasks`, `implement`, `converge`, run one at a time with the owner reviewing each result; repeat implement and converge until `Converged`; entry points are "not mandatory phases" [S1] | medium; the extension, preset and bundle machinery adds a second layer [S1][S12] |
-| OpenSpec | one change to an existing system [S2] | `proposal.md`, `specs/` with ADDED/MODIFIED/REMOVED requirements and scenarios, `design.md`, `tasks.md`, then an archive [S2] | `explore` (optional), `propose`, `apply`, `archive`; philosophy "fluid not rigid", no gate between phases is described [S2] | light [S2][S14] |
-| BMAD | one build session at any size [S3] | briefs, specifications and architecture kept as durable context; named agent personas [S3] | `bmad-build` is the entry point and `bmad-help` says what is next; "right-sized process": small changes go straight to implementation, larger ones add planning [S3] | adjustable; the full path is heavy [S3][S14] |
-| Kiro | one feature or one bug [S5] | `requirements.md` (or `bugfix.md`), `design.md`, `tasks.md` under `.kiro/specs/`; steering files and hooks [S5][S6] | requirements, design, tasks, each reviewed in turn; Quick Spec makes all three "without approval gates"; tasks run in dependency waves [S5] | medium for Feature Spec, low for Quick Spec [S5] |
+| OpenSpec | one change to an existing system [S2] | `proposal.md`, `specs/` with requirements and scenarios (the README example is an `ADDED Requirements` block), `design.md`, `tasks.md`, then an archive [S2] | `explore` (optional), `propose`, `apply`, `archive`; philosophy "fluid not rigid", no gate between phases is described [S2] | light [S2][S14] |
+| BMAD | one build session at any size [S3] | briefs, specifications and architecture kept as durable context; specialized agent perspectives [S3] | `bmad-build` is the entry point and `bmad-help` says what is next; "right-sized process": small changes go straight to implementation, larger ones add planning [S3] | adjustable; the full path is heavy [S3][S14] |
+| Kiro | one feature or one bug [S5] | `requirements.md` (or `bugfix.md`), `design.md`, `tasks.md` under `.kiro/specs/`; steering files and hooks [S5][S6] | requirements, design, tasks, each with a Review step for comments; Quick Spec makes all three "without approval gates"; tasks run in dependency waves [S5] | medium for Feature Spec, low for Quick Spec [S5] |
 | Superpowers | a project or a task [S4] | design, then a plan of 2 to 5 minute tasks with exact paths and verification steps [S4] | brainstorming, worktree, plan, subagent-driven development, TDD, review between tasks, finish; 15 skills fire on their own and are "mandatory workflows, not suggestions"; "small changes get agreed in chat" [S4] | high by design, scaled by project size [S4] |
 | GSD | a phase of a project [S16] | planning files, plans, summaries, verification notes [S16] | discuss, plan, execute, verify; `fast` for up to 3 edits, `quick`, then the full chain; guards advise and do not block [S16] | tiered by effort [S16] |
 | bigpowers | a story in an epic [S17] | `specs/` YAML, epic capsules, task files, evidence files [S17] | 6 phases, 80 skills, prose "HARD GATE" lines in 74 of them, a hook for a few mechanical rules; `verify-work` scales by a declared `risk:` field [S17] | high; the largest catalog of the seven [S17] |
@@ -99,17 +102,20 @@ recommends.
   add only the files that need changes, split goals into small steps, and
   share test output with `/run` or `/test`.
 
-Across the four hosts, the common practice is a read-only planning step
-before edits, a short persistent rules file, and a runnable check. None
-describes a gate set by risk.
+No practice is common to all four hosts in what I read. A planning step
+before edits is recommended by Codex CLI, Cline and Aider (the Claude
+Code plan-mode section was not read); a short persistent rules file by
+Claude Code, Codex CLI and Cline; running a check by Claude Code and
+Aider. None describes a gate set by risk.
 
 ## Post-mortems
 
 These are practitioner reports. None is a controlled study, none cites a
 research paper, and each covers one team or one author.
 
-- Asana [S11], after three months of its internal `/spec-driven` harness: over
-  four months, seven engineers and 524 merged PRs, PRs per week "rose
+- Asana [S11], on its internal `/spec-driven` harness (the page title says
+  three months of use; the figures cover four months): seven engineers and
+  524 merged PRs, PRs per week "rose
   38%" and the explicit-revert rate was 1.2% against 1.66% for other PRs,
   but the comparisons "weren't controlled"; creating a spec "took
   anywhere from 30 minutes to several days"; one infrastructure team
@@ -129,8 +135,8 @@ research paper, and each covers one team or one author.
   you leverage, not absolution" and needs care on long-lived production
   systems [S13].
 - Ran the Builder [S14], one serverless feature built with BMAD, Spec Kit and
-  OpenSpec in February 2026: planning plus implementation cost $75 to
-  $200 for BMAD Full or Quick, $75 for Spec Kit and $95 for OpenSpec
+  OpenSpec in February 2026: planning plus implementation cost $200 for
+  BMAD Full, $85 for BMAD Quick, $75 for Spec Kit and $95 for OpenSpec
   (the report gives the figures per phase; I summed them); the author
   scored OpenSpec 4.00, BMAD Quick 3.74, BMAD 3.65 and Spec Kit 2.77 out
   of 5 and says to "take these scores with a grain of salt"; Spec Kit's
@@ -140,43 +146,50 @@ research paper, and each covers one team or one author.
 
 ## Verdicts
 
-- H7: refined - the tools do scale ceremony, but by size or kind of change and by the human's choice, not by measured risk: Spec Kit says its processes are "independent entry points, not mandatory phases" [S1], BMAD sizes the process to the work [S3], Kiro offers a Quick Spec without approval gates [S5], OpenSpec states "fluid not rigid" [S2], Superpowers agrees small changes in chat [S4], Cline sizes the plan by task size [S9], GSD has `fast` and `quick` tiers [S16], and only bigpowers reads a declared `risk:` field, which defaults to P1 when missing [S17]. The reports say what too much ceremony costs: spec creation of 30 minutes to several days and a blocked review [S11], "instruction bloat" and "context rot" [S12], BMAD artifacts "heavy and hard to review" [S14]. None tests whether risk-scaled ceremony beats size-scaled or uniform ceremony; [S21] warns against cutting checks, since a too-narrow test run lets wrong patches pass, and [S19] favours checks that run over agents confirming themselves, so a risk scale should lower the amount of ceremony and keep the checks that run.
-- H10: refined - small catalogs are common but one entry command is not: the core flow of Spec Kit is 6 commands [S1], OpenSpec 4 or 5 [S2], Superpowers 15 skills [S4], BMAD names `bmad-build` as the entry point and `bmad-help` for what is next [S3], and Kiro has no slash commands, its entry being the spec itself [S5], against GSD with 54 commands [S16] and bigpowers with 80 skills [S17]. Only BMAD is built round a single entry command; Superpowers has none because its skills fire on their own [S4]. The extension, preset, bundle and catalog layers in Spec Kit [S1] and BMAD's 16-skill delivery set [S15] show the pull towards a large catalog even in the small-core tools. The costs of size are reported, not measured: "context rot" [S12], Codex capping `AGENTS.md` at 32 KiB [S8] and Cline's "rules consume context" [S9]; [S23] gives a reason to expect harm from long listings and [S20] finds that context files raise cost without a general gain, but neither tests a skill listing.
+- H7: refined - the tools do scale ceremony, but by size or kind of change and by the human's choice, not by measured risk: Spec Kit says its processes are "independent entry points, not mandatory phases" [S1], BMAD sizes the process to the work [S3], Kiro offers a Quick Spec without approval gates [S5], OpenSpec states "fluid not rigid" [S2], Superpowers agrees small changes in chat [S4], Cline sizes the plan by task size [S9], GSD has `fast` and `quick` tiers [S16], and only bigpowers, in what I read, uses a declared `risk:` field, which defaults to P1 when missing [S17]. The reports say what too much ceremony costs: spec creation of 30 minutes to several days and a blocked review [S11], "instruction bloat" and "context rot" [S12], BMAD artifacts "heavy and hard to review" [S14]. None tests whether risk-scaled ceremony beats size-scaled or uniform ceremony; [S21] warns against cutting checks, since a too-narrow test run lets wrong patches pass, and [S19] favours checks that run over agents confirming themselves, so a risk scale should lower the amount of ceremony and keep the checks that run.
+- H10: refined - small cores are common, a single entry command is not: the core flow of Spec Kit is 6 commands [S1], OpenSpec 4 [S2], Superpowers 15 skills [S4], and BMAD names `bmad-build` as the entry point and `bmad-help` for what is next [S3]; the Kiro specs page describes no slash commands [S5]. Against these, GSD has 54 commands behind a `/gsd-do` router and bigpowers has 80 skills with at least four candidate entry points [S16][S17]. I count each small tool by its core flow and the two large ones by their whole catalog, which flatters the small tools; Spec Kit's extension, preset, bundle and catalog layers [S1] show the pull towards a large catalog in a small-core tool. Two of seven tools have one named entry (BMAD, and GSD through its router); Superpowers has none because its skills fire on their own [S4]. The costs of size are reported, not measured: "context rot" [S12], Codex capping `AGENTS.md` at 32 KiB [S8] and Cline's "rules consume context" [S9]; [S23] gives a reason to expect harm from long listings and [S20] finds that context files raise cost without a general gain, but neither tests a skill listing. This is a survey of what exists; no source tests whether a small catalog or a single entry command works better, which is why the verdict is `refined`.
 
 None is `confirmed`: no source tests any of these workflows as a
 treatment against another. None is `refuted`: H7's direction (ceremony
-should vary) holds in every tool, and H10's "small catalog" holds for
-the open-source spec tools but not for GSD or bigpowers. Both are
-`refined` because the variable the tools use for H7 is size, not risk,
-and the entry-point half of H10 is true of one tool in seven.
+should vary) holds in most of the tools I read, and H10's "small catalog" holds for
+the small-core tools but not for GSD or bigpowers. Both are
+`refined` because the variable the tools use for H7 is size, kind or
+choice, not risk,
+and H10 is a design claim that no source tests: two tools in seven have a
+single entry command.
 
 ## Implications for weftwork
 
-- Scale ceremony by risk and change size together. Every tool uses size;
-  only bigpowers uses risk, and it does so through a declared field with
-  a costly default [S17]. weftwork can copy the declared field and
-  default to the lighter tier for doc-only and data-only work. This
-  follows from H7 and from the e02s02 finding in R2.
-- Keep a core of about 6 to 15 commands or skills and one named entry
-  point. The open-source tools show that size is workable [S1][S2][S4];
+- Proposal, not a finding: scale ceremony by change size, and test risk
+  as a second input in R10 and R13. Most tools use size, kind or
+  choice; only bigpowers, in what I read, uses risk, through a declared field with a costly default
+  [S17], and nothing here tests that. If weftwork copies the declared
+  field, the e02s02 lesson from R2 is a lighter default for doc-only
+  and data-only work [S17], with the checks that run kept [S19][S21].
+- Proposal: keep a core of about 6 to 15 commands or skills and one named
+  entry point. The open-source tools ship cores of this size [S1][S2][S4], though
+  no source tests whether that size works better;
   BMAD's `bmad-build` plus `bmad-help` shows the entry-point shape [S3].
   Plan how extension points will be gated, since Spec Kit and BMAD grew
   past their cores [S1][S3].
 - Make the artifact a short, reviewable file, not a bundle. The reports
   that went well praised small outputs, and the ones that went badly
-  named volume [S11][S12][S14]. OpenSpec's delta format (ADDED,
-  MODIFIED, REMOVED) is the one design here that keeps a living spec
-  from growing without limit [S2]; it is also what plan-work already uses.
+  named volume [S11][S12][S14]. OpenSpec's delta specs are the one design
+  here aimed at keeping a living spec current [S2] (its README example
+  is an ADDED block); plan-work already uses the same delta tags
+  [S22].
 - Put a runnable check at each gate and review between tasks, as the
   hosts and Superpowers do [S4][S7][S8]. Spec Kit's lack of built-in code
   review was marked down by one report [S14]; the paper evidence on
   self-correction points the same way [S19].
-- Treat a read-only planning step, a short rules file and a verify
-  command as the shared floor across hosts [S7][S8][S9][S10]. R5 should
-  confirm which hosts let weftwork enforce each.
-- Expect the human to stay in the loop. Asana's gain came with half of
-  the engineers trying the tool [S11], and Atomic Object's author
-  concluded the same for production systems [S13].
+- Treat a planning step, a short rules file and a verify command as
+  practices that most hosts recommend, not all [S7][S8][S9][S10] (see
+  Host practices for which). R5 should confirm which hosts let weftwork
+  enforce each.
+- Expect the human to stay in the loop. Asana reported a blocked spec
+  review and a migration plan that went the wrong direction [S11], and
+  Atomic Object's author concluded the same for production systems
+  [S13].
 
 ## Earns its place vs ceremony
 
@@ -190,15 +203,15 @@ and the entry-point half of H10 is true of one tool in seven.
 - Delta specs and an archive (OpenSpec): earns its place on brownfield
   work where the spec must stay current [S2]; unmeasured here.
 - Plan before edit (Cline Plan mode, Aider ask mode, Superpowers
-  planning, Codex "ask for a plan first"): earns its place; all four
-  hosts or tools recommend it [S4][S8][S9][S10]. The cost is a second
+  planning, Codex "ask for a plan first"): earns its place; Superpowers,
+  Codex CLI, Cline and Aider all recommend it [S4][S8][S9][S10]. The cost is a second
   request in Aider's architect mode [S10].
 - Review between tasks (Superpowers, BMAD code review): earns its place
   where the report shows a miss that review would catch [S4][S14]; the
   evidence is one report [S14] plus [S19].
-- Named agent personas (BMAD): unproven here; the column "Named agent
-  personas" in [S15] marks BMAD as the only one with a full set, and
-  BMAD's own README makes them optional [S3].
+- Specialized agent perspectives (BMAD): unproven here; BMAD's README
+  brings in "product, architecture, UX, development, and testing
+  expertise when it helps" [S3], so they are optional.
 - Mandatory skill triggering (Superpowers "mandatory workflows"): earns
   its place if skills stay few [S4]; ceremony once the count grows, as in
   R2's finding for bigpowers [S17].
