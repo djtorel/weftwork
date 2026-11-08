@@ -1,9 +1,9 @@
----
 development_status:
   e01: backlog
   e01s01: done
   e01s02: backlog
   e01s03: backlog
+  e01s04: backlog
   e02: backlog
   e02s01: backlog
   e02s02: backlog
@@ -20,13 +20,14 @@ development_status:
   e04: backlog
   e04s01: backlog
   e04s02: backlog
+  e05: backlog
 
 epics:
   e01:
     status: backlog
     title: Foundations (wave 1)
     wsjf: 6.25
-    total_bcps: 11
+    total_bcps: 14
   e02:
     status: backlog
     title: Tools and hosts (wave 2)
@@ -42,6 +43,11 @@ epics:
     title: Evaluation and synthesis (wave 4)
     wsjf: 4.5
     total_bcps: 11
+  e05:
+    status: backlog
+    title: Repository and environment setup (wave 5)
+    wsjf: 2.5
+    total_bcps: 8
 
 stories:
   e01s01:
@@ -49,9 +55,10 @@ stories:
     title: 'R14 legacy retrospective (tracer: builds the checker)'
     bcps: 3
     epic: e01
-    tasks_total: 5
-    tasks_passing: 0
+    tasks_total: 7
+    tasks_passing: 7
     tasks_failing: 0
+    risk_max: P1
   e01s02:
     status: backlog
     title: 'R0 discovery sweep (output: candidate new stories)'
@@ -60,6 +67,7 @@ stories:
     tasks_total: 3
     tasks_passing: 0
     tasks_failing: 0
+    risk_max: P1
   e01s03:
     status: backlog
     title: R4 research literature (recent agentic coding papers)
@@ -68,6 +76,16 @@ stories:
     tasks_total: 4
     tasks_passing: 0
     tasks_failing: 0
+    risk_max: P1
+  e01s04:
+    status: backlog
+    title: 'Minimal CI (GitHub Actions; runs before e01s02)'
+    bcps: 3
+    epic: e01
+    tasks_total: 5
+    tasks_passing: 0
+    tasks_failing: 0
+    risk_max: P1
   e02s01:
     status: backlog
     title: R1 GSD in depth

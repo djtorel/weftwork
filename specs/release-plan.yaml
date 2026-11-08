@@ -15,8 +15,8 @@ release:
 epics:
   - id: e01
     title: Foundations (wave 1)
-    wsjf: 6.25              # (8 + 8 + 9) / 4
-    bcps: 11
+    wsjf: 6.25              # (8 + 8 + 9) / 4; not rescored for s04
+    bcps: 14
     risk: P1
     depends_on: []
     capsule_dir: epics/e01-foundations
@@ -47,3 +47,15 @@ epics:
     note: >-
       Highest raw WSJF after e01, but it needs a candidate workflow and
       every earlier brief, so it stays last.
+  - id: e05
+    title: Repository and environment setup (wave 5)
+    wsjf: 2.5               # (5 + 3 + 5) / 5; estimate, rescore later
+    bcps: 8
+    risk: P2
+    depends_on: [e04]
+    capsule_dir: epics/e05-repo-and-environment
+    note: >-
+      Added by change-request 2026-11-08 after the owner asked for it.
+      Branch protection, PR template, environment setup, porting the
+      spec validator into tools/. Sliced with slice-tasks when e04 is
+      done; the stack choice (R8) shapes it. Minimal CI is e01s04.
