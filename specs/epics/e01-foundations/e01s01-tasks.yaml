@@ -60,7 +60,7 @@ tasks:
       severity: high
       categories: ["checker", "integration"]
   - id: 4
-    status: todo
+    status: done
     risk: P2
     scenarios: [SC-e01s01-P2-09]
     description: >-

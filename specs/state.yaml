@@ -20,8 +20,6 @@ waivers:
 handoff:
   next_skill: develop-tdd
   note: >-
-    e01s01 is planned (spec and 7 tasks, plan-consistency clean for
-    e01s01). Waiting for the owner to authorize the build and set
-    active_story. e01s02 and e01s03 still need plan-work (no spec
-    .md, no spec: key). Plan sits on branch docs/e01s01-plan,
-    uncommitted.
+    e01s01 tasks 1-4 done (tools/check-brief.sh, selftest green,
+    shellcheck clean). Tasks 5-7 remain: write the R14 brief from
+    ../pi-flow-legacy/specs. Branch docs/e01s01-plan, nothing pushed.
