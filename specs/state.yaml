@@ -6,7 +6,7 @@ phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e03s04-r9-model-routing
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -105,41 +105,57 @@ waivers:
     changes) were not re-reviewed.
   date: 2026-11-09
   scope: e03s03 only
-- what: CONVENTIONS.md rule of no direct GitHub REST API calls, one request to the api.github.com root during e03s04 R9 research
-  why: One curl to https://api.github.com was sent while checking the network and its output was discarded. Nothing in the brief depends on the response, and the Method section of docs/research/R9-model-routing.md discloses it. The request cannot be undone. The owner accepted the deviation on 2026-11-09 and asked for the waiver to be recorded. Going forward, use raw URLs, web fetch, git ls-remote or gh repo clone.
+- what: CONVENTIONS.md rule of no direct GitHub REST API calls, one request to the
+    api.github.com root during e03s04 R9 research
+  why: One curl to https://api.github.com was sent while checking the network and
+    its output was discarded. Nothing in the brief depends on the response, and the
+    Method section of docs/research/R9-model-routing.md discloses it. The request
+    cannot be undone. The owner accepted the deviation on 2026-11-09 and asked for
+    the waiver to be recorded. Going forward, use raw URLs, web fetch, git ls-remote
+    or gh repo clone.
   date: 2026-11-09
   scope: e03s04 only
-- what: CONVENTIONS.md rule that every source has a publication date, for 12 vendor doc and repository pages in the R9 brief (S42 to S50, S52 to S54)
-  why: These pages show no publication date. The server Last-Modified header for the Claude Code pages is the fetch-day cache or deploy time (2026-11-09), not a publication date. Each source line records the version or commit read, or the header value. A real date cannot be found, so the brief marks them as undated. check-brief.sh passes with a warning. The owner approved this exception on 2026-11-09.
+- what: CONVENTIONS.md rule that every source has a publication date, for 12 vendor
+    doc and repository pages in the R9 brief (S42 to S50, S52 to S54)
+  why: These pages show no publication date. The server Last-Modified header for the
+    Claude Code pages is the fetch-day cache or deploy time (2026-11-09), not a publication
+    date. Each source line records the version or commit read, or the header value.
+    A real date cannot be found, so the brief marks them as undated. check-brief.sh
+    passes with a warning. The owner approved this exception on 2026-11-09.
   date: 2026-11-09
-  scope: e03s04 only (docs/research/R9-model-routing.md sources S42 to S50, S52 to S54, and S69 added 2026-11-09)
+  scope: e03s04 only (docs/research/R9-model-routing.md sources S42 to S50, S52 to
+    S54, and S69 added 2026-11-09)
 - what: request-review AND-gate for e03s04 (rounds 1 to 5)
-  why: Every round failed both reviewers (round 1 A 82.0 and B 87.5; round 2 74.0 and 73.3; round 3 81.7 and 79.1; round 4 90.2 and 87.5; round 5 85.7 and 84.6). The five-round cap was reached. Each round's must-fix items were fixed, and the round-5 must-fix items were fixed after the cap. The should-fix wording items from round 5 were not fixed and are accepted as a waiver. The owner chose this option on 2026-11-09.
+  why: Every round failed both reviewers (round 1 A 82.0 and B 87.5; round 2 74.0
+    and 73.3; round 3 81.7 and 79.1; round 4 90.2 and 87.5; round 5 85.7 and 84.6).
+    The five-round cap was reached. Each round's must-fix items were fixed, and the
+    round-5 must-fix items were fixed after the cap. The should-fix wording items
+    from round 5 were not fixed and are accepted as a waiver. The owner chose this
+    option on 2026-11-09.
   date: 2026-11-09
-  scope: e03s04 only (docs/research/R9-model-routing.md wording only; no change to verify commands)
+  scope: e03s04 only (docs/research/R9-model-routing.md wording only; no change to
+    verify commands)
 - what: regression test for the cycle-time marker, previously not run by CI or Preflight
-  why: Resolved 2026-11-09. The owner chose CI, not Preflight, so the Preflight command in CLAUDE.md and CONVENTIONS is unchanged. The test now runs as a CI step, and CONVENTIONS documents it.
+  why: Resolved 2026-11-09. The owner chose CI, not Preflight, so the Preflight command
+    in CLAUDE.md and CONVENTIONS is unchanged. The test now runs as a CI step, and
+    CONVENTIONS documents it.
   date: 2026-11-09
   scope: tools/test-record-cycle-time.sh only
 handoff:
-  next_skill: request-review
-  next_story: e03s04
-  note: 'e03s04 (R9 model routing and cost efficiency): all 9 tasks done on branch
-    e03s04-r9-model-routing; the brief is docs/research/R9-model-routing.md (61 sources,
-    44 paper abstracts, 5 hypotheses all refined; request-review round 1 failed both reviewers (A 82.0, B 87.5, 3 must-fix each), fixes applied, round 2 pending). Preflight green. verify-work
-    done (owner spot-check passed 2026-11-09; evidence in
-    specs/verifications/e03s04-verify.yaml). Next: audit-code, then
-    request-review, then release-branch. Review lessons from R7
-    and R8: check every number and quote against its abstract; expect reviewers to
-    find papers the queries missed (all R9 reading was abstracts only); two sources,
-    S14 and S15, are withdrawn papers listed but not used. Method records one stray
-    request to the api.github.com root (output discarded); the owner may want a waiver
-    line for it at release, as for e02s04 and e03s01. Open for the owner, carried
-    over: audit skill verify checks skills/ dirs that do not exist; regenerate specs/traceability-matrix.json
-    with bash scripts/trace-stories.sh --json if the completeness critic blocks; undecided
-    R7 items; e04s02 takes the stack choice. Candidate R10 stories are in the R9 Open
-    questions. Every commit needs a Story: e03s04 trailer; record cycle time through
-    tools/record-cycle-time.sh.'
+  next_skill: kickoff-branch
+  next_story: e03s05
+  note: 'e03s04 (R9 model routing) is released on branch e03s04-r9-model-routing,
+    to merge into main by PR. Brief: docs/research/R9-model-routing.md (69 sources,
+    44 paper abstracts, H15 to H20 verdicts). Review: five request-review rounds,
+    AND-gate not passed; owner waiver in state.yaml. Security review: specs/security/REVIEW.md
+    (diff 89b42ae811acde69, no findings). CI runs tools/test-record-cycle-time.sh.
+    Next: kickoff-branch for e03s05 (R11 security and permissions, 5 BCPs). Start
+    it in a fresh session. e03s05 has no story spec or tasks file yet; plan-work comes
+    after kickoff-branch, as for e03s04. Open for the owner, carried over: the audit
+    skill verify checks skills/ dirs that do not exist; the gitignored traceability
+    matrix regenerates with bash scripts/trace-stories.sh --json; undecided R7 items;
+    e04s02 takes the stack choice. Every commit needs a Story trailer. Record cycle
+    time through tools/record-cycle-time.sh.'
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
@@ -164,9 +180,9 @@ metrics:
       total_seconds: 324.0
       avg_seconds: 46.285714285714285
     release-branch:
-      calls: 6
-      total_seconds: 666.0
-      avg_seconds: 111.0
+      calls: 7
+      total_seconds: 980.0
+      avg_seconds: 140.0
     request-review:
       calls: 4
       total_seconds: 3196.0

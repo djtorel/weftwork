@@ -14,7 +14,7 @@ development_status:
   e03s01: done
   e03s02: done
   e03s03: done
-  e03s04: todo
+  e03s04: done
   e03s05: todo
   e03s06: todo
   e03s07: todo
@@ -175,12 +175,12 @@ stories:
     lead_time_minutes: 105
     bcp_per_hour: 2.9
   e03s04:
-    status: todo
+    status: done
     title: R9 model routing and cost efficiency
     bcps: 8
     epic: e03
-    tasks_total: 4
-    tasks_passing: 0
+    tasks_total: 9
+    tasks_passing: 9
     tasks_failing: 0
   e03s05:
     status: todo
