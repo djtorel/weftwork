@@ -18,7 +18,7 @@ stories:
   - id: e03s02
     title: R7 agent review and agent-answered decisions
     bcps: 5
-    status: in_progress
+    status: done
     tasks: e03s02-tasks.yaml
   - id: e03s03
     title: R8 code quality and conventions
