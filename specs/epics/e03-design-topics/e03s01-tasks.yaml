@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s01
 title: R6 multi-agent work in one codebase
-status: todo
+status: in_progress
 bcps: 3
 type: research
 context: infra
@@ -23,7 +23,7 @@ tasks:
       | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
       -ge 3
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
