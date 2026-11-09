@@ -3,8 +3,11 @@
 review_date: 2026-11-09
 branch: e03s04-r9-model-routing
 base: main
-head_commit: fbf4ad3726ecb011caabb4d3bdf025ad266b9a98
-diff_sha256_prefix: 89b42ae811acde69
+head_commit: 658a4ba
+diff_sha256_prefix: 19b89274d039d01f
+reviewed_executable_commit: fbf4ad3726ecb011caabb4d3bdf025ad266b9a98
+reviewed_diff_sha256_prefix: 89b42ae811acde69
+since_review: 658a4ba changes only specs and state (no executable code); the finding is unchanged
 diff_command: git diff main...HEAD
 scope: executable changes only
   - tools/record-cycle-time.sh (new, 17 lines, bash wrapper)
@@ -18,7 +21,8 @@ suppressed_below_confidence_8: 1
 # Result
 
 No finding reaches confidence 8/10. The release gate can treat this review
-as fresh for the diff whose sha256 prefix is `89b42ae811acde69`.
+as fresh for head 658a4ba. The executable code reviewed is at fbf4ad3, and the
+later commit changes only specs and state.
 
 # Scope and method
 
