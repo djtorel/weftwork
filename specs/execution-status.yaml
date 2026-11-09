@@ -14,16 +14,16 @@ development_status:
   e03s01: done
   e03s02: done
   e03s03: done
-  e03s04: backlog
-  e03s05: backlog
-  e03s06: backlog
-  e03s07: backlog
-  e03s08: backlog
-  e04: backlog
-  e04s01: backlog
-  e04s02: backlog
-  e04s03: backlog
-  e05: backlog
+  e03s04: done
+  e03s05: todo
+  e03s06: todo
+  e03s07: todo
+  e03s08: todo
+  e04: todo
+  e04s01: todo
+  e04s02: todo
+  e04s03: todo
+  e05: todo
 epics:
   e01:
     status: done
@@ -41,12 +41,12 @@ epics:
     wsjf: 1.6
     total_bcps: 41
   e04:
-    status: backlog
+    status: todo
     title: Evaluation and synthesis (wave 4)
     wsjf: 3.8
     total_bcps: 16
   e05:
-    status: backlog
+    status: todo
     title: Repository and environment setup (wave 5)
     wsjf: 2.5
     total_bcps: 8
@@ -175,15 +175,15 @@ stories:
     lead_time_minutes: 105
     bcp_per_hour: 2.9
   e03s04:
-    status: backlog
+    status: done
     title: R9 model routing and cost efficiency
     bcps: 8
     epic: e03
-    tasks_total: 4
-    tasks_passing: 0
+    tasks_total: 9
+    tasks_passing: 9
     tasks_failing: 0
   e03s05:
-    status: backlog
+    status: todo
     title: R11 security and permissions
     bcps: 5
     epic: e03
@@ -191,7 +191,7 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e03s06:
-    status: backlog
+    status: todo
     title: R12 context and memory
     bcps: 5
     epic: e03
@@ -199,7 +199,7 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e03s07:
-    status: backlog
+    status: todo
     title: R13 enforcement design
     bcps: 5
     epic: e03
@@ -207,7 +207,7 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e03s08:
-    status: backlog
+    status: todo
     title: R15 run termination for autonomous loops
     bcps: 5
     epic: e03
@@ -215,7 +215,7 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e04s01:
-    status: backlog
+    status: todo
     title: R10 evaluation design
     bcps: 8
     epic: e04
@@ -223,7 +223,7 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e04s02:
-    status: backlog
+    status: todo
     title: Research synthesis
     bcps: 3
     epic: e04
@@ -231,10 +231,20 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e04s03:
-    status: backlog
+    status: todo
     title: R16 evidence refresh
     bcps: 5
     epic: e04
     tasks_total: 5
     tasks_passing: 0
     tasks_failing: 0
+gate_trace:
+  verdict: WAIVED
+  generated_at: "2026-11-09T19:30:00Z"
+  rationale: >-
+    Computed FAIL (R1, then the two-level oracle downgrade on 95 percent
+    heuristic links). R2 CONCERNS (e01s02, e01s04 lack verify evidence);
+    R4 CONCERNS (2 of 19 stories tagged). Owner waiver in state.yaml,
+    2026-11-09, for e03s04 release only. Completeness critic: 0 blockers.
+  heuristic_ratio: 0.95
+  downgrade_applied: true

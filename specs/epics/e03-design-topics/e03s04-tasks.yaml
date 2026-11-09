@@ -1,52 +1,241 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s04
 title: R9 model routing and cost efficiency
-status: todo
+status: passing
 bcps: 8
+type: research
+context: infra
+risk: P2
+spec: e03s04-r9-model-routing.md
 research_story: R9
 brief: docs/research/R9-model-routing.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least five papers (arXiv or DOI links), because
+      routing, cascades, test-time compute, caching and tool retrieval
+      have a literature
     verify: >-
-      bash tools/check-brief.sh docs/research/R9-model-routing.md
-      R9 --sources
-    status: todo
+      B=docs/research/R9-model-routing.md;
+      bash tools/check-brief.sh "$B" R9 --sources
+      && test "$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
+      -ge 5
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 2
     description: >-
-      Cover task sizing, model size vs reasoning effort,
-      escalate-vs-up-front, default tier per role, token
-      efficiency, local models as a tier, budgets, and
-      tool-definition context cost with code-based tool
-      access (the only source so far is a vendor post: label
-      its claims unproven)
+      Write the Method section: access date, the version, release or
+      commit read for each tool, the date of any price quoted, whether
+      any page came through a summarizing subagent, that no workflow
+      or measurement was run, and the arXiv queries used
     verify: >-
-      grep -Eqi 'sizing' docs/research/R9-model-routing.md
-      && grep -Eqi 'reasoning effort' docs/research/R9-model-routing.md
-      && grep -Eqi 'escalat' docs/research/R9-model-routing.md
-      && grep -Eqi 'local model' docs/research/R9-model-routing.md
-      && grep -Eqi 'budget' docs/research/R9-model-routing.md
-      && grep -Eqi 'tool.definition' docs/research/R9-model-routing.md
-    status: todo
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R9-model-routing.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'pric'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+      && printf '%s\n' "$M" | grep -Eiq 'measur'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 3
     description: >-
-      Find evidence on coding tasks for model routing and for
-      reasoning effort. The R4 papers cover chat and reasoning
-      benchmarks only. Cite it, or state that none exists
+      Write Task sizing: bullets on sizing a task before dispatch, by
+      a planner model and by deterministic signals, as input to H20.
+      Each bullet cites a source or says it is unsourced
     verify: >-
-      grep -Eqi 'coding task' docs/research/R9-model-routing.md
-      && grep -Eqi 'routing' docs/research/R9-model-routing.md
-    status: todo
+      F=$(awk '$0=="## Task sizing"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R9-model-routing.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'planner'
+      && printf '%s\n' "$F" | grep -iq 'deterministic'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 4
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R9 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Write Model size and reasoning effort: bullets on the two
+      settings and what each buys, and whether evidence on coding
+      tasks exists (cite it, or say none was found), as input to H18.
+      Each bullet cites a source or says it is unsourced
     verify: >-
-      bash tools/check-brief.sh docs/research/R9-model-routing.md
-      R9
-    status: todo
+      F=$(awk '$0=="## Model size and reasoning effort"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R9-model-routing.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'model size'
+      && printf '%s\n' "$F" | grep -iq 'reasoning effort'
+      && printf '%s\n' "$F" | grep -iq 'coding task'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Routing and escalation: bullets on routing up front
+      against escalating on failure (cascades), the failure count
+      before escalation, and evidence on coding tasks or its absence,
+      as input to H15, H17 and H19. Each bullet cites a source or says
+      it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Routing and escalation"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R9-model-routing.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -Eiq 'up.front'
+      && printf '%s\n' "$F" | grep -iq 'escalat'
+      && printf '%s\n' "$F" | grep -iq 'cascade'
+      && printf '%s\n' "$F" | grep -iq 'coding task'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Default tier per role: one table with columns Role,
+      Default tier, Effort, Escalation, Evidence; at least five rows
+      including Planner, Implementer, Reviewer, Explorer and Verifier;
+      tiers named, not models; no empty cell; every row cites [S<n>]
+      or says unsourced
+    verify: >-
+      B=docs/research/R9-model-routing.md;
+      M=$(awk '$0=="## Default tier per role"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Role *\|'
+      | grep -Ei '\| *Default tier *\|' | grep -Ei '\| *Effort *\|'
+      | grep -Ei '\| *Escalation *\|' | grep -Eiq '\| *Evidence *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Role *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 5
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=6;i++)
+      if($i~/^ *$/)b=1; if(NF!=7)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for t in Planner Implementer Reviewer Explorer Verifier; do
+      printf '%s\n' "$R" | grep -Eiq "^\| *\**$t\**"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
+      Write Token efficiency: bullets on prompt cache hits, context per
+      dispatch, per-subsystem dispatch, and tool-definition context
+      cost with code-based tool access (label vendor-only claims
+      unproven). Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Token efficiency"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R9-model-routing.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'cach'
+      && printf '%s\n' "$F" | grep -iq 'per dispatch'
+      && printf '%s\n' "$F" | grep -iq 'subsystem'
+      && printf '%s\n' "$F" | grep -Eiq 'tool.definition'
+      && printf '%s\n' "$F" | grep -iq 'unproven'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 8
+    description: >-
+      Write Local models (a tier, and the limit on parallel dispatch)
+      and Budgets (ceilings per run or story, what stops the run,
+      escalation logging; R15 owns other stop conditions). Each bullet
+      cites a source or says it is unsourced
+    verify: >-
+      B=docs/research/R9-model-routing.md;
+      for s in 'Local models' Budgets; do
+      F=$(awk -v h="## $s" '$0==h{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      || { echo "bad section: $s"; exit 1; }; done
+      && awk '$0=="## Local models"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -iq 'parallel'
+      && awk '$0=="## Budgets"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -iq 'ceiling'
+      && awk '$0=="## Budgets"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eiq 'escalation.*log|log.*escalation'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 9
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources) for every
+      hypothesis assigned to R9 in planning-context.yaml (H15, H17,
+      H18, H19, H20), plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions (including candidate
+      measurements for R10)
+    verify: >-
+      B=docs/research/R9-model-routing.md;
+      bash tools/check-brief.sh "$B" R9
+      && for h in Sources Method 'Task sizing'
+      'Model size and reasoning effort' 'Routing and escalation'
+      'Default tier per role' 'Token efficiency' 'Local models'
+      Budgets Verdicts 'Implications for weftwork'
+      'Earns its place vs ceremony' 'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Task sizing|';
+      O="${O}## Model size and reasoning effort|";
+      O="${O}## Routing and escalation|## Default tier per role|";
+      O="${O}## Token efficiency|## Local models|## Budgets|";
+      O="${O}## Verdicts|## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

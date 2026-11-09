@@ -1,0 +1,95 @@
+---
+story_id: e03s04
+verified_at: "2026-11-09T18:36:32Z"
+verifier: verify-work
+branch: e03s04-r9-model-routing
+risk: P2
+mode: default (P2 skips tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e03s04-r9-model-routing
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-09T18:36:32Z"
+    note: >-
+      Single contiguous run. CI: no PR open, so gh pr checks does not apply.
+    output: |
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+      PREFLIGHT_EXIT=0
+  terminal_verdict:
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e03-design-topics/e03s04-tasks.yaml
+    exit_code: 0
+    captured_at: "2026-11-09T18:36:30Z"
+    note: >-
+      One contiguous pass over tasks 1 to 9 on the brief as committed
+      (61 sources). Each task's verify exits 0. The commands were also
+      checked against a scratch brief: all nine pass on a good brief and
+      fail on 15 deliberate breakages (during plan-work).
+    output: |
+      task 1 verify rc=0
+      task 2 verify rc=0
+      task 3 verify rc=0
+      task 4 verify rc=0
+      task 5 verify rc=0
+      task 6 verify rc=0
+      task 7 verify rc=0
+      task 8 verify rc=0
+      task 9 verify rc=0
+  completeness_critic:
+    passed: true
+    note: >-
+      BLOCKER at first run (active story had zero explicit story-tag links;
+      the gitignored matrix was stale). Fixed by
+      bash scripts/trace-stories.sh --json. Re-run: BLOCKER=0 WARNING=0
+      FILLED=1.
+  blind_spots:
+    passed: true
+    note: "0 HIGH; 5 MEDIUM double-tag findings, all in other stories' files."
+  build:
+    passed: null
+    note: "Not applicable: no product code (P2 skips)."
+  smoke:
+    passed: null
+    note: "Not applicable: no app."
+  tests:
+    passed: null
+    note: "Skipped: P2."
+  manual:
+    passed: true
+    confirmed_by: owner
+    confirmed_on: "2026-11-09"
+    steps:
+      - step: "Tier table: two rows against their cited sources"
+        expected: "Each cell is supported by the cited source or says unsourced"
+        actual: "Owner confirmed"
+        passed: true
+      - step: "Model size and effort, Routing: coding-task evidence stated"
+        expected: "Each says whether coding-task evidence exists"
+        actual: "Owner confirmed"
+        passed: true
+      - step: "Token efficiency: tool-definition claim labelled unproven"
+        expected: "98.7% figure marked a vendor claim, unproven here"
+        actual: "Owner confirmed"
+        passed: true
+      - step: "H15, H17, H18, H19 and H20 verdicts vs citations"
+        expected: "Each verdict follows from its cited sources"
+        actual: "Owner confirmed"
+        passed: true
+      - step: "Method: queries, empty queries, abstract-only reading"
+        expected: "Listed, including the stray api.github.com request"
+        actual: "Owner confirmed"
+        passed: true
+  request_review:
+    passed: null
+    note: "Pending: audit-code, then request-review."
+  gaps:
+    closed: true
+status_at_verify: in_progress
