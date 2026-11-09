@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s03
 title: R8 code quality and conventions
-status: done
+status: passing
 bcps: 5
 type: research
 context: infra

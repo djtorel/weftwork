@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s01
 title: R6 multi-agent work in one codebase
-status: done
+status: passing
 bcps: 3
 type: research
 context: infra

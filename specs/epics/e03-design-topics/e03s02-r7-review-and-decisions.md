@@ -11,7 +11,7 @@ Risk note: the BCP heuristic (BCP 5) gives P0, the documentation
 heuristic gives P3. This plan proposes the epic's P2, as e03s01 did.
 Nothing here can lose data or leak anything, and no code ships.
 Decision: the owner approved the plan with "approve" on 2026-11-08, keeping
-the epic's P2 and the project status values (todo, in_progress, done), so
+the epic's P2 and the project status values listed in CONVENTIONS.md, so
 the MED status-ledger finding is acknowledged.
 
 ## 1. Purpose
