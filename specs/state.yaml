@@ -64,19 +64,22 @@ waivers:
   date: 2026-11-08
   scope: e03 only
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   next_story: e03s01
-  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md, all
-    six task verifies pass, verdicts H11 and H12 both refined. verify-work done: evidence
-    in specs/verifications/e03s01-verify.yaml. P2 smoke, lint and task verifies green;
-    the two-cell spot-check passed. Next: audit-code, then request-review and release-branch.
-    Papers were read by abstract only, which the brief says in Method; a full-text
-    read is an open question. Commit ids come from curl on the GitHub REST API, a
-    small deviation from the raw-URL rule, also stated in Method. Stash stash@{0}
-    on this repo holds uncommitted e04 edits (a Candidate build epics task in e04s02
-    and a wider done_when in e04 epic.yaml); restore with git stash pop on a chore
-    branch and decide whether to land them. At release-branch: reconcile e03s01 in
-    epic.yaml and execution-status.yaml, and decide the e03 gate-trace R1 and threat-model
+  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md,
+    all six task verifies pass, verdicts H11 and H12 both refined. verify-work
+    done (specs/verifications/e03s01-verify.yaml). audit-code done: report in
+    specs/verifications/AUDIT-e03-e03s01.md, one deviation awaits the owner:
+    the research session called api.github.com with curl for commit ids; every
+    id and date was re-confirmed without the API and Method says so. Accept
+    and log a waiver, or treat it as a fault. Next per the skill gate:
+    commit-message, which has nothing to draft because every commit is made
+    with a Story trailer; the owner may send it straight to request-review.
+    Then release-branch. Stash stash@{0} on this repo holds uncommitted e04
+    edits (a Candidate build epics task in e04s02 and a wider done_when in
+    e04 epic.yaml); restore with git stash pop on a chore branch and decide
+    whether to land them. At release-branch: reconcile e03s01 in epic.yaml and
+    execution-status.yaml, and decide the e03 gate-trace R1 and threat-model
     waivers. Every commit needs a Story: e03s01 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
