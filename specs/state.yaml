@@ -67,9 +67,10 @@ handoff:
   next_skill: audit-code
   next_story: e03s01
   note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md, all
-    six task verifies pass, verdicts H11 and H12 both refined. Next: verify-work (UAT:
-    spot-check two Coordination patterns cells against their cited source, and read
-    the H11 and H12 verdicts), then audit-code, request-review, and release-branch.
+    six task verifies pass, verdicts H11 and H12 both refined. verify-work done:
+    evidence in specs/verifications/e03s01-verify.yaml. P2 smoke, lint and task
+    verifies green; the two-cell spot-check passed. Next: audit-code, then
+    request-review and release-branch.
     Papers were read by abstract only, which the brief says in Method; a full-text
     read is an open question. Commit ids come from curl on the GitHub REST API, a
     small deviation from the raw-URL rule, also stated in Method. Stash stash@{0}
