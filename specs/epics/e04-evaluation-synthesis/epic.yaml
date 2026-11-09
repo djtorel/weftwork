@@ -8,8 +8,9 @@ status: todo
 depends_on:
   - e03
 done_when: >-
-  R10 brief passes, and SYNTHESIS.md covers H1-H20 and
-  the minimum useful first release
+  R10 brief passes, and SYNTHESIS.md covers H1-H20, the
+  minimum useful first release, and a list of candidate build
+  epics to slice at the e04 checkpoint
 stories:
   - id: e04s01
     title: R10 evaluation design

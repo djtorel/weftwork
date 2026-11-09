@@ -22,3 +22,13 @@ tasks:
       spec
     verify: >-
       grep -Eqi 'minimum useful first release' docs/research/SYNTHESIS.md
+  - id: 3
+    status: todo
+    description: >-
+      Under a "Candidate build epics" heading, list the epics that
+      would build the first release (engine, adapters, skills, or
+      whatever the synthesis supports), each tied to the briefs that
+      justify it. Slice them with slice-tasks at the e04 checkpoint,
+      as for e05
+    verify: >-
+      grep -Eqi '^#+ .*candidate build epics' docs/research/SYNTHESIS.md
