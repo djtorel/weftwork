@@ -49,8 +49,16 @@ waivers:
     are clear.
   date: 2026-11-08
   scope: e02 only
+- what: CONVENTIONS.md rule that gh is used only for PRs and clones (audit-code
+    item) for e02s04
+  why: The R5 research read host docs and release metadata with gh api. The
+    brief's Method says so. The owner accepted the deviation and chose not to
+    re-read the sources by raw URL. From now on use raw URLs, web fetch or gh repo
+    clone.
+  date: 2026-11-08
+  scope: e02s04 only
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   next_story: e02s04
   note: 'e02s04 (R5 harness capability matrix) is built on branch e02s04-r5-harness-capability-matrix
     (git checkout -b, not a worktree; BUG-002). Brief: docs/research/R5-harness-capabilities.md.
@@ -61,7 +69,7 @@ handoff:
     read only; evidence is host docs plus local pi 1.5.0, Claude Code 2.1.319, opencode
     1.19.5 and Codex 0.167.0; Gemini CLI is not installed here, so its row is docs
     only. develop-tdd red-commit gate skipped: doc-only story, name the skip in the
-    PR body. Next: audit-code (verify-work done, evidence in specs/verifications/e02s04-verify.yaml),
+    PR body. Next: request-review (verify-work and audit-code done; evidence in specs/verifications/e02s04-verify.yaml and AUDIT-e02-e02s04.md),
     request-review, release-branch. Waivers in force for e02: threat model, gate-trace
     R1, plan-consistency-check findings on e02s01, e02s02, e02s04. Open items: BUG-003
     (owner chooses to report upstream or ignore); R5 candidate stories (token measurement
@@ -89,9 +97,9 @@ metrics:
       total_seconds: 165.0
       avg_seconds: 41.25
     audit-code:
-      calls: 3
-      total_seconds: 133.0
-      avg_seconds: 44.333333333333336
+      calls: 4
+      total_seconds: 175.0
+      avg_seconds: 43.75
     release-branch:
       calls: 2
       total_seconds: 90.0
