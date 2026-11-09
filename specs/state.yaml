@@ -87,7 +87,7 @@ waivers:
   date: 2026-11-08
   scope: e03s01 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: request-review
   next_story: e03s02
   note: 'e03s01 (R6 multi-agent work in one codebase) is done and released by pull
     request. Brief: docs/research/R6-multi-agent-codebase.md, verdicts H11 and H12
@@ -123,14 +123,13 @@ metrics:
       total_seconds: 2209.0
       avg_seconds: 315.57142857142856
     verify-work:
-      calls: 5
-      total_seconds: 190.0
-      avg_seconds: 38.0
-      _start: '2026-11-09T06:01:04Z'
+      calls: 6
+      total_seconds: 298.0
+      avg_seconds: 49.666666666666664
     audit-code:
-      calls: 5
-      total_seconds: 243.0
-      avg_seconds: 48.6
+      calls: 6
+      total_seconds: 272.0
+      avg_seconds: 45.333333333333336
     release-branch:
       calls: 4
       total_seconds: 419.0

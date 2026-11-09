@@ -12,7 +12,7 @@ development_status:
   e02s04: done
   e03: in_progress
   e03s01: done
-  e03s02: backlog
+  e03s02: in_progress
   e03s03: backlog
   e03s04: backlog
   e03s05: backlog
@@ -149,7 +149,7 @@ stories:
     lead_time_minutes: 78
     bcp_per_hour: 2.3
   e03s02:
-    status: backlog
+    status: in_progress
     title: R7 agent review and agent-answered decisions
     bcps: 5
     epic: e03
