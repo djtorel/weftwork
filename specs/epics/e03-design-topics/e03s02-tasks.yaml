@@ -1,37 +1,184 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s02
 title: R7 agent review and agent-answered decisions
-status: todo
+status: done
 bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e03s02-r7-review-and-decisions.md
 research_story: R7
 brief: docs/research/R7-review-and-decisions.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least four papers (arXiv or DOI links), because
+      LLM review, LLM-as-judge and self-preference have a literature
     verify: >-
-      bash tools/check-brief.sh docs/research/R7-review-and-decisions.md
-      R7 --sources
-    status: todo
+      B=docs/research/R7-review-and-decisions.md;
+      bash tools/check-brief.sh "$B" R7 --sources
+      && test "$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
+      -ge 4
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 2
     description: >-
-      Search for sources on mutation testing in review (H14) and
-      on reversibility classes for auto-answered decisions (H13).
-      The R4 brief found none. Cite them, or state they are
-      unsourced
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, and that no workflow was run (the verify
+      checks the date and the words commit or version, subagent and
+      workflow)
     verify: >-
-      grep -Eqi 'mutation' docs/research/R7-review-and-decisions.md
-      && grep -Eqi 'reversib' docs/research/R7-review-and-decisions.md
-    status: todo
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R7-review-and-decisions.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 3
     description: >-
+      Write Review practices: one table with columns Tool, Reviewer,
+      Context, Model, Evidence checked, Escalation; at least six rows
+      including Claude Code, Codex CLI, GSD, bigpowers, Superpowers
+      and BMAD; no empty cell; every row cited
+    verify: >-
+      B=docs/research/R7-review-and-decisions.md;
+      M=$(awk '$0=="## Review practices"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Tool *\|'
+      | grep -Ei '\| *Reviewer *\|' | grep -Ei '\| *Context *\|'
+      | grep -Ei '\| *Model *\|' | grep -Ei '\| *Evidence checked *\|'
+      | grep -Eiq '\| *Escalation *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Tool *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 6
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=7;i++)
+      if($i~/^ *$/)b=1; if(NF!=8)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Evq '\[S[0-9]+\]'
+      && for t in 'Claude Code' 'Codex CLI' GSD bigpowers Superpowers
+      BMAD; do printf '%s\n' "$R" | grep -Eiq "^\| *\**$t\**"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Self-agreement: cited bullets on why a model that reviews
+      or judges its own output agrees with it (self-preference), and
+      on the mitigations (a different model, a fresh context), as
+      input to the H13 verdict
+    verify: >-
+      F=$(awk '$0=="## Self-agreement"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R7-review-and-decisions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Evq '\[S[0-9]+\]'
+      && printf '%s\n' "$F"
+      | grep -Eiq 'self-(preference|agreement|bias|enhancement)'
+      && printf '%s\n' "$F"
+      | grep -Eiq 'different model|heterogene|cross-model'
+      && printf '%s\n' "$F" | grep -Eiq 'fresh context|clean context'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Evidence in review: bullets on what a reviewer checks
+      (tests run, mutations tried, conventions checked) and what each
+      catches, as input to the H14 verdict. Search for sources on
+      mutation testing in review; R4 found none. Each bullet cites a
+      source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Evidence in review"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R7-review-and-decisions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'mutation'
+      && printf '%s\n' "$F" | grep -Eiq 'tests? (run|ran|pass)|test suite'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Decisions and escalation: bullets on agents answering
+      other agents' questions, limits by reversibility class, and
+      when to escalate to a human, as input to the H13 verdict.
+      Search for sources on reversibility classes; R4 found none.
+      Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Decisions and escalation"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R7-review-and-decisions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'reversib'
+      && printf '%s\n' "$F" | grep -iq 'escalat'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R7 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
+      for every hypothesis assigned to R7 in planning-context.yaml
+      (H1, H13, H14), plus implications for weftwork, earns-its-place
       vs ceremony verdicts, and open questions
     verify: >-
-      bash tools/check-brief.sh docs/research/R7-review-and-decisions.md
-      R7
-    status: todo
+      B=docs/research/R7-review-and-decisions.md;
+      bash tools/check-brief.sh "$B" R7
+      && for h in Sources Method 'Review practices' 'Self-agreement'
+      'Evidence in review' 'Decisions and escalation' Verdicts
+      'Implications for weftwork' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Review practices|';
+      O="${O}## Self-agreement|## Evidence in review|";
+      O="${O}## Decisions and escalation|## Verdicts|";
+      O="${O}## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

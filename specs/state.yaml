@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s02
+active_story: e03s03
 phase: planning
 test_plan: lite
 vcs:
@@ -86,57 +86,76 @@ waivers:
     or gh repo clone.
   date: 2026-11-08
   scope: e03s01 only
+- what: request-review dual-blind AND-gate for e03s02 (rounds 3 to 5)
+  why: Round 1 failed (reviewer A 73.5, reviewer B 80.4) and round 2 failed (A 86.7,
+    B 94.8). Each round found real errors in the brief (a wrong claim about which
+    reviewers run the declared command, and papers the first searches missed) and
+    every finding was checked against its source and fixed. The owner chose to stop
+    after round 2 and release. The round-2 fixes (commit 6aafdab) were not re-reviewed.
+  date: 2026-11-08
+  scope: e03s02 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e03s02
-  note: 'e03s01 (R6 multi-agent work in one codebase) is done and released by pull
-    request. Brief: docs/research/R6-multi-agent-codebase.md, verdicts H11 and H12
-    both refined. Next: kickoff-branch for e03s02 (R7 agent review and agent-answered
-    decisions, e03 wave 3, 5 BCPs, dependencies met). Start it in a fresh session.
-    e03s02 has a tasks file but no story spec yet; run plan-work after kickoff-branch,
-    as for e03s01 (the e03 plan-consistency waiver covers this until it is planned).
-    The e03 threat-model and gate-trace R1 waivers are recorded and cover all of e03.
-    Resolved by the 2026-11-08 chore PR: the e04 stash is landed (candidate
-    build epics), BUG-003 is closed by decision, BUG-004 is mitigated by a
-    stricter yamllint rule, and the owner will file no upstream bug reports.
-    The R5 and R3 candidates are scheduled: e04s03 (R16 evidence refresh,
-    runs before the synthesis) and two tasks in e03s07 (R13). R6 open questions that may become stories: measure re-learning cost per dispatch
-    unit, a disjoint versus overlapping scope conflict experiment (for R10), and a
-    full-text read of CAID, STORM, Co-Coder and CodeCRDT. Lessons from R6 review:
-    check absence claims against the whole cited source, and check the order of steps
-    in a source. Use raw URLs, web fetch, git ls-remote or Atom feeds for docs, not
-    gh api or api.github.com. Every commit needs a Story: e03s02 trailer.'
+  next_story: e03s03
+  note: 'e03s02 (R7 agent review and agent-answered decisions) is done and released
+    by pull request. Brief: docs/research/R7-review-and-decisions.md, verdicts H1,
+    H13 and H14 all refined. request-review failed the AND-gate in rounds 1 and 2
+    and the owner stopped it there; the waiver is recorded. Next: kickoff-branch for
+    e03s03 (R8 code quality and conventions, e03 wave 3, 5 BCPs, dependencies met).
+    Start it in a fresh session. e03s03 has a tasks file but no story spec yet; run
+    plan-work after kickoff-branch, as for e03s02 (the e03 plan-consistency waiver
+    covers this until it is planned). The e03 threat-model, gate-trace R1 and plan-consistency
+    waivers are recorded and cover all of e03. Lessons from R7: (1) kickoff-branch
+    commits the spec-only checkpoint on main before it branches, which put a commit
+    on local main ahead of origin/main and needed a reset; create the branch first,
+    then commit the checkpoint, and never commit on main. (2) Two review rounds each
+    found sources my arXiv queries missed, so treat every unsourced or no-paper-found
+    claim as not found by these queries, and run broader arXiv API queries (relevance
+    order, 8 results) before writing an absence claim. (3) Read the reviewer prompt
+    of each tool for what it tells the reviewer to run. (4) BUG-004 reproduced: scripts/record-cycle-time.sh
+    removes the --- line from execution-status.yaml; restore it by hand before committing.
+    R7 open questions that may become stories for R10: a same-model against different-model
+    reviewer test on seeded defects (the one direct test, arXiv 2607.21656, cannot
+    separate different from stronger), a fresh against continued reviewer context
+    test, mutants as review evidence, and a full-text read of S2, S8, S12, S13, S14
+    and S37. Consider items the owner has not decided: the Superpowers fix-loop tier
+    rule and cap, bigpowers cap 5 against round N/3, the Claude Code auto-mode fallback
+    in -p runs, tighter verify commands for tasks 2, 5 and 6 of e03s02, Claude Code
+    /verify, the Claude Code SendMessage review, and Claude Code auto mode in the
+    H13 verdict. Use raw URLs, web fetch, git ls-remote or Atom feeds for docs, not
+    gh api or api.github.com. Every commit needs a Story: e03s03 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
     survey-context:
-      calls: 5
-      total_seconds: 71.0
-      avg_seconds: 14.2
-    plan-work:
-      calls: 5
-      total_seconds: 524.0
-      avg_seconds: 104.8
-    develop-tdd:
       calls: 6
-      total_seconds: 1867.0
-      avg_seconds: 311.1666666666667
+      total_seconds: 84.0
+      avg_seconds: 14.0
+    plan-work:
+      calls: 6
+      total_seconds: 709.0
+      avg_seconds: 118.16666666666667
+    develop-tdd:
+      calls: 7
+      total_seconds: 2209.0
+      avg_seconds: 315.57142857142856
     verify-work:
-      calls: 5
-      total_seconds: 190.0
-      avg_seconds: 38.0
+      calls: 6
+      total_seconds: 298.0
+      avg_seconds: 49.666666666666664
     audit-code:
-      calls: 5
-      total_seconds: 243.0
-      avg_seconds: 48.6
+      calls: 6
+      total_seconds: 272.0
+      avg_seconds: 45.333333333333336
     release-branch:
-      calls: 4
-      total_seconds: 419.0
-      avg_seconds: 104.75
+      calls: 5
+      total_seconds: 585.0
+      avg_seconds: 117.0
     request-review:
       calls: 3
       total_seconds: 1198.0
       avg_seconds: 399.3333333333333
+      _start: '2026-11-09T06:09:34Z'
     kickoff-branch:
       calls: 1
       total_seconds: 26.0

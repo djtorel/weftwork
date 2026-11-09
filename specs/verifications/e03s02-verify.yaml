@@ -1,0 +1,159 @@
+---
+story_id: e03s02
+verified_at: "2026-11-09T06:29:52Z"
+verifier: verify-work
+branch: e03s02-r7-agent-review
+risk: P2
+mode: default (P2 skips tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e03s02-r7-agent-review
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-09T06:29:52Z"
+    note: >-
+      Single contiguous run, re-captured after the request-review round 2
+      fixes (the first capture, at 06:02Z, predated the round-1 fix
+      commit 8b57db3). CI: no PR open yet, so gh pr checks does not
+      apply.
+    output: |
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+      PREFLIGHT_EXIT=0
+  terminal_verdict:
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e03-design-topics/e03s02-tasks.yaml
+    exit_code: 0
+    captured_at: "2026-11-09T06:29:52Z"
+    note: >-
+      One contiguous pass over tasks 1 to 7 on the brief after the
+      round-2 fixes. Each task's verify exits 0.
+    output: |
+      task 1 verify rc=0
+      task 2 verify rc=0
+      task 3 verify rc=0
+      task 4 verify rc=0
+      task 5 verify rc=0
+      task 6 verify rc=0
+      task 7 verify rc=0
+  build:
+    passed: true
+    skipped: true
+    reason: "No build step; the story ships a research brief only."
+  typecheck:
+    passed: true
+    skipped: true
+    reason: "No product code; CLAUDE.md Typecheck is N/A."
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  smoke:
+    passed: true
+    command: >-
+      bash tools/check-brief.sh
+      docs/research/R7-review-and-decisions.md R7
+    exit_code: 0
+    note: >-
+      Stands in for a smoke check. Output: "check-brief: OK (R7)" with a
+      warning of 3 undated sources (the Claude Code, Claude Code
+      permission-mode and Codex docs, which show no date).
+  tests:
+    passed: true
+    skipped: true
+    reason: >-
+      P2: tests skipped. The task verify commands are the story's checks
+      and ran above.
+  security_scan:
+    passed: true
+    skipped: true
+    reason: >-
+      P2: security scan skipped. The e03 threat-model waiver in
+      state.yaml covers the epic.
+  blind_spot_check:
+    passed: true
+    command: "bash scripts/check-blind-spots.sh"
+    note: >-
+      Run although P2 lists only smoke, typecheck and lint. 4 findings:
+      0 HIGH, 3 MEDIUM (double-tag on e01s03 tasks file, the R6 brief
+      and the e03s01 spec), 1 LOW (stale-tag for e03s01). None is HIGH,
+      so none blocks. None comes from files this story added.
+  completeness_critic:
+    passed: false
+    waived: true
+    command: "bash scripts/lib/completeness-critic.sh"
+    note: >-
+      BLOCKER=1: "active story e03s02 has zero explicit story-tag
+      links". This is the gate-trace rule R1 condition (no code, so no
+      code tags). state.yaml records the owner's waiver of R1 for e03
+      (waivers: gate-trace FAIL (rule R1) for e03s01, scope e03 only,
+      "waive it for e03"). It is waived, not passing. The owner can
+      decline to extend the waiver to e03s02 at release-branch.
+  manual:
+    passed: true
+    note: >-
+      P2 skips step-by-step UAT. I ran an automated quote and figure
+      check and a two-cell spot-check from the spec's Verification
+      Script against local copies of the cited pages. The owner has
+      not yet read the H1, H13 and H14 verdicts; that read stays open
+      (see gaps).
+    steps:
+      - step: "Phrases and figures added after round 1 (24 items)"
+        expected: >-
+          Each quote and figure added in rounds 1 and 2 appears in the
+          cited source or abstract
+        actual: >-
+          9 new quotes found in the tool docs (bigpowers verify-command
+          line, Claude Code effort and model wording, Codex reviewer
+          agent and policy wording, BMAD external reviewer override,
+          GSD spot-check limits). 15 new figures found in the abstracts
+          (71.6, 89.7, 84.5, 91.4, 82.8, 116, 47 vacuous, 69 loops, 209,
+          34.0, 6.7, 19,371, 0.52, 125, inverted U). All found.
+        passed: true
+      - step: "Quoted phrases against sources (19 phrases), before round 1"
+        expected: "Each quoted phrase appears in the cited source"
+        actual: >-
+          18 found verbatim. The 19th, "an irreversible or destructive
+          operation" (S26), is split by a line break in the source and
+          matches once the lines are joined. All found.
+        passed: true
+      - step: "Figures against abstracts (15 figures), before round 1"
+        expected: >-
+          Each figure appears in the arXiv abstract or the R4 brief
+        actual: >-
+          68.50, 63.89, 1,405, 1,281, 10.20, 36.15, 73%, 0.79, 0.47,
+          87.98, 41.64, 0.62, 8.9 minutes, 69.40 and 7.8% each appear in
+          the fetched abstract or R4. All found.
+        passed: true
+      - step: "GSD row, Evidence checked (cites S24)"
+        expected: "A failed or empty command output is flagged as a gap"
+        actual: >-
+          gsd-verifier.md line 418: "FAIL: Command failed or output is
+          empty/wrong - flag as gap"
+        passed: true
+      - step: "bigpowers row, Escalation (cites S25)"
+        expected: >-
+          Two blind reviewers, AND-gate, 5-round cap, then "Human
+          decision required" and no merge
+        actual: >-
+          request-review SKILL.md lines 41, 50 and 51 say so (cap 5,
+          score at least 94 percent each, stop and do not merge)
+        passed: true
+  gaps:
+    closed: false
+    open:
+      - >-
+        The completeness critic BLOCKER (zero explicit story-tag links)
+        rests on the e03 gate-trace R1 waiver. The owner confirms at
+        release-branch that the waiver covers e03s02.
+      - >-
+        The owner reads the H1, H13 and H14 verdicts in the brief and
+        confirms each cites a source and follows from the sections above
+        it (Verification Script step 4). The mutation and reversibility
+        bullets (step 3) are read the same way.
