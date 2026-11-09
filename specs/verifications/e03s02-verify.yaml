@@ -1,6 +1,6 @@
 ---
 story_id: e03s02
-verified_at: "2026-11-09T06:02:26Z"
+verified_at: "2026-11-09T06:29:52Z"
 verifier: verify-work
 branch: e03s02-r7-agent-review
 risk: P2
@@ -15,10 +15,12 @@ phases:
       yamllint specs && bash scripts/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
     exit_code: 0
-    captured_at: "2026-11-09T06:02:26Z"
+    captured_at: "2026-11-09T06:29:52Z"
     note: >-
-      Single contiguous run after the brief and plan commits (2210af3,
-      2e3db69). CI: no PR open yet, so gh pr checks does not apply.
+      Single contiguous run, re-captured after the request-review round 2
+      fixes (the first capture, at 06:02Z, predated the round-1 fix
+      commit 8b57db3). CI: no PR open yet, so gh pr checks does not
+      apply.
     output: |
       validate-specs-yaml: OK
       check-gate-ignores: OK (6 paths)
@@ -28,9 +30,10 @@ phases:
       python3 loop over each task verify: command in
       specs/epics/e03-design-topics/e03s02-tasks.yaml
     exit_code: 0
-    captured_at: "2026-11-09T06:02:26Z"
+    captured_at: "2026-11-09T06:29:52Z"
     note: >-
-      One contiguous pass over tasks 1 to 7. Each task's verify exits 0.
+      One contiguous pass over tasks 1 to 7 on the brief after the
+      round-2 fixes. Each task's verify exits 0.
     output: |
       task 1 verify rc=0
       task 2 verify rc=0
@@ -101,14 +104,26 @@ phases:
       not yet read the H1, H13 and H14 verdicts; that read stays open
       (see gaps).
     steps:
-      - step: "Quoted phrases against sources (19 phrases)"
+      - step: "Phrases and figures added after round 1 (24 items)"
+        expected: >-
+          Each quote and figure added in rounds 1 and 2 appears in the
+          cited source or abstract
+        actual: >-
+          9 new quotes found in the tool docs (bigpowers verify-command
+          line, Claude Code effort and model wording, Codex reviewer
+          agent and policy wording, BMAD external reviewer override,
+          GSD spot-check limits). 15 new figures found in the abstracts
+          (71.6, 89.7, 84.5, 91.4, 82.8, 116, 47 vacuous, 69 loops, 209,
+          34.0, 6.7, 19,371, 0.52, 125, inverted U). All found.
+        passed: true
+      - step: "Quoted phrases against sources (19 phrases), before round 1"
         expected: "Each quoted phrase appears in the cited source"
         actual: >-
           18 found verbatim. The 19th, "an irreversible or destructive
           operation" (S26), is split by a line break in the source and
           matches once the lines are joined. All found.
         passed: true
-      - step: "Figures against abstracts (15 figures)"
+      - step: "Figures against abstracts (15 figures), before round 1"
         expected: >-
           Each figure appears in the arXiv abstract or the R4 brief
         actual: >-

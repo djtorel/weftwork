@@ -2,11 +2,11 @@ workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
 active_story: e03s02
-phase: planning
+phase: review
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e03s02-r7-agent-review
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -92,18 +92,24 @@ handoff:
   note: 'e03s02 (R7 agent review and agent-answered decisions) is planned,
     built and verified on branch e03s02-r7-agent-review. Brief:
     docs/research/R7-review-and-decisions.md, verdicts H1, H13 and H14 all
-    refined. request-review round 1 of 5 failed the AND-gate (reviewer A
-    73.5, reviewer B 80.4); the fixes are applied to the brief and are not
-    yet committed. Next: commit the fixes with the owner go-ahead, run
-    request-review round 2 in a fresh session, then release-branch. Open
-    items for the owner: confirm the e03 gate-trace R1 waiver covers e03s02
-    (the completeness critic reports a BLOCKER for zero story-tag links),
-    and read the H1, H13 and H14 verdicts (Verification Script steps 3 and 4
-    in the story spec). Lessons from R7 review: check absence claims with
-    arXiv API queries, not web search alone, and read each tool reviewer
-    prompt for what it tells the reviewer to run. Use raw URLs, web fetch,
-    git ls-remote or Atom feeds for docs, not gh api or api.github.com.
-    Every commit needs a Story: e03s02 trailer.'
+    refined. request-review has failed the AND-gate twice. Round 1: reviewer
+    A 73.5, reviewer B 80.4; those fixes are committed in 8b57db3. Round 2:
+    reviewer A 86.7 (2 must-fix), reviewer B 94.8 (1 must-fix); those fixes
+    (a wrong GSD claim, a missing cross-model review paper, five more
+    sources) are applied to the brief and are not yet committed. Next:
+    commit them with the owner go-ahead, then request-review round 3 in a
+    fresh session (the cap is 5 rounds), then release-branch. Open items for
+    the owner: confirm the e03 gate-trace R1 waiver covers e03s02 (the
+    completeness critic reports a BLOCKER for zero story-tag links); read
+    the H1, H13 and H14 verdicts (Verification Script steps 3 and 4 in the
+    story spec); decide the five deferred consider items from round 1 (see
+    AUDIT-e03-e03s02.md and the review record). Lessons from R7 review: two
+    review rounds each found sources that my arXiv queries missed, so treat
+    every unsourced claim as not found by these queries and re-run broader
+    queries before release; read each tool reviewer prompt for what it tells
+    the reviewer to run. Use raw URLs, web fetch, git ls-remote or Atom
+    feeds for docs, not gh api or api.github.com. Every commit needs a
+    Story: e03s02 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:

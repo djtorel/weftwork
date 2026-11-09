@@ -88,3 +88,14 @@ sources and claims in the brief (the bigpowers reviewer runs the verify
 command; reversibility classes for agent actions have papers; mutation
 testing in human code review has prior art). They are fixed in the brief.
 This audit is not re-run; the findings sit in the review record.
+
+## Resolution (after request-review round 2)
+
+Round 2 failed the gate too (reviewer A 86.7, reviewer B 94.8). It found a
+wrong claim in the round-1 fix (GSD's verifier does not rerun the declared
+command; only bigpowers does), a paper that directly tests cross-model code
+review, and four more sources. All are fixed in the brief. The statement
+above that `e03s02-verify.yaml` is uncommitted is out of date: it was
+committed in ae7edc0, and the story now has four commits (2210af3, 2e3db69,
+ae7edc0, 8b57db3). `e03s02-verify.yaml` was re-captured after the round-2
+fixes.
