@@ -107,7 +107,7 @@ tasks:
       printf '%s\n' "$D" | grep -q '^- '
       && ! printf '%s\n' "$D" | grep -Evq '\[S[0-9]+\]'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:

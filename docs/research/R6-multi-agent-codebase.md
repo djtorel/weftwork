@@ -67,3 +67,16 @@ What goes wrong when agents share a codebase. Figures come from abstracts, and e
 - Shared state files are written from many worktrees. In GSD each parallel executor updates STATE.md and ROADMAP.md [S5]. I did not find how GSD reconciles those writes, so whether they conflict is an inference, not a finding.
 - Git allows a branch in one checkout only. Codex notes that a branch checked out in a worktree cannot be checked out locally at the same time [S3]. An engine that creates worktrees must pick branch names so that handoff does not collide.
 - Coordination costs tokens and time. Claude Code states that token cost scales linearly with teammates and that more teammates mean more coordination and potential conflicts [S2]. Co-Coder's starting point is that adding agents adds communication overhead that "can sometimes offset the efficiency gains" [S17].
+
+## Dispatch granularity
+
+The unit of dispatch decides how often an agent starts cold. The sources use five units.
+
+- **Per task, one at a time.** Superpowers sends a fresh implementer subagent per task with a review after each, and says what that costs: "a fresh context per task and per review", where an inline run costs one context plus one final reviewer [S8]. It also forbids parallel implementers: "Never dispatch multiple implementation subagents in parallel (conflicts)" [S8].
+- **Per independent problem domain.** Superpowers' parallel skill dispatches "one agent per independent problem domain", for example different test files or subsystems, and only when there is no shared state [S8]. It is written for investigating separate failures, not for building a feature.
+- **Per plan with declared files.** GSD's unit is a plan whose frontmatter lists `files_modified`, grouped into waves at plan time; each executor loads the full execute-plan context [S5].
+- **Per set of files.** Claude Code's agent teams advise that each teammate owns a different set of files. They suggest 3-5 teammates to start, and tasks with clear boundaries that do not write code, because parallel implementation brings the coordination problems [S2].
+- **Per dependency community.** Co-Coder builds a dependency graph by static analysis, sets structural hub files apart, and partitions the rest by community detection. Its gains were largest on the most dependency-dense projects, with up to 2.10x speedup and up to 35% lower API cost than its baselines [S17]. CAID uses a central manager that builds a dependency-aware task plan and runs subtasks in isolated workspaces [S16]. Co-Coder's units are file communities found by a tool, not human-named subsystems, and the abstract frames the gain as a communication-versus-computation trade-off [S17].
+- **Read-heavy work parallelizes more safely than writing.** Codex recommends parallel agents for exploration, tests, triage and summarization, and care with parallel write-heavy work [S4]. Claude Code's agent teams page gives the same advice for newcomers [S2].
+- **A cold start is paid per dispatch.** bigpowers says each agent starts cold, that brief size controls token cost and hallucination risk, and that each agent should get only the decisions relevant to its task [S6].
+- **What I did not find.** None of these sources measures what re-learning the codebase costs, or compares one agent per subsystem with one agent per task on the same work [S5][S8][S17].
