@@ -152,16 +152,28 @@ waivers:
   date: 2026-11-09
   scope: e03s04 release only (stories e03s05 to e03s08 and e04s01 to e04s03 for R1;
     e01s02 and e01s04 for R2)
+- what: CONVENTIONS.md rule that every source has a publication date, for 4 vendor
+    doc pages in the R11 brief (S26 to S29, Claude Code sandboxing, permissions and
+    security, and Codex agent-approvals-security)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version read. A real date cannot be found, so the brief
+    marks them as undated. check-brief.sh passes with a warning. R5 cited the same
+    pages as undated. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s05 only (docs/research/R11-security-permissions.md sources S26 to S29)
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   next_story: e03s05
-  note: 'e03s05 (R11 security and permissions, 5 BCPs) is planned on branch e03s05-r11-security-permissions.
-    Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md; tasks:
-    e03s05-tasks.yaml (8 tasks, all todo). Owner decisions 2026-11-09: H21, H22 and
-    H23 added to planning-context.yaml for R11 (every H1-H20 reference in specs/ now
-    says H1-H23), and R11 reviews evidence only, no measurement. Next: develop-tdd,
-    task 1 (draft the brief, five or more papers including arXiv:2601.10338 and 2602.06547).
-    plan-consistency-check findings for e03s06 to e03s08 are covered by the e03 waiver.
+  note: 'e03s05 (R11 security and permissions, 5 BCPs) has its brief drafted on branch
+    e03s05-r11-security-permissions: docs/research/R11-security-permissions.md (32
+    sources, 24 papers read as abstracts, H21 to H23 all refined). All 8 tasks pass
+    their verify commands. Next: verify-work, then audit-code, then request-review
+    capped at 2 rounds (the main risk is numbers stretched past abstracts; ask a
+    reviewer to check claims against full texts). Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md.
+    Owner decisions 2026-11-09: H21, H22 and H23 added to planning-context.yaml for
+    R11 (every H1-H20 reference in specs/ now says H1-H23), and R11 reviews evidence
+    only, no measurement. plan-consistency-check findings for e03s06 to e03s08 are
+    covered by the e03 waiver.
     Open for the owner, carried over: the audit skill verify checks skills/ dirs that
     do not exist; the gitignored traceability matrix regenerates with bash scripts/trace-stories.sh
     --json; undecided R7 items; e04s02 takes the stack choice. Every commit needs
@@ -178,9 +190,9 @@ metrics:
       total_seconds: 2538.0
       avg_seconds: 282.0
     develop-tdd:
-      calls: 9
-      total_seconds: 3309.0
-      avg_seconds: 367.6666666666667
+      calls: 10
+      total_seconds: 3598.0
+      avg_seconds: 359.8
     verify-work:
       calls: 8
       total_seconds: 477.0
