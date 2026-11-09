@@ -106,25 +106,23 @@ waivers:
   date: 2026-11-09
   scope: e03s03 only
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   next_story: e03s04
-  note: 'e03s04 (R9 model routing and cost efficiency): all 9 tasks done on
-    branch e03s04-r9-model-routing; the brief is docs/research/R9-model-routing.md
-    (61 sources, 37 paper abstracts, 5 hypotheses all refined). Preflight green.
-    Next: verify-work (human spot-check from the Verification Script in
-    e03s04-r9-model-routing.md), then audit-code and request-review, then
-    release-branch. Review lessons from R7 and R8: check every number and
-    quote against its abstract; expect reviewers to find papers the queries
-    missed (all R9 reading was abstracts only); two sources, S14 and S15, are
-    withdrawn papers listed but not used. Method records one stray request
-    to the api.github.com root (output discarded); the owner may want a
-    waiver line for it at release, as for e02s04 and e03s01. Open for the
-    owner, carried over: audit skill verify checks skills/ dirs that do not
-    exist; regenerate specs/traceability-matrix.json with bash
-    scripts/trace-stories.sh --json if the completeness critic blocks;
-    undecided R7 items; e04s02 takes the stack choice. Candidate R10 stories
-    are in the R9 Open questions. Every commit needs a Story: e03s04 trailer;
-    record cycle time through tools/record-cycle-time.sh.'
+  note: 'e03s04 (R9 model routing and cost efficiency): all 9 tasks done on branch
+    e03s04-r9-model-routing; the brief is docs/research/R9-model-routing.md (61 sources,
+    37 paper abstracts, 5 hypotheses all refined). Preflight green. Next: verify-work
+    (human spot-check from the Verification Script in e03s04-r9-model-routing.md),
+    then audit-code and request-review, then release-branch. Review lessons from R7
+    and R8: check every number and quote against its abstract; expect reviewers to
+    find papers the queries missed (all R9 reading was abstracts only); two sources,
+    S14 and S15, are withdrawn papers listed but not used. Method records one stray
+    request to the api.github.com root (output discarded); the owner may want a waiver
+    line for it at release, as for e02s04 and e03s01. Open for the owner, carried
+    over: audit skill verify checks skills/ dirs that do not exist; regenerate specs/traceability-matrix.json
+    with bash scripts/trace-stories.sh --json if the completeness critic blocks; undecided
+    R7 items; e04s02 takes the stack choice. Candidate R10 stories are in the R9 Open
+    questions. Every commit needs a Story: e03s04 trailer; record cycle time through
+    tools/record-cycle-time.sh.'
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
@@ -141,9 +139,9 @@ metrics:
       total_seconds: 3309.0
       avg_seconds: 367.6666666666667
     verify-work:
-      calls: 7
-      total_seconds: 345.0
-      avg_seconds: 49.285714285714285
+      calls: 8
+      total_seconds: 477.0
+      avg_seconds: 59.625
     audit-code:
       calls: 7
       total_seconds: 324.0
