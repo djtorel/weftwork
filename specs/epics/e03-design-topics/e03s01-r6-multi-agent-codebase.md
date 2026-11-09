@@ -10,7 +10,7 @@
 Risk note: the BCP heuristic (BCP 3) gives P1, the documentation
 heuristic gives P3. This plan proposes the epic's P2, as e02s04 did.
 Nothing here can lose data or leak anything, and no code ships.
-Decision: pending owner confirmation at plan review.
+Decision: the owner approved the plan with "go" on 2026-11-08, keeping the epic's P2.
 
 ## 1. Purpose
 
@@ -58,7 +58,7 @@ Reason for Depth: none. No code, no new abstraction.
     recommends the engine create worktrees itself.
   - R14: the legacy project's delegation epic stopped with fan-out,
     worktree isolation and dispatch stories still open.
-- **Sources (proposed, for owner confirmation):** each tool's own docs
+- **Sources (proposed, approved with the plan):** each tool's own docs
   or repository, read through raw URLs or web fetch (not `gh api`, per
   the e02s04 waiver); the R5 sources for Claude Code and Codex CLI may
   be reused; papers through arXiv, ACM or Semantic Scholar.

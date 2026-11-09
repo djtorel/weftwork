@@ -72,7 +72,7 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 - ✓ None named
 
 ### Code Style
-- ✓ Files under 300 lines (brief 125, spec 215, tasks 153, at review round 2)
+- ✓ Files under 300 lines (brief 125, spec 215, tasks 153, at review round 3)
 - ✓ YAML within 80 columns (yamllint passes)
 - ✓ Comments: none in the YAML
 
@@ -105,3 +105,11 @@ and GSD with re-verifying a merged result, when bigpowers verifies
 before it merges and GSD has no per-plan merge step. They also found two
 "none found" cells that missed a pull-request path in the cited pages.
 Both are fixed in the brief and the evidence is re-captured.
+
+## Update after review round 3
+Round 3 passed the AND-gate at commit 8b0e560 (A 95.2, B 95.6, no
+must-fix; two should-fix each). The review is complete. I then fixed the
+verified should-fix items in a follow-up commit: three absence claims that
+missed a hook, a between-wave check and a full-suite run, the evidence
+behind the overlap-check verdict, and stale "pending" text in the spec.
+That follow-up was not re-reviewed.
