@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s01
+active_story: e03s02
 phase: planning
 test_plan: lite
 vcs:
@@ -56,52 +56,93 @@ waivers:
     sources by raw URL. From now on use raw URLs, web fetch or gh repo clone.
   date: 2026-11-08
   scope: e02s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e03s02
+    to e03s08
+  why: Those seven stories get their specs when each is planned. Planning them now
+    would be paperwork. e03s01 itself is clear. The owner chose to waive it for e03,
+    as for e02.
+  date: 2026-11-08
+  scope: e03 only
+- what: gate-trace FAIL (rule R1) for e03s01
+  why: R1 fails any undone story with 0 code tags. All 9 undone stories have none,
+    because the project has no code. The oracle heuristic ratio is 94 percent; completeness-critic
+    had 0 blockers; the blind-spot check had 0 HIGH findings. The owner chose to waive
+    it for e03, as for e01 and e02.
+  date: 2026-11-08
+  scope: e03 only
+- what: security-review threat model for e03 (build-epic step 0)
+  why: No product code. e03 writes research briefs only; the executable surface is
+    check-brief.sh and the task verify strings, as in e01 and e02. Briefs read web
+    pages, arXiv abstracts and public repository files, read only. The owner chose
+    to waive it.
+  date: 2026-11-08
+  scope: e03 only
+- what: CONVENTIONS.md rule of no direct GitHub REST API calls (audit-code item) for
+    e03s01
+  why: The R6 research session called api.github.com with curl for commit ids and
+    dates. The brief's Method says so. Every id and date was re-confirmed with git
+    ls-remote, raw URLs at the cited commits and public Atom feeds. The owner accepted
+    the deviation. From now on use raw URLs, web fetch, git ls-remote, Atom feeds
+    or gh repo clone.
+  date: 2026-11-08
+  scope: e03s01 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e03s01
-  note: 'e02 is done and archived (specs/epics/archive/e02-tools-and-hosts). e02s04
-    (R5 harness capability matrix) shipped by release-branch: brief docs/research/R5-harness-capabilities.md,
-    verdicts H8, H9 and H16 all refined; review passed in round 3 of 5 (A 100, B 100).
-    Cycle time recorded in specs/metrics/cycle-times.md (2.00 effort hours, 129 min
-    lead, 5 commits). Next: kickoff-branch for e03s01 (R6 multi-agent work in one
-    codebase, e03 wave 3, depends on e02, now met). Start it in a fresh session. Decide
-    first: (1) BUG-003, the audit-code verify line names skills/ dirs that do not
-    exist here; report upstream or ignore. (2) Whether to run the R5 candidate stories
-    before or after e03: token measurement of skill listings in pi and Claude Code,
-    locate the Code as Agent Harness survey, test whether Claude Code reads .agents/skills
-    at runtime. (3) R3 candidates: Kiro steering and hooks pages, BMAD v7 re-check
-    mid-November 2026. R6 and R9 build on the R5 rows for worktrees, per-dispatch
-    model and effort. Waivers for e02 expire with e02; e03 needs its own threat-model,
-    gate-trace R1 and plan-consistency decisions. Use raw URLs or web fetch for docs,
-    not gh api. Every commit needs a Story: trailer.'
+  next_story: e03s02
+  note: 'e03s01 (R6 multi-agent work in one codebase) is done and released by pull
+    request. Brief: docs/research/R6-multi-agent-codebase.md, verdicts H11 and H12
+    both refined. Next: kickoff-branch for e03s02 (R7 agent review and agent-answered
+    decisions, e03 wave 3, 5 BCPs, dependencies met). Start it in a fresh session.
+    e03s02 has a tasks file but no story spec yet; run plan-work after kickoff-branch,
+    as for e03s01 (the e03 plan-consistency waiver covers this until it is planned).
+    The e03 threat-model and gate-trace R1 waivers are recorded and cover all of e03.
+    Decide first: (1) stash stash@{0} holds uncommitted e04 edits (a Candidate build
+    epics task in e04s02 and a wider done_when in e04 epic.yaml); restore with git
+    stash pop on a chore branch and decide whether to land them. (2) BUG-003, the
+    audit-code verify line names skills/ dirs that do not exist here; report upstream
+    or ignore. (3) Whether to run the R5 and R3 candidate stories before or after
+    e03. R6 open questions that may become stories: measure re-learning cost per dispatch
+    unit, a disjoint versus overlapping scope conflict experiment (for R10), and a
+    full-text read of CAID, STORM, Co-Coder and CodeCRDT. Lessons from R6 review:
+    check absence claims against the whole cited source, and check the order of steps
+    in a source. Use raw URLs, web fetch, git ls-remote or Atom feeds for docs, not
+    gh api or api.github.com. Every commit needs a Story: e03s02 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
     survey-context:
-      calls: 4
-      total_seconds: 57.0
-      avg_seconds: 14.25
-    plan-work:
-      calls: 4
-      total_seconds: 369.0
-      avg_seconds: 92.25
-    develop-tdd:
       calls: 5
-      total_seconds: 1557.0
-      avg_seconds: 311.4
+      total_seconds: 71.0
+      avg_seconds: 14.2
+    plan-work:
+      calls: 5
+      total_seconds: 524.0
+      avg_seconds: 104.8
+    develop-tdd:
+      calls: 6
+      total_seconds: 1867.0
+      avg_seconds: 311.1666666666667
     verify-work:
-      calls: 4
-      total_seconds: 165.0
-      avg_seconds: 41.25
+      calls: 5
+      total_seconds: 190.0
+      avg_seconds: 38.0
     audit-code:
-      calls: 4
-      total_seconds: 175.0
-      avg_seconds: 43.75
+      calls: 5
+      total_seconds: 243.0
+      avg_seconds: 48.6
     release-branch:
-      calls: 3
-      total_seconds: 343.0
-      avg_seconds: 114.33333333333333
+      calls: 4
+      total_seconds: 419.0
+      avg_seconds: 104.75
     request-review:
-      calls: 2
-      total_seconds: 806.0
-      avg_seconds: 403.0
+      calls: 3
+      total_seconds: 1198.0
+      avg_seconds: 399.3333333333333
+    kickoff-branch:
+      calls: 1
+      total_seconds: 26.0
+      avg_seconds: 26.0
+    respond-review:
+      calls: 1
+      total_seconds: 131.0
+      avg_seconds: 131.0
