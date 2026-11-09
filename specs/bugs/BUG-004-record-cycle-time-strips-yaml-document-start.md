@@ -33,6 +33,16 @@ restore the `---` line by hand after every run. Options for the owner:
 report upstream, or make `yamllint` treat the warning as an error so
 Preflight catches it.
 
+## Mitigation
+
+Since 2026-11-08 `.yamllint` makes `document-start` an error (the
+`specs/state.yaml` exemption stays), so a stripped marker now fails
+`yamllint specs` in Preflight and CI. Tested by removing the line from
+`specs/release-plan.yaml`: exit 0 before the change, exit 1 after. The
+bug stays open until the script keeps the marker or the owner records a
+decision to keep the manual workaround. An upstream report is deferred
+and would be batched with BUG-001 to BUG-003.
+
 ## Verify
 
 `head -1 specs/execution-status.yaml` prints `---`. The bug is closed
