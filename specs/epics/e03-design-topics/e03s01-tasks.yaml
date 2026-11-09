@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s01
 title: R6 multi-agent work in one codebase
-status: in_progress
+status: done
 bcps: 3
 type: research
 context: infra
@@ -135,7 +135,7 @@ tasks:
       && test -z "$(comm -23 <(printf '%s\n' "$U")
       <(printf '%s\n' "$L"))"
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:

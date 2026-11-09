@@ -64,18 +64,20 @@ waivers:
   date: 2026-11-08
   scope: e03 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   next_story: e03s01
-  note: 'e03s01 (R6 multi-agent work in one codebase) is planned and on branch e03s01-r6-multi-agent-codebase,
-    a plain branch, not a worktree (BUG-002). Spec: specs/epics/e03-design-topics/e03s01-r6-multi-agent-codebase.md.
-    Six tasks in e03s01-tasks.yaml, verify commands tested on fixtures. Next: develop-tdd,
-    which here means writing the brief task by task and running each verify. Stash
-    stash@{0} on this repo holds uncommitted e04 edits (a Candidate build epics task
-    in e04s02 and a wider done_when in e04 epic.yaml). Restore them with git stash
-    pop on a chore branch and decide whether to land them. Still open: the e03 threat-model
-    and gate-trace R1 waivers (build-epic step 0 and release), BUG-003, the R5 candidate
-    stories, the R3 candidates. Use raw URLs or web fetch for docs, not gh api. Every
-    commit needs a Story: e03s01 trailer.'
+  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md, all
+    six task verifies pass, verdicts H11 and H12 both refined. Next: verify-work (UAT:
+    spot-check two Coordination patterns cells against their cited source, and read
+    the H11 and H12 verdicts), then audit-code, request-review, and release-branch.
+    Papers were read by abstract only, which the brief says in Method; a full-text
+    read is an open question. Commit ids come from curl on the GitHub REST API, a
+    small deviation from the raw-URL rule, also stated in Method. Stash stash@{0}
+    on this repo holds uncommitted e04 edits (a Candidate build epics task in e04s02
+    and a wider done_when in e04 epic.yaml); restore with git stash pop on a chore
+    branch and decide whether to land them. At release-branch: reconcile e03s01 in
+    epic.yaml and execution-status.yaml, and decide the e03 gate-trace R1 and threat-model
+    waivers. Every commit needs a Story: e03s01 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
@@ -88,10 +90,9 @@ metrics:
       total_seconds: 524.0
       avg_seconds: 104.8
     develop-tdd:
-      calls: 5
-      total_seconds: 1557.0
-      avg_seconds: 311.4
-      _start: '2026-11-09T03:04:09Z'
+      calls: 6
+      total_seconds: 1867.0
+      avg_seconds: 311.1666666666667
     verify-work:
       calls: 4
       total_seconds: 165.0

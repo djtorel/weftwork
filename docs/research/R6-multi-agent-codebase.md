@@ -28,6 +28,7 @@ avoid or resolve merge conflicts, and integrate the result?
 - [S18] "AI Agent Pull Requests on GitHub: Frequency, Structure, and Merge Conflict Rates", arXiv:2607.04697 (v2), https://arxiv.org/abs/2607.04697 (abstract only) - accessed: 2026-11-08 published: 2026-07-06
 - [S19] "ATM: CID-Brokered Pre-Write Admission for Multi-Agent Code Co-Synthesis", arXiv:2607.00041, https://arxiv.org/abs/2607.00041 (abstract only) - accessed: 2026-11-08 published: 2026-06-29
 - [S20] "Why Do Multi-Agent LLM Systems Fail?" (MAST), arXiv:2503.13657 (v3), https://arxiv.org/abs/2503.13657 (abstract only) - accessed: 2026-11-08 published: 2025-03-17
+- [S21] weftwork R0 brief, `docs/research/R0-discovery-sweep.md` (where state lives: tracker or plain files) - accessed: 2026-11-08 published: 2026-11-08
 
 ## Method
 
@@ -36,7 +37,7 @@ I read every source on 2026-11-08 and ran no workflow, no parallel agents and no
 - **Tool docs.** I fetched the Claude Code and Codex pages with `curl` in their `.md` form [S1][S2][S3][S4]. Both are living docs without a publication date. The Codex worktree page describes the ChatGPT desktop app; for the command line I rely on the R5 brief [S10].
 - **Tool repositories.** I fetched the raw `SKILL.md` or `README.md` files for bigpowers, Superpowers and beads, and noted the commit read: bigpowers c19edc7, Superpowers 22f0b46, beads f3d688d [S6][S8][S9]. I got those commit ids from the GitHub REST API with `curl`, not `gh api`, to follow the e02s04 waiver (raw URLs and web fetch only). The REST call is still a GitHub API read, so treat that as a small deviation. GSD is the local copy in `.pi/gsd`, version 1.30.0, read only [S5]. I did not read GSD's upstream repository this time.
 - **Papers.** I found candidates with web search, which returns snippets and proves nothing. I then read each paper's title, date and abstract from the arXiv API. I did not read any full text, so every number below comes from an abstract and is a preprint claim. Where a snippet gave a figure the abstract did not, I left it out.
-- **Not verified.** I did not check which of the eight papers have a peer-reviewed venue. R4 [S11 there] already warns that same-model multi-agent debate is unproven; this brief makes no claim about debate.
+- **Not verified.** I did not check which of the eight papers have a peer-reviewed venue.
 - **Cells.** "Not found" in a table cell means absent from the pages listed in Sources, not proof that the feature does not exist.
 
 ## Coordination patterns
@@ -80,3 +81,41 @@ The unit of dispatch decides how often an agent starts cold. The sources use fiv
 - **Read-heavy work parallelizes more safely than writing.** Codex recommends parallel agents for exploration, tests, triage and summarization, and care with parallel write-heavy work [S4]. Claude Code's agent teams page gives the same advice for newcomers [S2].
 - **A cold start is paid per dispatch.** bigpowers says each agent starts cold, that brief size controls token cost and hallucination risk, and that each agent should get only the decisions relevant to its task [S6].
 - **What I did not find.** None of these sources measures what re-learning the codebase costs, or compares one agent per subsystem with one agent per task on the same work [S5][S8][S17].
+
+## Verdicts
+
+- H11: refined - grouping parallel work by how tightly the code is coupled is supported, but the stated reason (avoid re-learning the codebase) is not measured and the supported unit is a dependency community, not a subsystem. Co-Coder partitions by static dependency graph and, against sequential, file-parallel and Claude Code Agent Teams baselines, lifts pass rate by up to 14.0%, speeds up to 2.10x and cuts API cost by up to 35%, with the largest gains on dependency-dense projects [S17]; CAID's manager also plans from a dependency graph [S16]; Claude Code advises one set of files per teammate [S2]. Against it, Superpowers deliberately uses a fresh agent per task and accepts the cold-start cost [S8], and bigpowers briefs each agent cold to limit tokens [S6]. No source measures re-learning cost or compares subsystem dispatch with task dispatch on equal work [S5][S8][S17], and the paper evidence is preprint abstracts.
+- H12: refined - the two halves fare differently. Half one, disjoint file scopes checked before dispatch: it is the common mechanism (GSD `files_modified`, bigpowers `in_scope` and `out_of_bounds`, Claude Code's advice) [S5][S6][S2], but in the tools read the check is a planner convention or a manual step, not a mechanical one [S5][S6], and disjoint files do not remove semantic conflicts: CodeCRDT measured 5-10% after clean convergence and CooperBench found 30% lower success on features that could be built independently [S14][S13]. Pre-write admission control is proposed by ATM, within one governance domain and without a claim of superiority [S19]. Half two, an integrator that re-verifies the merged result: supported, since CAID integrates with executable test-based verification and beats single agents [S16], bigpowers' parent runs the verify commands and checks diffs after collecting [S6], and GSD verifies `must_haves` after all plans [S5]. A scope check is necessary but not sufficient; re-verification on the merged tree is the part the sources agree on.
+
+## Implications for weftwork
+
+These are recommendations for e04s02, not decisions.
+
+- Make the overlap check mechanical. Give each parallel task a declared file list, as GSD and bigpowers do, and have the engine refuse to dispatch two parallel tasks whose lists overlap; add a coupling check (shared imports or types) where the stack allows it, because name-disjoint files can still break each other [S5][S6][S14][S13][S17].
+- Integrate by re-running the declared verify commands on the merged tree, not by trusting each worktree's own result [S16][S6]. Point every gate at the checkout being judged, since BUG-002 showed gates silently judging the primary checkout [S7].
+- Let the engine create worktrees and pick branch names that cannot collide, because hosts differ and Git allows a branch in one checkout only [S10][S3].
+- Default to sequential writing and parallelize read-heavy work first (review, exploration, test runs), which Claude Code and Codex advise and Superpowers enforces for implementers [S8][S4][S2].
+- Do not skip hooks in the parallel path. GSD's `--no-verify` turns off commit-time rules for parallel executors [S5]; run the gates in the integrator instead.
+- Keep shared state files to one writer. The orchestrator should write the state file; parallel agents should return results. beads' claim step is one way to do it, GSD's executors each editing STATE.md is the case to avoid, and this is an inference, not a tested result [S9][S5].
+- Do not adopt a coordination database yet. beads adds a Dolt database [S9]; plain files with a single-writer rule are the smaller option, and R0 listed where state lives as an open topic [S21].
+
+## Earns its place vs ceremony
+
+- Earns its place: a mechanical file-overlap check before parallel dispatch. It is cheap and deterministic, and concurrent agent-authored pull requests conflicted textually in 19.8% to 41.7% of replayed merges [S18][S5][S6].
+- Earns its place: re-running verify commands on the merged result. It is the one practice that CAID, bigpowers and GSD share [S16][S6][S5].
+- Earns its place: engine-created worktrees with gates aimed at them, from weftwork's own failure [S7][S10].
+- Ceremony until proven: a fresh subagent plus a two-part review for every task. Superpowers' own docs list the cost, and I found no measurement of the benefit [S8].
+- Ceremony until proven: typed message envelopes between agents (`task_brief`, `checkpoint`, `result`, `circuit_open`). No source tests them [S6].
+- Ceremony until proven: agent teams that message each other. CooperBench traces coordination failures to jammed or inaccurate messages, and Claude Code marks the feature experimental [S13][S2].
+- Ceremony until proven: a lock file for stories, such as `specs/agent-locks.yaml`. It guards one checkout, and I found no evidence it prevents a real conflict [S6].
+- Ceremony until proven: a database tracker for coordination [S9].
+
+## Open questions
+
+- Is there a re-learning cost, and how large? Candidate story: measure tokens per dispatch for one agent per task against one per subsystem on a real weftwork task.
+- Do disjoint scopes remove most conflicts in practice? Candidate story for R10: two agents on a small repository, with disjoint and then overlapping scopes, counting textual and semantic conflicts.
+- The eight papers were read by abstract. Read the full text of CAID, STORM, Co-Coder and CodeCRDT to check baselines, in particular whether "worktree" means the same thing in each, and whether results on Commit0 and PaperBench transfer to documents and YAML [S15][S16][S17][S14].
+- Does GSD reconcile parallel writes to STATE.md and ROADMAP.md, and does upstream merge its worktrees? I read only local version 1.30.0 [S5].
+- Does the Codex command-line `--worktree` flag behave as the desktop page describes? R5 recorded the flag from docs only [S3][S10].
+- Which static dependency tool would give weftwork a coupling check for its chosen stack? That depends on R8 [S17].
+- Candidate story: the R14 retrospective found fan-out, worktree isolation and dispatch stories still open when the legacy project stopped. Check whether a live parallel run was ever completed there [S12].
