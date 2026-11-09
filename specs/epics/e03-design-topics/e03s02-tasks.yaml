@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s02
 title: R7 agent review and agent-answered decisions
-status: todo
+status: in_progress
 bcps: 5
 type: research
 context: infra
@@ -23,7 +23,7 @@ tasks:
       | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
       -ge 4
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -44,7 +44,7 @@ tasks:
       && printf '%s\n' "$M" | grep -Eiq 'subagent'
       && printf '%s\n' "$M" | grep -Eiq 'workflow'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -74,7 +74,7 @@ tasks:
       BMAD; do printf '%s\n' "$R" | grep -Eiq "^\| *\**$t\**"
       || { echo "missing row: $t"; exit 1; }; done
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -98,7 +98,7 @@ tasks:
       | grep -Eiq 'different model|heterogene|cross-model'
       && printf '%s\n' "$F" | grep -Eiq 'fresh context|clean context'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -120,7 +120,7 @@ tasks:
       && printf '%s\n' "$F" | grep -iq 'mutation'
       && printf '%s\n' "$F" | grep -Eiq 'tests? (run|ran|pass)|test suite'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -142,7 +142,7 @@ tasks:
       && printf '%s\n' "$F" | grep -iq 'reversib'
       && printf '%s\n' "$F" | grep -iq 'escalat'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -176,7 +176,7 @@ tasks:
       O="${O}## Earns its place vs ceremony|## Open questions";
       test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
