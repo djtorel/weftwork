@@ -47,6 +47,12 @@ keeps the manual workaround (restore the `---` line after each run of the
 script) and the lint rule above, which fails Preflight and CI if the line
 is missing. Closed by that decision.
 
+## Local fix
+
+2026-11-09: `tools/record-cycle-time.sh` wraps the global script and
+restores the `---` line after it runs. Use it instead of calling
+`scripts/record-cycle-time.sh` directly. Nothing is reported upstream.
+
 ## Verify
 
 `head -1 specs/execution-status.yaml` prints `---`. The bug is closed

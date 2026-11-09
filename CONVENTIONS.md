@@ -14,6 +14,9 @@ Add the code-style and test sections when the stack is chosen (an open question 
   example `Story: e02s04`, after a blank line in the body. It is not an
   attribution footer. `scripts/record-cycle-time.sh` attributes effort by
   this trailer and refuses to record a story whose commits lack it.
+- Run cycle-time recording through `tools/record-cycle-time.sh`: it calls
+  `scripts/record-cycle-time.sh` and restores the `---` line that script
+  removes from `specs/execution-status.yaml` (BUG-004).
 - The cycle-time ledger is `specs/metrics/cycle-times.md`. Always pass
   `--file specs/metrics/cycle-times.md` to `record-cycle-time.sh`: its
   default name, `cycle-times.yaml`, holds front matter plus a Markdown
