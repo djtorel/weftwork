@@ -156,6 +156,52 @@ Tiers are names, not models (H15): light, standard and heavy, resolved per host 
 - A ceiling has to act on measured use, not a forecast: models predicted their own token use with correlations of at most 0.39 and underestimated it, and runs of the same task varied up to 30 times [S8].
 - Budget shape changes the best strategy: under a fixed budget on 216 Codeforces problems, repeated independent sampling beat agentic reasoning on accuracy per dollar, and a cost-optimal solver minimizes log failure likelihood per dollar; these are self-contained algorithmic tasks, which may not carry over to repository work [S21]. In a credit-budgeted arena, frontier single agents and swarms did not balance accuracy against the budget well [S25].
 - A scheduler can hold a token budget: token budget management is one of five primitives in a proxy that also does admission control, rate-limit tracking, backpressure and priority queuing [S26].
-- Local systems that cut tokens locally by design make the ceiling a count of cloud tokens, which is the unit [S11] measures; whether a per-story ceiling should be dollars or tokens is unsourced.
+- Whether a per-story ceiling should be counted in dollars or in tokens is unsourced; the local-triage study counts cloud tokens saved [S11], and Claude Code's cap is a dollar estimate [S45].
 - Logging each escalation: no host documents an escalation log; Claude Code reports usage per model and attributes it to skills, subagents and MCP servers [S44], so an engine would have to write the escalation log itself (inference).
 - A position paper names recurring failure modes of token allocation (over-routing, over-delegation, under-verification, cache misuse) but offers no data [S24]. Stop conditions that are not about cost belong to R15 (e03s08); this brief does not cover them and cites nothing for them.
+
+## Verdicts
+
+- H15: refined - tiers rather than model names is supported by how hosts work: Claude Code resolves `opus`, `sonnet` and `haiku` aliases to the newest model, GSD maps agents through profiles, and Codex names models in config [S42][S55][S50]. Escalating at the first verified failure has a test on the effort axis only [S3]; no source gives a failure count above one, and the only paper on cheap recovery against escalation was withdrawn [S15]. Budget ceilings exist as Claude Code's dollar cap and turn cap in print mode and as opencode's step cap, with overshoot noted [S45][S51]; no host documents an escalation log [S44]. Refined: tiers hold, the "after N failures" count is unsourced above one, and ceilings are partial.
+- H17: refined - routing helps only when the cheaper tier fails often enough and its failures can be predicted [S20], and the coding evidence is thin and split: a code cascade cut cost by 26% on average with an unclear accuracy claim [S19], difficulty-aware configuration cut cost and raised pass@1 on LiveCodeBench in the authors' own search [S16], while delegation raised cost in half of the settings in 600 coding trajectories [S5] and the top-priced model cost less on long tool-heavy sessions in a simulation [S6]. No source measures pass rate against cost per accepted task across tiers on repository work. The claim that cheaper models keep pass rate while cutting cost is unproven for coding agents.
+- H18: refined - effort is a separate setting that hosts expose beside the model [S42][S50][S51][S52] and that matters: xhigh over high lifted first-try perfect runs from 28% to 89% on one coding task [S2]. It is not monotone: higher effort often failed on tasks lower effort solved and cost up to 42 times more on easy ones [S3], and one level name is not one value across models [S42]. Useful, but only when matched to the task, and no repository-level coding measurement exists.
+- H19: refined - starting at the lowest effort and escalating after a verified failure matched or beat fixed top effort across all models and benchmarks at lower cost for most proprietary models [S3], so the claim holds on the effort axis with benchmarks the abstract does not name. For tier escalation, a code cascade supports it before agents [S19], and an upward switch costs a cache rebuild [S4][S47]. Cheaper overall is unproven for escalation between model tiers in a coding agent.
+- H20: refined - static features predicted task difficulty with AUC 0.863, but the strongest features come from the finished patch [S7]; models predicted their own token use with correlations of at most 0.39 and human difficulty ratings aligned weakly with token cost [S8]; routing worked only where failures were predictable from visible features [S20]; Triage's conditions are untested [S1]. Deterministic signals are promising and cheap but not shown reliable enough to route on for weftwork.
+
+## Implications for weftwork
+
+- Name tiers (light, standard, heavy) and an effort level per role in the engine, and resolve them to a host alias or model id in each adapter, because all five hosts that R5 read have a per-dispatch model field and four an effort field [S57][S42][S50][S51][S52].
+- Start from the Default tier per role table, and treat every cell as unmeasured until R10 tests it. Decide implementer and reviewer cells by a small evaluation on weftwork stories, since the cost gap between model assignments at matched accuracy reached 13 to 32 times [S27].
+- Escalate on a verified failure signal from the harness (a failed declared command), at the first failure, first by effort and then by tier, and start the higher tier as a fresh dispatch rather than a mid-session switch [S3][S4][S47]. Write each escalation to a log the engine owns, since no host does [S44].
+- Do not build a learned router or a planner-model sizing step for v1: learned routers needed training data and retraining per dataset [S20], and a model's own cost estimates were weak [S8]. Keep BCPs, which weftwork already records, and measure whether they predict cost before routing on them.
+- Set a per-story ceiling in tokens or dollars measured while the run goes, plus a turn cap, using the host flags where they exist [S45][S51] and an engine count where they do not; count the cost of subagents [S45]. Do not rely on a forecast [S8].
+- Record cache-read tokens per dispatch, and keep model switches out of long sessions, so cache mistakes show up [S10][S47].
+- Keep tool definitions out of the always-loaded context with the hosts' deferred-tool features before building anything of our own [S46][S52], and count the tokens before quoting the 98.7% figure as ours [S41].
+- Treat the local tier as optional: its limits are memory and the harness pairing, and the owner's hardware is unknown [S53][S54][S12][S61].
+
+## Earns its place vs ceremony
+
+- Tier names plus effort per role in the engine, with adapters resolving them: earns its place, as a cheap indirection that all hosts support; the table's cells are unmeasured [S57][S42][S50].
+- Escalation at the first verified failure: likely earns its place; measured on the effort axis [S3], unproven for model tiers.
+- Per-story spend and turn ceilings: earn their place as a safety stop, with overshoot and print-mode limits to design around [S45][S51].
+- A learned or classifier router: ceremony until a measurement shows it beats the fixed table on weftwork tasks [S20][S6].
+- A planner-model step to size tasks: ceremony until it beats BCPs or a deterministic signal; models estimate their own cost badly [S8].
+- Mid-session model switching: ceremony, and possibly harmful, until the cache break-even is checked on our hosts [S4][S5][S47].
+- Code-based tool access and tool search: earns its place if tool definitions are large; the 98.7% figure is a vendor example and unproven here, and hosts already defer definitions [S41][S46][S52].
+- Observation compression or retrieval agents: unproven for weftwork; their savings are reported but turn count may dominate cost [S30][S34][S5].
+- Per-subsystem dispatch as a cost saver: unproven; no measurement [S59].
+- Local models as a tier: unproven for weftwork; depends on hardware and harness [S12][S53].
+- A separate reviewer tier or model from the implementer: unproven; the one direct test was mixed [S58].
+
+## Open questions
+
+- Which tier and effort pass weftwork-like stories at what cost per accepted task? Candidate story for R10: run light, standard and heavy tiers at two effort levels on a fixed set of weftwork stories, with pass rate by declared command and tokens per accepted task (H17, H18) [S2][S3].
+- Does starting low and escalating after a verified failure cost less than starting at the standard tier, for model tiers and for effort, on the same stories? Candidate story for R10 (H19) [S3].
+- How many failures before escalating? Unsourced above one; measure with the previous test (H15).
+- Do BCPs, repository size or file counts predict token cost or first-try failure on weftwork stories? The repository has the data in `specs/execution-status.yaml` (H20) [S7][S8].
+- Candidate story: count the tokens that tool and skill listings add in Claude Code and pi with and without tool search and `codemode`; R16 (e04s03) already plans the skill listing cost [S41][S46][S52].
+- What does an escalation cost in cache on our hosts, as a fresh dispatch against a mid-session switch? Candidate story for R10 [S4][S5][S47].
+- Read the full text of [S3], [S2], [S5] and [S7] before the synthesis: [S3] does not name its benchmarks in the abstract, [S2] is one task, and [S5] and [S7] rest on public trajectory sets.
+- Check whether the withdrawn papers [S14] and [S15] return in revised form; both address the questions here.
+- Which hardware would run the local tier, and how many parallel agents fit? Needs the owner; unsourced.
+- Claude Code and the API page disagree on the default effort for Sonnet 5.5 [S42][S49]; confirm on a run before the engine hard-codes a default.
