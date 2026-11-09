@@ -28,3 +28,13 @@ avoid or resolve merge conflicts, and integrate the result?
 - [S18] "AI Agent Pull Requests on GitHub: Frequency, Structure, and Merge Conflict Rates", arXiv:2607.04697 (v2), https://arxiv.org/abs/2607.04697 (abstract only) - accessed: 2026-11-08 published: 2026-07-06
 - [S19] "ATM: CID-Brokered Pre-Write Admission for Multi-Agent Code Co-Synthesis", arXiv:2607.00041, https://arxiv.org/abs/2607.00041 (abstract only) - accessed: 2026-11-08 published: 2026-06-29
 - [S20] "Why Do Multi-Agent LLM Systems Fail?" (MAST), arXiv:2503.13657 (v3), https://arxiv.org/abs/2503.13657 (abstract only) - accessed: 2026-11-08 published: 2025-03-17
+
+## Method
+
+I read every source on 2026-11-08 and ran no workflow, no parallel agents and no merge experiment. No subagent was used for this brief.
+
+- **Tool docs.** I fetched the Claude Code and Codex pages with `curl` in their `.md` form [S1][S2][S3][S4]. Both are living docs without a publication date. The Codex worktree page describes the ChatGPT desktop app; for the command line I rely on the R5 brief [S10].
+- **Tool repositories.** I fetched the raw `SKILL.md` or `README.md` files for bigpowers, Superpowers and beads, and noted the commit read: bigpowers c19edc7, Superpowers 22f0b46, beads f3d688d [S6][S8][S9]. I got those commit ids from the GitHub REST API with `curl`, not `gh api`, to follow the e02s04 waiver (raw URLs and web fetch only). The REST call is still a GitHub API read, so treat that as a small deviation. GSD is the local copy in `.pi/gsd`, version 1.30.0, read only [S5]. I did not read GSD's upstream repository this time.
+- **Papers.** I found candidates with web search, which returns snippets and proves nothing. I then read each paper's title, date and abstract from the arXiv API. I did not read any full text, so every number below comes from an abstract and is a preprint claim. Where a snippet gave a figure the abstract did not, I left it out.
+- **Not verified.** I did not check which of the eight papers have a peer-reviewed venue. R4 [S11 there] already warns that same-model multi-agent debate is unproven; this brief makes no claim about debate.
+- **Cells.** "Not found" in a table cell means absent from the pages listed in Sources, not proof that the feature does not exist.

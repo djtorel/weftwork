@@ -91,6 +91,7 @@ metrics:
       calls: 5
       total_seconds: 1557.0
       avg_seconds: 311.4
+      _start: '2026-11-09T03:04:09Z'
     verify-work:
       calls: 4
       total_seconds: 165.0

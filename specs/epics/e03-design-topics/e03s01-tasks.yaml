@@ -39,7 +39,7 @@ tasks:
       docs/research/R6-multi-agent-codebase.md
       | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
