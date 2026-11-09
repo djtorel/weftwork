@@ -4,6 +4,10 @@
 # skill call. PyYAML does not indent lists, drops the leading ---, and can
 # exceed 80 columns, so the three rules it breaks skip that file only.
 # See BUG-001.
+#
+# document-start is an error, not the default warning. A warning exits 0,
+# so scripts/record-cycle-time.sh could drop the --- line from
+# specs/execution-status.yaml with Preflight and CI still green (BUG-004).
 extends: default
 
 # The one gitignored gate output that is YAML; yamllint skips the
@@ -16,6 +20,7 @@ ignore: |
 
 rules:
   document-start:
+    level: error
     ignore: |
       specs/state.yaml
   indentation:
