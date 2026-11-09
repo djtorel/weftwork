@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-004
-status: open
+status: closed
 severity: low
 scope: scripts/record-cycle-time.sh (global install, not this repo)
 title: record-cycle-time.sh drops the --- line from execution-status.yaml
@@ -32,6 +32,20 @@ the global install (CONVENTIONS.md, Boundaries). Workaround used here:
 restore the `---` line by hand after every run. Options for the owner:
 report upstream, or make `yamllint` treat the warning as an error so
 Preflight catches it.
+
+## Mitigation
+
+Since 2026-11-08 `.yamllint` makes `document-start` an error (the
+`specs/state.yaml` exemption stays), so a stripped marker now fails
+`yamllint specs` in Preflight and CI. Tested by removing the line from
+`specs/release-plan.yaml`: exit 0 before the change, exit 1 after.
+
+## Decision
+
+2026-11-08: the owner will not file an upstream report. The repository
+keeps the manual workaround (restore the `---` line after each run of the
+script) and the lint rule above, which fails Preflight and CI if the line
+is missing. Closed by that decision.
 
 ## Verify
 

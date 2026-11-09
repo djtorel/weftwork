@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-003
-status: open
+status: closed
 severity: low
 scope: audit-code skill verify line (global install, not this repo)
 title: audit-code's own verify line fails in any repo without skills/ dirs
@@ -46,6 +46,14 @@ depends on them.
 `test -d skills/enforce-first` exits 1 in this repo today. The bug is
 closed when the owner records either an upstream report or a decision
 to ignore the line.
+
+## Decision
+
+2026-11-08: the owner decided to ignore this line. Do not run the skills'
+own packaging verify lines (the `test -d skills/...` checks) in this
+repository; audits and reviews note that and move on. The owner
+will file no upstream report for this or any other bug in the global
+install. Closed by that decision.
 
 ## Recurrence
 
