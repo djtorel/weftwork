@@ -1,0 +1,112 @@
+---
+story_id: e02s04
+verified_at: "2026-11-09T00:31:24Z"
+verifier: verify-work
+branch: e02s04-r5-harness-capability-matrix
+risk: P2
+mode: default (P2 skips tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e02s04-r5-harness-capability-matrix
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-09T00:31:24Z"
+    note: >-
+      Single contiguous run; output below. CI: no PR open yet,
+      so gh pr checks does not apply.
+    output: |
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+  terminal_verdict:
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e02-tools-and-hosts/e02s04-tasks.yaml
+    exit_code: 0
+    captured_at: "2026-11-09T00:31:24Z"
+    note: >-
+      Single contiguous run covering tasks 1 to 6, re-run after the
+      request-review fixes (tightened verify commands). Each task's
+      verify exits 0. Tasks 1 and 6 print check-brief warnings only.
+    output: |
+      task 1: exit=0
+      task 2: exit=0
+      task 3: exit=0
+      task 4: exit=0
+      task 5: exit=0
+      task 6: exit=0
+      ALL PASS
+  build:
+    passed: true
+    skipped: true
+    reason: "No build step; the story ships a research brief only."
+  typecheck:
+    passed: true
+    skipped: true
+    reason: "No product code; CLAUDE.md Typecheck is N/A."
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  smoke:
+    passed: true
+    command: >-
+      bash tools/check-brief.sh
+      docs/research/R5-harness-capabilities.md R5
+    exit_code: 0
+    output: |
+      warning: 3 undated source(s)
+      check-brief: OK (R5)
+  tests:
+    passed: true
+    skipped: true
+    reason: >-
+      P2: tests skipped. The task verify commands are the
+      story's checks and ran above.
+  security_scan:
+    passed: true
+    skipped: true
+    reason: >-
+      P2: security scan skipped. Waiver for the e02 threat
+      model stands (state.yaml).
+  blind_spot_check:
+    passed: true
+    command: "bash scripts/check-blind-spots.sh"
+    findings:
+      high: 0
+      medium: 1
+      low: 0
+    note: >-
+      One MEDIUM double-tag in archived
+      specs/epics/archive/e01-foundations/e01s03-tasks.yaml
+      (e01s02). Not in e02s04; does not block.
+  manual:
+    passed: true
+    note: >-
+      P2 skips step-by-step UAT. The story's verification script
+      (spot-check two matrix cells) was run on 2026-11-09 against
+      live sources fetched with curl.
+    steps:
+      - step: "Claude Code, Per-dispatch model"
+        expected: >-
+          Order: Agent-call model alias, frontmatter model,
+          CLAUDE_CODE_SUBAGENT_MODEL, session model
+        actual: >-
+          sub-agents.md lists exactly these four, in this order
+        passed: true
+      - step: "Gemini CLI, Worktrees"
+        expected: "Experimental; off until experimental.worktrees is true"
+        actual: >-
+          git-worktrees.md is titled experimental and shows
+          experimental.worktrees in settings
+        passed: true
+  gaps:
+    closed: true
+    note: >-
+      Spot-check gap closed. A scan of every Claude Code docs page in
+      llms.txt found no .agents/skills mention (docs only, no runtime
+      test); the brief keeps it as an open question, not a blocker.

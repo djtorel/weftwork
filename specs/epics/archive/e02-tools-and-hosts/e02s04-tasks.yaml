@@ -1,0 +1,145 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+story_id: e02s04
+title: R5 harness capability matrix
+status: done
+bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e02s04-r5-harness-capabilities.md
+research_story: R5
+brief: docs/research/R5-harness-capabilities.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R5-harness-capabilities.md
+      R5 --sources
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
+  - id: 2
+    description: >-
+      Write the Method section: the version of pi and Claude Code
+      installed here, the version or commit read for each other host,
+      and the ../pi-flow-legacy spikes read (read only)
+    verify: >-
+      B=docs/research/R5-harness-capabilities.md;
+      awk '$0=="## Method"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eq '(^|[^A-Za-z])pi [0-9]+\.[0-9]+\.[0-9]+'
+      && awk '$0=="## Method"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eq 'Claude Code [0-9]+\.[0-9]+\.[0-9]+'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
+  - id: 3
+    description: >-
+      Write the Capability matrix: one row per capability (hooks,
+      subagents, skills, plugins, worktrees, ask-user path,
+      per-dispatch model, per-dispatch effort, instruction files,
+      skill files), one column per host (pi, Claude Code, opencode,
+      Codex CLI, Gemini CLI), no empty cell, every row cited
+    verify: >-
+      B=docs/research/R5-harness-capabilities.md;
+      C='Hooks|Subagents|Skills|Plugins|Worktrees|Ask-user path';
+      C="$C|Per-dispatch model|Per-dispatch effort";
+      C="$C|Instruction files|Skill files";
+      M=$(awk '$0=="## Capability matrix"{f=1;next} /^## /{f=0} f' "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Capability *\|'
+      | grep -Ei '\| *pi *\|' | grep -Ei '\| *Claude Code *\|'
+      | grep -Ei '\| *opencode *\|' | grep -Ei '\| *Codex CLI *\|'
+      | grep -Eiq '\| *Gemini CLI *\|'
+      && printf '%s\n' "$M" | grep -E "^\| *\**($C)\** *\|"
+      | awk -F'|' '{for(i=2;i<=7;i++)if($i~/^ *$/)b=1;if(NF!=8)b=1}
+      END{exit b}'
+      && printf '%s\n' "$M" | grep -E "^\| *\**($C)\** *\|"
+      | grep -E '\[S[0-9]+\]' | grep -Eo "^\| *\**($C)"
+      | tr -d '|*' | sed 's/^ *//' | sort -u | wc -l | tr -d ' '
+      | grep -qx 10
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
+  - id: 4
+    description: >-
+      Write Instruction and skill files: one cited bullet per host
+      saying how it gets its instruction and skill files (generated,
+      committed or managed blocks)
+    verify: >-
+      B=docs/research/R5-harness-capabilities.md;
+      I=$(awk '$0=="## Instruction and skill files"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next}
+      f&&/^  /{b=b" "$0} END{if(b)print b}' "$B");
+      printf '%s\n' "$I" | grep -E '\[S[0-9]+\]'
+      | grep -Eio '^- \**(pi|Claude Code|opencode|Codex CLI|Gemini CLI)'
+      | sed -E 's/^- \**//' | tr 'A-Z' 'a-z' | sort -u | wc -l
+      | tr -d ' ' | grep -qx 5
+      && ! printf '%s\n' "$I" | grep -E '^- '
+      | grep -Eivq 'generat|managed|committed'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
+  - id: 5
+    description: >-
+      Write Shared core: the capabilities all five hosts share, each
+      bullet cited, which set the host-agnostic core
+    verify: >-
+      S=$(awk '$0=="## Shared core"{f=1;next} /^## /{f=0} f'
+      docs/research/R5-harness-capabilities.md);
+      printf '%s\n' "$S" | grep -qE '^- '
+      && ! printf '%s\n' "$S" | grep -E '^- '
+      | grep -Evq '\[S[0-9]+\]'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
+  - id: 6
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R5 in planning-context.yaml
+      (H8, H9, H16), plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      B=docs/research/R5-harness-capabilities.md;
+      bash tools/check-brief.sh "$B" R5
+      && for h in Sources Method 'Capability matrix'
+      'Instruction and skill files' 'Shared core' Verdicts
+      'Implications for weftwork' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 2"
