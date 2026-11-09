@@ -17,6 +17,8 @@ Add the code-style and test sections when the stack is chosen (an open question 
 - Run cycle-time recording through `tools/record-cycle-time.sh`: it calls
   `scripts/record-cycle-time.sh` and restores the `---` line that script
   removes from `specs/execution-status.yaml` (BUG-004).
+- CI runs `tools/test-record-cycle-time.sh` (the BUG-004 regression test)
+  on every push and pull request, so the marker fix stays enforced.
 - The cycle-time ledger is `specs/metrics/cycle-times.md`. Always pass
   `--file specs/metrics/cycle-times.md` to `record-cycle-time.sh`: its
   default name, `cycle-times.yaml`, holds front matter plus a Markdown

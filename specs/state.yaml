@@ -117,8 +117,8 @@ waivers:
   why: Every round failed both reviewers (round 1 A 82.0 and B 87.5; round 2 74.0 and 73.3; round 3 81.7 and 79.1; round 4 90.2 and 87.5; round 5 85.7 and 84.6). The five-round cap was reached. Each round's must-fix items were fixed, and the round-5 must-fix items were fixed after the cap. The should-fix wording items from round 5 were not fixed and are accepted as a waiver. The owner chose this option on 2026-11-09.
   date: 2026-11-09
   scope: e03s04 only (docs/research/R9-model-routing.md wording only; no change to verify commands)
-- what: regression test for the cycle-time marker is not run by CI or Preflight
-  why: The owner has not yet decided whether to add tools/test-record-cycle-time.sh to Preflight (which changes the Preflight command in CLAUDE.md and CONVENTIONS.md) or to CI, or to state in CONVENTIONS.md that it is run by hand. Until that decision, the BUG-004 fix has no automatic gate. The test was run by hand for this release.
+- what: regression test for the cycle-time marker, previously not run by CI or Preflight
+  why: Resolved 2026-11-09. The owner chose CI, not Preflight, so the Preflight command in CLAUDE.md and CONVENTIONS is unchanged. The test now runs as a CI step, and CONVENTIONS documents it.
   date: 2026-11-09
   scope: tools/test-record-cycle-time.sh only
 handoff:
