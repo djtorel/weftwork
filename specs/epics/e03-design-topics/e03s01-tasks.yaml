@@ -33,11 +33,16 @@ tasks:
     description: >-
       Write the Method section: access date, the version, release or
       commit read for each tool, whether any page came through a
-      summarizing subagent, and that no workflow was run
+      summarizing subagent, and that no workflow was run (the verify
+      checks the date and the words commit or version, subagent and
+      workflow)
     verify: >-
-      awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
-      docs/research/R6-multi-agent-codebase.md
-      | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R6-multi-agent-codebase.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
     risk: P2
     status: done
     allure:
@@ -134,6 +139,11 @@ tasks:
       | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
       && test -z "$(comm -23 <(printf '%s\n' "$U")
       <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Coordination patterns|';
+      O="${O}## Failure modes|## Dispatch granularity|## Verdicts|";
+      O="${O}## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
     risk: P2
     status: done
     allure:

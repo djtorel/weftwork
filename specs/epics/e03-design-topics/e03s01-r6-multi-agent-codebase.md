@@ -164,12 +164,16 @@ The human spot-check in the Verification Script and review decide
 whether a cell or verdict is true.
 
 The six task verify commands were tested on 2026-11-08 against
-fixtures. A complete brief passes all six. Each of twelve defects fails
-only the task that targets it: two papers, a Method with no date, a
-missing beads row, an empty cell, an uncited row, a wrong header, no
-semantic-conflict bullet, an uncited failure bullet, an uncited
-dispatch bullet, no H12 verdict, a cited id not in Sources, and an
-empty section.
+fixtures, and again after review round 1 tightened tasks 2 and 6. A
+complete brief passes all six. Each of sixteen defects fails only the
+task that targets it: two papers, a Method with no date, a Method with
+no commit or version, a Method with no subagent statement, a Method
+with no workflow statement, a missing beads row, an empty cell, an
+uncited row, a wrong header, no semantic-conflict bullet, an uncited
+failure bullet, an uncited dispatch bullet, no H12 verdict, a cited id
+not in Sources, an empty section, and headings out of order. The
+fixtures ran from the session scratchpad and are not committed, so the
+repository records the result, not the fixtures.
 
 ## 7. Out of scope
 

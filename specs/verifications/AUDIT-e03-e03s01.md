@@ -18,7 +18,7 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 ### Provenance & Metadata
 - ✓ Story spec and tasks file carry `type:` and `context:`
 - ✓ Plan refs: the plan is commit 87fd0e8; every later commit carries a
-  `Story: e03s01` trailer (9 of 9)
+  `Story: e03s01` trailer (11 of 11 after review round 1)
 
 ### Law of Demeter
 - ✓ N/A, no code
@@ -71,7 +71,7 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 - ✓ None named
 
 ### Code Style
-- ✓ Files under 300 lines (brief 121, spec 211, tasks 143)
+- ✓ Files under 300 lines (brief 124, spec 215, tasks 153, after review round 1)
 - ✓ YAML within 80 columns (yamllint passes)
 - ✓ Comments: none in the YAML
 
@@ -88,3 +88,11 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 ## Findings fixed in this audit
 - Method now says what happened with the REST API, how the ids were
   re-checked, and that `published` for a repository is the commit date.
+
+## Update after review round 1
+Two blind reviewers failed round 1 (A 87.5, B 94.1, one must-fix each).
+The shared must-fix was a wrong claim about GSD hooks, which I wrote
+after missing a post-wave hook step in the source. This audit did not
+catch it because it checks conventions, not claims against sources.
+Fixed in the brief, with the evidence re-captured. See the review
+summary for the other findings.

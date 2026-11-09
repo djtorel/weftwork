@@ -64,23 +64,22 @@ waivers:
   date: 2026-11-08
   scope: e03 only
 handoff:
-  next_skill: commit-message
+  next_skill: request-review
   next_story: e03s01
-  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md,
-    all six task verifies pass, verdicts H11 and H12 both refined. verify-work
-    done (specs/verifications/e03s01-verify.yaml). audit-code done: report in
-    specs/verifications/AUDIT-e03-e03s01.md, one deviation awaits the owner:
-    the research session called api.github.com with curl for commit ids; every
-    id and date was re-confirmed without the API and Method says so. Accept
-    and log a waiver, or treat it as a fault. Next per the skill gate:
-    commit-message, which has nothing to draft because every commit is made
-    with a Story trailer; the owner may send it straight to request-review.
-    Then release-branch. Stash stash@{0} on this repo holds uncommitted e04
-    edits (a Candidate build epics task in e04s02 and a wider done_when in
-    e04 epic.yaml); restore with git stash pop on a chore branch and decide
-    whether to land them. At release-branch: reconcile e03s01 in epic.yaml and
-    execution-status.yaml, and decide the e03 gate-trace R1 and threat-model
-    waivers. Every commit needs a Story: e03s01 trailer.'
+  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md. verify-work
+    and audit-code are done. The owner ran request-review directly, so commit-message
+    was skipped (nothing to draft); record that skip in the PR body. Review round
+    1 of 5 FAILED the AND-gate (A 87.5, B 94.1, one must-fix each: a wrong claim that
+    GSD hooks are off in the parallel path, when GSD runs them once after each wave).
+    Fixes are applied; round 2 is next. One deviation still awaits the owner: the
+    research session called api.github.com with curl for commit ids; every id and
+    date was re-confirmed without the API and Method says so. Accept and log a waiver,
+    or treat it as a fault. Stash stash@{0} on this repo holds uncommitted e04 edits
+    (a Candidate build epics task in e04s02 and a wider done_when in e04 epic.yaml);
+    restore with git stash pop on a chore branch and decide whether to land them.
+    At release-branch: reconcile e03s01 in epic.yaml and execution-status.yaml, and
+    decide the e03 gate-trace R1 and threat-model waivers; the verify evidence was
+    re-captured after round 1. Every commit needs a Story: e03s01 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
@@ -109,10 +108,14 @@ metrics:
       total_seconds: 343.0
       avg_seconds: 114.33333333333333
     request-review:
-      calls: 2
-      total_seconds: 806.0
-      avg_seconds: 403.0
+      calls: 3
+      total_seconds: 1198.0
+      avg_seconds: 399.3333333333333
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
       avg_seconds: 26.0
+    respond-review:
+      calls: 1
+      total_seconds: 131.0
+      avg_seconds: 131.0
