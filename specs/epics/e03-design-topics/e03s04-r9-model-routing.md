@@ -220,6 +220,10 @@ Headings, in order: `## Sources`, `## Method`, `## Task sizing`,
 
 ## 6. Steps
 
+Decision reference: every step follows the owner's 2026-11-09 scope
+decision (literature only, no measurement), recorded in the plan commit
+538dd9d and in the `state.yaml` handoff note.
+
 1. Draft the brief with dated sources, five or more papers → verify:
    task 1 in `e03s04-tasks.yaml`
 2. Write Method → verify: task 2
