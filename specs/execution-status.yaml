@@ -238,3 +238,13 @@ stories:
     tasks_total: 5
     tasks_passing: 0
     tasks_failing: 0
+gate_trace:
+  verdict: WAIVED
+  generated_at: "2026-11-09T19:30:00Z"
+  rationale: >-
+    Computed FAIL (R1, then the two-level oracle downgrade on 95 percent
+    heuristic links). R2 CONCERNS (e01s02, e01s04 lack verify evidence);
+    R4 CONCERNS (2 of 19 stories tagged). Owner waiver in state.yaml,
+    2026-11-09, for e03s04 release only. Completeness critic: 0 blockers.
+  heuristic_ratio: 0.95
+  downgrade_applied: true
