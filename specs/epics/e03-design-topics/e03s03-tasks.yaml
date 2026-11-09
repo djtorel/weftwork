@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s03
 title: R8 code quality and conventions
-status: todo
+status: in_progress
 bcps: 5
 type: research
 context: infra
@@ -23,7 +23,7 @@ tasks:
       && grep -Eq 'stack.*e04s02' specs/release-plan.yaml
       && yamllint specs/release-plan.yaml
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: minor
       categories:
