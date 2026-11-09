@@ -6,7 +6,7 @@ phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e03s01-r6-multi-agent-codebase
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -56,35 +56,37 @@ waivers:
     sources by raw URL. From now on use raw URLs, web fetch or gh repo clone.
   date: 2026-11-08
   scope: e02s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e03s02
+    to e03s08
+  why: Those seven stories get their specs when each is planned. Planning them now
+    would be paperwork. e03s01 itself is clear. The owner chose to waive it for e03,
+    as for e02.
+  date: 2026-11-08
+  scope: e03 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e03s01
-  note: 'e02 is done and archived (specs/epics/archive/e02-tools-and-hosts). e02s04
-    (R5 harness capability matrix) shipped by release-branch: brief docs/research/R5-harness-capabilities.md,
-    verdicts H8, H9 and H16 all refined; review passed in round 3 of 5 (A 100, B 100).
-    Cycle time recorded in specs/metrics/cycle-times.md (2.00 effort hours, 129 min
-    lead, 5 commits). Next: kickoff-branch for e03s01 (R6 multi-agent work in one
-    codebase, e03 wave 3, depends on e02, now met). Start it in a fresh session. Decide
-    first: (1) BUG-003, the audit-code verify line names skills/ dirs that do not
-    exist here; report upstream or ignore. (2) Whether to run the R5 candidate stories
-    before or after e03: token measurement of skill listings in pi and Claude Code,
-    locate the Code as Agent Harness survey, test whether Claude Code reads .agents/skills
-    at runtime. (3) R3 candidates: Kiro steering and hooks pages, BMAD v7 re-check
-    mid-November 2026. R6 and R9 build on the R5 rows for worktrees, per-dispatch
-    model and effort. Waivers for e02 expire with e02; e03 needs its own threat-model,
-    gate-trace R1 and plan-consistency decisions. Use raw URLs or web fetch for docs,
-    not gh api. Every commit needs a Story: trailer.'
+  note: 'e03s01 (R6 multi-agent work in one codebase) is planned and on branch e03s01-r6-multi-agent-codebase,
+    a plain branch, not a worktree (BUG-002). Spec: specs/epics/e03-design-topics/e03s01-r6-multi-agent-codebase.md.
+    Six tasks in e03s01-tasks.yaml, verify commands tested on fixtures. Next: develop-tdd,
+    which here means writing the brief task by task and running each verify. Stash
+    stash@{0} on this repo holds uncommitted e04 edits (a Candidate build epics task
+    in e04s02 and a wider done_when in e04 epic.yaml). Restore them with git stash
+    pop on a chore branch and decide whether to land them. Still open: the e03 threat-model
+    and gate-trace R1 waivers (build-epic step 0 and release), BUG-003, the R5 candidate
+    stories, the R3 candidates. Use raw URLs or web fetch for docs, not gh api. Every
+    commit needs a Story: e03s01 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
     survey-context:
-      calls: 4
-      total_seconds: 57.0
-      avg_seconds: 14.25
+      calls: 5
+      total_seconds: 71.0
+      avg_seconds: 14.2
     plan-work:
-      calls: 4
-      total_seconds: 369.0
-      avg_seconds: 92.25
+      calls: 5
+      total_seconds: 524.0
+      avg_seconds: 104.8
     develop-tdd:
       calls: 5
       total_seconds: 1557.0
@@ -105,3 +107,7 @@ metrics:
       calls: 2
       total_seconds: 806.0
       avg_seconds: 403.0
+    kickoff-branch:
+      calls: 1
+      total_seconds: 26.0
+      avg_seconds: 26.0

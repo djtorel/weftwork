@@ -1,27 +1,143 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s01
 title: R6 multi-agent work in one codebase
 status: todo
 bcps: 3
+type: research
+context: infra
+risk: P2
+spec: e03s01-r6-multi-agent-codebase.md
 research_story: R6
 brief: docs/research/R6-multi-agent-codebase.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least three papers (arXiv or DOI links),
+      because multi-agent software engineering has a literature
     verify: >-
-      bash tools/check-brief.sh docs/research/R6-multi-agent-codebase.md
-      R6 --sources
+      B=docs/research/R6-multi-agent-codebase.md;
+      bash tools/check-brief.sh "$B" R6 --sources
+      && test "$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
+      -ge 3
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 2
     description: >-
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, and that no workflow was run
+    verify: >-
+      awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R6-multi-agent-codebase.md
+      | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 3
+    description: >-
+      Write Coordination patterns: one table with columns Tool,
+      Isolation, Shared state, Handoff, Scope check, Integration; at
+      least six rows including Claude Code, Codex CLI, GSD, bigpowers,
+      Superpowers and beads; no empty cell; every row cited
+    verify: >-
+      B=docs/research/R6-multi-agent-codebase.md;
+      M=$(awk '$0=="## Coordination patterns"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Tool *\|'
+      | grep -Ei '\| *Isolation *\|' | grep -Ei '\| *Shared state *\|'
+      | grep -Ei '\| *Handoff *\|' | grep -Ei '\| *Scope check *\|'
+      | grep -Eiq '\| *Integration *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Tool *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 6
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=7;i++)
+      if($i~/^ *$/)b=1; if(NF!=8)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Evq '\[S[0-9]+\]'
+      && for t in 'Claude Code' 'Codex CLI' GSD bigpowers Superpowers
+      beads; do printf '%s\n' "$R" | grep -Eiq "^\| *\**$t\**"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Failure modes: cited bullets on what goes wrong when
+      agents share a codebase, covering at least merge conflicts and
+      semantic conflicts (changes that merge cleanly but break)
+    verify: >-
+      F=$(awk '$0=="## Failure modes"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R6-multi-agent-codebase.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Evq '\[S[0-9]+\]'
+      && printf '%s\n' "$F" | grep -iq 'merge conflict'
+      && printf '%s\n' "$F" | grep -iq 'semantic'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Dispatch granularity: cited bullets on the unit of
+      dispatch (task, story, subsystem) and what each costs in
+      re-learned context, as input to the H11 verdict
+    verify: >-
+      D=$(awk '$0=="## Dispatch granularity"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R6-multi-agent-codebase.md);
+      printf '%s\n' "$D" | grep -q '^- '
+      && ! printf '%s\n' "$D" | grep -Evq '\[S[0-9]+\]'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R6 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
+      for every hypothesis assigned to R6 in planning-context.yaml
+      (H11, H12), plus implications for weftwork, earns-its-place
       vs ceremony verdicts, and open questions
     verify: >-
-      bash tools/check-brief.sh docs/research/R6-multi-agent-codebase.md
-      R6
+      B=docs/research/R6-multi-agent-codebase.md;
+      bash tools/check-brief.sh "$B" R6
+      && for h in Sources Method 'Coordination patterns'
+      'Failure modes' 'Dispatch granularity' Verdicts
+      'Implications for weftwork' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
