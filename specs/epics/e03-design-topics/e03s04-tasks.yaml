@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s04
 title: R9 model routing and cost efficiency
-status: todo
+status: passing
 bcps: 8
 type: research
 context: infra
