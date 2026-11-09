@@ -66,20 +66,23 @@ waivers:
 handoff:
   next_skill: request-review
   next_story: e03s01
-  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md. verify-work
-    and audit-code are done. The owner ran request-review directly, so commit-message
-    was skipped (nothing to draft); record that skip in the PR body. Review round
-    1 of 5 FAILED the AND-gate (A 87.5, B 94.1, one must-fix each: a wrong claim that
-    GSD hooks are off in the parallel path, when GSD runs them once after each wave).
-    Fixes are applied; round 2 is next. One deviation still awaits the owner: the
-    research session called api.github.com with curl for commit ids; every id and
-    date was re-confirmed without the API and Method says so. Accept and log a waiver,
-    or treat it as a fault. Stash stash@{0} on this repo holds uncommitted e04 edits
-    (a Candidate build epics task in e04s02 and a wider done_when in e04 epic.yaml);
-    restore with git stash pop on a chore branch and decide whether to land them.
-    At release-branch: reconcile e03s01 in epic.yaml and execution-status.yaml, and
-    decide the e03 gate-trace R1 and threat-model waivers; the verify evidence was
-    re-captured after round 1. Every commit needs a Story: e03s01 trailer.'
+  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md.
+    verify-work and audit-code are done. The owner ran request-review directly,
+    so commit-message was skipped (nothing to draft); record that skip in the
+    PR body. Review round 1 of 5 FAILED the AND-gate (A 87.5, B 94.1, one
+    must-fix each: a wrong claim about GSD hooks). Round 2 FAILED on A alone
+    (A 92.5, B 95.2, no must-fix): bigpowers and GSD were credited with
+    re-verifying a merged result, and two Integration cells missed a pull
+    request path. Both rounds fixed; round 3 is next. One deviation awaits the
+    owner: the research session called api.github.com with curl for commit
+    ids; every id and date was re-confirmed without the API and Method says so.
+    Accept and log a waiver, or treat it as a fault. Stash stash@{0} on this
+    repo holds uncommitted e04 edits (a Candidate build epics task in e04s02
+    and a wider done_when in e04 epic.yaml); restore with git stash pop on a
+    chore branch and decide whether to land them. At release-branch: reconcile
+    e03s01 in epic.yaml and execution-status.yaml, and decide the e03
+    gate-trace R1 and threat-model waivers; the verify evidence was
+    re-captured after round 2. Every commit needs a Story: e03s01 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:

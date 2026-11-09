@@ -18,7 +18,8 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 ### Provenance & Metadata
 - ✓ Story spec and tasks file carry `type:` and `context:`
 - ✓ Plan refs: the plan is commit 87fd0e8; every later commit carries a
-  `Story: e03s01` trailer (11 of 11 after review round 1)
+  `Story: e03s01` trailer (every commit, checked with
+  `git log main..HEAD` at each review round)
 
 ### Law of Demeter
 - ✓ N/A, no code
@@ -71,7 +72,7 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 - ✓ None named
 
 ### Code Style
-- ✓ Files under 300 lines (brief 124, spec 215, tasks 153, after review round 1)
+- ✓ Files under 300 lines (brief 125, spec 215, tasks 153, at review round 2)
 - ✓ YAML within 80 columns (yamllint passes)
 - ✓ Comments: none in the YAML
 
@@ -96,3 +97,11 @@ after missing a post-wave hook step in the source. This audit did not
 catch it because it checks conventions, not claims against sources.
 Fixed in the brief, with the evidence re-captured. See the review
 summary for the other findings.
+
+## Update after review round 2
+Round 2 failed the AND-gate on Reviewer A alone (A 92.5, B 95.2, no
+must-fix). Both reviewers independently found that I credited bigpowers
+and GSD with re-verifying a merged result, when bigpowers verifies
+before it merges and GSD has no per-plan merge step. They also found two
+"none found" cells that missed a pull-request path in the cited pages.
+Both are fixed in the brief and the evidence is re-captured.

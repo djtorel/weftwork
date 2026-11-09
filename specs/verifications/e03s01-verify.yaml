@@ -1,6 +1,6 @@
 ---
 story_id: e03s01
-verified_at: "2026-11-09T03:57:32Z"
+verified_at: "2026-11-09T04:02:16Z"
 verifier: verify-work
 branch: e03s01-r6-multi-agent-codebase
 risk: P2
@@ -15,9 +15,9 @@ phases:
       yamllint specs && bash scripts/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
     exit_code: 0
-    captured_at: "2026-11-09T03:57:32Z"
+    captured_at: "2026-11-09T04:02:16Z"
     note: >-
-      Re-captured after review round 1 fixes. Single contiguous run;
+      Re-captured after review round 2 fixes. Single contiguous run;
       output below. CI: no PR open yet,
       so gh pr checks does not apply.
     output: |
@@ -29,10 +29,10 @@ phases:
       python3 loop over each task verify: command in
       specs/epics/e03-design-topics/e03s01-tasks.yaml
     exit_code: 0
-    captured_at: "2026-11-09T03:57:32Z"
+    captured_at: "2026-11-09T04:02:16Z"
     note: >-
-      Re-captured after review round 1 fixes, which tightened the
-      task 2 and task 6 verify commands. One contiguous pass over
+      Re-captured after review round 2 fixes (round 1 tightened the
+      task 2 and task 6 verify commands). One contiguous pass over
       tasks 1 to 6. Each task's verify exits 0.
     output: |
       task 1 verify rc=0
@@ -116,6 +116,22 @@ phases:
         actual: >-
           execute-phase.md lines 296-302 and 367-375 say so; the
           brief previously said hooks were off, which was wrong
+        passed: true
+      - step: "Integration cells (cites S1, S3), added after round 2"
+        expected: >-
+          Claude Code and Codex pages describe a pull-request path
+          for worktree work
+        actual: >-
+          cc-worktrees.md line 331 (/batch publishes a change, reports
+          it if no pull request opens) and codex git-worktrees.md
+          lines 74-76 (Create branch here, commit, push, open a pull
+          request) say so; the brief now says so
+        passed: true
+      - step: "bigpowers order (cites S6), added after round 2"
+        expected: "Verify each result, then merge accepted results"
+        actual: >-
+          dispatch-agents steps 5 and 6 say exactly that; the brief no
+          longer claims a post-merge re-check
         passed: true
   gaps:
     closed: true
