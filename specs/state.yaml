@@ -50,20 +50,25 @@ waivers:
   date: 2026-11-08
   scope: e02 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: audit-code
   next_story: e02s04
-  note: 'e02s04 (R5 harness capability matrix) is planned and its branch e02s04-r5-harness-capability-matrix
-    exists (git checkout -b, not a worktree; BUG-002). Spec: specs/epics/e02-tools-and-hosts/e02s04-r5-harness-capabilities.md;
-    6 tasks in e02s04-tasks.yaml, verify commands tested on fixtures 2026-11-08. Owner
-    decisions 2026-11-08: risk P2; ../pi-flow-legacy may be read, read only; evidence
-    is host docs and repositories plus the locally installed pi 1.5.0 and Claude Code
-    2.1.319, no trials; token measurement of skill listings is out of scope. Next:
-    develop-tdd (doc-only; it cannot satisfy the red-commit gate, name the skip in
-    the PR body). Add a Story: e02s04 trailer to every commit and note the branch
-    SHA range before the squash merge. Waivers in force for e02: threat model, gate-trace
+  note: 'e02s04 (R5 harness capability matrix) is built on branch e02s04-r5-harness-capability-matrix
+    (git checkout -b, not a worktree; BUG-002). Brief: docs/research/R5-harness-capabilities.md.
+    All 6 tasks in e02s04-tasks.yaml are done and their verify commands exit 0 (run
+    2026-11-08 after the last edit); Preflight green. Commits on the branch: 199ccb6
+    (plan), be57348 (brief), base 782ba01; take that SHA range for record-cycle-time.sh
+    before the squash merge. Owner decisions 2026-11-08: risk P2; ../pi-flow-legacy
+    read only; evidence is host docs plus local pi 1.5.0, Claude Code 2.1.319, opencode
+    1.19.5 and Codex 0.167.0; Gemini CLI is not installed here, so its row is docs
+    only. develop-tdd red-commit gate skipped: doc-only story, name the skip in the
+    PR body. Next: audit-code (verify-work done, evidence in specs/verifications/e02s04-verify.yaml),
+    request-review, release-branch. Waivers in force for e02: threat model, gate-trace
     R1, plan-consistency-check findings on e02s01, e02s02, e02s04. Open items: BUG-003
-    (owner chooses to report upstream or ignore); R3 candidate stories (token measurement
-    with R5, Kiro steering and hooks pages, BMAD v7 re-check mid-November 2026).'
+    (owner chooses to report upstream or ignore); R5 candidate stories (token measurement
+    of skill listings in pi and Claude Code, locate the Code as Agent Harness survey,
+    test whether Claude Code reads .agents/skills); R3 candidates (Kiro steering and
+    hooks pages, BMAD v7 re-check mid-November 2026). Every commit needs a Story:
+    e02s04 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
@@ -76,14 +81,13 @@ metrics:
       total_seconds: 369.0
       avg_seconds: 92.25
     develop-tdd:
-      calls: 4
-      total_seconds: 1118.0
-      avg_seconds: 279.5
-      _start: '2026-11-08T23:57:24Z'
+      calls: 5
+      total_seconds: 1557.0
+      avg_seconds: 311.4
     verify-work:
-      calls: 3
-      total_seconds: 142.0
-      avg_seconds: 47.333333333333336
+      calls: 4
+      total_seconds: 165.0
+      avg_seconds: 41.25
     audit-code:
       calls: 3
       total_seconds: 133.0

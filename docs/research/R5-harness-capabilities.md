@@ -91,7 +91,7 @@ None is `confirmed`: no source I read tests an engine-plus-adapters design again
 
 - Does the always-loaded skill listing cost the same tokens in each host? R3 left this as a candidate story with R5; I did not measure it, and no page I read gives numbers [S14]. Candidate story: measure the listing in pi and Claude Code, the two hosts installed here.
 - I did not find the survey "Code as Agent Harness" that SCOPE_LATEST.yaml lists: an arXiv title search returned no entries and the Semantic Scholar query was rate limited. The H9 and H16 verdicts therefore cite no survey of harness design [S12][S13]. Candidate story: locate it and read it for R13.
-- Does Claude Code read `.agents/skills/`? The pages I read name only `.claude/skills/`; a run on a scratch skill would settle it [S5].
+- Does Claude Code read `.agents/skills/`? A later scan of every page listed in its `llms.txt` found no mention of that path, only `.claude/skills/` [S5]. That is docs evidence only; a run on a scratch skill would settle it.
 - Does the Codex ask-user flag `default_mode_request_user_input` ship, and what does it do? I only saw its name and status [S10].
 - Do the pi-subagents `model` and `thinking` settings behave as the docs say, and does a settings-key guard still reach every child in v0.87.0? The spike used v0.79.0 [S3][S4].
 - Kiro, Cline, Aider and Cursor are outside the five hosts named; whether they read `AGENTS.md` and `.agents/skills/` decides how wide the shared core is.
