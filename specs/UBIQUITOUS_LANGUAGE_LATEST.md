@@ -20,7 +20,7 @@ phase may change are marked (provisional).
 
 | Term | Definition | Aliases to avoid |
 | ---- | ---------- | ---------------- |
-| **Hypothesis** | A numbered claim H1-H20 from the seed spec or routing discussion, awaiting a verdict | assumption, requirement |
+| **Hypothesis** | A numbered claim H1-H23 from the seed spec, the routing discussion or the R11 plan, awaiting a verdict | assumption, requirement |
 | **Verdict** | A hypothesis outcome: **confirmed**, **refined**, or **refuted**, with sources | conclusion, finding |
 | **Evidence** | A `verify:` command that was seen to exit 0 after the last edit | proof, confirmation |
 | **Verify command** | The runnable command declared on a task | test, check |

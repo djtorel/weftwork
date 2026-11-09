@@ -20,7 +20,7 @@ summary: >-
   This initiative is only the research that comes before that spec. It
   delivers one brief per research story (R0-R14) in docs/research/, each
   with dated sources, cited papers where literature exists, and verdicts
-  on the seed-spec hypotheses (H1-H20) assigned to it. A final synthesis
+  on the hypotheses (H1-H23) assigned to it. A final synthesis
   collects every verdict and answers the open question: what is the
   minimum useful first release?
 
@@ -66,7 +66,7 @@ in_scope:
     item: "R10 evaluation (plain vs gated vs full ceremony; fixed vs routed)"
   - id: e04s02
     item: >-
-      Research synthesis: H1-H20 verdict table, answer to the minimum
+      Research synthesis: H1-H23 verdict table, answer to the minimum
       useful first release, input for the v1 spec
   - id: e04s03
     item: >-
@@ -103,7 +103,7 @@ success_criteria:
   - >-
     Each brief has dated sources, cited papers where they exist,
     implications, earns-its-place vs ceremony verdicts, open questions
-  - "Every hypothesis H1-H20 has a verdict: confirmed/refined/refuted"
+  - "Every hypothesis H1-H23 has a verdict: confirmed/refined/refuted"
   - "The synthesis names the minimum useful first release, with reasons"
   - "A re-plan checkpoint after e01 is recorded (change or no change)"
 

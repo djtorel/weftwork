@@ -36,7 +36,7 @@ success_criteria:
   - Briefs R0-R14 exist in docs/research/, plus any stories R0
     adds
   - Every brief follows brief_rules below
-  - Every hypothesis H1-H20 has a verdict (confirmed / refined
+  - Every hypothesis H1-H23 has a verdict (confirmed / refined
     / refuted) with sources
   - Together the briefs give enough evidence to elaborate the
     v1 spec and answer open_question_for_this_phase
@@ -323,6 +323,24 @@ hypotheses:
     tested_by:
       - R9
       - R10
+  # H21-H23 added by plan-work for e03s05 on 2026-11-09 (owner
+  # decision): no hypothesis was assigned to R11 before then.
+  - id: H21
+    claim: 'Sandbox by default: ask for approval only for actions
+      that leave the sandbox (network, writes outside the worktree,
+      irreversible commands)'
+    tested_by:
+      - R11
+  - id: H22
+    claim: Skills from outside the project are pinned and scanned
+      before install
+    tested_by:
+      - R11
+  - id: H23
+    claim: 'Repo content is untrusted input: defend against prompt
+      injection with permission boundaries, not prompt filters'
+    tested_by:
+      - R11
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing

@@ -1,36 +1,226 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s05
 title: R11 security and permissions
 status: todo
 bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e03s05-r11-security-permissions.md
 research_story: R11
 brief: docs/research/R11-security-permissions.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least five papers (arXiv or DOI links),
+      including the R0 supply-chain papers arXiv:2601.10338 and
+      arXiv:2602.06547, because sandboxing, prompt injection and
+      skill supply chains have a literature
     verify: >-
-      bash tools/check-brief.sh docs/research/R11-security-permissions.md
-      R11 --sources
+      B=docs/research/R11-security-permissions.md;
+      bash tools/check-brief.sh "$B" R11 --sources
+      && S=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B")
+      && test "$(printf '%s\n' "$S" | grep -E '^- \[S[0-9]+\]'
+      | grep -Eic 'arxiv\.org|doi\.org')" -ge 5
+      && printf '%s\n' "$S" | grep -q '2601\.10338'
+      && printf '%s\n' "$S" | grep -q '2602\.06547'
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 2
     description: >-
-      Cover skill and plugin supply-chain trust: installed
-      skills and scanning before install. Start from the R0
-      sources arXiv:2601.10338 and arXiv:2602.06547
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, that no workflow or measurement was run
+      (owner decision, 2026-11-09), and the arXiv queries used
     verify: >-
-      grep -Eqi 'supply.chain' docs/research/R11-security-permissions.md
-      && grep -Eqi 'install' docs/research/R11-security-permissions.md
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R11-security-permissions.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+      && printf '%s\n' "$M" | grep -Eiq 'measur'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 3
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R11 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Write Sandboxing: bullets on sandboxing a coding agent by
+      default (filesystem scope, network access), what needs
+      approval, and writes outside the worktree, as input to H21.
+      Cite R5 for per-host settings; do not re-survey them. Each
+      bullet cites a source or says it is unsourced
     verify: >-
-      bash tools/check-brief.sh docs/research/R11-security-permissions.md
-      R11
+      F=$(awk '$0=="## Sandboxing"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R11-security-permissions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'sandbox'
+      && printf '%s\n' "$F" | grep -iq 'network'
+      && printf '%s\n' "$F" | grep -iq 'approv'
+      && printf '%s\n' "$F" | grep -iq 'worktree'
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Secrets (how credentials reach or leak from an agent
+      run) and Destructive commands (irreversible commands, git
+      history and files; cite R7 and R14 for reversibility and the
+      legacy guard rules). Each bullet cites a source or says it is
+      unsourced
+    verify: >-
+      B=docs/research/R11-security-permissions.md;
+      for s in Secrets 'Destructive commands'; do
+      F=$(awk -v h="## $s" '$0==h{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      || { echo "bad section: $s"; exit 1; }; done
+      && awk '$0=="## Secrets"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eiq 'credential|api key|token'
+      && awk '$0=="## Destructive commands"{f=1;next} /^## /{f=0} f'
+      "$B" | grep -iq 'irreversib'
+      && awk '$0=="## Destructive commands"{f=1;next} /^## /{f=0} f'
+      "$B" | grep -q 'git'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Prompt injection from repo content: bullets on untrusted
+      repo content (files, issues, docs, tool output) steering an
+      agent, filters and detectors against permission boundaries,
+      and evidence on coding agents or its absence, as input to H23.
+      Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Prompt injection from repo content"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R11-security-permissions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'untrusted'
+      && printf '%s\n' "$F" | grep -iq 'filter'
+      && printf '%s\n' "$F" | grep -iq 'boundar'
+      && printf '%s\n' "$F" | grep -iq 'coding agent'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Skill and plugin supply chain: bullets on installed
+      skills and plugins, scanning before install and pinning a
+      version, starting from R0 [S11] and [S12], as input to H22.
+      Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Skill and plugin supply chain"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R11-security-permissions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -Eiq 'supply.chain'
+      && printf '%s\n' "$F" | grep -iq 'install'
+      && printf '%s\n' "$F" | grep -iq 'scan'
+      && printf '%s\n' "$F" | grep -iq 'pin'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
+      Write Threats and controls: one table with columns Threat,
+      Control, Enforced by, Residual risk, Evidence; at least five
+      rows including Destructive command, Secret leak, Prompt
+      injection, Malicious skill and Exfiltration; no empty cell;
+      every row cites [S<n>] or says unsourced
+    verify: >-
+      B=docs/research/R11-security-permissions.md;
+      M=$(awk '$0=="## Threats and controls"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Threat *\|'
+      | grep -Ei '\| *Control *\|' | grep -Ei '\| *Enforced by *\|'
+      | grep -Ei '\| *Residual risk *\|' | grep -Eiq '\| *Evidence *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Threat *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 5
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=6;i++)
+      if($i~/^ *$/)b=1; if(NF!=7)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for t in 'Destructive command' 'Secret leak' 'Prompt injection'
+      'Malicious skill' Exfiltration; do
+      printf '%s\n' "$R" | grep -Eiq "^\| *\**$t"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 8
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources) for every
+      hypothesis assigned to R11 in planning-context.yaml (H21, H22,
+      H23), plus implications for weftwork, earns-its-place vs
+      ceremony verdicts, and open questions (including candidate
+      measurements for R10)
+    verify: >-
+      B=docs/research/R11-security-permissions.md;
+      bash tools/check-brief.sh "$B" R11
+      && for h in Sources Method Sandboxing Secrets
+      'Destructive commands' 'Prompt injection from repo content'
+      'Skill and plugin supply chain' 'Threats and controls'
+      Verdicts 'Implications for weftwork'
+      'Earns its place vs ceremony' 'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Sandboxing|## Secrets|';
+      O="${O}## Destructive commands|";
+      O="${O}## Prompt injection from repo content|";
+      O="${O}## Skill and plugin supply chain|## Threats and controls|";
+      O="${O}## Verdicts|## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

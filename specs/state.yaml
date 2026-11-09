@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s04
+active_story: e03s05
 phase: planning
 test_plan: lite
 vcs:
@@ -141,36 +141,42 @@ waivers:
     CONVENTIONS documents it.
   date: 2026-11-09
   scope: tools/test-record-cycle-time.sh only
-- what: gate-trace FAIL (rule R1) for e03s05 to e04s03, CONCERNS (rule R2) for e01s02 and e01s04, CONCERNS (rule R4) and oracle downgrade (95 percent heuristic links), for the e03s04 release
-  why: R1 fails any undone story with no code tags. The project has no product code, so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04 were released before verify evidence was written for them. R4 for coverage, 2 of 19 stories are tagged. oracle downgrade on 41 of 43 links come from file and task heuristics. The owner approved this waiver on 2026-11-09.
+- what: gate-trace FAIL (rule R1) for e03s05 to e04s03, CONCERNS (rule R2) for e01s02
+    and e01s04, CONCERNS (rule R4) and oracle downgrade (95 percent heuristic links),
+    for the e03s04 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04
+    were released before verify evidence was written for them. R4 for coverage, 2
+    of 19 stories are tagged. oracle downgrade on 41 of 43 links come from file and
+    task heuristics. The owner approved this waiver on 2026-11-09.
   date: 2026-11-09
-  scope: e03s04 release only (stories e03s05 to e03s08 and e04s01 to e04s03 for R1; e01s02 and e01s04 for R2)
+  scope: e03s04 release only (stories e03s05 to e03s08 and e04s01 to e04s03 for R1;
+    e01s02 and e01s04 for R2)
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e03s05
-  note: 'e03s04 (R9 model routing) is released on branch e03s04-r9-model-routing,
-    to merge into main by PR. Brief: docs/research/R9-model-routing.md (69 sources,
-    44 paper abstracts, H15 to H20 verdicts). Review: five request-review rounds,
-    AND-gate not passed; owner waiver in state.yaml. Security review: specs/security/REVIEW.md
-    (diff 89b42ae811acde69, no findings). CI runs tools/test-record-cycle-time.sh.
-    Next: kickoff-branch for e03s05 (R11 security and permissions, 5 BCPs). Start
-    it in a fresh session. e03s05 has no story spec or tasks file yet; plan-work comes
-    after kickoff-branch, as for e03s04. Open for the owner, carried over: the audit
-    skill verify checks skills/ dirs that do not exist; the gitignored traceability
-    matrix regenerates with bash scripts/trace-stories.sh --json; undecided R7 items;
-    e04s02 takes the stack choice. Every commit needs a Story trailer. Record cycle
-    time through tools/record-cycle-time.sh.'
+  note: 'e03s05 (R11 security and permissions, 5 BCPs) is planned on branch e03s05-r11-security-permissions.
+    Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md; tasks:
+    e03s05-tasks.yaml (8 tasks, all todo). Owner decisions 2026-11-09: H21, H22 and
+    H23 added to planning-context.yaml for R11 (every H1-H20 reference in specs/ now
+    says H1-H23), and R11 reviews evidence only, no measurement. Next: develop-tdd,
+    task 1 (draft the brief, five or more papers including arXiv:2601.10338 and 2602.06547).
+    plan-consistency-check findings for e03s06 to e03s08 are covered by the e03 waiver.
+    Open for the owner, carried over: the audit skill verify checks skills/ dirs that
+    do not exist; the gitignored traceability matrix regenerates with bash scripts/trace-stories.sh
+    --json; undecided R7 items; e04s02 takes the stack choice. Every commit needs
+    a Story trailer. Record cycle time through tools/record-cycle-time.sh.'
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
     survey-context:
-      calls: 7
-      total_seconds: 99.0
-      avg_seconds: 14.142857142857142
-    plan-work:
       calls: 8
-      total_seconds: 1291.0
-      avg_seconds: 161.375
+      total_seconds: 116.0
+      avg_seconds: 14.5
+    plan-work:
+      calls: 9
+      total_seconds: 2538.0
+      avg_seconds: 282.0
     develop-tdd:
       calls: 9
       total_seconds: 3309.0
