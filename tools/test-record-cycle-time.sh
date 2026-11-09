@@ -1,24 +1,33 @@
 #!/usr/bin/env bash
 # Regression test for tools/record-cycle-time.sh (BUG-004). A fake global
-# script drops the leading "---" the way the real one does; the wrapper
-# must put it back. Runs in a throwaway repository and prints PASS or FAIL.
+# script stands in for the real one. Each case runs the wrapper in a
+# throwaway repository and checks the marker and the exit status.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+fail() { echo "FAIL $1" >&2; exit 1; }
 
-git init -q "$tmp"
-mkdir -p "$tmp/scripts" "$tmp/specs" "$tmp/tools"
-cp "$here/record-cycle-time.sh" "$tmp/tools/"
-printf '#!/usr/bin/env bash\nprintf "a: 1\\n" > "$(git rev-parse --show-toplevel)/specs/execution-status.yaml"\n' \
-  > "$tmp/scripts/record-cycle-time.sh"
-printf -- '---\na: 0\n' > "$tmp/specs/execution-status.yaml"
+# case_run <name> <global-script-body> <starting-file> <expected-exit>
+case_run() {
+  local name=$1 body=$2 start=$3 want=$4 dir rc=0 first count
+  dir="$(mktemp -d "$tmp/c.XXXX")"
+  git init -q "$dir"
+  mkdir -p "$dir/scripts" "$dir/specs" "$dir/tools"
+  cp "$here/record-cycle-time.sh" "$dir/tools/"
+  printf '#!/usr/bin/env bash\n%s\n' "$body" > "$dir/scripts/record-cycle-time.sh"
+  printf '%b' "$start" > "$dir/specs/execution-status.yaml"
+  (cd "$dir" && bash tools/record-cycle-time.sh) >/dev/null 2>&1 || rc=$?
+  first=$(head -n1 "$dir/specs/execution-status.yaml")
+  count=$(grep -c '^---$' "$dir/specs/execution-status.yaml" || true)
+  [ "$rc" = "$want" ] || fail "$name: exit $rc, want $want"
+  [ "$first" = "---" ] || fail "$name: marker missing"
+  [ "$count" = "1" ] || fail "$name: marker count $count, want 1"
+  echo "PASS $name"
+}
 
-(cd "$tmp" && bash tools/record-cycle-time.sh)
-
-if [ "$(head -n1 "$tmp/specs/execution-status.yaml")" = "---" ]; then
-  echo "PASS record-cycle-time keeps the document start marker"
-else
-  echo "FAIL document start marker missing after wrapper run" >&2
-  exit 1
-fi
+WRITE_A='printf "a: 1\n" > "$(git rev-parse --show-toplevel)/specs/execution-status.yaml"'
+WRITE_MARKED='printf -- "---\na: 1\n" > "$(git rev-parse --show-toplevel)/specs/execution-status.yaml"'
+case_run "restores a dropped marker" "$WRITE_A" 'a: 0\n' 0
+case_run "does not add a second marker" "$WRITE_MARKED" 'a: 0\n' 0
+case_run "restores marker and keeps failing exit" "$WRITE_A; exit 3" 'a: 0\n' 3
