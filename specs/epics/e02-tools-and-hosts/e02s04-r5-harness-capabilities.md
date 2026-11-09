@@ -149,6 +149,11 @@ Decision refs: plan committed as 199ccb6; owner decisions of 2026-11-08
 (risk P2, ../pi-flow-legacy read only, docs plus local versions) are
 recorded in this spec's header and §2. No ADR covers this story.
 
+The task verify commands check structure, cites and keywords only. A
+well-formed brief with a wrong cell or a wrong verdict passes them; whether
+a cell or verdict is true is checked by the human spot-check in the
+Verification Script below and by review.
+
 The task 2 to 5 verify commands were tested on 2026-11-08 against
 fixtures: each passes on a complete brief and fails on the defect it
 targets (missing version, uncited row, empty cell, missing host, uncited

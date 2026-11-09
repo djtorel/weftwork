@@ -34,9 +34,9 @@ tasks:
     verify: >-
       B=docs/research/R5-harness-capabilities.md;
       awk '$0=="## Method"{f=1;next} /^## /{f=0} f' "$B"
-      | grep -Eiq '(^|[^a-z])pi([^a-z]|$).*[0-9]+\.[0-9]+\.[0-9]+'
+      | grep -Eq '(^|[^A-Za-z])pi [0-9]+\.[0-9]+\.[0-9]+'
       && awk '$0=="## Method"{f=1;next} /^## /{f=0} f' "$B"
-      | grep -Eq 'Claude Code[^0-9]{0,20}[0-9]+\.[0-9]+\.[0-9]+'
+      | grep -Eq 'Claude Code [0-9]+\.[0-9]+\.[0-9]+'
     risk: P2
     status: done
     allure:
@@ -62,7 +62,7 @@ tasks:
       | grep -Ei '\| *opencode *\|' | grep -Ei '\| *Codex CLI *\|'
       | grep -Eiq '\| *Gemini CLI *\|'
       && printf '%s\n' "$M" | grep -E "^\| *\**($C)\** *\|"
-      | awk -F'|' '{for(i=2;i<=7;i++)if($i~/^ *$/)b=1;if(NF<8)b=1}
+      | awk -F'|' '{for(i=2;i<=7;i++)if($i~/^ *$/)b=1;if(NF!=8)b=1}
       END{exit b}'
       && printf '%s\n' "$M" | grep -E "^\| *\**($C)\** *\|"
       | grep -E '\[S[0-9]+\]' | grep -Eo "^\| *\**($C)"
@@ -89,7 +89,8 @@ tasks:
       | grep -Eio '^- \**(pi|Claude Code|opencode|Codex CLI|Gemini CLI)'
       | sed -E 's/^- \**//' | tr 'A-Z' 'a-z' | sort -u | wc -l
       | tr -d ' ' | grep -qx 5
-      && printf '%s\n' "$I" | grep -Eiq 'generat|managed|committed'
+      && ! printf '%s\n' "$I" | grep -E '^- '
+      | grep -Eivq 'generat|managed|committed'
     risk: P2
     status: done
     allure:
@@ -102,9 +103,11 @@ tasks:
       Write Shared core: the capabilities all five hosts share, each
       bullet cited, which set the host-agnostic core
     verify: >-
-      awk '$0=="## Shared core"{f=1;next} /^## /{f=0} f'
-      docs/research/R5-harness-capabilities.md
-      | grep -E '^- ' | grep -Eq '\[S[0-9]+\]'
+      S=$(awk '$0=="## Shared core"{f=1;next} /^## /{f=0} f'
+      docs/research/R5-harness-capabilities.md);
+      printf '%s\n' "$S" | grep -qE '^- '
+      && ! printf '%s\n' "$S" | grep -E '^- '
+      | grep -Evq '\[S[0-9]+\]'
     risk: P2
     status: done
     allure:
@@ -119,8 +122,20 @@ tasks:
       (H8, H9, H16), plus implications for weftwork, earns-its-place
       vs ceremony verdicts, and open questions
     verify: >-
-      bash tools/check-brief.sh docs/research/R5-harness-capabilities.md
-      R5
+      B=docs/research/R5-harness-capabilities.md;
+      bash tools/check-brief.sh "$B" R5
+      && for h in Sources Method 'Capability matrix'
+      'Instruction and skill files' 'Shared core' Verdicts
+      'Implications for weftwork' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
     risk: P2
     status: done
     allure:

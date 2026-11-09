@@ -1,6 +1,6 @@
 ---
 story_id: e02s04
-verified_at: "2026-11-09T00:07:17Z"
+verified_at: "2026-11-09T00:31:24Z"
 verifier: verify-work
 branch: e02s04-r5-harness-capability-matrix
 risk: P2
@@ -15,7 +15,7 @@ phases:
       yamllint specs && bash scripts/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
     exit_code: 0
-    captured_at: "2026-11-09T00:07:17Z"
+    captured_at: "2026-11-09T00:31:24Z"
     note: >-
       Single contiguous run; output below. CI: no PR open yet,
       so gh pr checks does not apply.
@@ -27,10 +27,11 @@ phases:
       python3 loop over each task verify: command in
       specs/epics/e02-tools-and-hosts/e02s04-tasks.yaml
     exit_code: 0
-    captured_at: "2026-11-09T00:07:17Z"
+    captured_at: "2026-11-09T00:31:24Z"
     note: >-
-      Single contiguous run covering tasks 1 to 6. Each task's verify
-      exits 0. Task 1 and task 6 print check-brief warnings only.
+      Single contiguous run covering tasks 1 to 6, re-run after the
+      request-review fixes (tightened verify commands). Each task's
+      verify exits 0. Tasks 1 and 6 print check-brief warnings only.
     output: |
       task 1: exit=0
       task 2: exit=0

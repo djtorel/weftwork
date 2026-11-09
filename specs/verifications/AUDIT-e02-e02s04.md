@@ -70,3 +70,21 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
 
 ## Open items
 1. BUG-003 still open (owner chooses to report upstream or ignore).
+
+## Review (request-review, Santa Method)
+
+Dual-blind, AND-gate at 94%, cap 5 rounds. Passed in round 3 of 5.
+
+| Round | Reviewer A | Reviewer B | Gate |
+| --- | --- | --- | --- |
+| 1 | 88.6 (4 should-fix) | 90 (3 should-fix) | FAIL |
+| 2 | 88.9 (4 should-fix) | 86.4 (3 should-fix) | FAIL |
+| 3 | 100 (0) | 100 (0) | PASS |
+
+Fixed between rounds: absent vs not-found wording (H9, gaps), Gemini CLI
+effort route, Gemini version label (main vs tag v0.67.0, compared), opencode
+Scout, Claude Code AGENTS.md setting, pi trust for .agents/skills, H8 and H9
+verdict halves, task verify commands tightened (tested on six mutants).
+After the pass, three consider-level wording fixes: MCP claim for Gemini
+CLI, the R0 advisory-gates sentence, the Method scope of curl.
+Declined: reuse of check-brief section() in task commands (coupling).
