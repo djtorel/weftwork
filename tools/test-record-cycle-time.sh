@@ -41,7 +41,9 @@ cp "$here/record-cycle-time.sh" "$EMPTY_CASE_DIR/tools/"
 printf '#!/usr/bin/env bash\n: > "$(git rev-parse --show-toplevel)/specs/execution-status.yaml"\n' \
   > "$EMPTY_CASE_DIR/scripts/record-cycle-time.sh"
 printf 'a: 0\n' > "$EMPTY_CASE_DIR/specs/execution-status.yaml"
-(cd "$EMPTY_CASE_DIR" && bash tools/record-cycle-time.sh) >/dev/null 2>&1
+rc=0
+(cd "$EMPTY_CASE_DIR" && bash tools/record-cycle-time.sh) >/dev/null 2>&1 || rc=$?
+[ "$rc" = 0 ] || fail "empty file: wrapper exit $rc, want 0"
 [ ! -s "$EMPTY_CASE_DIR/specs/execution-status.yaml" ] || fail "empty file: content was written"
 echo "PASS leaves an empty file empty"
 
@@ -53,7 +55,9 @@ cp "$here/record-cycle-time.sh" "$ARG_DIR/tools/"
 printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$(git rev-parse --show-toplevel)/args.txt"\nprintf -- "---\\na: 1\\n" > "$(git rev-parse --show-toplevel)/specs/execution-status.yaml"\n' \
   > "$ARG_DIR/scripts/record-cycle-time.sh"
 printf -- '---\na: 0\n' > "$ARG_DIR/specs/execution-status.yaml"
-(cd "$ARG_DIR" && bash tools/record-cycle-time.sh --story e03s04 --file "specs/metrics/cycle times.md") >/dev/null 2>&1
+rc=0
+(cd "$ARG_DIR" && bash tools/record-cycle-time.sh --story e03s04 --file "specs/metrics/cycle times.md") >/dev/null 2>&1 || rc=$?
+[ "$rc" = 0 ] || fail "arguments: wrapper exit $rc, want 0"
 want=$'--story\ne03s04\n--file\nspecs/metrics/cycle times.md'
 got=$(cat "$ARG_DIR/args.txt")
 [ "$got" = "$want" ] || fail "arguments: got [$got]"
