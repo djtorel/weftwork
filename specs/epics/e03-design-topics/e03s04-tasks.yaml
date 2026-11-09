@@ -196,7 +196,7 @@ tasks:
       && awk '$0=="## Budgets"{f=1;next} /^## /{f=0} f' "$B"
       | grep -Eiq 'escalation.*log|log.*escalation'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
