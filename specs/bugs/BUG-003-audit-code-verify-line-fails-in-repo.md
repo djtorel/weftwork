@@ -51,9 +51,9 @@ to ignore the line.
 
 2026-11-08: the owner decided to ignore this line. Do not run the skills'
 own packaging verify lines (the `test -d skills/...` checks) in this
-repository; audits and reviews note that and move on. No upstream report
-is filed now; if bigpowers is kept after R2 and e04, BUG-001 to BUG-004
-would go in one report. Closed by that decision.
+repository; audits and reviews note that and move on. The owner
+will file no upstream report for this or any other bug in the global
+install. Closed by that decision.
 
 ## Recurrence
 
