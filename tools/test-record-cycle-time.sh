@@ -32,8 +32,8 @@ case_run "restores a dropped marker" "$WRITE_A" 'a: 0\n' 0
 case_run "does not add a second marker" "$WRITE_MARKED" 'a: 0\n' 0
 case_run "restores marker and keeps failing exit" "$WRITE_A; exit 3" 'a: 0\n' 3
 
-# An empty file means the global script wrote nothing: the wrapper must not
-# invent content. The restore step is skipped for it.
+# An empty file means the global script wrote nothing. The restore must leave
+# it empty: sed on an empty file writes nothing.
 EMPTY_CASE_DIR="$(mktemp -d "$tmp/e.XXXX")"
 git init -q "$EMPTY_CASE_DIR"
 mkdir -p "$EMPTY_CASE_DIR/scripts" "$EMPTY_CASE_DIR/specs" "$EMPTY_CASE_DIR/tools"

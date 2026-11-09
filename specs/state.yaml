@@ -112,13 +112,13 @@ waivers:
 - what: CONVENTIONS.md rule that every source has a publication date, for 12 vendor doc and repository pages in the R9 brief (S42 to S50, S52 to S54)
   why: These pages show no publication date. The server Last-Modified header for the Claude Code pages is the fetch-day cache or deploy time (2026-11-09), not a publication date. Each source line records the version or commit read, or the header value. A real date cannot be found, so the brief marks them as undated. check-brief.sh passes with a warning. The owner approved this exception on 2026-11-09.
   date: 2026-11-09
-  scope: e03s04 only (docs/research/R9-model-routing.md sources S42 to S50, S52 to S54)
+  scope: e03s04 only (docs/research/R9-model-routing.md sources S42 to S50, S52 to S54, and S69 added 2026-11-09)
 handoff:
   next_skill: request-review
   next_story: e03s04
   note: 'e03s04 (R9 model routing and cost efficiency): all 9 tasks done on branch
     e03s04-r9-model-routing; the brief is docs/research/R9-model-routing.md (61 sources,
-    43 paper abstracts, 5 hypotheses all refined; request-review round 1 failed both reviewers (A 82.0, B 87.5, 3 must-fix each), fixes applied, round 2 pending). Preflight green. verify-work
+    44 paper abstracts, 5 hypotheses all refined; request-review round 1 failed both reviewers (A 82.0, B 87.5, 3 must-fix each), fixes applied, round 2 pending). Preflight green. verify-work
     done (owner spot-check passed 2026-11-09; evidence in
     specs/verifications/e03s04-verify.yaml). Next: audit-code, then
     request-review, then release-branch. Review lessons from R7
