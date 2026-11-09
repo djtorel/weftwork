@@ -116,3 +116,15 @@ Limits: papers only through arXiv (no ACM or Semantic Scholar queries); abstract
 - The agent should not choose how to spend extra effort: in a controlled study of failed coding agents, three of four frontier models picked feedback in 95 to 100% of cases and gained less than a uniformly random pick [S35]. An escalation trigger from the harness, such as a failed declared command, avoids relying on the model's preference (inference).
 - Picking a model per role can be searched empirically: at matched accuracy, the cost gap between the best and worst model combinations for pipeline roles reached 13 to 32 times, and a bandit search recovered near-optimal accuracy with 62 to 76% less evaluation budget [S27]. The four benchmarks are not named as coding in the abstract.
 - How many failures before escalating (H15): no source gives a failure count above one for coding agents; [S3] escalates at the first verified failure. N above 1 is unsourced.
+
+## Default tier per role
+
+Tiers are names, not models (H15): light, standard and heavy, resolved per host to a model alias or id. Each row is a starting default taken from host documents and examples; no source measures any cell's effect on pass rate or cost, and the Escalation column is a design suggestion where it cites [S3] or says unsourced.
+
+| Role | Default tier | Effort | Escalation | Evidence |
+| --- | --- | --- | --- | --- |
+| Planner | heavy | high | none; the owner re-plans | GSD's balanced profile puts its planner on opus [S55]; Claude Code `opusplan` plans on opus and executes on sonnet [S42]; the effect on outcomes is unsourced |
+| Implementer | standard | medium | to a higher effort or the heavy tier after the first verified failure (inference from [S3]) | GSD executors run on sonnet [S55]; Claude Code says Sonnet handles most coding tasks [S44]; bigpowers skills mostly name sonnet [S56] |
+| Reviewer | heavy, a different model from the implementer where the host allows | high | none | Codex docs suggest high effort for reviewer and security agents, and their example reviewer runs on the heavier model [S50]; a cross-model reviewer helped one way and hurt the other in the one direct test [S58] |
+| Explorer | light | medium | to standard when a search finds nothing; unsourced | Codex's example explorers run on the lighter model [S50]; Claude Code's built-in Explore inherits the main model and the docs say to define one with `model: haiku` to cut cost [S43]; small localization agents used 29.1% fewer tokens in one study [S40] |
+| Verifier | a command first, a light model only to read its output | low | to heavy when the command is missing or flaky; unsourced | a dedicated verification tool changed an agent's verifying behavior far more than asking it to verify [S22] |

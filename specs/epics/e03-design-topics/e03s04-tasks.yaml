@@ -144,7 +144,7 @@ tasks:
       printf '%s\n' "$R" | grep -Eiq "^\| *\**$t\**"
       || { echo "missing row: $t"; exit 1; }; done
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
