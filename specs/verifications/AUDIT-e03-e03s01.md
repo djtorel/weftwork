@@ -3,7 +3,7 @@
 Diff: main...HEAD, 5 files plus this report, docs and specs only. No code,
 no new packages, no tests added. Mode: default (not --quick, not --gate).
 
-## Result: PASS pending the owner's decision on 1 deviation
+## Result: PASS (1 deviation accepted by the owner)
 
 ## Checklist
 
@@ -37,8 +37,9 @@ no new packages, no tests added. Mode: default (not --quick, not --gate).
   `git ls-remote` returns the same HEAD for all four repositories, the
   raw files at each cited commit are byte-identical to the copies read,
   and each repository's public Atom feed gives the same commit time.
-  The call itself already happened. Owner decides: accept and log a
-  waiver, or treat it as a fault to avoid next time. Forward rule: raw
+  The call itself already happened. The owner accepted the deviation on
+  2026-11-08; the waiver is logged in specs/state.yaml (scope e03s01
+  only). Forward rule: raw
   URLs, `git ls-remote`, Atom feeds, or `gh repo clone`.
 
 ### Scope

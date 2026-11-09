@@ -10,8 +10,8 @@ development_status:
   e02s02: done
   e02s03: done
   e02s04: done
-  e03: backlog
-  e03s01: backlog
+  e03: in_progress
+  e03s01: done
   e03s02: backlog
   e03s03: backlog
   e03s04: backlog
@@ -35,7 +35,7 @@ epics:
     wsjf: 3.6
     total_bcps: 14
   e03:
-    status: backlog
+    status: in_progress
     title: Design topics (wave 3)
     wsjf: 1.6
     total_bcps: 41
@@ -135,12 +135,14 @@ stories:
     lead_time_minutes: 129
     bcp_per_hour: 2.5
   e03s01:
-    status: backlog
+    status: done
+    started_at: '2026-11-08T20:02:56-07:00'
+    completed_at: '2026-11-08T21:09:51-07:00'
     title: R6 multi-agent work in one codebase
     bcps: 3
     epic: e03
-    tasks_total: 2
-    tasks_passing: 0
+    tasks_total: 6
+    tasks_passing: 6
     tasks_failing: 0
   e03s02:
     status: backlog

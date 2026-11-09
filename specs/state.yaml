@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s01
+active_story: e03s02
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e03s01-r6-multi-agent-codebase
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -63,27 +63,50 @@ waivers:
     as for e02.
   date: 2026-11-08
   scope: e03 only
+- what: gate-trace FAIL (rule R1) for e03s01
+  why: R1 fails any undone story with 0 code tags. All 9 undone stories have none,
+    because the project has no code. The oracle heuristic ratio is 94 percent; completeness-critic
+    had 0 blockers; the blind-spot check had 0 HIGH findings. The owner chose to waive
+    it for e03, as for e01 and e02.
+  date: 2026-11-08
+  scope: e03 only
+- what: security-review threat model for e03 (build-epic step 0)
+  why: No product code. e03 writes research briefs only; the executable surface is
+    check-brief.sh and the task verify strings, as in e01 and e02. Briefs read web
+    pages, arXiv abstracts and public repository files, read only. The owner chose
+    to waive it.
+  date: 2026-11-08
+  scope: e03 only
+- what: CONVENTIONS.md rule of no direct GitHub REST API calls (audit-code item) for
+    e03s01
+  why: The R6 research session called api.github.com with curl for commit ids and
+    dates. The brief's Method says so. Every id and date was re-confirmed with git
+    ls-remote, raw URLs at the cited commits and public Atom feeds. The owner accepted
+    the deviation. From now on use raw URLs, web fetch, git ls-remote, Atom feeds
+    or gh repo clone.
+  date: 2026-11-08
+  scope: e03s01 only
 handoff:
-  next_skill: release-branch
-  next_story: e03s01
-  note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md. verify-work
-    and audit-code are done. The owner ran request-review directly, so commit-message
-    was skipped (nothing to draft); record that skip in the PR body. Review passed
-    the AND-gate in round 3 of 5 at commit 8b0e560 (A 95.2, B 95.6, no must-fix).
-    Round 1 failed (A 87.5, B 94.1) on a wrong claim about GSD hooks; round 2 failed
-    (A 92.5) on bigpowers and GSD being credited with a post-merge re-check. After
-    the pass I fixed the remaining verified should-fix items in a follow-up commit
-    that was NOT re-reviewed; say so in the PR body, or run one more round. One deviation
-    awaits the owner: the research session called api.github.com with curl for commit
-    ids; every id and date was re-confirmed without the API and Method says so. Accept
-    and log a waiver, or treat it as a fault. Stash stash@{0} on this repo holds uncommitted
-    e04 edits (a Candidate build epics task in e04s02 and a wider done_when in e04
-    epic.yaml); restore with git stash pop on a chore branch and decide whether to
-    land them. At release-branch: reconcile e03s01 in epic.yaml and execution-status.yaml,
-    name every gate in the PR body that passed, was waived, was stale or was missing
-    (verify evidence, audit, review, gate-trace R1, threat model), and decide the
-    e03 gate-trace R1 and threat-model waivers. Every commit needs a Story: e03s01
-    trailer.'
+  next_skill: kickoff-branch
+  next_story: e03s02
+  note: 'e03s01 (R6 multi-agent work in one codebase) is done and released by pull
+    request. Brief: docs/research/R6-multi-agent-codebase.md, verdicts H11 and H12
+    both refined. Next: kickoff-branch for e03s02 (R7 agent review and agent-answered
+    decisions, e03 wave 3, 5 BCPs, dependencies met). Start it in a fresh session.
+    e03s02 has a tasks file but no story spec yet; run plan-work after kickoff-branch,
+    as for e03s01 (the e03 plan-consistency waiver covers this until it is planned).
+    The e03 threat-model and gate-trace R1 waivers are recorded and cover all of e03.
+    Decide first: (1) stash stash@{0} holds uncommitted e04 edits (a Candidate build
+    epics task in e04s02 and a wider done_when in e04 epic.yaml); restore with git
+    stash pop on a chore branch and decide whether to land them. (2) BUG-003, the
+    audit-code verify line names skills/ dirs that do not exist here; report upstream
+    or ignore. (3) Whether to run the R5 and R3 candidate stories before or after
+    e03. R6 open questions that may become stories: measure re-learning cost per dispatch
+    unit, a disjoint versus overlapping scope conflict experiment (for R10), and a
+    full-text read of CAID, STORM, Co-Coder and CodeCRDT. Lessons from R6 review:
+    check absence claims against the whole cited source, and check the order of steps
+    in a source. Use raw URLs, web fetch, git ls-remote or Atom feeds for docs, not
+    gh api or api.github.com. Every commit needs a Story: e03s02 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
@@ -108,9 +131,9 @@ metrics:
       total_seconds: 243.0
       avg_seconds: 48.6
     release-branch:
-      calls: 3
-      total_seconds: 343.0
-      avg_seconds: 114.33333333333333
+      calls: 4
+      total_seconds: 419.0
+      avg_seconds: 104.75
     request-review:
       calls: 3
       total_seconds: 1198.0

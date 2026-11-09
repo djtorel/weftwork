@@ -4,7 +4,7 @@ title: Design topics (wave 3)
 wsjf: 1.6
 total_bcps: 41
 risk: P2
-status: todo
+status: in_progress
 depends_on:
   - e02
 done_when: >-
@@ -13,7 +13,7 @@ stories:
   - id: e03s01
     title: R6 multi-agent work in one codebase
     bcps: 3
-    status: todo
+    status: done
     tasks: e03s01-tasks.yaml
   - id: e03s02
     title: R7 agent review and agent-answered decisions
