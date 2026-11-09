@@ -168,6 +168,13 @@ research_stories:
       evidence gates, full ceremony, and fixed-tier vs routed.
       Measures pass rate and cost per accepted task; tests H1,
       H4, H7, H17, H19, H20 directly'
+  - id: R16
+    wave: 4
+    title: Evidence refresh
+    question: 'Close the measurement gaps left by R5 and R3 before the
+      synthesis: the always-loaded skill listing in tokens (pi and Claude
+      Code), whether Claude Code reads .agents/skills at runtime, and a
+      re-check of BMAD v7. Refreshes the H8 and H10 verdicts'
 waves:
   1:
     - R0
@@ -189,6 +196,7 @@ waves:
     - R15
   4:
     - R10
+    - R16
 hypotheses:
   - id: H1
     claim: 'Evidence over claims: done = declared command the
@@ -243,6 +251,7 @@ hypotheses:
       no bespoke schema
     tested_by:
       - R5
+      - R16
   - id: H9
     claim: 'Not a new runtime: compose hosts'' subagent/worktree
       machinery via thin adapters'
@@ -254,6 +263,7 @@ hypotheses:
       - R1
       - R2
       - R3
+      - R16
   - id: H11
     claim: Dispatch per subsystem, not per task, to avoid re-learning
       the codebase
