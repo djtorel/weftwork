@@ -130,7 +130,7 @@ stories:
     bcps: 5
     epic: e02
     tasks_total: 6
-    tasks_passing: 0
+    tasks_passing: 6
     tasks_failing: 0
   e03s01:
     status: backlog

@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e02s04
 title: R5 harness capability matrix
-status: todo
+status: in_progress
 bcps: 5
 type: research
 context: infra
@@ -20,7 +20,7 @@ tasks:
       bash tools/check-brief.sh docs/research/R5-harness-capabilities.md
       R5 --sources
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -38,7 +38,7 @@ tasks:
       && awk '$0=="## Method"{f=1;next} /^## /{f=0} f' "$B"
       | grep -Eq 'Claude Code[^0-9]{0,20}[0-9]+\.[0-9]+\.[0-9]+'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -69,7 +69,7 @@ tasks:
       | tr -d '|*' | sed 's/^ *//' | sort -u | wc -l | tr -d ' '
       | grep -qx 10
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -91,7 +91,7 @@ tasks:
       | tr -d ' ' | grep -qx 5
       && printf '%s\n' "$I" | grep -Eiq 'generat|managed|committed'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -106,7 +106,7 @@ tasks:
       docs/research/R5-harness-capabilities.md
       | grep -E '^- ' | grep -Eq '\[S[0-9]+\]'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -122,7 +122,7 @@ tasks:
       bash tools/check-brief.sh docs/research/R5-harness-capabilities.md
       R5
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
