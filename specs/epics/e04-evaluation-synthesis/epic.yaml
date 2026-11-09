@@ -1,15 +1,16 @@
 ---
 id: e04
 title: Evaluation and synthesis (wave 4)
-wsjf: 4.5
-total_bcps: 11
+wsjf: 3.8
+total_bcps: 16
 risk: P2
 status: todo
 depends_on:
   - e03
 done_when: >-
-  R10 brief passes, and SYNTHESIS.md covers H1-H20 and
-  the minimum useful first release
+  R10 and R16 briefs pass, and SYNTHESIS.md covers H1-H20, the
+  minimum useful first release, and a list of candidate build
+  epics to slice at the e04 checkpoint
 stories:
   - id: e04s01
     title: R10 evaluation design
@@ -21,3 +22,9 @@ stories:
     bcps: 3
     status: todo
     tasks: e04s02-tasks.yaml
+  # e04s03 runs before e04s02: the synthesis uses its H8 and H10 verdicts.
+  - id: e04s03
+    title: R16 evidence refresh
+    bcps: 5
+    status: todo
+    tasks: e04s03-tasks.yaml

@@ -1,0 +1,86 @@
+---
+# Change request 2026-11-08, ADDED: story e04s03 (R16 evidence refresh).
+# Closes the measurement gaps R5 and R3 left open. Runs before e04s02.
+story_id: e04s03
+title: R16 evidence refresh
+status: todo
+bcps: 5
+research_story: R16
+brief: docs/research/R16-evidence-refresh.md
+tasks:
+  - id: 1
+    description: >-
+      Draft the brief with dated sources (access and publication
+      dates) and cite papers wherever literature exists
+      on the topic
+    verify: >-
+      bash tools/check-brief.sh docs/research/R16-evidence-refresh.md
+      R16 --sources
+    status: todo
+  - id: 2
+    description: >-
+      Measure the always-loaded skill listing in pi and Claude Code,
+      the two hosts installed here: for a fixed set of skills, record
+      its size in tokens or characters, name the counting method and
+      the version of each host, and do not present an estimate as a
+      measurement. R5 and R3 left this unmeasured
+    verify: >-
+      S=$(awk '$0=="## Skill listing cost"{f=1;next} /^## /{f=0} f'
+      docs/research/R16-evidence-refresh.md);
+      printf '%s\n' "$S" | grep -Eq '(^|[^A-Za-z])pi [0-9]+\.[0-9]+\.[0-9]+'
+      && printf '%s\n' "$S" | grep -Eq 'Claude Code [0-9]+\.[0-9]+\.[0-9]+'
+      && printf '%s\n' "$S" | grep -Eqi '[0-9][0-9,]* (tokens|characters)'
+      && printf '%s\n' "$S" | grep -Eqi 'method'
+    status: todo
+  - id: 3
+    description: >-
+      Test whether Claude Code reads a skill placed under .agents/skills:
+      run it on a scratch skill in a scratch directory, record the
+      Claude Code version and a line "Result: read" or "Result: not
+      read". R5 found no mention in the docs and left it as docs
+      evidence only
+    verify: >-
+      S=$(awk '$0=="## Claude Code and .agents/skills"{f=1;next}
+      /^## /{f=0} f' docs/research/R16-evidence-refresh.md);
+      printf '%s\n' "$S" | grep -Eqi '^Result: (read|not read)'
+      && printf '%s\n' "$S" | grep -Eq 'Claude Code [0-9]+\.[0-9]+\.[0-9]+'
+    status: todo
+  - id: 4
+    description: >-
+      Re-check BMAD v7 against R3: release status on the access date,
+      install and entry commands, and whether the R3 table row for BMAD
+      still holds. R3 expected a mid-November 2026 release
+    verify: >-
+      S=$(awk '$0=="## BMAD v7 re-check"{f=1;next} /^## /{f=0} f'
+      docs/research/R16-evidence-refresh.md);
+      printf '%s\n' "$S" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$S" | grep -Eqi 'v7'
+      && printf '%s\n' "$S" | grep -Eqi 'stable|alpha|beta|preview|released'
+    status: todo
+  - id: 5
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R16 in planning-context.yaml
+      (H8, H10), plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions
+    verify: >-
+      B=docs/research/R16-evidence-refresh.md;
+      bash tools/check-brief.sh "$B" R16
+      && for h in Sources 'Skill listing cost'
+      'Claude Code and .agents/skills' 'BMAD v7 re-check' Verdicts
+      'Implications for weftwork' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Skill listing cost|';
+      O="${O}## Claude Code and .agents/skills|## BMAD v7 re-check|";
+      O="${O}## Verdicts|## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    status: todo

@@ -44,17 +44,25 @@ epics:
       Rescored by change-request 2026-11-08 after the e01 re-plan
       checkpoint: new R15 story, and added topics or tasks in R7, R9,
       R11 and R12. Close to the 1.5 cut threshold; the R15 story is the
-      first to cut if the research program needs to shrink.
+      first to cut if the research program needs to shrink. A second
+      change request on the same day moved two R5 and R3 candidates into
+      e03s07 (R13) with no BCP change: locate the "Code as Agent
+      Harness" survey and read Kiro's steering and hooks pages.
   - id: e04
     title: Evaluation and synthesis (wave 4)
-    wsjf: 4.5               # (7 + 3 + 8) / 4
-    bcps: 11
+    wsjf: 3.8               # (7 + 4 + 8) / 5
+    bcps: 16
     risk: P2
     depends_on: [e03]
     capsule_dir: epics/e04-evaluation-synthesis
     note: >-
       Highest raw WSJF after e01, but it needs a candidate workflow and
-      every earlier brief, so it stays last.
+      every earlier brief, so it stays last. Rescored by change-request
+      2026-11-08: new R16 evidence-refresh story that runs before the
+      synthesis (skill listing cost, .agents/skills runtime test, BMAD v7
+      re-check). Time criticality 3 to 4 for the dated BMAD v7 re-check,
+      job size 4 to 5. Story-level WSJF for R16 is (5 + 5 + 5) / 5 = 3.0.
+      Put in e04, not e03, because e03 is at 1.6 against the 1.5 cut line.
   - id: e05
     title: Repository and environment setup (wave 5)
     wsjf: 2.5               # (5 + 3 + 5) / 5; estimate, rescore later

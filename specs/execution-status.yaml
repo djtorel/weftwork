@@ -22,6 +22,7 @@ development_status:
   e04: backlog
   e04s01: backlog
   e04s02: backlog
+  e04s03: backlog
   e05: backlog
 epics:
   e01:
@@ -42,8 +43,8 @@ epics:
   e04:
     status: backlog
     title: Evaluation and synthesis (wave 4)
-    wsjf: 4.5
-    total_bcps: 11
+    wsjf: 3.8
+    total_bcps: 16
   e05:
     status: backlog
     title: Repository and environment setup (wave 5)
@@ -192,7 +193,7 @@ stories:
     title: R13 enforcement design
     bcps: 5
     epic: e03
-    tasks_total: 2
+    tasks_total: 4
     tasks_passing: 0
     tasks_failing: 0
   e03s08:
@@ -216,6 +217,14 @@ stories:
     title: Research synthesis
     bcps: 3
     epic: e04
-    tasks_total: 2
+    tasks_total: 3
+    tasks_passing: 0
+    tasks_failing: 0
+  e04s03:
+    status: backlog
+    title: R16 evidence refresh
+    bcps: 5
+    epic: e04
+    tasks_total: 5
     tasks_passing: 0
     tasks_failing: 0

@@ -68,6 +68,10 @@ in_scope:
     item: >-
       Research synthesis: H1-H20 verdict table, answer to the minimum
       useful first release, input for the v1 spec
+  - id: e04s03
+    item: >-
+      R16 evidence refresh (skill listing cost in tokens, .agents/skills
+      runtime test, BMAD v7 re-check), run before the synthesis
 
 out_of_scope:
   - item: Locking the architecture
