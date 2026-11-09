@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s03
+active_story: e03s04
 phase: planning
 test_plan: lite
 vcs:
@@ -94,68 +94,84 @@ waivers:
     after round 2 and release. The round-2 fixes (commit 6aafdab) were not re-reviewed.
   date: 2026-11-08
   scope: e03s02 only
+- what: request-review dual-blind AND-gate for e03s03 (rounds 4 to 5)
+  why: Round 1 failed (reviewer A 71.7, reviewer B 78.1; six must-fix between them).
+    Round 2 failed (A 88.2, B 93.1) and round 3 failed (A 93.8, B 82.9), with zero
+    must-fix in both rounds; the shortfall was should-fix wording and papers the searches
+    missed. Each round found real defects in the brief (a wrong H3 verdict, claims
+    stretched past their sources, missed papers) and every finding was checked against
+    its source and fixed. New papers kept turning up each round. The owner chose to
+    stop after round 3 and release. The round 3 fixes (sources S46 to S51 and wording
+    changes) were not re-reviewed.
+  date: 2026-11-09
+  scope: e03s03 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e03s03
-  note: 'e03s02 (R7 agent review and agent-answered decisions) is done and released
-    by pull request. Brief: docs/research/R7-review-and-decisions.md, verdicts H1,
-    H13 and H14 all refined. request-review failed the AND-gate in rounds 1 and 2
-    and the owner stopped it there; the waiver is recorded. Next: kickoff-branch for
-    e03s03 (R8 code quality and conventions, e03 wave 3, 5 BCPs, dependencies met).
-    Start it in a fresh session. e03s03 has a tasks file but no story spec yet; run
-    plan-work after kickoff-branch, as for e03s02 (the e03 plan-consistency waiver
-    covers this until it is planned). The e03 threat-model, gate-trace R1 and plan-consistency
-    waivers are recorded and cover all of e03. Lessons from R7: (1) kickoff-branch
-    commits the spec-only checkpoint on main before it branches, which put a commit
-    on local main ahead of origin/main and needed a reset; create the branch first,
-    then commit the checkpoint, and never commit on main. (2) Two review rounds each
-    found sources my arXiv queries missed, so treat every unsourced or no-paper-found
-    claim as not found by these queries, and run broader arXiv API queries (relevance
-    order, 8 results) before writing an absence claim. (3) Read the reviewer prompt
-    of each tool for what it tells the reviewer to run. (4) BUG-004 reproduced: scripts/record-cycle-time.sh
-    removes the --- line from execution-status.yaml; restore it by hand before committing.
-    R7 open questions that may become stories for R10: a same-model against different-model
-    reviewer test on seeded defects (the one direct test, arXiv 2607.21656, cannot
-    separate different from stronger), a fresh against continued reviewer context
-    test, mutants as review evidence, and a full-text read of S2, S8, S12, S13, S14
-    and S37. Consider items the owner has not decided: the Superpowers fix-loop tier
-    rule and cap, bigpowers cap 5 against round N/3, the Claude Code auto-mode fallback
-    in -p runs, tighter verify commands for tasks 2, 5 and 6 of e03s02, Claude Code
-    /verify, the Claude Code SendMessage review, and Claude Code auto mode in the
-    H13 verdict. Use raw URLs, web fetch, git ls-remote or Atom feeds for docs, not
-    gh api or api.github.com. Every commit needs a Story: e03s03 trailer.'
+  next_story: e03s04
+  note: 'e03s03 (R8 code quality and conventions) is done and released by pull request.
+    Brief: docs/research/R8-code-quality-conventions.md (51 sources, 37 papers), verdicts
+    H2, H3 and H5 all refined. request-review stopped after round 3 by the owner;
+    the waiver is recorded. Next: kickoff-branch for e03s04 (R9 model routing and
+    cost efficiency, e03 wave 3, 8 BCPs, dependencies met). Start it in a fresh session.
+    e03s04 has a tasks file but no story spec yet; run plan-work after kickoff-branch,
+    as for e03s03 (the e03 plan-consistency waiver covers this until it is planned).
+    The e03 threat-model, gate-trace R1 and plan-consistency waivers cover all of
+    e03. For whoever plans e04s02: decide whether it takes the stack choice (R8 Open
+    questions, CONVENTIONS.md line 4, e05 note in release-plan.yaml). Open for the
+    owner: the audit skill verify checks skills/ directories that do not exist in
+    this repo; specs/traceability-matrix.json is gitignored, so regenerate it with
+    bash scripts/trace-stories.sh --json when the completeness critic blocks; undecided
+    R7 items (Superpowers fix-loop cap, bigpowers cap 5 against round N/3, Claude
+    Code auto mode in -p runs). Lessons: (1) kickoff-branch: create the branch first,
+    then commit the checkpoint; never commit on main. (2) Independent reviewers found
+    13 papers the first 16 arXiv queries missed in R8, and similar misses in R7, so
+    run broad queries over https (the API returns an empty reply over http and HTTP
+    429 if queried fast; sleep 5 between queries) before writing any absence claim,
+    and treat every unsourced claim as a limit of the queries. (3) Read the reviewer
+    prompt of each tool for what it tells the reviewer to run. (4) BUG-004 reproduced
+    again: scripts/record-cycle-time.sh removes the --- line from execution-status.yaml;
+    restore it by hand before committing. (5) Check every number and quote against
+    the abstract before stating it; the reviewers main findings were claims stretched
+    past their sources. Candidate stories for R10: from R7 a same-model against different-model
+    reviewer test on seeded defects, a fresh against continued reviewer context test,
+    mutants as review evidence, and a full-text read of R7 S2, S8, S12, S13, S14 and
+    S37; from R8 executable checks compiled from AGENTS.md conventions against prose-only
+    (ContextCov), the user-level existing-code-takes-precedence sentence on pi and
+    Claude Code, a command-resolution check on this repository AGENTS.md, and context
+    files with and without conventions measured on pass rate, cost, erosion and verbosity.
+    Use raw URLs, web fetch, git ls-remote, Atom feeds or the https arXiv API for
+    docs, not gh api or api.github.com. Every commit needs a Story: e03s04 trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
     survey-context:
-      calls: 6
-      total_seconds: 84.0
-      avg_seconds: 14.0
-    plan-work:
-      calls: 6
-      total_seconds: 709.0
-      avg_seconds: 118.16666666666667
-    develop-tdd:
       calls: 7
-      total_seconds: 2209.0
-      avg_seconds: 315.57142857142856
+      total_seconds: 99.0
+      avg_seconds: 14.142857142857142
+    plan-work:
+      calls: 7
+      total_seconds: 1061.0
+      avg_seconds: 151.57142857142858
+    develop-tdd:
+      calls: 8
+      total_seconds: 2496.0
+      avg_seconds: 312.0
     verify-work:
-      calls: 6
-      total_seconds: 298.0
-      avg_seconds: 49.666666666666664
+      calls: 7
+      total_seconds: 345.0
+      avg_seconds: 49.285714285714285
     audit-code:
-      calls: 6
-      total_seconds: 272.0
-      avg_seconds: 45.333333333333336
+      calls: 7
+      total_seconds: 324.0
+      avg_seconds: 46.285714285714285
     release-branch:
-      calls: 5
-      total_seconds: 585.0
-      avg_seconds: 117.0
+      calls: 6
+      total_seconds: 666.0
+      avg_seconds: 111.0
     request-review:
-      calls: 3
-      total_seconds: 1198.0
-      avg_seconds: 399.3333333333333
-      _start: '2026-11-09T06:09:34Z'
+      calls: 4
+      total_seconds: 3196.0
+      avg_seconds: 799.0
     kickoff-branch:
       calls: 1
       total_seconds: 26.0

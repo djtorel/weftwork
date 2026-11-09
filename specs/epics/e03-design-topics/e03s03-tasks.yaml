@@ -1,27 +1,207 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s03
 title: R8 code quality and conventions
-status: todo
+status: done
 bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e03s03-r8-code-quality-conventions.md
 research_story: R8
 brief: docs/research/R8-code-quality-conventions.md
 tasks:
   - id: 1
     description: >-
-      Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      Correct CONVENTIONS.md line 4 and the e05 note in
+      specs/release-plan.yaml: the stack choice is an open question for
+      the research synthesis (e04s02), not R8. Commit it on its own
     verify: >-
-      bash tools/check-brief.sh docs/research/R8-code-quality-conventions.md
-      R8 --sources
-    status: todo
+      ! grep -Eq 'stack.*R8|R8.*stack' CONVENTIONS.md
+      specs/release-plan.yaml
+      && grep -Eq 'stack.*e04s02' CONVENTIONS.md
+      && grep -Eq 'stack.*e04s02' specs/release-plan.yaml
+      && yamllint specs/release-plan.yaml
+    risk: P3
+    status: done
+    allure:
+      severity: minor
+      categories:
+        - "Planning docs"
+        - "Wave 3"
   - id: 2
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R8 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Draft the brief with dated sources (access and publication
+      dates); list at least four papers (arXiv or DOI links), because
+      context files, LLM code quality, linter feedback and doc
+      inconsistency have a literature
     verify: >-
-      bash tools/check-brief.sh docs/research/R8-code-quality-conventions.md
-      R8
-    status: todo
+      B=docs/research/R8-code-quality-conventions.md;
+      bash tools/check-brief.sh "$B" R8 --sources
+      && test "$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
+      -ge 4
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 3
+    description: >-
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, that no workflow was run, and the arXiv
+      queries used (the verify checks the date and the words commit or
+      version, subagent, workflow, arXiv and query)
+    verify: >-
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R8-code-quality-conventions.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Finding conventions: bullets on how agents learn a
+      project's conventions (context files such as AGENTS.md; stack
+      facts read from manifests, lockfiles or config; the conventions
+      docs of GSD, bigpowers, Spec Kit and Kiro), as input to the H2
+      verdict. Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Finding conventions"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R8-code-quality-conventions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -Eiq 'AGENTS\.md|context files?'
+      && printf '%s\n' "$F" | grep -Eiq 'manifest|lockfile|config'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Principles: bullets on which design principles fit
+      agent-written code (SOLID, functional core and imperative shell,
+      others found), covering quality erosion over long tasks and code
+      smells in generated code. Each bullet cites a source or says it
+      is unsourced
+    verify: >-
+      F=$(awk '$0=="## Principles"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R8-code-quality-conventions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -q 'SOLID'
+      && printf '%s\n' "$F" | grep -iq 'functional core'
+      && printf '%s\n' "$F" | grep -Eiq 'erosion|degrad|smell'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Enforcement by tools: one table with columns Mechanism,
+      Example tools, What it checks, Agent use, Evidence; at least
+      five rows including Formatter, Linter, Type checker, AST rules
+      and Architecture tests; no empty cell; every row cited
+    verify: >-
+      B=docs/research/R8-code-quality-conventions.md;
+      M=$(awk '$0=="## Enforcement by tools"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Mechanism *\|'
+      | grep -Ei '\| *Example tools *\|'
+      | grep -Ei '\| *What it checks *\|'
+      | grep -Ei '\| *Agent use *\|' | grep -Eiq '\| *Evidence *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Mechanism *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 5
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=6;i++)
+      if($i~/^ *$/)b=1; if(NF!=7)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Evq '\[S[0-9]+\]'
+      && for t in Formatter Linter 'Type checker' 'AST rules'
+      'Architecture tests'; do printf '%s\n' "$R"
+      | grep -Eiq "^\| *\**$t\**" || { echo "missing row: $t"; exit 1; };
+      done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
+      Write Keeping docs current: bullets on doc drift, on checking
+      that commands and versions in AGENTS.md resolve to the repository
+      (H3), and on managed blocks with hashes (H5). Each bullet cites a
+      source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Keeping docs current"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R8-code-quality-conventions.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -Eiq 'drift|stale|outdated'
+      && printf '%s\n' "$F" | grep -iq 'resolve'
+      && printf '%s\n' "$F" | grep -iq 'managed block'
+      && printf '%s\n' "$F" | grep -iq 'hash'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 8
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources)
+      for every hypothesis assigned to R8 in planning-context.yaml
+      (H2, H3, H5), plus implications for weftwork, earns-its-place
+      vs ceremony verdicts, and open questions (including the stack
+      choice for e04s02)
+    verify: >-
+      B=docs/research/R8-code-quality-conventions.md;
+      bash tools/check-brief.sh "$B" R8
+      && for h in Sources Method 'Finding conventions' Principles
+      'Enforcement by tools' 'Keeping docs current' Verdicts
+      'Implications for weftwork' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Finding conventions|';
+      O="${O}## Principles|## Enforcement by tools|";
+      O="${O}## Keeping docs current|## Verdicts|";
+      O="${O}## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

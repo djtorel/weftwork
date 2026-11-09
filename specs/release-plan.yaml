@@ -74,6 +74,6 @@ epics:
       Added by change-request 2026-11-08 after the owner asked for it.
       Branch protection, PR template, environment setup, porting the
       spec validator into tools/. Sliced with slice-tasks when e04 is
-      done; the stack choice (R8) shapes it. Minimal CI is e01s04.
+      done; the stack choice (open for e04s02) shapes it. Minimal CI is e01s04.
       Input from the e01 checkpoint: agents in CI through GitHub
       Actions (R0 candidate 3).

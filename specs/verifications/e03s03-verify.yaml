@@ -1,0 +1,94 @@
+---
+story_id: e03s03
+verified_at: "2026-11-09T14:45:09Z"
+verifier: verify-work
+branch: e03s03-r8-code-quality-conventions
+risk: P2
+mode: default (P2 skips tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e03s03-r8-code-quality-conventions
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-09T16:15:05Z"
+    note: >-
+      Single contiguous run, re-captured after review round 3 fixes. CI: no
+      PR open, so gh pr checks does not apply.
+    output: |
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+      PREFLIGHT_EXIT=0
+  terminal_verdict:
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e03-design-topics/e03s03-tasks.yaml
+    exit_code: 0
+    captured_at: "2026-11-09T16:15:05Z"
+    note: >-
+      One contiguous pass over tasks 1 to 8 on the final brief (51 sources).
+      Each task's verify exits 0.
+    output: |
+      task 1 verify rc=0
+      task 2 verify rc=0
+      task 3 verify rc=0
+      task 4 verify rc=0
+      task 5 verify rc=0
+      task 6 verify rc=0
+      task 7 verify rc=0
+      task 8 verify rc=0
+  completeness_critic:
+    passed: true
+    note: >-
+      BLOCKER at first run (active story had zero explicit story-tag links
+      in the traceability matrix, which was stale). Fixed by
+      bash scripts/trace-stories.sh --json (the matrix is gitignored and
+      regenerated locally). Re-run: BLOCKER=0 WARNING=0 FILLED=1.
+  blind_spots:
+    passed: true
+    note: "0 HIGH; 4 MEDIUM double-tag findings, all in other stories' files."
+  build:
+    passed: null
+    note: "Not applicable: no product code (P2 skips)."
+  smoke:
+    passed: null
+    note: "Not applicable: no app."
+  tests:
+    passed: null
+    note: "Skipped: P2."
+  manual:
+    passed: true
+    confirmed_by: owner
+    confirmed_on: "2026-11-09"
+    steps:
+      - step: "Enforcement table: Type checker and Architecture cells"
+        expected: "Each cell is supported by the cited source"
+        actual: "Two wording over-attributions found; both fixed and accepted"
+        passed: true
+      - step: "Principles bullets and Method queries vs abstracts"
+        expected: "Numbers match the abstracts; absences stated as not found"
+        actual: "Two over-generalizations found; both fixed and accepted"
+        passed: true
+      - step: "H2, H3 and H5 verdicts vs citations"
+        expected: "Each verdict follows from its cited sources"
+        actual: "Four imprecise claims found; all fixed and accepted"
+        passed: true
+      - step: "CONVENTIONS.md line 4 and e05 note name e04s02, not R8"
+        expected: "Neither ties the stack choice to R8"
+        actual: "Both name e04s02; owner confirmed"
+        passed: true
+  request_review:
+    passed: waived
+    rounds: 3
+    note: >-
+      AND-gate not met. Scores: round 1 A 71.7 and B 78.1; round 2 A 88.2
+      and B 93.1; round 3 A 93.8 and B 82.9. Zero must-fix in rounds 2 and
+      3. The owner stopped after round 3; waiver in state.yaml. Round 3
+      fixes were not re-reviewed.
+  gaps:
+    closed: true
+status_at_verify: done

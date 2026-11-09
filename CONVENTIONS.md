@@ -1,7 +1,7 @@
 # Conventions
 
 Shared rules for every agent working in weftwork. Written from the bigpowers base, trimmed to a project with no product code yet.
-Add the code-style and test sections when the stack is chosen (see R8, `docs/research/`).
+Add the code-style and test sections when the stack is chosen (an open question for the synthesis, e04s02).
 
 ## Conventional Commits
 
