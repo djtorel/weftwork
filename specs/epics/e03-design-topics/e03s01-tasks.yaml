@@ -89,7 +89,7 @@ tasks:
       && printf '%s\n' "$F" | grep -iq 'merge conflict'
       && printf '%s\n' "$F" | grep -iq 'semantic'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
