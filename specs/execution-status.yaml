@@ -5,11 +5,11 @@ development_status:
   e01s02: done
   e01s03: done
   e01s04: done
-  e02: in_progress
+  e02: done
   e02s01: done
   e02s02: done
   e02s03: done
-  e02s04: in_progress
+  e02s04: done
   e03: backlog
   e03s01: backlog
   e03s02: backlog
@@ -23,7 +23,6 @@ development_status:
   e04s01: backlog
   e04s02: backlog
   e05: backlog
-
 epics:
   e01:
     status: done
@@ -31,7 +30,7 @@ epics:
     wsjf: 6.25
     total_bcps: 14
   e02:
-    status: in_progress
+    status: done
     title: Tools and hosts (wave 2)
     wsjf: 3.6
     total_bcps: 14
@@ -50,7 +49,6 @@ epics:
     title: Repository and environment setup (wave 5)
     wsjf: 2.5
     total_bcps: 8
-
 stories:
   e01s01:
     status: done
@@ -72,8 +70,8 @@ stories:
     risk_max: P1
   e01s03:
     status: done
-    started_at: "2026-11-08T10:09:22-07:00"
-    completed_at: "2026-11-08T12:43:56-07:00"
+    started_at: '2026-11-08T10:09:22-07:00'
+    completed_at: '2026-11-08T12:43:56-07:00'
     title: R4 research literature (recent agentic coding papers)
     bcps: 5
     epic: e01
@@ -83,7 +81,7 @@ stories:
     risk_max: P1
   e01s04:
     status: done
-    title: 'Minimal CI (GitHub Actions; runs before e01s02)'
+    title: Minimal CI (GitHub Actions; runs before e01s02)
     bcps: 3
     epic: e01
     tasks_total: 5
@@ -92,8 +90,8 @@ stories:
     risk_max: P1
   e02s01:
     status: done
-    started_at: "2026-11-08T13:31:19-07:00"
-    completed_at: "2026-11-08T13:33:24-07:00"
+    started_at: '2026-11-08T13:31:19-07:00'
+    completed_at: '2026-11-08T13:33:24-07:00'
     title: R1 GSD in depth
     bcps: 3
     epic: e02
@@ -102,8 +100,8 @@ stories:
     tasks_failing: 0
   e02s02:
     status: done
-    started_at: "2026-11-08T13:49:17-07:00"
-    completed_at: "2026-11-08T15:12:09-07:00"
+    started_at: '2026-11-08T13:49:17-07:00'
+    completed_at: '2026-11-08T15:12:09-07:00'
     title: R2 bigpowers in depth
     bcps: 3
     epic: e02
@@ -112,8 +110,8 @@ stories:
     tasks_failing: 0
   e02s03:
     status: done
-    started_at: "2026-11-08T15:19:54-07:00"
-    completed_at: "2026-11-08T16:29:11-07:00"
+    started_at: '2026-11-08T15:19:54-07:00'
+    completed_at: '2026-11-08T16:29:11-07:00'
     title: R3 workflow landscape
     bcps: 3
     epic: e02
@@ -124,17 +122,21 @@ stories:
     lead_time_minutes: 74
     bcp_per_hour: 2.7
   e02s04:
-    status: in_progress
-    started_at: "2026-11-08T16:54:46-07:00"
+    status: done
+    started_at: '2026-11-08T16:54:46-07:00'
+    completed_at: '2026-11-08T19:05:52-07:00'
     title: R5 harness capability matrix
     bcps: 5
     epic: e02
     tasks_total: 6
     tasks_passing: 6
     tasks_failing: 0
+    effort_hours: 2.0011
+    lead_time_minutes: 129
+    bcp_per_hour: 2.5
   e03s01:
     status: backlog
-    title: 'R6 multi-agent work in one codebase'
+    title: R6 multi-agent work in one codebase
     bcps: 3
     epic: e03
     tasks_total: 2
@@ -142,7 +144,7 @@ stories:
     tasks_failing: 0
   e03s02:
     status: backlog
-    title: 'R7 agent review and agent-answered decisions'
+    title: R7 agent review and agent-answered decisions
     bcps: 5
     epic: e03
     tasks_total: 3

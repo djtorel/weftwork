@@ -30,7 +30,9 @@ epics:
     bcps: 14
     risk: P2
     depends_on: [e01]
-    capsule_dir: epics/e02-tools-and-hosts
+    capsule_dir: epics/archive/e02-tools-and-hosts
+    note: >-
+      Done and archived by release-branch for e02s04, 2026-11-08.
   - id: e03
     title: Design topics (wave 3)
     wsjf: 1.6               # (6 + 4 + 6) / 10

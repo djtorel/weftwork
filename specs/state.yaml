@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
-active_epic: e02
-active_story: e02s04
-phase: in-story
+active_epic: e03
+active_story: e03s01
+phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e02s04-r5-harness-capability-matrix
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -57,25 +57,23 @@ waivers:
   date: 2026-11-08
   scope: e02s04 only
 handoff:
-  next_skill: release-branch
-  next_story: e02s04
-  note: 'e02s04 (R5 harness capability matrix) is built on branch e02s04-r5-harness-capability-matrix
-    (git checkout -b, not a worktree; BUG-002). Brief: docs/research/R5-harness-capabilities.md.
-    All 6 tasks in e02s04-tasks.yaml are done and their verify commands exit 0 (run
-    2026-11-08 after the last edit); Preflight green. Commits on the branch: 199ccb6
-    (plan), be57348 (brief), base 782ba01; take that SHA range for record-cycle-time.sh
-    before the squash merge. Owner decisions 2026-11-08: risk P2; ../pi-flow-legacy
-    read only; evidence is host docs plus local pi 1.5.0, Claude Code 2.1.319, opencode
-    1.19.5 and Codex 0.167.0; Gemini CLI is not installed here, so its row is docs
-    only. develop-tdd red-commit gate skipped: doc-only story, name the skip in the
-    PR body. Next: release-branch (verify-work, audit-code and request-review done; review passed in round 3 of 5, A 100 and B 100; evidence in specs/verifications/e02s04-verify.yaml
-    and AUDIT-e02-e02s04.md), request-review, release-branch. Waivers in force for
-    e02: threat model, gate-trace R1, plan-consistency-check findings on e02s01, e02s02,
-    e02s04. Open items: BUG-003 (owner chooses to report upstream or ignore); R5 candidate
-    stories (token measurement of skill listings in pi and Claude Code, locate the
-    Code as Agent Harness survey, test whether Claude Code reads .agents/skills);
-    R3 candidates (Kiro steering and hooks pages, BMAD v7 re-check mid-November 2026).
-    Every commit needs a Story: e02s04 trailer.'
+  next_skill: kickoff-branch
+  next_story: e03s01
+  note: 'e02 is done and archived (specs/epics/archive/e02-tools-and-hosts). e02s04
+    (R5 harness capability matrix) shipped by release-branch: brief docs/research/R5-harness-capabilities.md,
+    verdicts H8, H9 and H16 all refined; review passed in round 3 of 5 (A 100, B 100).
+    Cycle time recorded in specs/metrics/cycle-times.md (2.00 effort hours, 129 min
+    lead, 5 commits). Next: kickoff-branch for e03s01 (R6 multi-agent work in one
+    codebase, e03 wave 3, depends on e02, now met). Start it in a fresh session. Decide
+    first: (1) BUG-003, the audit-code verify line names skills/ dirs that do not
+    exist here; report upstream or ignore. (2) Whether to run the R5 candidate stories
+    before or after e03: token measurement of skill listings in pi and Claude Code,
+    locate the Code as Agent Harness survey, test whether Claude Code reads .agents/skills
+    at runtime. (3) R3 candidates: Kiro steering and hooks pages, BMAD v7 re-check
+    mid-November 2026. R6 and R9 build on the R5 rows for worktrees, per-dispatch
+    model and effort. Waivers for e02 expire with e02; e03 needs its own threat-model,
+    gate-trace R1 and plan-consistency decisions. Use raw URLs or web fetch for docs,
+    not gh api. Every commit needs a Story: trailer.'
 metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
@@ -100,9 +98,9 @@ metrics:
       total_seconds: 175.0
       avg_seconds: 43.75
     release-branch:
-      calls: 2
-      total_seconds: 90.0
-      avg_seconds: 45.0
+      calls: 3
+      total_seconds: 343.0
+      avg_seconds: 114.33333333333333
     request-review:
       calls: 2
       total_seconds: 806.0

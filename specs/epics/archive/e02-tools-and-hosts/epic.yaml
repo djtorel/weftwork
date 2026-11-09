@@ -4,7 +4,7 @@ title: Tools and hosts (wave 2)
 wsjf: 3.6
 total_bcps: 14
 risk: P2
-status: in_progress
+status: done
 depends_on:
   - e01
 done_when: R1, R2, R3 and R5 briefs pass tools/check-brief.sh
@@ -27,5 +27,5 @@ stories:
   - id: e02s04
     title: R5 harness capability matrix
     bcps: 5
-    status: in_progress
+    status: done
     tasks: e02s04-tasks.yaml

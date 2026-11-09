@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e02s04
 title: R5 harness capability matrix
-status: in_progress
+status: done
 bcps: 5
 type: research
 context: infra
