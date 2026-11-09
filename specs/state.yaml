@@ -87,7 +87,7 @@ waivers:
   date: 2026-11-08
   scope: e03s01 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e03s02
   note: 'e03s01 (R6 multi-agent work in one codebase) is done and released by pull
     request. Brief: docs/research/R6-multi-agent-codebase.md, verdicts H11 and H12
@@ -115,17 +115,18 @@ metrics:
       total_seconds: 84.0
       avg_seconds: 14.0
     plan-work:
-      calls: 5
-      total_seconds: 524.0
-      avg_seconds: 104.8
-    develop-tdd:
       calls: 6
-      total_seconds: 1867.0
-      avg_seconds: 311.1666666666667
+      total_seconds: 709.0
+      avg_seconds: 118.16666666666667
+    develop-tdd:
+      calls: 7
+      total_seconds: 2209.0
+      avg_seconds: 315.57142857142856
     verify-work:
       calls: 5
       total_seconds: 190.0
       avg_seconds: 38.0
+      _start: '2026-11-09T06:01:04Z'
     audit-code:
       calls: 5
       total_seconds: 243.0

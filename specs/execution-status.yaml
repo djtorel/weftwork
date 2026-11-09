@@ -153,7 +153,7 @@ stories:
     title: R7 agent review and agent-answered decisions
     bcps: 5
     epic: e03
-    tasks_total: 3
+    tasks_total: 7
     tasks_passing: 0
     tasks_failing: 0
   e03s03:
