@@ -109,6 +109,10 @@ waivers:
   why: One curl to https://api.github.com was sent while checking the network and its output was discarded. Nothing in the brief depends on the response, and the Method section of docs/research/R9-model-routing.md discloses it. The request cannot be undone. The owner accepted the deviation on 2026-11-09 and asked for the waiver to be recorded. Going forward, use raw URLs, web fetch, git ls-remote or gh repo clone.
   date: 2026-11-09
   scope: e03s04 only
+- what: CONVENTIONS.md rule that every source has a publication date, for 12 vendor doc and repository pages in the R9 brief (S42 to S50, S52 to S54)
+  why: These pages show no publication date. The server Last-Modified header for the Claude Code pages is the fetch-day cache or deploy time (2026-11-09), not a publication date. Each source line records the version or commit read, or the header value. A real date cannot be found, so the brief marks them as undated. check-brief.sh passes with a warning. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s04 only (docs/research/R9-model-routing.md sources S42 to S50, S52 to S54)
 handoff:
   next_skill: request-review
   next_story: e03s04
