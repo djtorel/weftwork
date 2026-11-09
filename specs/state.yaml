@@ -67,10 +67,9 @@ handoff:
   next_skill: audit-code
   next_story: e03s01
   note: 'e03s01 (R6) brief is written: docs/research/R6-multi-agent-codebase.md, all
-    six task verifies pass, verdicts H11 and H12 both refined. verify-work done:
-    evidence in specs/verifications/e03s01-verify.yaml. P2 smoke, lint and task
-    verifies green; the two-cell spot-check passed. Next: audit-code, then
-    request-review and release-branch.
+    six task verifies pass, verdicts H11 and H12 both refined. verify-work done: evidence
+    in specs/verifications/e03s01-verify.yaml. P2 smoke, lint and task verifies green;
+    the two-cell spot-check passed. Next: audit-code, then request-review and release-branch.
     Papers were read by abstract only, which the brief says in Method; a full-text
     read is an open question. Commit ids come from curl on the GitHub REST API, a
     small deviation from the raw-URL rule, also stated in Method. Stash stash@{0}
@@ -99,9 +98,9 @@ metrics:
       total_seconds: 190.0
       avg_seconds: 38.0
     audit-code:
-      calls: 4
-      total_seconds: 175.0
-      avg_seconds: 43.75
+      calls: 5
+      total_seconds: 243.0
+      avg_seconds: 48.6
     release-branch:
       calls: 3
       total_seconds: 343.0
