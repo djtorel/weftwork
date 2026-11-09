@@ -1,4 +1,6 @@
 ---
+# Change request 2026-11-08, ADDED: story e04s03 (R16 evidence refresh).
+# Closes the measurement gaps R5 and R3 left open. Runs before e04s02.
 story_id: e04s03
 title: R16 evidence refresh
 status: todo

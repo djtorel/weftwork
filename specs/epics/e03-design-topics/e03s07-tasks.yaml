@@ -1,4 +1,10 @@
 ---
+# Change request 2026-11-08, MODIFIED: e03s07 scope.
+# Before: R13 compares enforcement across the tools using R3 and R5 as
+#   read, and tests the hypotheses assigned to it.
+# After: R13 also locates the "Code as Agent Harness" survey (an R5 open
+#   question) and reads Kiro's steering and hooks pages directly (an R3
+#   open question). BCPs stay at 5; both tasks are small.
 story_id: e03s07
 title: R13 enforcement design
 status: todo
@@ -24,4 +30,25 @@ tasks:
     verify: >-
       bash tools/check-brief.sh docs/research/R13-enforcement-design.md
       R13
+    status: todo
+  - id: 3
+    description: >-
+      Locate the survey "Code as Agent Harness" listed in
+      SCOPE_LATEST.yaml: search arXiv by title, retry Semantic Scholar,
+      and record its arXiv id and what it says about H9 and H16, or
+      state that no such survey exists and list the searches run
+    verify: >-
+      grep -Ei 'Code as Agent Harness'
+      docs/research/R13-enforcement-design.md
+      | grep -Eqi 'arXiv:[0-9]{4}\.[0-9]{4,5}|no such survey|could not locate'
+    status: todo
+  - id: 4
+    description: >-
+      Read the Kiro steering and hooks pages directly, not through a
+      summary, and compare Kiro's enforcement with the other tools.
+      R3 read them through a summary only
+    verify: >-
+      B=docs/research/R13-enforcement-design.md;
+      grep -Ei 'kiro' "$B" | grep -Eqi 'steering'
+      && grep -Ei 'kiro' "$B" | grep -Eqi 'hooks'
     status: todo

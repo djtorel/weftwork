@@ -44,7 +44,10 @@ epics:
       Rescored by change-request 2026-11-08 after the e01 re-plan
       checkpoint: new R15 story, and added topics or tasks in R7, R9,
       R11 and R12. Close to the 1.5 cut threshold; the R15 story is the
-      first to cut if the research program needs to shrink.
+      first to cut if the research program needs to shrink. A second
+      change request on the same day moved two R5 and R3 candidates into
+      e03s07 (R13) with no BCP change: locate the "Code as Agent
+      Harness" survey and read Kiro's steering and hooks pages.
   - id: e04
     title: Evaluation and synthesis (wave 4)
     wsjf: 3.8               # (7 + 4 + 8) / 5
