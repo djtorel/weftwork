@@ -95,9 +95,12 @@ waivers:
   date: 2026-11-08
   scope: e03s02 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e03s03
-  note: 'e03s02 (R7 agent review and agent-answered decisions) is done and released
+  note: 'e03s03 is planned and approved (2026-11-09). Branch
+    e03s03-r8-code-quality-conventions exists. R8 is stack-agnostic by owner
+    choice. Start develop-tdd at task 1 (stack-choice fix, own commit). Older
+    note follows. e03s02 (R7 agent review and agent-answered decisions) is done and released
     by pull request. Brief: docs/research/R7-review-and-decisions.md, verdicts H1,
     H13 and H14 all refined. request-review failed the AND-gate in rounds 1 and 2
     and the owner stopped it there; the waiver is recorded. Next: kickoff-branch for
@@ -128,13 +131,13 @@ metrics:
   story_start: '2026-11-08T23:54:46Z'
   skill_timings:
     survey-context:
-      calls: 6
-      total_seconds: 84.0
-      avg_seconds: 14.0
+      calls: 7
+      total_seconds: 99.0
+      avg_seconds: 14.142857142857142
     plan-work:
-      calls: 6
-      total_seconds: 709.0
-      avg_seconds: 118.16666666666667
+      calls: 7
+      total_seconds: 1061.0
+      avg_seconds: 151.57142857142858
     develop-tdd:
       calls: 7
       total_seconds: 2209.0
