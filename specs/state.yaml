@@ -94,28 +94,49 @@ waivers:
     after round 2 and release. The round-2 fixes (commit 6aafdab) were not re-reviewed.
   date: 2026-11-08
   scope: e03s02 only
+- what: request-review dual-blind AND-gate for e03s03 (rounds 4 to 5)
+  why: Round 1 failed (reviewer A 71.7, reviewer B 78.1; six must-fix between them).
+    Round 2 failed (A 88.2, B 93.1) and round 3 failed (A 93.8, B 82.9), with zero
+    must-fix in both rounds; the shortfall was should-fix wording and papers the searches
+    missed. Each round found real defects in the brief (a wrong H3 verdict, claims
+    stretched past their sources, missed papers) and every finding was checked against
+    its source and fixed. New papers kept turning up each round. The owner chose to
+    stop after round 3 and release. The round 3 fixes (sources S46 to S51 and wording
+    changes) were not re-reviewed.
+  date: 2026-11-09
+  scope: e03s03 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: release-branch
   next_story: e03s03
-  note: 'e03s03 is planned and approved (2026-11-09). Branch
-    e03s03-r8-code-quality-conventions exists. R8 is stack-agnostic by owner
-    choice. Start develop-tdd at task 1 (stack-choice fix, own commit). Older
-    note follows. e03s02 (R7 agent review and agent-answered decisions) is done and released
-    by pull request. Brief: docs/research/R7-review-and-decisions.md, verdicts H1,
-    H13 and H14 all refined. request-review failed the AND-gate in rounds 1 and 2
-    and the owner stopped it there; the waiver is recorded. Next: kickoff-branch for
-    e03s03 (R8 code quality and conventions, e03 wave 3, 5 BCPs, dependencies met).
-    Start it in a fresh session. e03s03 has a tasks file but no story spec yet; run
-    plan-work after kickoff-branch, as for e03s02 (the e03 plan-consistency waiver
-    covers this until it is planned). The e03 threat-model, gate-trace R1 and plan-consistency
-    waivers are recorded and cover all of e03. Lessons from R7: (1) kickoff-branch
-    commits the spec-only checkpoint on main before it branches, which put a commit
-    on local main ahead of origin/main and needed a reset; create the branch first,
-    then commit the checkpoint, and never commit on main. (2) Two review rounds each
-    found sources my arXiv queries missed, so treat every unsourced or no-paper-found
-    claim as not found by these queries, and run broader arXiv API queries (relevance
-    order, 8 results) before writing an absence claim. (3) Read the reviewer prompt
-    of each tool for what it tells the reviewer to run. (4) BUG-004 reproduced: scripts/record-cycle-time.sh
+  note: 'e03s03 (R8 code quality and conventions) is verified and audited, owner UAT
+    confirmed 2026-11-09. Brief: docs/research/R8-code-quality-conventions.md (51
+    sources), verdicts H2 refined, H3 refined, H5 refined. request-review stopped
+    after round 3 by the owner; the waiver is recorded (rounds 2 and 3 had zero must-fix;
+    round 3 fixes not re-reviewed). Tasks 2 to 8, the verify and audit files (specs/verifications/e03s03-verify.yaml,
+    AUDIT-e03-e03s03.md) and the state changes are not committed; task 1 is committed
+    (c443469). Next: release-branch (which reconciles epic.yaml
+    and execution-status.yaml). Open for the owner: the audit skill verify checks
+    skills/ directories that do not exist in this repo. specs/traceability-matrix.json
+    is gitignored; regenerate it with bash scripts/trace-stories.sh --json if the
+    completeness critic blocks. When planning e04s02, decide whether it takes the
+    stack choice (R8 Open questions, CONVENTIONS.md line 4, e05 note in release-plan.yaml).
+    R8 is stack-agnostic by owner choice. R8 lessons: independent reviewers found
+    13 papers the first 16 queries missed and 6 more later, so treat every unsourced
+    claim as a limit of the queries; the arXiv API needs https and returns 429 if
+    queried fast (sleep 5 between queries). Older note follows. e03s02 (R7 agent review
+    and agent-answered decisions) is done and released by pull request. Brief: docs/research/R7-review-and-decisions.md,
+    verdicts H1, H13 and H14 all refined. request-review failed the AND-gate in rounds
+    1 and 2 and the owner stopped it there; the waiver is recorded. Next: kickoff-branch
+    for e03s03 (R8 code quality and conventions, e03 wave 3, 5 BCPs, dependencies
+    met). The e03 threat-model, gate-trace R1 and plan-consistency waivers are recorded
+    and cover all of e03. Lessons from R7: (1) kickoff-branch commits the spec-only
+    checkpoint on main before it branches, which put a commit on local main ahead
+    of origin/main and needed a reset; create the branch first, then commit the checkpoint,
+    and never commit on main. (2) Two review rounds each found sources my arXiv queries
+    missed, so treat every unsourced or no-paper-found claim as not found by these
+    queries, and run broader arXiv API queries (relevance order, 8 results) before
+    writing an absence claim. (3) Read the reviewer prompt of each tool for what it
+    tells the reviewer to run. (4) BUG-004 reproduced: scripts/record-cycle-time.sh
     removes the --- line from execution-status.yaml; restore it by hand before committing.
     R7 open questions that may become stories for R10: a same-model against different-model
     reviewer test on seeded defects (the one direct test, arXiv 2607.21656, cannot
@@ -139,26 +160,25 @@ metrics:
       total_seconds: 1061.0
       avg_seconds: 151.57142857142858
     develop-tdd:
-      calls: 7
-      total_seconds: 2209.0
-      avg_seconds: 315.57142857142856
+      calls: 8
+      total_seconds: 2496.0
+      avg_seconds: 312.0
     verify-work:
-      calls: 6
-      total_seconds: 298.0
-      avg_seconds: 49.666666666666664
+      calls: 7
+      total_seconds: 345.0
+      avg_seconds: 49.285714285714285
     audit-code:
-      calls: 6
-      total_seconds: 272.0
-      avg_seconds: 45.333333333333336
+      calls: 7
+      total_seconds: 324.0
+      avg_seconds: 46.285714285714285
     release-branch:
       calls: 5
       total_seconds: 585.0
       avg_seconds: 117.0
     request-review:
-      calls: 3
-      total_seconds: 1198.0
-      avg_seconds: 399.3333333333333
-      _start: '2026-11-09T06:09:34Z'
+      calls: 4
+      total_seconds: 3196.0
+      avg_seconds: 799.0
     kickoff-branch:
       calls: 1
       total_seconds: 26.0

@@ -2,7 +2,7 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s03
 title: R8 code quality and conventions
-status: in_progress
+status: done
 bcps: 5
 type: research
 context: infra
@@ -42,7 +42,7 @@ tasks:
       | grep -E '^- \[S[0-9]+\]' | grep -Eic 'arxiv\.org|doi\.org')"
       -ge 4
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -65,7 +65,7 @@ tasks:
       && printf '%s\n' "$M" | grep -Eiq 'arxiv'
       && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -87,7 +87,7 @@ tasks:
       && printf '%s\n' "$F" | grep -Eiq 'AGENTS\.md|context files?'
       && printf '%s\n' "$F" | grep -Eiq 'manifest|lockfile|config'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -110,7 +110,7 @@ tasks:
       && printf '%s\n' "$F" | grep -iq 'functional core'
       && printf '%s\n' "$F" | grep -Eiq 'erosion|degrad|smell'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -141,7 +141,7 @@ tasks:
       | grep -Eiq "^\| *\**$t\**" || { echo "missing row: $t"; exit 1; };
       done
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -164,7 +164,7 @@ tasks:
       && printf '%s\n' "$F" | grep -iq 'managed block'
       && printf '%s\n' "$F" | grep -iq 'hash'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -199,7 +199,7 @@ tasks:
       O="${O}## Earns its place vs ceremony|## Open questions";
       test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
