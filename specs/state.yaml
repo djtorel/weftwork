@@ -96,12 +96,11 @@ handoff:
     e03s02 has a tasks file but no story spec yet; run plan-work after kickoff-branch,
     as for e03s01 (the e03 plan-consistency waiver covers this until it is planned).
     The e03 threat-model and gate-trace R1 waivers are recorded and cover all of e03.
-    Decide first: (1) stash stash@{0} holds uncommitted e04 edits (a Candidate build
-    epics task in e04s02 and a wider done_when in e04 epic.yaml); restore with git
-    stash pop on a chore branch and decide whether to land them. (2) BUG-003, the
-    audit-code verify line names skills/ dirs that do not exist here; report upstream
-    or ignore. (3) Whether to run the R5 and R3 candidate stories before or after
-    e03. R6 open questions that may become stories: measure re-learning cost per dispatch
+    Resolved by the 2026-11-08 chore PR: the e04 stash is landed (candidate
+    build epics), BUG-003 is closed by decision, BUG-004 is mitigated by a
+    stricter yamllint rule, and the owner will file no upstream bug reports.
+    The R5 and R3 candidates are scheduled: e04s03 (R16 evidence refresh,
+    runs before the synthesis) and two tasks in e03s07 (R13). R6 open questions that may become stories: measure re-learning cost per dispatch
     unit, a disjoint versus overlapping scope conflict experiment (for R10), and a
     full-text read of CAID, STORM, Co-Coder and CodeCRDT. Lessons from R6 review:
     check absence claims against the whole cited source, and check the order of steps
