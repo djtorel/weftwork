@@ -75,3 +75,16 @@
 ## Result
 
 **FAIL on one item (ledger consistency).** Fix the three status values, or defer to `release-branch`, then run `commit-message`.
+
+## Resolution (after request-review round 1)
+
+The ledger item above is resolved. `development_status`, `stories` and
+`epic.yaml` now all read `in_progress` for e03s02 (commit ae7edc0), and
+`execution-status.yaml` now shows `tasks_passing: 7` and a `started_at`
+time. The story has three commits that carry the `Story: e03s02` trailer
+(2210af3, 2e3db69, ae7edc0), not two. Request-review round 1 found
+further defects that this audit did not catch: three wrong or missing
+sources and claims in the brief (the bigpowers reviewer runs the verify
+command; reversibility classes for agent actions have papers; mutation
+testing in human code review has prior art). They are fixed in the brief.
+This audit is not re-run; the findings sit in the review record.
