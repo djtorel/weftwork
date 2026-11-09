@@ -168,7 +168,7 @@ tasks:
       && printf '%s\n' "$F" | grep -Eiq 'tool.definition'
       && printf '%s\n' "$F" | grep -iq 'unproven'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
