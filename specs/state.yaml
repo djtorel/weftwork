@@ -6,7 +6,7 @@ phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e03s04-r9-model-routing
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -106,52 +106,34 @@ waivers:
   date: 2026-11-09
   scope: e03s03 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e03s04
-  note: 'e03s03 (R8 code quality and conventions) is done and released by pull request.
-    Brief: docs/research/R8-code-quality-conventions.md (51 sources, 37 papers), verdicts
-    H2, H3 and H5 all refined. request-review stopped after round 3 by the owner;
-    the waiver is recorded. Next: kickoff-branch for e03s04 (R9 model routing and
-    cost efficiency, e03 wave 3, 8 BCPs, dependencies met). Start it in a fresh session.
-    e03s04 has a tasks file but no story spec yet; run plan-work after kickoff-branch,
-    as for e03s03 (the e03 plan-consistency waiver covers this until it is planned).
-    The e03 threat-model, gate-trace R1 and plan-consistency waivers cover all of
-    e03. For whoever plans e04s02: decide whether it takes the stack choice (R8 Open
-    questions, CONVENTIONS.md line 4, e05 note in release-plan.yaml). Open for the
-    owner: the audit skill verify checks skills/ directories that do not exist in
-    this repo; specs/traceability-matrix.json is gitignored, so regenerate it with
-    bash scripts/trace-stories.sh --json when the completeness critic blocks; undecided
-    R7 items (Superpowers fix-loop cap, bigpowers cap 5 against round N/3, Claude
-    Code auto mode in -p runs). Lessons: (1) kickoff-branch: create the branch first,
-    then commit the checkpoint; never commit on main. (2) Independent reviewers found
-    13 papers the first 16 arXiv queries missed in R8, and similar misses in R7, so
-    run broad queries over https (the API returns an empty reply over http and HTTP
-    429 if queried fast; sleep 5 between queries) before writing any absence claim,
-    and treat every unsourced claim as a limit of the queries. (3) Read the reviewer
-    prompt of each tool for what it tells the reviewer to run. (4) BUG-004 reproduced
-    again: scripts/record-cycle-time.sh removes the --- line from execution-status.yaml;
-    restore it by hand before committing. (5) Check every number and quote against
-    the abstract before stating it; the reviewers main findings were claims stretched
-    past their sources. Candidate stories for R10: from R7 a same-model against different-model
-    reviewer test on seeded defects, a fresh against continued reviewer context test,
-    mutants as review evidence, and a full-text read of R7 S2, S8, S12, S13, S14 and
-    S37; from R8 executable checks compiled from AGENTS.md conventions against prose-only
-    (ContextCov), the user-level existing-code-takes-precedence sentence on pi and
-    Claude Code, a command-resolution check on this repository AGENTS.md, and context
-    files with and without conventions measured on pass rate, cost, erosion and verbosity.
-    Use raw URLs, web fetch, git ls-remote, Atom feeds or the https arXiv API for
-    docs, not gh api or api.github.com. Every commit needs a Story: e03s04 trailer.'
+  note: 'e03s04 (R9 model routing and cost efficiency) is planned on
+    branch e03s04-r9-model-routing. Spec: specs/epics/e03-design-topics/
+    e03s04-r9-model-routing.md; tasks: e03s04-tasks.yaml (9 tasks, verify
+    commands tested against a scratch brief, pass and fail). Owner decision
+    2026-11-09: literature only, no measurement; measurements become R10
+    candidate stories. Next: develop-tdd, task 1 (draft the brief with
+    five or more papers). Hypotheses H15, H17, H18, H19, H20. Use the https
+    arXiv API with sleep 5 between queries, broad queries before any
+    absence claim; raw URLs or web fetch for docs, not gh api. Date every
+    price. Every commit needs a Story: e03s04 trailer. Record cycle time
+    through tools/record-cycle-time.sh (BUG-004 wrapper). Open for the
+    owner, carried from e03s03: audit skill verify checks skills/ dirs that
+    do not exist; regenerate specs/traceability-matrix.json with bash
+    scripts/trace-stories.sh --json if the completeness critic blocks;
+    undecided R7 items; e04s02 takes the stack choice.'
 metrics:
-  story_start: '2026-11-08T23:54:46Z'
+  story_start: '2026-11-09T16:34:35Z'
   skill_timings:
     survey-context:
       calls: 7
       total_seconds: 99.0
       avg_seconds: 14.142857142857142
     plan-work:
-      calls: 7
-      total_seconds: 1061.0
-      avg_seconds: 151.57142857142858
+      calls: 8
+      total_seconds: 1291.0
+      avg_seconds: 161.375
     develop-tdd:
       calls: 8
       total_seconds: 2496.0
