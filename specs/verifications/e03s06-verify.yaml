@@ -1,0 +1,90 @@
+---
+story_id: e03s06
+verified_at: '2026-11-10T01:51:35Z'
+verifier: verify-work
+branch: e03s06-r12-context-and-memory
+risk: P2
+mode: >-
+  default (P2 skips build, tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e03s06-r12-context-and-memory
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: '2026-11-10T01:51:35Z'
+    note: >-
+      Preflight run on the branch. CI: no PR open, so gh pr checks does not
+      apply.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e03-design-topics/e03s06-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-10T01:51:35Z'
+    note: >-
+      One contiguous pass over tasks 1 to 8 on the brief as currently on disk.
+      Tasks 1 and 8 warn about 2 undated sources (S22, S25).
+    output: |
+      task 1: exit 0 warning: 2 undated source(s)
+      task 2: exit 0
+      task 3: exit 0
+      task 4: exit 0
+      task 5: exit 0
+      task 6: exit 0
+      task 7: exit 0
+      task 8: exit 0 warning: 2 undated source(s)
+      TERMINAL_EXIT=0
+  completeness_critic:
+    passed: true
+    note: >-
+      BLOCKER=0 WARNING=0 FILLED=1 (scripts/lib/completeness-critic.sh).
+  blind_spots:
+    passed: true
+    note: >-
+      0 HIGH. MEDIUM double-tag findings are in shared state.yaml and other
+      stories files; see specs/blind-spots.json.
+  build:
+    passed: null
+    note: 'Not applicable: no product code.'
+  typecheck:
+    passed: null
+    note: 'Not applicable: no code.'
+  smoke:
+    passed: null
+    note: 'Not applicable: no app.'
+  tests:
+    passed: null
+    note: 'Skipped: P2.'
+  security_scan:
+    passed: null
+    note: 'Skipped: P2. The brief adds no executable code.'
+  wiki_lint_5b:
+    passed: null
+    note: >-
+      Skipped: specs/skills-wiki and specs/conventions-wiki do not exist in
+      this repo.
+  manual:
+    passed: true
+    confirmed_by: owner
+    confirmed_on: '2026-11-09'
+    note: >-
+      The owner answered "go" to the four-item spot-check prompt as a
+      whole. Per-item results were not itemised.
+    steps:
+      - 'Mechanisms compared: two rows against their cited sources'
+      - 'Compaction: thresholds named or stated unsourced'
+      - >-
+        Git-backed tracker or plain files: quotes R5 H8 and compares
+        storage only
+      - >-
+        Verdicts H3, H8, H11, H24, H25, H26: each cites a source and
+        follows from the sections above
+  gaps:
+    closed: true
+    note: No gaps logged.

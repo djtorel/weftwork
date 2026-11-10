@@ -36,7 +36,7 @@ success_criteria:
   - Briefs R0-R14 exist in docs/research/, plus any stories R0
     adds
   - Every brief follows brief_rules below
-  - Every hypothesis H1-H23 has a verdict (confirmed / refined
+  - Every hypothesis H1-H26 has a verdict (confirmed / refined
     / refuted) with sources
   - Together the briefs give enough evidence to elaborate the
     v1 spec and answer open_question_for_this_phase
@@ -252,6 +252,7 @@ hypotheses:
     tested_by:
       - R5
       - R16
+      - R12
   - id: H9
     claim: 'Not a new runtime: compose hosts'' subagent/worktree
       machinery via thin adapters'
@@ -341,6 +342,25 @@ hypotheses:
       injection with permission boundaries, not prompt filters'
     tested_by:
       - R11
+  # H24-H26 added by plan-work for e03s06 on 2026-11-09 (owner
+  # decision): H3 and H11 did not test compaction, durable state or
+  # handoffs. R12 was also added to H8 on the same day.
+  - id: H24
+    claim: 'Durable state lives in plain repo files written by one
+      format-preserving tool, not in the session transcript'
+    tested_by:
+      - R12
+  - id: H25
+    claim: 'The harness triggers compaction at set context thresholds
+      and warns the agent, not only the user'
+    tested_by:
+      - R12
+  - id: H26
+    claim: 'A handoff note written for a session with no memory
+      (state, next step, open decisions) avoids re-investigation
+      better than resuming a transcript'
+    tested_by:
+      - R12
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing
