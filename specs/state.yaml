@@ -161,16 +161,29 @@ waivers:
     pages as undated. The owner approved this exception on 2026-11-09.
   date: 2026-11-09
   scope: e03s05 only (docs/research/R11-security-permissions.md sources S26 to S29)
+- what: request-review AND-gate for e03s05 (rounds 1 to 2)
+  why: Round 1 failed (reviewer A 80.0 and B 86.96; three must-fix between them). Round
+    2 failed (A 88.5 with two must-fix, B 90.0 with none). Each round found real errors
+    in the brief (a paper cited for something it does not show, a deny rule presented
+    as enforcement, results from a paper's appendix left out, and papers the searches
+    missed) and every finding was checked against its source and fixed. The round 2
+    must-fix items were errors I introduced in the round 1 fixes. The owner chose
+    on 2026-11-10 to commit and waive. The round 2 fixes were not re-reviewed.
+  date: 2026-11-10
+  scope: e03s05 only (docs/research/R11-security-permissions.md wording and evidence;
+    no change to verify commands)
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   next_story: e03s05
   note: 'e03s05 (R11 security and permissions, 5 BCPs) has its brief drafted on branch
-    e03s05-r11-security-permissions: docs/research/R11-security-permissions.md (38
-    sources, 30 papers, H21 to H23 all refined). All 8 tasks pass their verify commands.
-    verify-work and audit-code are done. request-review round 1 of 2 failed the AND-gate
-    (A 80.0, B 86.96; 3 must-fix); the fixes are applied and checked against sources
-    but not re-reviewed. Next: owner go-ahead to commit the fixes, then request-review
-    round 2 (last round; if it fails, the owner decides on a waiver). Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md.
+    e03s05-r11-security-permissions: docs/research/R11-security-permissions.md (43
+    sources, 35 papers, H21 to H23 all refined). All 8 tasks pass their verify commands.
+    verify-work and audit-code are done. request-review failed the AND-gate twice
+    (round 1: A 80.0, B 86.96, 3 must-fix; round 2: A 88.5, B 90.0, 2 must-fix). Round 1
+    fixes are committed (2e09f9e). Round 2 fixes are committed, checked against the full
+    texts, and not re-reviewed; the owner waived the AND-gate on 2026-11-10 (waiver above).
+    Next: release-branch for e03s05 (no PR is open yet; the owner approves each push, PR
+    and merge). Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md.
     Owner decisions 2026-11-09: H21, H22 and H23 added to planning-context.yaml for
     R11 (every H1-H20 reference in specs/ now says H1-H23), and R11 reviews evidence
     only, no measurement. plan-consistency-check findings for e03s06 to e03s08 are

@@ -95,8 +95,23 @@ phases:
       the primary sources and fixed, along with the should-fix items.
       Six papers the reviewers named were added as S33 to S38 after I
       read their abstracts. After the fixes: all 8 task verify commands
-      exit 0 and Preflight is green. The round 1 fixes are not yet
-      re-reviewed.
+      exit 0 and Preflight is green.
+      Round 2 of the planned 2 also failed. Reviewer A (Opus) scored 88.5
+      with 2 must-fix and 4 should-fix. Reviewer B (Sonnet) scored 90.0
+      with 0 must-fix and 6 should-fix. A's must-fix items, both checked
+      against the full texts and confirmed: the Overeager paper (S33)
+      ran every framework with confirmation disabled, so it does not
+      measure approval and was wrongly used as support for H21; and the
+      INFUSE appendix (S5) found no gain from Progent and CaMeL-style
+      ports, which the brief had left out of the H23 evidence. Both were
+      my errors from the round 1 fixes. Fixed in the working tree: S33
+      and S5 now reported as read, H21 and H23 verdicts rewritten, five
+      papers the reviewers named added as S39 to S43 (abstracts read
+      first), Gemini CLI's sandbox expansion added, network-exfiltration
+      and judgement wording corrected. After the fixes: 43 sources, 35
+      papers, all 8 task verify commands exit 0, Preflight green. The
+      round 2 fixes are not re-reviewed, and the AND-gate has not passed.
+      The owner waived the AND-gate on 2026-11-10 (state.yaml waivers).
   gaps:
     closed: true
 status_at_verify: in_progress
