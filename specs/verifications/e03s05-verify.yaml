@@ -1,0 +1,117 @@
+---
+story_id: e03s05
+verified_at: "2026-11-10T00:23:21Z"
+verifier: verify-work
+branch: e03s05-r11-security-permissions
+risk: P2
+mode: default (P2 skips tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e03s05-r11-security-permissions
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-10T00:22:00Z"
+    note: >-
+      Single contiguous run. CI: no PR open, so gh pr checks does not apply.
+    output: |
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+      PREFLIGHT_EXIT=0
+  terminal_verdict:
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e03-design-topics/e03s05-tasks.yaml
+    exit_code: 0
+    captured_at: "2026-11-10T00:23:21Z"
+    note: >-
+      One contiguous pass over tasks 1 to 8 on the brief as committed
+      (32 sources, 24 papers). Each task's verify exits 0. During
+      plan-work the commands were also checked against a fixture brief:
+      all eight pass on a good brief, all fail with no brief, and
+      check-brief fails a brief with no H23 verdict.
+    output: |
+      task 1 verify rc=0
+      task 2 verify rc=0
+      task 3 verify rc=0
+      task 4 verify rc=0
+      task 5 verify rc=0
+      task 6 verify rc=0
+      task 7 verify rc=0
+      task 8 verify rc=0
+      TERMINAL_EXIT=0
+  completeness_critic:
+    passed: true
+    note: "BLOCKER=0 WARNING=0 FILLED=1."
+  blind_spots:
+    passed: true
+    note: >-
+      0 HIGH; 6 MEDIUM double-tag findings and 1 LOW stale-tag, all in
+      other stories' files or shared state.yaml.
+  build:
+    passed: null
+    note: "Not applicable: no product code (P2 skips)."
+  smoke:
+    passed: null
+    note: "Not applicable: no app."
+  tests:
+    passed: null
+    note: "Skipped: P2."
+  security_scan:
+    passed: null
+    note: >-
+      Skipped: P2. The brief adds no executable code. The e03 threat
+      model for step 0 is waived in state.yaml.
+  manual:
+    passed: true
+    confirmed_by: owner
+    confirmed_on: "2026-11-10"
+    note: >-
+      The owner answered "yes" to the five-step spot-check prompt as a
+      whole. Per-step results were not itemised.
+    steps:
+      - step: "Threats and controls: two rows against their cited sources"
+      - step: "Prompt injection: coding-agent evidence, queries, CapScope"
+      - step: "Supply chain: R0 numbers against the arXiv abstracts"
+      - step: "H21, H22 and H23 verdicts against the sections above"
+      - step: >-
+          Method discloses no measurement, no subagent, abstracts only,
+          undated pages
+  request_review:
+    passed: false
+    note: >-
+      Round 1 of a planned 2 failed the AND-gate. Reviewer A (Opus)
+      scored 80.0 with 2 must-fix and 10 should-fix. Reviewer B (Sonnet)
+      scored 86.96 with 1 must-fix and 5 should-fix. Must-fix items: S12
+      cited for deletion inside the worktree (it covers other running
+      tasks); Bash deny rules presented as enforcement (the page says
+      they are not a security boundary); the H23 reasoning used
+      instructional hardening as if it were a filter, and a stress-subset
+      figure as if it were a benchmark average. All were checked against
+      the primary sources and fixed, along with the should-fix items.
+      Six papers the reviewers named were added as S33 to S38 after I
+      read their abstracts. After the fixes: all 8 task verify commands
+      exit 0 and Preflight is green.
+      Round 2 of the planned 2 also failed. Reviewer A (Opus) scored 88.5
+      with 2 must-fix and 4 should-fix. Reviewer B (Sonnet) scored 90.0
+      with 0 must-fix and 6 should-fix. A's must-fix items, both checked
+      against the full texts and confirmed: the Overeager paper (S33)
+      ran every framework with confirmation disabled, so it does not
+      measure approval and was wrongly used as support for H21; and the
+      INFUSE appendix (S5) found no gain from Progent and CaMeL-style
+      ports, which the brief had left out of the H23 evidence. Both were
+      my errors from the round 1 fixes. Fixed in the working tree: S33
+      and S5 now reported as read, H21 and H23 verdicts rewritten, five
+      papers the reviewers named added as S39 to S43 (abstracts read
+      first), Gemini CLI's sandbox expansion added, network-exfiltration
+      and judgement wording corrected. After the fixes: 43 sources, 35
+      papers, all 8 task verify commands exit 0, Preflight green. The
+      round 2 fixes are not re-reviewed, and the AND-gate has not passed.
+      The owner waived the AND-gate on 2026-11-10 (state.yaml waivers).
+  gaps:
+    closed: true
+status_at_verify: in_progress

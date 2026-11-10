@@ -15,7 +15,7 @@ development_status:
   e03s02: done
   e03s03: done
   e03s04: done
-  e03s05: todo
+  e03s05: done
   e03s06: todo
   e03s07: todo
   e03s08: todo
@@ -183,13 +183,16 @@ stories:
     tasks_passing: 9
     tasks_failing: 0
   e03s05:
-    status: todo
+    status: done
     title: R11 security and permissions
     bcps: 5
     epic: e03
-    tasks_total: 3
-    tasks_passing: 0
+    tasks_total: 8
+    tasks_passing: 8
     tasks_failing: 0
+    effort_hours: 1.5197
+    lead_time_minutes: 97
+    bcp_per_hour: 3.3
   e03s06:
     status: todo
     title: R12 context and memory
@@ -240,11 +243,13 @@ stories:
     tasks_failing: 0
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-09T19:30:00Z"
+  generated_at: "2026-11-10T01:10:00Z"
   rationale: >-
-    Computed FAIL (R1, then the two-level oracle downgrade on 95 percent
-    heuristic links). R2 CONCERNS (e01s02, e01s04 lack verify evidence);
-    R4 CONCERNS (2 of 19 stories tagged). Owner waiver in state.yaml,
-    2026-11-09, for e03s04 release only. Completeness critic: 0 blockers.
-  heuristic_ratio: 0.95
+    Computed FAIL for the e03s05 release: R1 (seven undone stories, e03s06
+    to e04s03, have no code tags; the project has no product code), then
+    the two-level oracle downgrade on 96 percent heuristic links (43 of 45).
+    R2 CONCERNS (e01s02, e01s04 lack verify evidence); R4 CONCERNS (1 of 19
+    stories tagged). Owner waiver in state.yaml, 2026-11-10, for the e03s05
+    release only. Completeness critic: 0 blockers.
+  heuristic_ratio: 0.96
   downgrade_applied: true

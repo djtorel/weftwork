@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s04
+active_story: e03s05
 phase: planning
 test_plan: lite
 vcs:
@@ -141,52 +141,96 @@ waivers:
     CONVENTIONS documents it.
   date: 2026-11-09
   scope: tools/test-record-cycle-time.sh only
-- what: gate-trace FAIL (rule R1) for e03s05 to e04s03, CONCERNS (rule R2) for e01s02 and e01s04, CONCERNS (rule R4) and oracle downgrade (95 percent heuristic links), for the e03s04 release
-  why: R1 fails any undone story with no code tags. The project has no product code, so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04 were released before verify evidence was written for them. R4 for coverage, 2 of 19 stories are tagged. oracle downgrade on 41 of 43 links come from file and task heuristics. The owner approved this waiver on 2026-11-09.
+- what: gate-trace FAIL (rule R1) for e03s05 to e04s03, CONCERNS (rule R2) for e01s02
+    and e01s04, CONCERNS (rule R4) and oracle downgrade (95 percent heuristic links),
+    for the e03s04 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04
+    were released before verify evidence was written for them. R4 for coverage, 2
+    of 19 stories are tagged. oracle downgrade on 41 of 43 links come from file and
+    task heuristics. The owner approved this waiver on 2026-11-09.
   date: 2026-11-09
-  scope: e03s04 release only (stories e03s05 to e03s08 and e04s01 to e04s03 for R1; e01s02 and e01s04 for R2)
+  scope: e03s04 release only (stories e03s05 to e03s08 and e04s01 to e04s03 for R1;
+    e01s02 and e01s04 for R2)
+- what: CONVENTIONS.md rule that every source has a publication date, for 4 vendor
+    doc pages in the R11 brief (S26 to S29, Claude Code sandboxing, permissions and
+    security, and Codex agent-approvals-security)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version read. A real date cannot be found, so the brief
+    marks them as undated. check-brief.sh passes with a warning. R5 cited the same
+    pages as undated. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s05 only (docs/research/R11-security-permissions.md sources S26 to S29)
+- what: request-review AND-gate for e03s05 (rounds 1 to 2)
+  why: Round 1 failed (reviewer A 80.0 and B 86.96; three must-fix between them).
+    Round 2 failed (A 88.5 with two must-fix, B 90.0 with none). Each round found
+    real errors in the brief (a paper cited for something it does not show, a deny
+    rule presented as enforcement, results from a paper's appendix left out, and papers
+    the searches missed) and every finding was checked against its source and fixed.
+    The round 2 must-fix items were errors I introduced in the round 1 fixes. The
+    owner chose on 2026-11-10 to commit and waive. The round 2 fixes were not re-reviewed.
+  date: 2026-11-10
+  scope: e03s05 only (docs/research/R11-security-permissions.md wording and evidence;
+    no change to verify commands)
+- what: gate-trace FAIL (rule R1) for e03s06 to e04s03, CONCERNS (rule R2) for e01s02
+    and e01s04, CONCERNS (rule R4) and oracle downgrade (96 percent heuristic links),
+    for the e03s05 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04
+    were released before verify evidence was written for them. R4 for coverage, 1
+    of 19 stories is tagged. Oracle downgrade, 43 of 45 links come from file and task
+    heuristics. The owner approved this waiver on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s05 release only (stories e03s06 to e03s08 and e04s01 to e04s03 for R1;
+    e01s02 and e01s04 for R2)
 handoff:
   next_skill: kickoff-branch
-  next_story: e03s05
-  note: 'e03s04 (R9 model routing) is released on branch e03s04-r9-model-routing,
-    to merge into main by PR. Brief: docs/research/R9-model-routing.md (69 sources,
-    44 paper abstracts, H15 to H20 verdicts). Review: five request-review rounds,
-    AND-gate not passed; owner waiver in state.yaml. Security review: specs/security/REVIEW.md
-    (diff 89b42ae811acde69, no findings). CI runs tools/test-record-cycle-time.sh.
-    Next: kickoff-branch for e03s05 (R11 security and permissions, 5 BCPs). Start
-    it in a fresh session. e03s05 has no story spec or tasks file yet; plan-work comes
-    after kickoff-branch, as for e03s04. Open for the owner, carried over: the audit
-    skill verify checks skills/ dirs that do not exist; the gitignored traceability
-    matrix regenerates with bash scripts/trace-stories.sh --json; undecided R7 items;
-    e04s02 takes the stack choice. Every commit needs a Story trailer. Record cycle
-    time through tools/record-cycle-time.sh.'
+  next_story: e03s06
+  note: 'e03s05 (R11 security and permissions) is released on branch e03s05-r11-security-permissions,
+    to merge into main by PR. Brief: docs/research/R11-security-permissions.md (43
+    sources, 35 papers, H21 to H23 verdicts all refined). Review: two request-review
+    rounds, AND-gate not passed (A 80.0 and 88.5, B 86.96 and 90.0); owner waiver
+    in state.yaml. Security review: specs/security/REVIEW.md (no executable code in
+    the diff). Next: kickoff-branch for e03s06 (R12 context and memory, 5 BCPs). Start
+    it in a fresh session. e03s06 has a tasks file (e03s06-tasks.yaml, placeholder
+    tasks) and no story spec; plan-work comes after kickoff-branch, as for e03s05.
+    Lessons from e03s05 for the next brief: read the full text, not only the abstract,
+    for any paper whose number carries a verdict; check what a cited experiment turned
+    off (S33 ran every framework with confirmation disabled); search with a plain
+    query as well as a narrow one. Hypotheses now run H1 to H23. Open for the owner,
+    carried over: the audit skill verify checks skills/ dirs that do not exist; the
+    gitignored traceability matrix regenerates with bash scripts/trace-stories.sh
+    --json; undecided R7 items; e04s02 takes the stack choice; the gate-trace waiver
+    covers one release at a time. R11 left four papers unread (arXiv:2609.39678, 2610.02456,
+    2603.10387 and 2608.25817) for the owner to decide on. Every commit needs a Story
+    trailer. Record cycle time through tools/record-cycle-time.sh.'
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
     survey-context:
-      calls: 7
-      total_seconds: 99.0
-      avg_seconds: 14.142857142857142
+      calls: 8
+      total_seconds: 116.0
+      avg_seconds: 14.5
     plan-work:
-      calls: 8
-      total_seconds: 1291.0
-      avg_seconds: 161.375
-    develop-tdd:
       calls: 9
-      total_seconds: 3309.0
-      avg_seconds: 367.6666666666667
+      total_seconds: 2538.0
+      avg_seconds: 282.0
+    develop-tdd:
+      calls: 10
+      total_seconds: 3598.0
+      avg_seconds: 359.8
     verify-work:
-      calls: 8
-      total_seconds: 477.0
-      avg_seconds: 59.625
+      calls: 9
+      total_seconds: 496.0
+      avg_seconds: 55.111111111111114
     audit-code:
-      calls: 7
-      total_seconds: 324.0
-      avg_seconds: 46.285714285714285
+      calls: 8
+      total_seconds: 347.0
+      avg_seconds: 43.375
     release-branch:
-      calls: 7
-      total_seconds: 980.0
-      avg_seconds: 140.0
+      calls: 8
+      total_seconds: 1089.0
+      avg_seconds: 136.125
     request-review:
       calls: 4
       total_seconds: 3196.0
