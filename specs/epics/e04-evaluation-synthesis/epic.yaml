@@ -8,7 +8,7 @@ status: todo
 depends_on:
   - e03
 done_when: >-
-  R10 and R16 briefs pass, and SYNTHESIS.md covers H1-H23, the
+  R10 and R16 briefs pass, and SYNTHESIS.md covers H1-H26, the
   minimum useful first release, and a list of candidate build
   epics to slice at the e04 checkpoint
 stories:

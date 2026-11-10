@@ -1,49 +1,41 @@
----
-# Security review for branch e03s05-r11-security-permissions (e03s05)
+# Security review for branch e03s06-r12-context-and-memory (e03s06)
 review_date: 2026-11-10
-branch: e03s05-r11-security-permissions
+branch: e03s06-r12-context-and-memory
 base: main
-head_commit: 5d8089a
-diff_sha256_prefix: 55b36b62fb8cded4
-diff_command: git diff main...HEAD
-scope: executable changes only
-  - none. The diff has 11 files: the R11 brief, the e03s05 spec and tasks,
-    planning-context, SCOPE, the e04 epic and e04s02 tasks (H1-H23 edits),
-    the glossary, state and two verification files.
-findings_at_threshold: 0
-suppressed_below_confidence_8: 0
----
+scope: uncommitted working tree (10 modified files, 4 new files)
+method: manual review of the full diff and new files, plus a scan for
+  secret patterns (`sk-`, `ghp_`, `AKIA`, private-key headers) and for
+  executable constructs added in the diff (eval, exec, subprocess,
+  curl, wget, rm -rf, chmod, sudo, network calls).
+tool: `security-review` skill not run (P2 skips it per verify-work).
 
-# Result
+## Summary
 
-No finding reaches confidence 8/10. The diff adds no executable code, no
-workflow change and no dependency. The release gate can treat this review
-as fresh for head 5d8089a. Later commits on this branch change only specs
-and state.
+No executable code is added. The change is research documentation and
+planning YAML: a research brief, a story spec, eight task verify
+commands (grep, awk, bash checks against the repo's own files), a
+verification evidence file, an audit report, hypothesis and ledger
+edits, and a four-line correction to an earlier brief (R8). No
+credentials, tokens or private keys are present.
 
-# Scope and method
+## Findings
 
-Read the file list of `git diff main...HEAD` and confirmed that every file
-is Markdown or YAML. The one YAML change with a shell command in it is the
-`verify:` strings in `e03s05-tasks.yaml` and the `seq 1 23` loop in
-`e04s02-tasks.yaml`; both run grep and awk over files in this repository and
-take no outside input. A pattern scan of the diff for `sk-`, `ghp_`, `AKIA`
-and private-key headers found none. The brief names credential file paths
-(`~/.ssh`, `~/.aws/credentials`) as text only.
+- HIGH: none.
+- MEDIUM: none.
+- LOW / informational:
+  - The secret-pattern scan matched one line, a false positive: the
+    word "task-continuity" contains `sk-`. No secret is present.
+  - The brief cites third-party web and arXiv pages read with curl over
+    https. Content was read, not executed. No downloaded file is run.
+  - The verify commands in `e03s06-tasks.yaml` run `grep` and `awk`
+    over repo files and call `tools/check-brief.sh`. They do not take
+    network input and do not write outside the repo.
 
-# Checks
+## Exceptions
 
-| Area | Result |
-|------|--------|
-| Command injection | No new shell code. Verify strings quote their paths and read repo files only. |
-| Secrets | None in the diff. |
-| Privilege | No new permissions. CI is unchanged. |
-| Supply chain | No new dependency. The brief cites papers and vendor pages; it installs nothing. |
-| Content risk | The brief describes attacks (prompt injection, skill hijack) in prose and abstract-level numbers. It contains no working exploit or payload. |
+None. `specs/security/EXCEPTIONS.md` is not needed for this branch.
 
-# Notes
+## Result
 
-- This is a manual review by the coding agent, not a run of the
-  `security-review` scan, because the diff has no executable code. The same
-  skill-verify limit as in the e03s04 review applies: its own verify line
-  checks `skills/` directories that do not exist here.
+PASS for the release gate. No HIGH finding, no security-sensitive code
+in the diff.

@@ -9,10 +9,10 @@ tasks:
   - id: 1
     status: todo
     description: >-
-      Table of H1-H23 with a verdict (confirmed/refined/refuted)
+      Table of H1-H26 with a verdict (confirmed/refined/refuted)
       and the brief that supports it
     verify: >-
-      for i in $(seq 1 23); do grep -q "H$i\b" docs/research/SYNTHESIS.md
+      for i in $(seq 1 26); do grep -q "H$i\b" docs/research/SYNTHESIS.md
       || exit 1; done
   - id: 2
     status: todo

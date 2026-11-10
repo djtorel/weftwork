@@ -1,38 +1,225 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 story_id: e03s06
 title: R12 context and memory
-status: todo
+status: done
 bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e03s06-r12-context-memory.md
 research_story: R12
 brief: docs/research/R12-context-memory.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least six papers (arXiv or DOI links),
+      including the compaction papers passed forward by R0 and R4,
+      arXiv:2606.11213 and arXiv:2603.05344
     verify: >-
-      bash tools/check-brief.sh docs/research/R12-context-memory.md
-      R12 --sources
-    status: todo
+      B=docs/research/R12-context-memory.md;
+      bash tools/check-brief.sh "$B" R12 --sources
+      && S=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B")
+      && test "$(printf '%s\n' "$S" | grep -E '^- \[S[0-9]+\]'
+      | grep -Eic 'arxiv\.org|doi\.org')" -ge 6
+      && printf '%s\n' "$S" | grep -q '2606\.11213'
+      && printf '%s\n' "$S" | grep -q '2603\.05344'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 2
     description: >-
-      Compare a git-backed tracker with plain spec files
-      against H8 (no bespoke schema). Read the R5 verdict
-      for H8 first. Compare the storage format only: where
-      state lives when two hosts share a repo is R13's
-      question
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, that no workflow or measurement was run
+      (owner decision, 2026-11-09), and the arXiv queries used
     verify: >-
-      grep -Eqi 'git-backed' docs/research/R12-context-memory.md
-      && grep -Eqi 'plain' docs/research/R12-context-memory.md
-    status: todo
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R12-context-memory.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+      && printf '%s\n' "$M" | grep -Eiq 'measur'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 3
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R12 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Write Compaction: bullets on when and how a long session is
+      compacted or its context evicted, who triggers it (harness or
+      model), the thresholds used, and whether the agent is warned
+      (R1's GSD context-monitor hook), as input to H25. Each bullet
+      cites a source or says it is unsourced
     verify: >-
-      bash tools/check-brief.sh docs/research/R12-context-memory.md
-      R12
-    status: todo
+      F=$(awk '$0=="## Compaction"{f=1;next} /^## /{f=0}
+      f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R12-context-memory.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'compact'
+      && printf '%s\n' "$F" | grep -iq 'evict'
+      && printf '%s\n' "$F" | grep -iq 'threshold'
+      && printf '%s\n' "$F" | grep -iq 'warn'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Durable state and handoffs: bullets on what state must
+      survive a session, transcript resume against a written handoff
+      note, and the R2 requirement for a format-preserving writer or
+      a single writing tool, as input to H24 and H26. Each bullet
+      cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Durable state and handoffs"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R12-context-memory.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'transcript'
+      && printf '%s\n' "$F" | grep -iq 'handoff'
+      && printf '%s\n' "$F" | grep -iq 'format-preserving'
+      && printf '%s\n' "$F" | grep -iq 'session'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Git-backed tracker or plain files: compare a git-backed
+      tracker (beads, R0 [S4]) with plain spec files (Backlog.md,
+      R0 [S5]) against H8 (no bespoke schema). Read R5's H8 verdict
+      first and cite it. Compare the storage format only: where state
+      lives when two hosts share a repo is R13's question. Each bullet
+      cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Git-backed tracker or plain files"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R12-context-memory.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'git-backed'
+      && printf '%s\n' "$F" | grep -iq 'plain'
+      && printf '%s\n' "$F" | grep -iq 'schema'
+      && printf '%s\n' "$F" | grep -q 'R5'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Avoiding re-investigation: bullets on how agents avoid
+      re-learning a codebase each task (context files such as
+      AGENTS.md, codebase maps, dispatch per subsystem), citing R6's
+      H11 and R8's H3 verdicts rather than redoing them, as input to
+      H3 and H11. Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Avoiding re-investigation"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R12-context-memory.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -Eiq 're-investigat|re-learn'
+      && printf '%s\n' "$F" | grep -iq 'context file'
+      && printf '%s\n' "$F" | grep -iq 'subsystem'
+      && printf '%s\n' "$F" | grep -iq 'codebase map'
+      && printf '%s\n' "$F" | grep -q 'R6'
+      && printf '%s\n' "$F" | grep -q 'R8'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
+      Write Mechanisms compared: one table with columns Mechanism,
+      Problem it solves, Where state lives, Triggered by, Evidence; at
+      least six rows including Compaction, Context eviction, Handoff
+      note, State file, Git-backed tracker and Context file; no empty
+      cell; every row cites [S<n>] or says unsourced
+    verify: >-
+      B=docs/research/R12-context-memory.md;
+      M=$(awk '$0=="## Mechanisms compared"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Mechanism *\|'
+      | grep -Ei '\| *Problem it solves *\|'
+      | grep -Ei '\| *Where state lives *\|'
+      | grep -Ei '\| *Triggered by *\|' | grep -Eiq '\| *Evidence *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Mechanism *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 6
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=6;i++)
+      if($i~/^ *$/)b=1; if(NF!=7)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for t in Compaction 'Context eviction' 'Handoff note'
+      'State file' 'Git-backed tracker' 'Context file'; do
+      printf '%s\n' "$R" | grep -Eiq "^\| *\**$t"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 8
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources) for every
+      hypothesis assigned to R12 in planning-context.yaml (H3, H8,
+      H11, H24, H25, H26), plus implications for weftwork,
+      earns-its-place vs ceremony verdicts, and open questions
+      (including candidate measurements for R10)
+    verify: >-
+      B=docs/research/R12-context-memory.md;
+      bash tools/check-brief.sh "$B" R12
+      && for h in Sources Method Compaction
+      'Durable state and handoffs' 'Git-backed tracker or plain files'
+      'Avoiding re-investigation' 'Mechanisms compared'
+      Verdicts 'Implications for weftwork'
+      'Earns its place vs ceremony' 'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Compaction|';
+      O="${O}## Durable state and handoffs|";
+      O="${O}## Git-backed tracker or plain files|";
+      O="${O}## Avoiding re-investigation|## Mechanisms compared|";
+      O="${O}## Verdicts|## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

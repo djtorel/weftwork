@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e03
-active_story: e03s05
+active_story: e03s06
 phase: planning
 test_plan: lite
 vcs:
@@ -183,58 +183,123 @@ waivers:
   date: 2026-11-10
   scope: e03s05 release only (stories e03s06 to e03s08 and e04s01 to e04s03 for R1;
     e01s02 and e01s04 for R2)
+- what: CONVENTIONS.md rule that every source has a publication date, for 3 vendor
+    doc pages in the R12 brief (S22 Claude Code docs, S25 Codex docs, S43 Claude platform
+    context-windows page)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the version or fetch date. A real date cannot be found, so the brief
+    marks them as undated. check-brief.sh passes with a warning. R5, R9 and R11 cited
+    the same kind of pages as undated. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s06 only (docs/research/R12-context-memory.md sources S22, S25, S43)
+- what: CONVENTIONS.md rule that released briefs are not changed, for the R8 brief
+    (e03s03)
+  why: Review of R12 showed that R8 said the README and wiki checker was not shown
+    to read AI configuration files; the full text shows it was run on 612 of them.
+    R8 lines for H3 and source S33, and a to-do line that listed S33, were corrected
+    on this branch (four lines). The owner approved the correction on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s06 only (docs/research/R8-code-quality-conventions.md, the S33 claim)
+- what: request-review dual-blind AND-gate for e03s06 (rounds 1 to 5)
+  why: Every round failed at least one reviewer (round 1 A 76 and B 72; round 2 83.9
+    and 79.4; round 3 84.4 and 80.0; round 4 87.2 and 84.2; round 5 A 94.1 and B 92.3,
+    with no must-fix in round 5). The five-round cap was reached. Each round found
+    real errors in the brief (a wrong claim about which checker read AI configuration
+    files, a missed head-to-head handoff study, an inverted detail of one paper, stale
+    counts) and every finding was checked against its source and fixed; new papers
+    kept turning up each round. After round 5 the brief was corrected for the findings
+    both reviewers agreed on (the HSC-Bench full-history arm and task mix, the Resilient
+    Write layers, the S3 hybrid result, the DreamBench-SWE and MemoryTax qualifiers)
+    and S71 to S73 were added; those changes were not re-reviewed. The owner chose
+    on 2026-11-09 to stop and release.
+  date: 2026-11-09
+  scope: e03s06 only (docs/research/R12-context-memory.md wording and evidence; no
+    change to verify commands)
+- what: gate-trace FAIL (rule R1) for e03s07 to e04s03, CONCERNS (rule R2) for e01s02,
+    e01s04 and e02s01, CONCERNS (rule R4) and oracle downgrade (96 percent heuristic
+    links), for the e03s06 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one (five are undone, namely e03s07, e03s08, e04s01,
+    e04s02 and e04s03). R2 for missing verify evidence; e01s02, e01s04 and e02s01
+    were released before verify evidence files were written for them. R4 for coverage,
+    1 of 19 stories is tagged. Oracle downgrade, 45 of 47 links come from file and
+    task heuristics. Blind-spot check 0 HIGH; completeness critic 0 blockers. The owner replied "do what you recommend" to the agent's gate-trace question
+    on 2026-11-09 and approved the wording on the same day.
+  date: 2026-11-09
+  scope: e03s06 release only (stories e03s07 to e04s03 for R1; e01s02, e01s04 and
+    e02s01 for R2)
 handoff:
   next_skill: kickoff-branch
-  next_story: e03s06
-  note: 'e03s05 (R11 security and permissions) is released on branch e03s05-r11-security-permissions,
-    to merge into main by PR. Brief: docs/research/R11-security-permissions.md (43
-    sources, 35 papers, H21 to H23 verdicts all refined). Review: two request-review
-    rounds, AND-gate not passed (A 80.0 and 88.5, B 86.96 and 90.0); owner waiver
-    in state.yaml. Security review: specs/security/REVIEW.md (no executable code in
-    the diff). Next: kickoff-branch for e03s06 (R12 context and memory, 5 BCPs). Start
-    it in a fresh session. e03s06 has a tasks file (e03s06-tasks.yaml, placeholder
-    tasks) and no story spec; plan-work comes after kickoff-branch, as for e03s05.
-    Lessons from e03s05 for the next brief: read the full text, not only the abstract,
-    for any paper whose number carries a verdict; check what a cited experiment turned
-    off (S33 ran every framework with confirmation disabled); search with a plain
-    query as well as a narrow one. Hypotheses now run H1 to H23. Open for the owner,
-    carried over: the audit skill verify checks skills/ dirs that do not exist; the
-    gitignored traceability matrix regenerates with bash scripts/trace-stories.sh
-    --json; undecided R7 items; e04s02 takes the stack choice; the gate-trace waiver
-    covers one release at a time. R11 left four papers unread (arXiv:2609.39678, 2610.02456,
-    2603.10387 and 2608.25817) for the owner to decide on. Every commit needs a Story
-    trailer. Record cycle time through tools/record-cycle-time.sh.'
+  next_story: e03s07
+  note: >-
+    e03s06 (R12 context and memory) is released by PR #25, squash-merged
+    into main. Brief: docs/research/R12-context-memory.md (73 sources, 56
+    arXiv papers; verdicts H3, H8, H11, H24, H25 and H26 all refined).
+    Hypotheses now run H1 to H26. The request-review gate was waived after
+    five rounds (best scores 94.1 and 92.3), gate-trace was waived for this
+    release, and the changes after round 5 were not re-reviewed; all are
+    recorded in the waivers above. R8 was corrected in four lines. The
+    e03s06 cycle-time row has effort 0.0 h because the story is one commit;
+    its ledger note says to keep it out of averages. Next is kickoff-branch
+    for e03s07 (R13 enforcement design, 5 BCPs), in a fresh session. Start
+    the branch with git checkout -b in this checkout, not a worktree
+    (BUG-002). e03s07 has a tasks file (e03s07-tasks.yaml, placeholder
+    tasks) and no story spec, so plan-work follows kickoff-branch, as for
+    e03s05 and e03s06. active_story in this file still reads e03s06 until
+    kickoff-branch sets it. Inputs for R13 from earlier briefs. R12 says
+    state should be plain repo files written by one format-preserving
+    tool, and that where state lives when two hosts share a repo is R13's
+    question. R11 sets the threats table that gates must enforce. R2 says
+    state writes need a format-preserving writer. The planning-context
+    queries to R13 include advisory skills against enforced hooks, ceremony
+    scaled to risk, escape hatches, gate retirement, and SEED section 9
+    (engine CLI against library). Lessons from e03s06 for the next brief:
+    read the full text of every paper whose number carries a verdict and
+    check which arms it ran (full history, recent window, no memory); run
+    plain arXiv queries as well as narrow ones; count matches before a
+    bulk replace; recheck counts after each review round; a single-commit
+    story makes the cycle-time row meaningless, so commit in steps. Open
+    for the owner, carried over: whether to log the tools/record-cycle-time
+    reflow of the gate_trace block as BUG-005 (it turned Preflight red until
+    the block was restored); the audit skill verify checks skills/ dirs
+    that do not exist (BUG-003); the gitignored traceability matrix
+    regenerates with bash scripts/trace-stories.sh --json; undecided R7
+    items; e04s02 takes the stack choice; the gate-trace waiver covers one
+    release at a time; four R11 papers left unread (arXiv:2609.39678,
+    2610.02456, 2603.10387 and 2608.25817); R8 could carry the per-element
+    1.27 percent figure for S33. Every commit needs a Story trailer.
+    Record cycle time through tools/record-cycle-time.sh.
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
     survey-context:
-      calls: 8
-      total_seconds: 116.0
-      avg_seconds: 14.5
+      calls: 9
+      total_seconds: 122.0
+      avg_seconds: 13.555555555555555
     plan-work:
-      calls: 9
-      total_seconds: 2538.0
-      avg_seconds: 282.0
-    develop-tdd:
       calls: 10
-      total_seconds: 3598.0
-      avg_seconds: 359.8
+      total_seconds: 2752.0
+      avg_seconds: 275.2
+    develop-tdd:
+      calls: 11
+      total_seconds: 4296.0
+      avg_seconds: 390.54545454545456
     verify-work:
-      calls: 9
-      total_seconds: 496.0
-      avg_seconds: 55.111111111111114
+      calls: 10
+      total_seconds: 543.0
+      avg_seconds: 54.3
     audit-code:
-      calls: 8
-      total_seconds: 347.0
-      avg_seconds: 43.375
+      calls: 9
+      total_seconds: 381.0
+      avg_seconds: 42.333333333333336
     release-branch:
-      calls: 8
-      total_seconds: 1089.0
-      avg_seconds: 136.125
+      calls: 10
+      total_seconds: 1128.0
+      avg_seconds: 112.8
     request-review:
-      calls: 4
-      total_seconds: 3196.0
-      avg_seconds: 799.0
+      calls: 5
+      total_seconds: 8163.0
+      avg_seconds: 1632.6
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
