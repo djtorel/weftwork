@@ -61,3 +61,13 @@ Target: branch `e03s05-r11-security-permissions` against `main` (9 files, 714 in
 ## Result
 
 All applicable items pass, with the two noted exceptions (undated sources, waived; verify commands cannot check claim accuracy). Next: `request-review`, capped at 2 rounds. Ask the reviewers to check claims against the full texts, not only the abstracts.
+
+## Addendum, 2026-11-10: changes after this audit
+
+The audit ran on commit `2ce7854`. Two request-review rounds then changed the
+brief (commits `2e09f9e` and `5d8089a`): sources grew from 32 to 43 (S33 to
+S43), the H21 and H23 verdicts were rewritten, and several claims were
+corrected after checks against the full texts. The eight task verify commands,
+`check-brief.sh` and Preflight were re-run on the final text and all pass.
+The AND-gate did not pass in either round, and the owner waived it
+(`specs/state.yaml`). The addendum does not re-run the checklist.

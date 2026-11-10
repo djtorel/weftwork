@@ -1,58 +1,49 @@
 ---
-# Security review for branch e03s04-r9-model-routing (e03s04)
-review_date: 2026-11-09
-branch: e03s04-r9-model-routing
+# Security review for branch e03s05-r11-security-permissions (e03s05)
+review_date: 2026-11-10
+branch: e03s05-r11-security-permissions
 base: main
-head_commit: 658a4ba
-diff_sha256_prefix: 19b89274d039d01f
-reviewed_executable_commit: fbf4ad3726ecb011caabb4d3bdf025ad266b9a98
-reviewed_diff_sha256_prefix: 89b42ae811acde69
-since_review: 658a4ba changes only specs and state (no executable code); the finding is unchanged
+head_commit: 5d8089a
+diff_sha256_prefix: 55b36b62fb8cded4
 diff_command: git diff main...HEAD
 scope: executable changes only
-  - tools/record-cycle-time.sh (new, 17 lines, bash wrapper)
-  - tools/test-record-cycle-time.sh (new, 64 lines, regression test)
-  - .github/workflows/ci.yml (one added step)
-  - all other changes are research docs, YAML specs and state (no code)
+  - none. The diff has 11 files: the R11 brief, the e03s05 spec and tasks,
+    planning-context, SCOPE, the e04 epic and e04s02 tasks (H1-H23 edits),
+    the glossary, state and two verification files.
 findings_at_threshold: 0
-suppressed_below_confidence_8: 1
+suppressed_below_confidence_8: 0
 ---
 
 # Result
 
-No finding reaches confidence 8/10. The release gate can treat this review
-as fresh for head 658a4ba. The executable code reviewed is at fbf4ad3, and the
-later commit changes only specs and state.
+No finding reaches confidence 8/10. The diff adds no executable code, no
+workflow change and no dependency. The release gate can treat this review
+as fresh for head 5d8089a. Later commits on this branch change only specs
+and state.
 
 # Scope and method
 
-Reviewed every executable line in the branch diff: the wrapper, its test
-and the CI step. The research and spec files contain no code and were
-checked for secrets with a pattern scan (`sk-`, `ghp_`, `AKIA`, private
-key headers). The scan found none.
+Read the file list of `git diff main...HEAD` and confirmed that every file
+is Markdown or YAML. The one YAML change with a shell command in it is the
+`verify:` strings in `e03s05-tasks.yaml` and the `seq 1 23` loop in
+`e04s02-tasks.yaml`; both run grep and awk over files in this repository and
+take no outside input. A pattern scan of the diff for `sk-`, `ghp_`, `AKIA`
+and private-key headers found none. The brief names credential file paths
+(`~/.ssh`, `~/.aws/credentials`) as text only.
 
 # Checks
 
 | Area | Result |
 |------|--------|
-| Command injection | Wrapper passes its own `"$@"` to the repo script, quoted. No caller-controlled text reaches a shell string. |
-| Path handling | Target path is `$ROOT/specs/execution-status.yaml`, built from `git rev-parse --show-toplevel` and quoted. |
-| Destructive operations | `sed -i` edits one fixed file. The test removes only the `mktemp -d` directory it created (`rm -rf "$tmp"`). |
-| Temp files | Test uses `mktemp -d` and cleans up on EXIT. No predictable names in shared temp space. |
-| Secrets | None in the diff. CI step uses no secrets and the workflow keeps `contents: read`. |
-| Privilege | No new permissions. CI step runs a repo script with the existing read-only token. |
-| Supply chain | No new dependencies. The wrapper calls `scripts/record-cycle-time.sh`, a machine-local symlink to the global bigpowers install (CONVENTIONS.md, Boundaries). That dependency predates this branch. |
-
-# Suppressed (confidence below 8)
-
-- **Symlink target (confidence 3).** If `specs/execution-status.yaml` were a
-  symlink in a hostile checkout, `sed -i` would write to its target. The
-  repository is owner-controlled and the file is tracked, so the attack
-  needs commit access. Not reported.
+| Command injection | No new shell code. Verify strings quote their paths and read repo files only. |
+| Secrets | None in the diff. |
+| Privilege | No new permissions. CI is unchanged. |
+| Supply chain | No new dependency. The brief cites papers and vendor pages; it installs nothing. |
+| Content risk | The brief describes attacks (prompt injection, skill hijack) in prose and abstract-level numbers. It contains no working exploit or payload. |
 
 # Notes
 
-- The skill's own verify line (`test -d specs/security && ...
-  verify-cwe-fixture-sync.sh`) cannot pass in this repository: it has no
-  `skills/` directory and no fixture set. This review does not use the
-  CWE fixture rules, because the diff adds no new detection rule.
+- This is a manual review by the coding agent, not a run of the
+  `security-review` scan, because the diff has no executable code. The same
+  skill-verify limit as in the e03s04 review applies: its own verify line
+  checks `skills/` directories that do not exist here.
