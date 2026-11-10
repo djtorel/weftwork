@@ -82,8 +82,21 @@ phases:
           Method discloses no measurement, no subagent, abstracts only,
           undated pages
   request_review:
-    passed: null
-    note: "Pending: audit-code, then request-review (cap 2 rounds)."
+    passed: false
+    note: >-
+      Round 1 of a planned 2 failed the AND-gate. Reviewer A (Opus)
+      scored 80.0 with 2 must-fix and 10 should-fix. Reviewer B (Sonnet)
+      scored 86.96 with 1 must-fix and 5 should-fix. Must-fix items: S12
+      cited for deletion inside the worktree (it covers other running
+      tasks); Bash deny rules presented as enforcement (the page says
+      they are not a security boundary); the H23 reasoning used
+      instructional hardening as if it were a filter, and a stress-subset
+      figure as if it were a benchmark average. All were checked against
+      the primary sources and fixed, along with the should-fix items.
+      Six papers the reviewers named were added as S33 to S38 after I
+      read their abstracts. After the fixes: all 8 task verify commands
+      exit 0 and Preflight is green. The round 1 fixes are not yet
+      re-reviewed.
   gaps:
     closed: true
 status_at_verify: in_progress

@@ -165,11 +165,12 @@ handoff:
   next_skill: request-review
   next_story: e03s05
   note: 'e03s05 (R11 security and permissions, 5 BCPs) has its brief drafted on branch
-    e03s05-r11-security-permissions: docs/research/R11-security-permissions.md (32
-    sources, 24 papers read as abstracts, H21 to H23 all refined). All 8 tasks pass
-    their verify commands. Next: verify-work, then audit-code, then request-review
-    capped at 2 rounds (the main risk is numbers stretched past abstracts; ask a reviewer
-    to check claims against full texts). Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md.
+    e03s05-r11-security-permissions: docs/research/R11-security-permissions.md (38
+    sources, 30 papers, H21 to H23 all refined). All 8 tasks pass their verify commands.
+    verify-work and audit-code are done. request-review round 1 of 2 failed the AND-gate
+    (A 80.0, B 86.96; 3 must-fix); the fixes are applied and checked against sources
+    but not re-reviewed. Next: owner go-ahead to commit the fixes, then request-review
+    round 2 (last round; if it fails, the owner decides on a waiver). Spec: specs/epics/e03-design-topics/e03s05-r11-security-permissions.md.
     Owner decisions 2026-11-09: H21, H22 and H23 added to planning-context.yaml for
     R11 (every H1-H20 reference in specs/ now says H1-H23), and R11 reviews evidence
     only, no measurement. plan-consistency-check findings for e03s06 to e03s08 are
