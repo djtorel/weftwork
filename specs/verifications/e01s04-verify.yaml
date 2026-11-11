@@ -1,0 +1,40 @@
+---
+story_id: e01s04
+verified_at: '2026-11-11T02:33:36Z'
+verifier: verify-work (backfill)
+backfilled: true
+branch: fix-bug-005-state-file-style
+risk: P1
+mode: >-
+  backfill of the task verify commands only (no tests, security scan or UAT)
+phases:
+  note:
+    passed: null
+    note: >-
+      This story was released without a verify file, which gate-trace
+      reported as rule R2 CONCERNS in recent gate-trace waivers. This file
+      was written on 2026-11-10 by re-running its task verify commands from
+      archive/e01-foundations/e01s04-tasks.yaml on commit 142be97. It
+      records that those commands pass today. It does not record what was
+      run when the story was released. Tasks 4 and 5 check GitHub state from
+      2026-11-08 (gh pr checks 5, and the CI run on the ci-negative-test
+      branch); both still exit 0 today.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/archive/e01-foundations/e01s04-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-11T02:33:36Z'
+    note: >-
+      One contiguous pass over tasks 1 to 5.
+    output: |
+      task 1: exit 0 warning: 4 undated source(s)
+      task 2: exit 0
+      task 3: exit 0
+      task 4: exit 0
+      task 5: exit 0
+      TERMINAL_EXIT=0
+  gaps:
+    closed: true
+    note: 'No gaps logged.'
