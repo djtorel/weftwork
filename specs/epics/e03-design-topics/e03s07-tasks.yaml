@@ -202,7 +202,7 @@ tasks:
       | grep -Eqi
       'arXiv:[0-9]{4}\.[0-9]{4,5}|no such survey|could not locate'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
