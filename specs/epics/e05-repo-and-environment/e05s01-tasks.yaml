@@ -1,6 +1,8 @@
 ---
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 # slice-tasks 2026-11-11. Tracer: CI runs the project's own validator.
+# plan-work 2026-11-11: selftest first (RED), then the port (GREEN).
+# The port also checks capsule_dir (owner decision 2026-11-11).
 story_id: e05s01
 title: Port the specs validator into tools/ and run it in CI
 status: todo
@@ -8,36 +10,49 @@ bcps: 3
 type: chore
 context: infra
 risk: P2
+spec: e05s01-port-specs-validator.md
 tasks:
   - id: 1
     description: >-
-      RED then GREEN. Write tools/validate-specs-yaml.sh, a port of
-      scripts/validate-specs-yaml.sh that needs no global install and
-      no scripts/ symlink: it parses every specs/**/*.yaml with PyYAML
-      (skipping specs/verifications/fixtures), checks the required keys
-      of state.yaml, release-plan.yaml and execution-status.yaml on the
-      parsed objects, and checks that epic file references exist
+      RED. Write tools/test-validate-specs-yaml.sh. It builds trees in
+      mktemp -d (never in the repo) and removes them on exit. The good
+      tree passes first (anti-vacuity). Then one break per case:
+      corrupt epic.yaml, missing active_flow, missing release.version,
+      epics: [], missing development_status, epic file that does not
+      exist, capsule_dir that does not exist, capsule_dir with no
+      epic.yaml; each exits 1 and names the file. Broken YAML under
+      verifications/fixtures/ is skipped (exit 0). Run it once before
+      task 2 and record the failure as RED evidence
+    verify: >-
+      test -x tools/test-validate-specs-yaml.sh
+      && bash -n tools/test-validate-specs-yaml.sh
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "unit"
+        - "e05 wave 5"
+  - id: 2
+    description: >-
+      GREEN. Write tools/validate-specs-yaml.sh, a port of bigpowers
+      2.93.3 scripts/validate-specs-yaml.sh with its MIT notice. Keep
+      the optional specs-dir argument, the parse pass, the fixture
+      skip and the required-key checks. Use ${PYTHON:-python3} instead
+      of lib/python-env.sh. Check epics[].file and
+      epics[].capsule_dir (directory with epic.yaml)
     verify: >-
       test -x tools/validate-specs-yaml.sh
+      && bash tools/test-validate-specs-yaml.sh
       && bash tools/validate-specs-yaml.sh
       | grep -q 'validate-specs-yaml: OK'
     risk: P2
     status: todo
     allure:
       severity: normal
-  - id: 2
-    description: >-
-      Write tools/test-validate-specs-yaml.sh, a selftest built in
-      mktemp -d (never in the repo). The good tree exits 0 first
-      (anti-vacuity); then break one thing per case: corrupt YAML,
-      missing active_flow, missing release.version, empty epics list,
-      missing development_status, epic file that does not exist. Each
-      case exits 1 and names the file
-    verify: bash tools/test-validate-specs-yaml.sh
-    risk: P2
-    status: todo
-    allure:
-      severity: high
+      categories:
+        - "unit"
+        - "e05 wave 5"
   - id: 3
     description: >-
       Add two CI steps (the validator and its selftest) to
@@ -56,4 +71,7 @@ tasks:
     risk: P3
     status: todo
     allure:
-      severity: normal
+      severity: minor
+      categories:
+        - "ci"
+        - "e05 wave 5"
