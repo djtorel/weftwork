@@ -255,6 +255,9 @@ stories:
     tasks_total: 6
     tasks_passing: 6
     tasks_failing: 0
+    effort_hours: 0.8611
+    lead_time_minutes: 52
+    bcp_per_hour: 5.8
 gate_trace:
   verdict: WAIVED
   generated_at: "2026-11-11T03:10:00Z"

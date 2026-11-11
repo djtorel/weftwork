@@ -357,8 +357,9 @@ handoff:
     undated-source exception (owner, 2026-11-11). The e04 capsule stays open (e04s02
     is todo). Pending the owner''s go-ahead: push, a squash PR and the merge. After
     the merge, sync main, delete the local and remote branch, confirm a clean tree
-    and green CI on the merge commit. The cycle-time row for e04s03 is recorded after
-    the merge from the branch SHA range. Next is kickoff-branch for e04s02 (research
+    and green CI on the merge commit. The cycle-time row for e04s03 is in
+    specs/metrics/cycle-times.md (git-derived: 0.86 hours over 3 commits, which
+    understates the session). Next is kickoff-branch for e04s02 (research
     synthesis, 3 BCPs, SYNTHESIS.md covering H1 to H27 and the minimum useful first
     release), in a fresh session after the merge. Its synthesis uses the R16 H8 and
     H10 verdicts. Open for the owner before e04s02: which repository supplies the
