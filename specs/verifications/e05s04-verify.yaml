@@ -1,0 +1,64 @@
+---
+story_id: e05s04
+verified_at: "2026-11-11T22:25:29Z"
+verifier: verify-work
+risk: P2
+mode: "default; P2 depth (smoke, typecheck, lint)"
+branch: e05s04-pr-template-protected-main
+phases:
+  branch_check:
+    passed: true
+    note: "On the feature branch, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open yet, so gh pr checks does not apply.
+      Local Preflight run below.
+  pre_uat_verify_validation:
+    passed: true
+    note: "Tasks 1, 2 and 3 verify commands re-run; all pass."
+  mechanical:
+    typecheck: passed
+    lint: passed
+    tests: "passed (P2 skips this gate; Preflight ran it anyway)"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-11T22:25:29Z"
+    note: "Single run. Output tail: tests 1, pass 1, fail 0."
+  blind_spots:
+    passed: true
+    note: >-
+      No HIGH findings. MEDIUM double-tag warnings for the e05
+      tasks files (from depends_on). Non-blocking.
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      First run blocked: e05s04 had zero story tags. Fixed by adding
+      the story tag to the PR template and the story spec, then
+      regenerating the traceability matrix. Re-run: BLOCKER=0.
+  security_scan:
+    skipped: true
+    note: "P2 risk policy."
+  nfr_gate:
+    skipped: true
+    note: "P0 only."
+  adversarial_gate:
+    skipped: true
+    note: "No modified interfaces in this story."
+  manual_uat:
+    skipped: true
+    note: >-
+      P2 risk policy. Task verify commands and the live GitHub
+      settings check cover the behavior.
+  okf_wiki_lint:
+    skipped: true
+    note: "specs/skills-wiki and specs/conventions-wiki do not exist."
+  gaps:
+    closed: true
+    count: 0
