@@ -116,6 +116,16 @@ Scenario Outline: AC-e05s02-03 one missing tool fails
     | no npm                         | npm      |
     | no node_modules/.bin/tsc       | tsc      |
 
+Scenario Outline: AC-e05s02-07 setup stops before npm on a hard miss
+  Given the stub tools with <break>
+  When setup.sh runs with no flag
+  Then it exits 1, the output names <fix>, and npm is not run
+
+  Examples:
+    | break                          | fix          |
+    | pip refuses the install        | PEP 668      |
+    | no node                        | install Node |
+
 Scenario: AC-e05s02-04 the TypeScript toolchain runs
   Given a fresh npm ci
   When npm run typecheck and npm test run

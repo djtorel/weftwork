@@ -29,7 +29,7 @@ good() {
   local d="$1" u
   mkdir -p "$d/bin" "$d/tools"
   cp "$tool" "$d/tools/setup.sh"
-  for u in cat dirname grep sed tr head; do
+  for u in dirname sed head; do
     ln -s "$(command -v "$u")" "$d/bin/$u"
   done
   stub "$d" python3 'exit 0'
@@ -56,6 +56,20 @@ run_case() {
   fi
   if [ -f "$d/calls" ] && grep -q 'pip' "$d/calls"; then
     fail "$name: --check called pip: $(cat "$d/calls")"
+  fi
+  echo "PASS $name"
+}
+
+# run_install <name> <needle> <dir>: run setup.sh with no flag in <dir>.
+# It must exit 1, name <needle>, and stop before npm runs.
+run_install() {
+  local name="$1" needle="$2" d="$3" out got=0
+  out="$(cd "$d" && PATH="$d/bin" "$BASH" tools/setup.sh 2>&1)" || got=$?
+  [ "$got" = 1 ] || fail "$name: want exit 1, got $got: $out"
+  printf '%s' "$out" | grep -qF -- "$needle" \
+    || fail "$name: output does not name '$needle': $out"
+  if [ -f "$d/calls" ] && grep -q '^npm' "$d/calls"; then
+    fail "$name: setup.sh ran npm: $(cat "$d/calls")"
   fi
   echo "PASS $name"
 }
@@ -88,5 +102,14 @@ run_case missing-npm 1 'missing npm' "$d"
 d="$tmp/no-tsc"; good "$d"
 rm "$d/node_modules/.bin/tsc"
 run_case missing-tsc 1 'missing tsc' "$d"
+
+d="$tmp/pip-refused"; good "$d"
+stub "$d" python3 \
+  'case "$*" in *pip*) exit 1;; *yaml*) exit 1;; esac; exit 0'
+run_install install-pip-refused 'PEP 668' "$d"
+
+d="$tmp/install-no-node"; good "$d"
+rm "$d/bin/node"
+run_install install-no-node 'install Node' "$d"
 
 echo "test-setup: OK"
