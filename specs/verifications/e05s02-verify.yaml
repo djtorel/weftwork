@@ -51,8 +51,10 @@ phases:
     passed: true
     command: "bash scripts/check-blind-spots.sh"
     note: >-
-      0 HIGH, 6 MEDIUM. All six are double-tag findings in archived
-      and e01 to e04 files. None touch e05s02 files
+      0 HIGH. 6 MEDIUM before the matrix rebuild, 15 MEDIUM after it;
+      all are double-tag findings. The e05 ones (e05s02, e05s03 and
+      e05s04 tasks files) come from depends_on links, as in e01s03.
+      MEDIUM warns and does not block
   completeness_critic:
     passed: true
     command: "bash scripts/lib/completeness-critic.sh"
@@ -81,8 +83,11 @@ gaps:
       traceability-matrix.json had no e05s02 entries. Rebuilt with
       scripts/trace-stories.sh --json (the file is gitignored)
     - >-
-      A verify-stage script rewrote specs/state.yaml with yaml.dump,
-      which reflowed the handoff note and broke a word (BUG-005
-      recurrence). Restored with tools/restore-yaml-style.py against
-      HEAD. Owner decision: reopen BUG-005 rather than file a new bug
+      bp-timing.sh start verify-work rewrote specs/state.yaml with
+      yaml.dump, which reflowed the handoff note and broke a word.
+      This is the known BUG-005 path; its documented fix,
+      tools/restore-yaml-style.py against HEAD, restored it. A test
+      on 2026-11-11 ran each gate script (blind spots, completeness
+      critic, adversarial, trace-stories) on a saved copy: none
+      changed state.yaml. BUG-005 is not reopened
   open: []

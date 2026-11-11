@@ -363,17 +363,16 @@ handoff:
     specs/verifications/e05s02-verify.yaml. Branch e05s02-toolchain-setup,
     local commits only; nothing is pushed. Next: audit-code for e05s02, then
     release-branch. The push and the PR each need the owner''s go-ahead.
-    Open for the owner: reopen BUG-005 (a verify-stage script rewrote
-    state.yaml again; restored with tools/restore-yaml-style.py). e05
-    total_bcps in execution-status.yaml is 8 but epic.yaml says 11. Later
-    e05 stories: e05s03 TypeScript code-style and test sections, and
-    Preflight adds the typecheck and tests; e05s04 PR template and protected
-    main (branch protection changes GitHub settings, so ask first; its gh
-    api waiver is recorded in its task 2). Still deferred by the owner: the
-    experiment task source and the spend cap. Do not run scripts/sync-
-    status-from-epics.sh; it drops cycle-time fields. Run tools/restore-
-    yaml-style.py --base HEAD on specs/state.yaml after the last bp-
-    timing.sh call, before committing.'
+    BUG-005 is not reopened: the reflow came from bp-timing.sh, which its
+    fix covers. e05 total_bcps in execution-status.yaml is 8 but epic.yaml
+    says 11. Later e05 stories: e05s03 TypeScript code-style and test
+    sections, and Preflight adds the typecheck and tests; e05s04 PR template
+    and protected main (branch protection changes GitHub settings, so ask
+    first; its gh api waiver is recorded in its task 2). Still deferred by
+    the owner: the experiment task source and the spend cap. Do not run
+    scripts/sync- status-from-epics.sh; it drops cycle-time fields. Run
+    tools/restore- yaml-style.py --base HEAD on specs/state.yaml after the
+    last bp- timing.sh call, before committing.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
