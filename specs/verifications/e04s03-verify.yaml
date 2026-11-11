@@ -1,0 +1,105 @@
+---
+story_id: e04s03
+verified_at: '2026-11-11T14:41:23Z'
+verifier: verify-work
+branch: e04s03-evidence-refresh
+risk: P2
+mode: >-
+  default (P2 runs smoke, typecheck and lint only; build, tests, security scan
+  and step-by-step UAT are skipped by risk rule)
+phases:
+  branch_check:
+    passed: true
+    branch: e04s03-evidence-refresh
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: '2026-11-11T14:41:23Z'
+    note: >-
+      Preflight run on the branch with the uncommitted e04s03 changes. CI: no PR
+      open, so gh pr checks does not apply.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e04-evaluation-synthesis/e04s03-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-11T14:41:23Z'
+    note: >-
+      One contiguous pass over tasks 1 to 6 on
+      docs/research/R16-evidence-refresh.md as it stands on disk
+      (uncommitted). Task 1 and task 6 print the
+      check-brief.sh warning "1 undated source(s)" (S2, the Claude Code skills
+      docs page, published: undated); the check still exits 0.
+    output: |
+      task 1: exit 0
+      task 2: exit 0
+      task 3: exit 0
+      task 4: exit 0
+      task 5: exit 0
+      task 6: exit 0
+      TERMINAL_EXIT=0
+  typecheck:
+    passed: null
+    note: >-
+      No product code; no typecheck target exists (no package.json,
+      pyproject.toml, go.mod or Cargo.toml).
+  lint:
+    passed: true
+    command: >-
+      yamllint specs && bash tools/check-brief.sh
+      docs/research/R16-evidence-refresh.md R16
+    exit_code: 0
+    captured_at: '2026-11-11T14:41:23Z'
+    note: >-
+      yamllint passes on specs/ (includes the edited e04s03 tasks file); the
+      brief checker passes with one undated-source warning.
+  smoke:
+    passed: null
+    note: >-
+      No app or server process; the cold-start smoke does not apply. The
+      terminal verdict above is the smoke evidence for a document-only story.
+  security_scan:
+    passed: null
+    note: skipped by risk rule (P2)
+  blind_spots:
+    passed: true
+    note: >-
+      0 HIGH, 6 MEDIUM double-tag findings (shared tasks files and briefs that
+      name several stories) and 0 LOW; the e04s03 tasks file and the R16 brief
+      are among the double-tag findings. specs/blind-spots.json is gitignored.
+  completeness_critic:
+    passed: true
+    note: >-
+      First run: BLOCKER=1 (active story e04s03 had zero explicit story-tag
+      links in the traceability matrix). Cause: the matrix was built on
+      2026-11-10, before the e04s03 spec and state notes existed. Fix: ran
+      bash scripts/trace-stories.sh, which refreshes the gitignored
+      matrix. Second run: BLOCKER=0 WARNING=0 FILLED=1. e04s03 now has 2
+      explicit_tag links.
+  nfr_gate:
+    passed: null
+    note: skipped by risk rule (NFR gate applies to P0 only)
+  adversarial_gate:
+    passed: null
+    note: >-
+      Not run. verify-adversarial.sh targets modified interfaces; this story
+      changes no code and no interface. Recorded for the audit-code reviewer.
+  ci:
+    passed: null
+    note: >-
+      No PR open; CI checks after the PR is opened.
+  manual:
+    passed: null
+    note: >-
+      Step-by-step UAT skipped by risk rule (P2). Owner review of the brief is
+      the remaining human check (see Verification Script in the e04s03 spec).
+  gaps:
+    closed: true
+    note: >-
+      No gaps against the promised behavior in the six tasks. Open items are
+      the undated S2 source (owner approval needed) and the e03s08 status
+      reconciliation at release.

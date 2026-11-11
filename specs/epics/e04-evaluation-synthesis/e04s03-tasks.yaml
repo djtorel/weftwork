@@ -1,10 +1,19 @@
 ---
 # Change request 2026-11-08, ADDED: story e04s03 (R16 evidence refresh).
 # Closes the measurement gaps R5 and R3 left open. Runs before e04s02.
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# plan-work 2026-11-11: five tasks become six (new task 2, Method).
+#   Owner decisions, same day: R16 as planned, routed reading listed in
+#   Open questions only; runtime tests in the session scratchpad (see
+#   the story spec).
 story_id: e04s03
 title: R16 evidence refresh
-status: todo
+status: done
 bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e04s03-r16-evidence-refresh.md
 research_story: R16
 brief: docs/research/R16-evidence-refresh.md
 tasks:
@@ -16,8 +25,39 @@ tasks:
     verify: >-
       bash tools/check-brief.sh docs/research/R16-evidence-refresh.md
       R16 --sources
-    status: todo
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
   - id: 2
+    description: >-
+      Write the Method section: access date, the session scratchpad
+      path and that the owner named it (2026-11-11), how each host's
+      configuration was isolated from the owner's skills, the host
+      versions, that the scratch directory was deleted after the runs,
+      whether any page came through a summarizing subagent, and that no
+      other file outside the repository was read
+    verify: >-
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R16-evidence-refresh.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'scratchpad'
+      && printf '%s\n' "$M" | grep -Eiq 'isolat'
+      && printf '%s\n' "$M" | grep -Eiq 'deleted|removed'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M"
+      | grep -Eiq 'no other file outside|outside (this|the) repository'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 3
     description: >-
       Measure the always-loaded skill listing in pi and Claude Code,
       the two hosts installed here: for a fixed set of skills, record
@@ -31,8 +71,14 @@ tasks:
       && printf '%s\n' "$S" | grep -Eq 'Claude Code [0-9]+\.[0-9]+\.[0-9]+'
       && printf '%s\n' "$S" | grep -Eqi '[0-9][0-9,]* (tokens|characters)'
       && printf '%s\n' "$S" | grep -Eqi 'method'
-    status: todo
-  - id: 3
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 4
     description: >-
       Test whether Claude Code reads a skill placed under .agents/skills:
       run it on a scratch skill in a scratch directory, record the
@@ -44,8 +90,14 @@ tasks:
       /^## /{f=0} f' docs/research/R16-evidence-refresh.md);
       printf '%s\n' "$S" | grep -Eqi '^Result: (read|not read)'
       && printf '%s\n' "$S" | grep -Eq 'Claude Code [0-9]+\.[0-9]+\.[0-9]+'
-    status: todo
-  - id: 4
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 5
     description: >-
       Re-check BMAD v7 against R3: release status on the access date,
       install and entry commands, and whether the R3 table row for BMAD
@@ -56,17 +108,25 @@ tasks:
       printf '%s\n' "$S" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
       && printf '%s\n' "$S" | grep -Eqi 'v7'
       && printf '%s\n' "$S" | grep -Eqi 'stable|alpha|beta|preview|released'
-    status: todo
-  - id: 5
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 6
     description: >-
       Add verdicts (confirmed/refined/refuted, with sources)
       for every hypothesis assigned to R16 in planning-context.yaml
       (H8, H10), plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      vs ceremony verdicts, and open questions that list the reading
+      routed here and not done (owner decision, 2026-11-11): the four
+      R11 papers and the R13 and R15 papers read only in passages
     verify: >-
       B=docs/research/R16-evidence-refresh.md;
       bash tools/check-brief.sh "$B" R16
-      && for h in Sources 'Skill listing cost'
+      && for h in Sources Method 'Skill listing cost'
       'Claude Code and .agents/skills' 'BMAD v7 re-check' Verdicts
       'Implications for weftwork' 'Earns its place vs ceremony'
       'Open questions'; do
@@ -78,9 +138,19 @@ tasks:
       | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
       && test -z "$(comm -23 <(printf '%s\n' "$U")
       <(printf '%s\n' "$L"))"
-      && O='## Sources|## Skill listing cost|';
+      && Q=$(awk '$0=="## Open questions"{f=1;next} /^## /{f=0} f' "$B")
+      && for i in 2609.39678 2610.02456 2603.10387 2608.25817 R13 R15; do
+      printf '%s\n' "$Q" | grep -qF "$i"
+      || { echo "open questions lacks: $i"; exit 1; }; done
+      && O='## Sources|## Method|## Skill listing cost|';
       O="${O}## Claude Code and .agents/skills|## BMAD v7 re-check|";
       O="${O}## Verdicts|## Implications for weftwork|";
       O="${O}## Earns its place vs ceremony|## Open questions";
       test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
-    status: todo
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"

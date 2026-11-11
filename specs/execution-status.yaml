@@ -22,7 +22,7 @@ development_status:
   e04: todo
   e04s01: done
   e04s02: todo
-  e04s03: todo
+  e04s03: done
   e05: todo
 epics:
   e01:
@@ -216,7 +216,7 @@ stories:
     lead_time_minutes: 129
     bcp_per_hour: 3.7
   e03s08:
-    status: todo
+    status: done
     title: R15 run termination for autonomous loops
     bcps: 5
     epic: e03
@@ -246,13 +246,18 @@ stories:
     tasks_passing: 0
     tasks_failing: 0
   e04s03:
-    status: todo
+    status: done
+    started_at: '2026-11-11T07:08:32-07:00'
+    completed_at: '2026-11-11T08:50:00-07:00'
     title: R16 evidence refresh
     bcps: 5
     epic: e04
-    tasks_total: 5
-    tasks_passing: 0
+    tasks_total: 6
+    tasks_passing: 6
     tasks_failing: 0
+    effort_hours: 0.8611
+    lead_time_minutes: 52
+    bcp_per_hour: 5.8
 gate_trace:
   verdict: WAIVED
   generated_at: "2026-11-11T03:10:00Z"
