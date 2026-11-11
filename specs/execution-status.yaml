@@ -23,11 +23,11 @@ development_status:
   e04s01: done
   e04s02: done
   e04s03: done
-  e05: in_progress
+  e05: done
   e05s01: done
   e05s02: done
   e05s03: done
-  e05s04: in_progress
+  e05s04: done
   e06: todo
   e07: todo
   e08: todo
@@ -56,7 +56,7 @@ epics:
     wsjf: 3.8
     total_bcps: 16
   e05:
-    status: in_progress
+    status: done
     title: Repository and environment setup (wave 5)
     wsjf: 2.5
     total_bcps: 11
@@ -301,6 +301,10 @@ stories:
     effort_hours: 0.5675
     lead_time_minutes: 37
     bcp_per_hour: 5.3
+  e05s04:
+    effort_hours: 0.0
+    lead_time_minutes: 2
+    bcp_per_hour: 0.0
 gate_trace:
   verdict: WAIVED
   generated_at: "2026-11-11T03:10:00Z"

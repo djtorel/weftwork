@@ -4,7 +4,7 @@ title: Repository and environment setup (wave 5)
 wsjf: 2.5
 total_bcps: 11
 risk: P2
-status: in_progress
+status: done
 depends_on:
   - e04
 done_when: >-
@@ -33,7 +33,7 @@ stories:
   - id: e05s04
     title: PR template and protected main
     bcps: 3
-    status: in_progress
+    status: done
     tasks: e05s04-tasks.yaml
     delta: ADDED
 # Sliced 2026-11-11 (slice-tasks). Order e05s01, s02, s03, s04, one

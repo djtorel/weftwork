@@ -13,7 +13,7 @@
 # approvals. Classic branch protection, not rulesets (spec §5).
 story_id: e05s04
 title: PR template and protected main
-status: in_progress
+status: done
 bcps: 3
 type: chore
 context: infra
