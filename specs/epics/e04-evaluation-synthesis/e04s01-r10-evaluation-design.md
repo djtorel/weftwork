@@ -18,8 +18,8 @@ each the recommended option):
   sourced verdicts from literature. It runs no agent trial and no pilot.
   Estimate stays at 8 BCPs. A pilot run is a candidate story for the
   first build epic.
-- **Backlog: triage plus core protocol.** Nine earlier briefs (R4, R6,
-  R7, R8, R9, R11, R12, R13, R15) nominated about 35 candidate
+- **Backlog: triage plus core protocol.** Earlier briefs (R0 to R2, R4, R6,
+  R7, R8, R9, R11, R12, R13, R15) nominated about 50 candidate
   measurements for R10. The brief lists every one in a triage table
   (cost and a call each) and writes a full protocol only for the six
   assigned hypotheses and the four R7 experiments below.
@@ -91,7 +91,7 @@ brief and run by task 6; it is not a tool.
   sourced verdict per hypothesis, papers cited wherever literature
   exists (CONVENTIONS.md §Evidence).
 - **Inputs passed forward by earlier briefs:**
-  - R4: SWE-bench resolves 2,294 real issues [S17]; 7.8 percent of
+  - R4: SWE-bench consists of 2,294 real issues [S17]; 7.8 percent of
     patches counted correct fail a stronger oracle [S18]. Candidate:
     resolution against a stronger oracle.
   - R6: two agents on a small repository, disjoint then overlapping
@@ -276,7 +276,8 @@ Headings, in order: `## Sources`, `## Method`,
 
 Decision reference: every step follows the owner's 2026-11-10
 decisions (design only; triage plus core protocol; e04s02 and e04s03
-spec waiver), recorded in the `state.yaml` waivers.
+spec waiver), recorded in the `state.yaml` waivers and in the plan
+commit `3b032c2`.
 
 1. Draft the brief with dated sources, ten or more papers including the
    six flagged ones → verify: task 1 in `e04s01-tasks.yaml`
@@ -319,7 +320,7 @@ enough.
 
 ## 8. Risks
 
-- **Too many candidates for 8 BCPs.** About 35 measurements and ten
+- **Too many candidates for 8 BCPs.** About 50 measurements and ten
   protocols. Mitigation: the triage table carries every candidate at one
   line each; only ten get a protocol. If the estimate breaks, raise it
   with the owner rather than thin the evidence.
