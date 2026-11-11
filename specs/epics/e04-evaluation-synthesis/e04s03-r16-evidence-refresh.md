@@ -170,6 +170,10 @@ Headings, in order: `## Sources`, `## Method`, `## Skill listing cost`,
 
 ## 6. Steps
 
+Decision reference: every step follows the owner's 2026-11-11 decisions
+(R16 as planned; scratchpad for the runtime tests), recorded in the
+`state.yaml` handoff and in the plan commit `ef2047a`.
+
 1. Draft the brief with dated sources → verify: task 1 in
    `e04s03-tasks.yaml`
 2. Write Method → verify: task 2
