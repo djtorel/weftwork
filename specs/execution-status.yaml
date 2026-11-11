@@ -10,7 +10,7 @@ development_status:
   e02s02: done
   e02s03: done
   e02s04: done
-  e03: in_progress
+  e03: done
   e03s01: done
   e03s02: done
   e03s03: done
@@ -18,7 +18,7 @@ development_status:
   e03s05: done
   e03s06: done
   e03s07: done
-  e03s08: todo
+  e03s08: done
   e04: todo
   e04s01: todo
   e04s02: todo
@@ -36,7 +36,7 @@ epics:
     wsjf: 3.6
     total_bcps: 14
   e03:
-    status: in_progress
+    status: done
     title: Design topics (wave 3)
     wsjf: 1.6
     total_bcps: 44
@@ -220,9 +220,12 @@ stories:
     title: R15 run termination for autonomous loops
     bcps: 5
     epic: e03
-    tasks_total: 3
-    tasks_passing: 0
+    tasks_total: 8
+    tasks_passing: 8
     tasks_failing: 0
+    effort_hours: 0.4172
+    lead_time_minutes: 25
+    bcp_per_hour: 12.0
   e04s01:
     status: todo
     title: R10 evaluation design

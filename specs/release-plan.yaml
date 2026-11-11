@@ -39,7 +39,7 @@ epics:
     bcps: 44
     risk: P2
     depends_on: [e02]
-    capsule_dir: epics/e03-design-topics
+    capsule_dir: epics/archive/e03-design-topics
     note: >-
       Rescored by change-request 2026-11-08 after the e01 re-plan
       checkpoint: new R15 story, and added topics or tasks in R7, R9,
@@ -48,6 +48,7 @@ epics:
       change request on the same day moved two R5 and R3 candidates into
       e03s07 (R13) with no BCP change: locate the "Code as Agent
       Harness" survey and read Kiro's steering and hooks pages.
+      Done and archived by release-branch for e03s08, 2026-11-10.
   - id: e04
     title: Evaluation and synthesis (wave 4)
     wsjf: 3.8               # (7 + 4 + 8) / 5

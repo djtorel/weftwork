@@ -4,7 +4,7 @@ title: Design topics (wave 3)
 wsjf: 1.6
 total_bcps: 44
 risk: P2
-status: in_progress
+status: done
 depends_on:
   - e02
 done_when: >-
@@ -48,5 +48,5 @@ stories:
   - id: e03s08
     title: R15 run termination for autonomous loops
     bcps: 5
-    status: todo
+    status: done
     tasks: e03s08-tasks.yaml
