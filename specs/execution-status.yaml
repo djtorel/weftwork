@@ -210,7 +210,7 @@ stories:
     bcps: 8
     epic: e03
     tasks_total: 9
-    tasks_passing: 0
+    tasks_passing: 9
     tasks_failing: 0
   e03s08:
     status: todo
