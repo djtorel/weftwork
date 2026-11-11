@@ -103,8 +103,12 @@ thin CLI (`cli.ts`).
   add keys such as the timeout.
 
 #### ADDED: `src/cli.ts`
-- Reads all of stdin, calls `parseRequest` with `process.cwd()`, then
-  `runGate`, and prints one JSON line to stdout.
+- Reads stdin up to 1 MiB (1048576 bytes), calls `parseRequest` with
+  `process.cwd()`, then `runGate`, and prints one JSON line to stdout.
+  Input over the cap is an error, not a hang (threat model C8).
+- A comment at the top of `src/cli.ts` says that `command` is code
+  and must come from the owner's plan, not from the agent (threat
+  model C1, T1).
 - Exit 0 and `{"done":true,"exitCode":0}` when done.
 - Exit 1 and `{"done":false,"exitCode":<n or null>}` when not done.
 - Exit 2 and `{"done":false,"error":"<why>"}` for input it cannot
@@ -180,6 +184,7 @@ Scenario Outline: AC-e06s01-06 the CLI answers at the process boundary
     | {"command":"exit 7"}      | 1    | false |
     | not json                  | 2    | false |
     | {}                        | 2    | false |
+    | 1 MiB + 1 byte of input   | 2    | false |
 
 Scenario: AC-e06s01-07 command output never reaches stdout
   When the real CLI reads {"command":"echo noise"}
