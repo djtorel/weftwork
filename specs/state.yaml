@@ -251,29 +251,35 @@ handoff:
   next_skill: request-review
   next_story: e03s07
   note: >-
-    e03s07 request-review round 1 of 2 FAILED the AND-gate on 2026-11-11:
-    reviewer A 95.3 with 2 must-fix, reviewer B 95.1 with 4 must-fix (four
-    distinct). Confirmed against the sources and fixed in
-    docs/research/R13-enforcement-design.md: the 93 percent approval figure
-    is in the Anthropic post (I had written that it was not); pi docs say
-    tool_call errors block the tool (I had written that they did not say;
-    reviewer A missed it too); the 47 gates in the Bounded Loops paper are
-    vacuity defects, not 47 of 69 gates and not self-attestation. Also fixed
-    the confirmed should-fix items and added sources S52 to S54, now 54
-    sources. A claim from reviewer A about Windows and Claude Code hooks was
-    not confirmed and was not used. Round 1 fixes are NOT re-reviewed. Next:
-    the owner decides whether to run round 2 (the agreed cap is two rounds;
-    earlier briefs were waived after failing every round) or to waive the
-    remaining gate and release, as for e03s02 to e03s06. Then restore the
-    state.yaml reflow (54 lines against main from bp-timing.sh, semantically
-    clean), record a new gate-trace waiver for this release, and run
-    release-branch. The squash message drafted in commit-message is the one
-    that reaches main. audit-code passed (the skills verify line is not run,
-    per BUG-003). Evidence: specs/verifications/e03s07-verify.yaml,
-    AUDIT-e03-e03s07.md. Commits are not pushed, and CI runs check-briefs.sh
-    on every brief. Carried over for the owner: BUG-005 decision, undecided
-    R7 items, e04s02 stack choice, four unread R11 papers (arXiv:2609.39678,
-    2610.02456, 2603.10387, 2608.25817). Every commit needs a Story trailer.
+    e03s07 request-review round 2 of 2 FAILED the AND-gate on 2026-11-11:
+    reviewer A 91.6 with 2 must-fix, reviewer B 95.8 by its own arithmetic
+    (its header said 94.9) with 2 must-fix. The agreed cap of two rounds is
+    reached. Confirmed against the sources and fixed in
+    docs/research/R13-enforcement-design.md: Claude Code has a
+    Windows-without-Git-Bash case where a failed hook blocks, and onFailure
+    needs v2.1.295 or later (my round 1 Method sentence calling the Windows
+    claim unconfirmed was false); the /hooks menu and first-run notice
+    exist, so no page offers a way to confirm a hook is live was too broad;
+    Claude Code can log permission decisions; two benchmarks test defences
+    against an agent tampering with its own evaluation, so no test of a
+    remedy was false; Codex fails open on unsupported PreToolUse output
+    fields; the S20 refusal result and the S4 deputy result had dropped
+    qualifiers. Added sources S55 to S59, now 59. Round 1 and round 2 fixes
+    are NOT re-reviewed. Open for the owner: (1) request-review failed the
+    AND-gate in both rounds; record a waiver as for e03s02 to e03s06 and
+    release, or run a round 3. (2) S56 (a NeurIPS workshop poster) and S59
+    (a Claude Code docs page) are undated; the existing undated exception
+    covers S25 to S29 only, so extend it or drop them. check-brief now warns
+    7 undated sources. (3) New gate-trace waiver for this release. (4)
+    Restore the state.yaml reflow (54 lines against main, semantically
+    clean) as the last step before release-branch. The squash message
+    drafted in commit-message is the one that reaches main. Commits are not
+    pushed; CI runs check-briefs.sh on every brief. Reviewer lesson, twice
+    now: my not found statements from narrow searches were the main source
+    of errors, so search the full text with plain keywords before writing
+    one. Carried over: BUG-005 decision, undecided R7 items, e04s02 stack
+    choice, four unread R11 papers (arXiv:2609.39678, 2610.02456,
+    2603.10387, 2608.25817). Every commit needs a Story trailer.
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
@@ -302,9 +308,9 @@ metrics:
       total_seconds: 1128.0
       avg_seconds: 112.8
     request-review:
-      calls: 6
-      total_seconds: 9078.0
-      avg_seconds: 1513.0
+      calls: 7
+      total_seconds: 9913.0
+      avg_seconds: 1416.142857142857
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
