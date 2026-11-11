@@ -12,7 +12,7 @@
 # --check fails. Selftest first (RED), then the script (GREEN).
 story_id: e05s02
 title: One command sets up the Python and Node toolchains
-status: in_progress
+status: done
 bcps: 3
 type: chore
 context: infra

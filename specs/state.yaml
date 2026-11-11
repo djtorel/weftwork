@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e05
-active_story: e05s01
+active_story: e05s02
 phase: planning
 test_plan: lite
 vcs:
@@ -357,28 +357,23 @@ waivers:
   date: 2026-11-11
   scope: e05 only
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   next_story: e05s02
-  note: 'e05s02 (one-command setup for the Python and Node toolchains) is built
-    on branch e05s02-toolchain-setup (git checkout -b, no worktree). All 6
-    tasks are done; each verify passed. Commits are local; nothing is
-    pushed. Next: verify-work for e05s02 (P2 depth), then audit-code, then
-    release-branch; the push and the PR each need the owner''s go-ahead. The
-    owner gave a commit go-ahead for e05s02 only (2026-11-11). Built:
-    tools/setup.sh (pip installs PyYAML and yamllint only when missing,
-    checks node against engines.node and npm, runs npm ci; --check installs
-    nothing), tools/test- setup.sh (7 cases), package.json with exact
-    typescript 7.0.2 and @types/node 26.6.6, strict tsconfig for Node type
-    stripping, src/smoke.ts and its test, CI on actions/setup-node@v7. Later
-    e05 stories: e05s03 TypeScript code-style and test sections, Preflight
-    adds the typecheck and tests; e05s04 PR template and protected main,
-    with gh api allowed for that story only (task 2 records the waiver). The
-    PR template lists the gates and carries no provenance marker (epic
-    done_when changed). Branch protection changes GitHub settings, so ask
-    right before it. Still deferred by the owner: the experiment task source
-    and the spend cap. Do not run scripts/sync-status-from-epics.sh; it
-    drops cycle-time fields. Run tools/restore-yaml-style.py --base main on
-    specs/state.yaml after the last bp-timing.sh call, before committing.'
+  note: 'e05s02 is verified (P2 depth) with evidence in
+    specs/verifications/e05s02-verify.yaml. Branch e05s02-toolchain-setup,
+    local commits only; nothing is pushed. Next: audit-code for e05s02, then
+    release-branch. The push and the PR each need the owner''s go-ahead.
+    Open for the owner: reopen BUG-005 (a verify-stage script rewrote
+    state.yaml again; restored with tools/restore-yaml-style.py). e05
+    total_bcps in execution-status.yaml is 8 but epic.yaml says 11. Later
+    e05 stories: e05s03 TypeScript code-style and test sections, and
+    Preflight adds the typecheck and tests; e05s04 PR template and protected
+    main (branch protection changes GitHub settings, so ask first; its gh
+    api waiver is recorded in its task 2). Still deferred by the owner: the
+    experiment task source and the spend cap. Do not run scripts/sync-
+    status-from-epics.sh; it drops cycle-time fields. Run tools/restore-
+    yaml-style.py --base HEAD on specs/state.yaml after the last bp-
+    timing.sh call, before committing.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -395,9 +390,9 @@ metrics:
       total_seconds: 9004.0
       avg_seconds: 500.22222222222223
     verify-work:
-      calls: 16
-      total_seconds: 714.0
-      avg_seconds: 44.625
+      calls: 17
+      total_seconds: 789.0
+      avg_seconds: 46.411764705882355
     audit-code:
       calls: 14
       total_seconds: 593.0
