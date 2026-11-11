@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Selftest for tools/setup.sh --check (e05s02). Every case builds a tree
-# in a temporary directory, never in the repository: a copy of setup.sh
-# and a bin/ of stub tools that log their arguments. setup.sh runs with
+# in a temporary directory, never in the repository: a copy of setup.sh,
+# a package.json with engines.node, a stub node_modules/.bin/tsc, and a
+# bin/ of stub tools that log their arguments. setup.sh runs with
 # PATH set to that bin/ only. The all-present case must pass first, so a
 # broken selftest cannot pass vacuously. Each bad case removes or breaks
 # one tool; it must exit 1 and name that tool. No case may call pip.
@@ -33,6 +34,13 @@ good() {
   done
   stub "$d" python3 'exit 0'
   stub "$d" yamllint 'exit 0'
+  stub "$d" node 'echo v26.7.0'
+  stub "$d" npm 'exit 0'
+  mkdir -p "$d/node_modules/.bin"
+  printf '#!/bin/sh\nexit 0\n' > "$d/node_modules/.bin/tsc"
+  chmod +x "$d/node_modules/.bin/tsc"
+  printf '{\n  "engines": {\n    "node": ">=26"\n  }\n}\n' \
+    > "$d/package.json"
 }
 
 # run_case <name> <want-exit> <needle> <dir>: run setup.sh --check in
@@ -64,5 +72,21 @@ run_case missing-yamllint 1 'yamllint' "$d"
 d="$tmp/no-pyyaml"; good "$d"
 stub "$d" python3 'case "$*" in *yaml*) exit 1;; esac; exit 0'
 run_case missing-pyyaml 1 'PyYAML' "$d"
+
+d="$tmp/no-node"; good "$d"
+rm "$d/bin/node"
+run_case missing-node 1 'missing node' "$d"
+
+d="$tmp/old-node"; good "$d"
+stub "$d" node 'echo v24.0.0'
+run_case node-below-engines 1 'v24.0.0' "$d"
+
+d="$tmp/no-npm"; good "$d"
+rm "$d/bin/npm"
+run_case missing-npm 1 'missing npm' "$d"
+
+d="$tmp/no-tsc"; good "$d"
+rm "$d/node_modules/.bin/tsc"
+run_case missing-tsc 1 'missing tsc' "$d"
 
 echo "test-setup: OK"
