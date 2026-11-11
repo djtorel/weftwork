@@ -1,0 +1,36 @@
+---
+story_id: e02s01
+verified_at: '2026-11-11T02:33:48Z'
+verifier: verify-work (backfill)
+backfilled: true
+branch: fix-bug-005-state-file-style
+risk: P2
+mode: >-
+  backfill of the task verify commands only (no tests, security scan or UAT)
+phases:
+  note:
+    passed: null
+    note: >-
+      This story was released without a verify file, which gate-trace
+      reported as rule R2 CONCERNS in recent gate-trace waivers. This file
+      was written on 2026-11-10 by re-running its task verify commands from
+      archive/e02-tools-and-hosts/e02s01-tasks.yaml on commit 142be97. It
+      records that those commands pass today. It does not record what was
+      run when the story was released.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/archive/e02-tools-and-hosts/e02s01-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-11T02:33:48Z'
+    note: >-
+      One contiguous pass over tasks 1 to 3.
+    output: |
+      task 1: exit 0
+      task 2: exit 0
+      task 3: exit 0
+      TERMINAL_EXIT=0
+  gaps:
+    closed: true
+    note: 'No gaps logged.'

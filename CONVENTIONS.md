@@ -68,6 +68,14 @@ Add the code-style and test sections when the stack is chosen (an open question 
 
 ## Generated and Managed Files
 
+- The global scripts `record-cycle-time.sh` and `bp-timing.sh` rewrite YAML
+  state files with `yaml.dump`, which drops comments, the `---` line and
+  folded scalars (BUG-005, BUG-001). `tools/record-cycle-time.sh` restores
+  the style of `specs/execution-status.yaml` itself. After the last
+  `bp-timing.sh` call of a story, run `python3 tools/restore-yaml-style.py
+  specs/state.yaml --base HEAD` before you commit. It puts back the text of
+  every block whose data did not change and never changes data.
+
 - Edit `AGENTS.md` only inside `bigpowers:` fences, or outside them.
 - `CLAUDE.md` is a symlink to `AGENTS.md`. NEVER edit it separately.
 - Every command written into `AGENTS.md` MUST resolve in this repository today.

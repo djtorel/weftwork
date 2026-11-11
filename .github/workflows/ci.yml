@@ -24,3 +24,4 @@ jobs:
       - run: bash tools/check-briefs.sh
       - run: bash tools/check-gate-ignores.sh
       - run: bash tools/test-record-cycle-time.sh
+      - run: bash tools/test-restore-yaml-style.sh
