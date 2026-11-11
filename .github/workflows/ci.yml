@@ -18,7 +18,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
-      - run: pip install pyyaml yamllint
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: bash tools/setup.sh
       - run: yamllint specs
       - run: bash tools/validate-specs-yaml.sh
       - run: bash tools/test-validate-specs-yaml.sh
@@ -28,3 +32,6 @@ jobs:
       - run: bash tools/test-record-cycle-time.sh
       - run: bash tools/test-restore-yaml-style.sh
       - run: bash tools/test-assert-audit-story.sh
+      - run: bash tools/test-setup.sh
+      - run: npm run typecheck
+      - run: npm test

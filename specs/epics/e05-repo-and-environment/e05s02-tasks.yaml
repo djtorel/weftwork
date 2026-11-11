@@ -106,7 +106,7 @@ tasks:
       && yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
