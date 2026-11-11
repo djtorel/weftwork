@@ -49,7 +49,7 @@ tasks:
       && bash tools/setup.sh && bash tools/setup.sh
       && bash tools/setup.sh --check
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
