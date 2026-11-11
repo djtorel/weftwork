@@ -27,7 +27,7 @@ stories:
   - id: e05s03
     title: TypeScript code-style and test conventions, and real commands
     bcps: 2
-    status: todo
+    status: done
     tasks: e05s03-tasks.yaml
     delta: ADDED
   - id: e05s04

@@ -1,7 +1,8 @@
 # Conventions
+<!-- story: e05s03 -->
 
-Shared rules for every agent working in weftwork. Written from the bigpowers base, trimmed to a project with no product code yet.
-Add the code-style and test sections when the stack is chosen (an open question for the synthesis, e04s02).
+Shared rules for every agent working in weftwork. Written from the bigpowers base.
+The stack is TypeScript on Node 26 or later, with npm and `node:test` (owner decision, e04 checkpoint, 2026-11-11).
 
 ## Conventional Commits
 
@@ -59,10 +60,46 @@ Add the code-style and test sections when the stack is chosen (an open question 
 ## Always Green and Discovered Defects
 
 - Preflight is `yamllint specs && bash tools/validate-specs-yaml.sh &&
-  bash tools/check-gate-ignores.sh`.
+  bash tools/check-gate-ignores.sh && npm run typecheck && npm test`.
+- On a fresh clone, run `bash tools/setup.sh` first. Preflight needs
+  `node_modules`.
 - Preflight MUST pass before forward work.
 - A reproducible gate failure needs `quick-fix` or `fix-bug`, in a separate commit.
 - Banned dismissive phrases: "pre-existing", "unrelated to this session", "not introduced by my changes", "out of scope".
+
+## TypeScript code style
+
+Only rules that the toolchain enforces or that a reviewer can check.
+
+- `tsconfig.json` is strict. NEVER weaken it to make code compile.
+- ESM only (`"type": "module"`, module `nodenext`). Import local files
+  with their `.ts` extension. Use `import type` for type-only imports
+  (`verbatimModuleSyntax`).
+- Erasable syntax only: no `enum`, `namespace` or parameter
+  properties (`erasableSyntaxOnly`). Node runs `.ts` files by type
+  stripping, with no build step.
+- No explicit `any` without a comment that says why. Use `unknown` and
+  a check instead. A reviewer checks this rule; no linter enforces it
+  yet.
+- Errors: an expected failure (a gate fails, a file is missing) is a
+  returned value that the caller must check. Throw only for bugs and
+  for states the program cannot recover from. Throw `Error` instances,
+  never strings.
+- The CLI is a thin shell. It parses arguments, calls a library
+  function and prints the result. Logic lives in the library, so tests
+  call it without starting a process.
+
+## Tests
+
+- Runner: the built-in `node:test` with `node:assert/strict`. `npm test`
+  runs `node --test`. Use no other runner.
+- Put each test in `<name>.test.ts` next to the code it tests. Node 26
+  finds `**/*.test.ts` by default.
+- Red first: write the test, run it, and see it fail before the code
+  exists. Record that failure as RED evidence.
+- Every test asserts. A test that cannot fail is not a test.
+- Preflight and CI run `npm run typecheck` and `npm test`. CI also runs
+  the shell selftests in `tools/`.
 
 ## specs/ and docs/
 

@@ -1,0 +1,86 @@
+---
+story_id: e05s03
+verified_at: "2026-11-11T21:55:21Z"
+verifier: verify-work
+risk: P3
+mode: >-
+  default (P3 depth: typecheck and lint only; smoke, tests, security
+  scan and manual UAT skipped by risk, but the story's own task verify
+  commands ran, and they include npm test)
+branch: e05s03-typescript-conventions
+phases:
+  branch_check:
+    passed: true
+    note: "On e05s03-typescript-conventions, not main"
+  preflight:
+    passed: true
+    command: >-
+      eval "$(bash scripts/bp-read-agents.sh)" && eval "$BP_PREFLIGHT"
+    note: >-
+      Exit 0. Runs yamllint specs, validate-specs-yaml,
+      check-gate-ignores, npm run typecheck and npm test
+  ci_check:
+    passed: true
+    note: "No PR open, so the CI check in step 0a does not apply"
+  task_verifies:
+    passed: true
+    note: >-
+      Tasks 1 to 4 exit 0 after the last edit. Before the edits, all
+      four exited 1 (RED, recorded in the develop-tdd session)
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+  lint:
+    passed: true
+    command: "yamllint specs"
+    terminal_verdict: true
+    note: "Exit 0, no output. Single run, not merged with other attempts"
+  build:
+    passed: true
+    note: "N/A: no build step. npm run typecheck is the build (no emit)"
+  smoke:
+    passed: true
+    note: "Skipped for P3 (verify-work). Preflight covers the same code"
+  tests:
+    passed: true
+    note: >-
+      Skipped for P3 as a gate. npm test ran inside Preflight and as
+      task 4's verify command, both exit 0
+  security_scan:
+    passed: true
+    note: "Skipped for P3 (verify-work). No code or interface changed"
+  blind_spots:
+    passed: true
+    command: "bash scripts/check-blind-spots.sh"
+    note: >-
+      0 HIGH, 15 MEDIUM, 1 LOW. The MEDIUM findings are double-tag
+      warnings. None is new in e05s03 except the tasks file, which
+      mentions e05s02 in its comments. MEDIUM warns and does not block
+  completeness_critic:
+    passed: true
+    command: "bash scripts/lib/completeness-critic.sh"
+    note: >-
+      First run: BLOCKER, "active story e05s03 has zero explicit
+      story-tag links". Gap closed by adding <!-- story: e05s03 -->
+      to CONVENTIONS.md and AGENTS.md, then bash scripts/trace-stories.sh
+      to rebuild specs/traceability-matrix.json. Second run: BLOCKER=0,
+      WARNING=0
+  adversarial_gate:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    note: "PASS: no modified interface to fuzz"
+  manual:
+    passed: true
+    note: "Skipped for P3 (verify-work). The story is documentation"
+  gaps:
+    closed: true
+    found:
+      - "Traceability gap: no explicit story tag for e05s03 (BLOCKER)"
+    closed_by: >-
+      Story tags in CONVENTIONS.md and AGENTS.md, outside the bigpowers
+      fences. Matrix rebuilt. Critic re-run with 0 blockers
+terminal_verdict:
+  command: "yamllint specs"
+  exit_code: 0
+  captured_at: "2026-11-11T21:54:00Z"
+  note: "Single run. Do not merge output from other attempts"

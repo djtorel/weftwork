@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e05
-active_story: e05s03
+active_story: e05s04
 phase: planning
 test_plan: lite
 vcs:
@@ -358,56 +358,50 @@ waivers:
   scope: e05 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e05s03
-  note: 'e05s02 (one command sets up the Python and Node toolchains) is released
-    by PR from e05s02-toolchain-setup, after the owner approved the push and
-    the PR; the merge needs its own go-ahead. Next story e05s03 (TypeScript
-    code-style and test sections in CONVENTIONS.md, and real commands).
-    Start it in a fresh session: kickoff-branch from main with git checkout
-    -b (no worktree), then plan-work. active_story is already e05s03. What
-    e05s02 built: tools/setup.sh (run it on a fresh clone; --check installs
-    nothing), tools/test-setup.sh, package.json with exact typescript 7.0.2
-    and @types/node 26.6.6, a strict tsconfig for Node type stripping
-    (erasableSyntaxOnly, so no enum or namespace), npm test is node --test
-    on .ts files, CI on actions/setup-node@v7. e05s03 adds npm run typecheck
-    and npm test to Preflight and the AGENTS.md commands table. Open low
-    item from the e05s02 audit: engines.node >=26 lets setup-node pick a
-    newer major; revisit at the e05 checkpoint. e05s04: PR template and
-    protected main, with gh api allowed for that story only (its task 2
-    records the waiver). The PR template lists the gates and carries no
-    provenance marker. Branch protection changes GitHub settings, so ask
-    right before it. Still deferred by the owner: the experiment task source
-    and the spend cap. Do not run scripts/sync-status-from-epics.sh; it
-    drops cycle-time fields. Run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml after the last bp-timing.sh call, before committing.
-    Wrap YAML text with break_on_hyphens=False.'
+  next_story: e05s04
+  note: '
+    e05s03 passed the release-branch gates on branch
+    e05s03-typescript-conventions: Preflight green, audit PASS, completeness
+    critic 0 blockers, fresh security review with no HIGH, and gate-trace FAIL
+    on R1 (e05s04 undone with no code tags), covered by the standing waiver.
+    The branch is not yet landed. Landing (squash to main) and the push to
+    origin need the owner''s decision; this note assumes it lands. Next story
+    e05s04: PR template and protected main. Start it in a fresh session:
+    kickoff-branch from main with git checkout -b (no worktree), then
+    plan-work. Branch protection changes GitHub settings, so ask right before
+    it. The gh api waiver for e05s04 is recorded in its task 2. Still deferred
+    by the owner: the experiment task source and the spend cap. Open low item:
+    engines.node >=26 lets setup-node pick a newer major; revisit at the e05
+    checkpoint. Do not run scripts/sync-status-from-epics.sh. After the last
+    bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD on
+    specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 15
-      total_seconds: 219.0
-      avg_seconds: 14.6
+      calls: 16
+      total_seconds: 229.0
+      avg_seconds: 14.3125
     plan-work:
-      calls: 17
-      total_seconds: 6564.0
-      avg_seconds: 386.11764705882354
-    develop-tdd:
       calls: 18
-      total_seconds: 9004.0
-      avg_seconds: 500.22222222222223
+      total_seconds: 6983.0
+      avg_seconds: 387.94444444444446
+    develop-tdd:
+      calls: 19
+      total_seconds: 9052.0
+      avg_seconds: 476.42105263157896
     verify-work:
-      calls: 17
-      total_seconds: 789.0
-      avg_seconds: 46.411764705882355
+      calls: 18
+      total_seconds: 845.0
+      avg_seconds: 46.94444444444444
     audit-code:
-      calls: 15
-      total_seconds: 688.0
-      avg_seconds: 45.86666666666667
+      calls: 16
+      total_seconds: 743.0
+      avg_seconds: 46.4375
     release-branch:
-      calls: 17
-      total_seconds: 1679.0
-      avg_seconds: 98.76470588235294
+      calls: 18
+      total_seconds: 1750.0
+      avg_seconds: 97.22222222222223
     request-review:
       calls: 9
       total_seconds: 11503.0
@@ -421,9 +415,9 @@ metrics:
       total_seconds: 131.0
       avg_seconds: 131.0
     commit-message:
-      calls: 4
-      total_seconds: 35.0
-      avg_seconds: 8.75
+      calls: 5
+      total_seconds: 46.0
+      avg_seconds: 9.2
     change-request:
       calls: 1
       total_seconds: 70.0

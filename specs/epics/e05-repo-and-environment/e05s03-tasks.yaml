@@ -2,55 +2,77 @@
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
 # slice-tasks 2026-11-11. CONVENTIONS.md line 4 says to add the
 # code-style and test sections when the stack is chosen. It is chosen.
+# plan-work 2026-11-11 (owner chose each recommended option): Build
+# row is npm run typecheck; Run row stays N/A until e06 ships the CLI;
+# no TypeScript linter; errors are values for expected failures and
+# Error throws for bugs. Task 4 added: bp-read-agents.sh reads the
+# AGENTS.md sections, not the table, and found no real commands.
 story_id: e05s03
 title: TypeScript code-style and test conventions, and real commands
-status: todo
+status: done
 bcps: 2
 type: docs
 context: infra
 risk: P3
+spec: e05s03-typescript-conventions.md
 depends_on: [e05s02]
 tasks:
   - id: 1
     description: >-
       Write the "TypeScript code style" section in CONVENTIONS.md:
       only rules the toolchain from e05s02 enforces or that a reviewer
-      can check (strict compiler, ESM imports, no any without a
-      comment, errors as values or typed throws, CLI as a thin shell
-      over a library function). Remove the line that says to add the
-      section later
+      can check (strict compiler, ESM imports with .ts extensions and
+      import type, erasable syntax only, no any without a comment,
+      errors as values for expected failures and Error throws for
+      bugs, CLI as a thin shell over a library function). Remove the
+      line that says to add the section later, and the "no product
+      code yet" wording on line 3
     verify: >-
       S=$(awk '$0=="## TypeScript code style"{f=1;next} /^## /{f=0} f'
       CONVENTIONS.md)
       && printf '%s\n' "$S" | grep -Eiq 'strict'
       && printf '%s\n' "$S" | grep -Eiq 'esm|module'
       && printf '%s\n' "$S" | grep -Eiq 'any'
+      && printf '%s\n' "$S" | grep -Eiq 'throw'
+      && printf '%s\n' "$S" | grep -Eiq 'cli'
       && ! grep -q 'Add the code-style and test sections' CONVENTIONS.md
+      && ! grep -q 'no product code yet' CONVENTIONS.md
     risk: P3
-    status: todo
+    status: done
     allure:
-      severity: normal
+      severity: minor
+      categories:
+        - "docs"
+        - "e05 wave 5"
   - id: 2
     description: >-
-      Write the "Tests" section in CONVENTIONS.md: runner, where tests
-      live, naming, red first (a test must fail before the code
-      exists), no test that passes without asserting, and what CI runs
+      Write the "Tests" section in CONVENTIONS.md: runner (node:test
+      with node:assert/strict), where tests live (<name>.test.ts next
+      to the code), red first (a test must fail before the code
+      exists), no test that passes without asserting, and what
+      Preflight and CI run
     verify: >-
       S=$(awk '$0=="## Tests"{f=1;next} /^## /{f=0} f' CONVENTIONS.md)
       && printf '%s\n' "$S" | grep -Eiq 'node:test|runner'
       && printf '%s\n' "$S" | grep -Eiq 'red'
       && printf '%s\n' "$S" | grep -Eiq 'assert'
+      && printf '%s\n' "$S" | grep -q '\.test\.ts'
     risk: P3
-    status: todo
+    status: done
     allure:
-      severity: normal
+      severity: minor
+      categories:
+        - "docs"
+        - "e05 wave 5"
   - id: 3
     description: >-
       Fill the Run, Test, Build and Lint rows of the AGENTS.md command
-      table with commands that resolve today, and the Test and Lint
-      sections under it. Add the typecheck and the tests to Preflight
-      (owner decision 2026-11-11) and keep CONVENTIONS.md and AGENTS.md
-      in step
+      table: Run stays N/A until e06 ships the CLI, Test npm test,
+      Build npm run typecheck (no emit), Lint yamllint specs. Append
+      npm run typecheck and npm test to Preflight (owner decision
+      2026-11-11) in both AGENTS.md and CONVENTIONS.md, with the same
+      text, and name tools/setup.sh as the step before Preflight on a
+      fresh clone
     verify: >-
       ! grep -E '^\| (Test|Build) .*N/A' AGENTS.md
       && grep -E '^\| Preflight' AGENTS.md | grep -q 'npm test'
@@ -58,6 +80,34 @@ tasks:
       && bash tools/setup.sh --check && npx tsc --noEmit && npm test
       && yamllint specs && bash tools/validate-specs-yaml.sh
     risk: P3
-    status: todo
+    status: done
     allure:
-      severity: normal
+      severity: minor
+      categories:
+        - "docs"
+        - "e05 wave 5"
+  - id: 4
+    description: >-
+      Make bp-read-agents.sh find real commands. Start the AGENTS.md
+      Test, Build and Lint sections with a code fence that holds the
+      command, and add a Preflight section the same way, all inside the
+      bigpowers:project fence. Update the Project stack line and the
+      Architecture section: TypeScript on Node 26 or later, npm,
+      node:test; src/ holds only the e05s02 smoke files until e06.
+      Then run the AGENTS.md Preflight line itself
+    verify: >-
+      P=$(bash scripts/bp-read-agents.sh --print)
+      && printf '%s\n' "$P" | grep -Eq '^Test: +npm test$'
+      && printf '%s\n' "$P" | grep -Eq '^Build: +npm run typecheck$'
+      && printf '%s\n' "$P" | grep -Eq '^Lint: +yamllint specs$'
+      && printf '%s\n' "$P" | grep -Eq '^Preflight: .*npm test$'
+      && ! printf '%s\n' "$P" | grep -q 'N/A'
+      && ! grep -q 'Stack: none yet' AGENTS.md
+      && eval "$(printf '%s\n' "$P" | sed -n 's/^Preflight: //p')"
+    risk: P3
+    status: done
+    allure:
+      severity: minor
+      categories:
+        - "docs"
+        - "e05 wave 5"
