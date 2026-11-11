@@ -19,6 +19,12 @@ Add the code-style and test sections when the stack is chosen (an open question 
   removes from `specs/execution-status.yaml` (BUG-004).
 - CI runs `tools/test-record-cycle-time.sh` (the BUG-004 regression test)
   on every push and pull request, so the marker fix stays enforced.
+- Run the audit gate through `tools/assert-audit-story.sh`, not
+  `scripts/lib/assert-epic-gate.sh`: the global gate passes any
+  `VERDICT: PASS` in `specs/AUDIT_LATEST.md`, even one for an earlier
+  story (BUG-006). The wrapper needs a `Story: <active story>` line in that
+  file. audit-code must write it for every story. CI runs
+  `tools/test-assert-audit-story.sh`.
 - The cycle-time ledger is `specs/metrics/cycle-times.md`. Always pass
   `--file specs/metrics/cycle-times.md` to `record-cycle-time.sh`: its
   default name, `cycle-times.yaml`, holds front matter plus a Markdown
