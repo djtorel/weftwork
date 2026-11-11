@@ -283,6 +283,20 @@ waivers:
   date: 2026-11-10
   scope: e03s07 release only (stories e03s08 to e04s03 for R1; e01s02, e01s04 and
     e02s01 for R2)
+- what: gate-trace FAIL (rule R1) for undone stories with no code tags, CONCERNS (rule
+    R4) and oracle downgrade (96 percent heuristic links), standing waiver
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one; the rule cannot pass until a story ships code.
+    The same FAIL has been waived in seven ledger entries, one release at a time,
+    which is the pattern R13 flags as a retirement candidate. R2 no longer applies
+    (verify evidence was backfilled for e01s02, e01s04 and e02s01 on 2026-11-10).
+    R4 for coverage, 2 of 19 stories are tagged. Oracle downgrade, 47 of 49 links
+    come from file and task heuristics. Blind-spot check 0 HIGH; completeness critic
+    0 blockers. The owner approved this standing waiver on 2026-11-10 ("do what you
+    recommend"). It replaces the one-release waivers from the BUG-005 fix on.
+  date: 2026-11-10
+  scope: every release until the first story that ships product code; revisit at
+    the e04 checkpoint, and drop it as soon as an undone story could carry a code tag
 handoff:
   next_skill: kickoff-branch
   next_story: e03s08
