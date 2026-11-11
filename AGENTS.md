@@ -4,6 +4,7 @@
 > Claude Code reads it via the `CLAUDE.md` symlink.
 
 Read CONVENTIONS.md before any GitHub or git operation.
+<!-- story: e05s03 -->
 
 <!-- BEGIN bigpowers:context-routing -->
 ## Context Routing
@@ -27,36 +28,57 @@ Load subdirectory context by file glob — see project-specific routing table (s
 ## Project
 
 weftwork is a host-agnostic workflow for coding agents (pi and Claude Code first).
-Stack: none yet. The project is in a research phase and contains no product code.
+Stack: TypeScript on Node 26 or later, npm, and the built-in `node:test` runner. One package that is a CLI and a library.
 
 ## Commands
 
 | Action | Command |
 | ------ | ------- |
-| Run | N/A |
-| Test | N/A |
-| Build | N/A |
+| Run | N/A until e06 ships the CLI |
+| Test | `npm test` |
+| Build | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint specs` |
-| Preflight | `yamllint specs && bash tools/validate-specs-yaml.sh && bash tools/check-gate-ignores.sh` |
+| Preflight | `yamllint specs && bash tools/validate-specs-yaml.sh && bash tools/check-gate-ignores.sh && npm run typecheck && npm test` |
 | CI | `.github/workflows/ci.yml` (GitHub Actions) |
 
 `scripts/` is a symlink to the global bigpowers install. It is gitignored and machine-local.
+`scripts/bp-read-agents.sh` reads the first command under each heading below, so keep the command in a code block at the top of its section.
+
+## Preflight
+
+```bash
+yamllint specs && bash tools/validate-specs-yaml.sh && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+```
+
+Run `bash tools/setup.sh` first on a fresh clone. Preflight needs `node_modules`.
 
 ## Test
 
-N/A until product code exists.
+```bash
+npm test
+```
+
+Runs `node --test` on the `*.test.ts` files. See CONVENTIONS.md § Tests.
 
 ## Lint
 
-`yamllint specs` with default rules: 80 columns, `---` document start.
+```bash
+yamllint specs
+```
+
+Default rules: 80 columns, `---` document start. No TypeScript linter yet; `tsc` strict mode and review cover TypeScript.
 
 ## Build
 
-N/A until product code exists.
+```bash
+npm run typecheck
+```
+
+There is no emitted build. Node runs `.ts` files by type stripping, and `tsc --noEmit` checks the types.
 
 ## Architecture
 
-No code exists. `docs/SEED-SPEC.md` sketches an engine, thin host adapters, and portable skills. That sketch is provisional.
+`src/` holds only the e05s02 smoke files until e06 adds the engine. `docs/SEED-SPEC.md` sketches an engine, thin host adapters, and portable skills. That sketch is provisional.
 Research briefs go in `docs/research/`. Plans, epics, and state go in `specs/`.
 
 ## Conventions
