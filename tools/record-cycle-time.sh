@@ -7,8 +7,17 @@
 # guard is needed for that case.
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 f="$ROOT/specs/execution-status.yaml"
+snap="$(mktemp)"
+[ -f "$f" ] && cp "$f" "$snap"
 restore() {
+  # BUG-005: put back the text of blocks the script rewrote without changing.
+  if [ -s "$snap" ] && [ -f "$HERE/restore-yaml-style.py" ]; then
+    python3 "$HERE/restore-yaml-style.py" "$f" --from "$snap" \
+      || echo "WARN: could not restore the YAML style of $f" >&2
+  fi
+  rm -f "$snap"
   if [ "$(head -n1 "$f")" != "---" ]; then
     sed -i '1i ---' "$f"
   fi

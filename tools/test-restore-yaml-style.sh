@@ -27,13 +27,13 @@ check "restores a block whose data is unchanged" "$(printf '%s' "$OLD")" "$tmp/f
 printf '%s' "$NEW_CHANGED" > "$tmp/f2"
 python3 "$tool" "$tmp/f2" --from "$tmp/old1" >/dev/null || fail "changed block: tool exited non-zero"
 WANT2=$'---\n# keep this comment\na:\n  - 1\n  - 2\nnote: >-\n  folded text that\n  continues here.\nmetrics:\n  x: 2\n'
-check "keeps a block whose data changed" "$WANT2" "$tmp/f2"
+check "keeps a block whose data changed" "$(printf '%s' "$WANT2")" "$tmp/f2"
 
 # 3. A new top-level block is kept as written.
 printf '%s%s' "$NEW_SAME" $'stories:\n  e01:\n    status: done\n' > "$tmp/f3"
 python3 "$tool" "$tmp/f3" --from "$tmp/old1" >/dev/null || fail "new block: tool exited non-zero"
 WANT3="$OLD"$'stories:\n  e01:\n    status: done\n'
-check "keeps a new top-level block" "$WANT3" "$tmp/f3"
+check "keeps a new top-level block" "$(printf '%s' "$WANT3")" "$tmp/f3"
 
 # 4. A file that already matches is left byte for byte as it was.
 cp "$tmp/old1" "$tmp/f4"

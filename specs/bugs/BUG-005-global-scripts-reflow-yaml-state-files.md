@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-005
-status: open
+status: fixed
 severity: medium
 scope: specs/execution-status.yaml and specs/state.yaml (rewritten by the global scripts)
 title: record-cycle-time.sh and bp-timing.sh rewrite YAML state files in a different style
@@ -57,6 +57,15 @@ HEAD` after the story's last timing call and before committing.
 `yamllint specs` exits 0 after a real `tools/record-cycle-time.sh append`.
 The bug is closed when the tests pass in CI and a release runs without a
 manual restore.
+
+## Evidence
+
+Checked against the real files on 2026-11-10. Writing the real
+`specs/execution-status.yaml` back with `yaml.dump(default_flow_style=False,
+sort_keys=False)` reproduced the failure: `yamllint` exit 1. The tool then
+restored the file byte for byte. A real `bp-timing.sh start` run changed
+`specs/state.yaml` by 43 insertions and 44 deletions; after the tool ran,
+the diff against HEAD held only the 5 new timing lines.
 
 ## Decision
 
