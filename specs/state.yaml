@@ -251,30 +251,24 @@ handoff:
   next_skill: audit-code
   next_story: e03s07
   note: >-
-    e03s07 (R13 enforcement design, 8 BCPs) passed verify-work at P2 depth
-    on branch e03s07-r13-enforcement-design: Preflight green, all nine task
-    verify commands exit 0 in one run, completeness critic BLOCKER=0, blind
-    spots 0 HIGH. Evidence: specs/verifications/e03s07-verify.yaml. The five
-    undated vendor pages (S25 to S29) have an owner exception recorded in
-    the waivers above. Step-by-step UAT is skipped at P2; the owner's
-    five-step Verification Script in the story spec has not been confirmed.
-    Next is audit-code for e03s07, then request-review, then release-branch.
-    The request-review gate has not run on R13; earlier briefs ran up to
-    five rounds and were waived, so ask the owner before round 3 or later.
-    Read the full text of any paper whose number carries a verdict; S3, S7,
-    S9, S12 to S16 and S18 to S23 are abstract-level and listed under Open
-    questions in the brief. The gate-trace waiver covers one release, so the
-    e03s07 release needs a new one or a decision. The traceability matrix is
-    gitignored and goes stale; regenerate it with bash
-    scripts/trace-stories.sh --json before the completeness critic. Commits
-    are not pushed, and CI runs check-briefs.sh on every brief. Candidate
-    R10 measurements are in the brief's Open questions; R15 (e03s08) reads
-    its stop-condition implication. Carried over for the owner: whether to
-    log the record-cycle-time reflow as BUG-005; BUG-003 is closed but
-    earlier handoffs listed it as open; undecided R7 items; e04s02 takes the
-    stack choice; four R11 papers left unread (arXiv:2609.39678, 2610.02456,
-    2603.10387 and 2608.25817). Every commit needs a Story trailer. Record
-    cycle time through tools/record-cycle-time.sh.
+    e03s07 audit-code FAILED on 2026-11-11, report
+    specs/verifications/AUDIT-e03-e03s07.md. Blockers: (1) the audit-code
+    verify line fails because it checks skills/enforce-first and
+    skills/request-review, which live in the global install, not in this
+    repo. This is BUG-003, marked closed but reproducing. Reopen it and fix
+    with fix-bug in a separate commit. The fix edits
+    ~/.claude/skills/audit-code/SKILL.md, outside this repo, so it needs the
+    owner's go-ahead. (2) state.yaml shows 54 reflowed lines against main,
+    from bp-timing.sh, the BUG-001 pattern. Semantics are clean: only
+    active_story, vcs.branch, handoff and two appended waivers changed.
+    Restore unchanged blocks from main before release. Next: fix BUG-003
+    (needs go-ahead), restore the reflow, then re-run audit-code. Then
+    commit-message, request-review (ask the owner before round 3 or later),
+    and release-branch. The gate-trace waiver covers one release, so the
+    e03s07 release needs a new one or a decision. Verification evidence:
+    specs/verifications/e03s07-verify.yaml. Commits are not pushed. Carried
+    over for the owner: BUG-005 decision (the record-cycle-time reflow),
+    undecided R7 items, e04s02 stack choice, four unread R11 papers.
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
@@ -295,9 +289,9 @@ metrics:
       total_seconds: 580.0
       avg_seconds: 52.72727272727273
     audit-code:
-      calls: 9
-      total_seconds: 381.0
-      avg_seconds: 42.333333333333336
+      calls: 10
+      total_seconds: 429.0
+      avg_seconds: 42.9
     release-branch:
       calls: 10
       total_seconds: 1128.0
