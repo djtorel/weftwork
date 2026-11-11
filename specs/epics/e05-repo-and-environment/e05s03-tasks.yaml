@@ -1,0 +1,63 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. CONVENTIONS.md line 4 says to add the
+# code-style and test sections when the stack is chosen. It is chosen.
+story_id: e05s03
+title: TypeScript code-style and test conventions, and real commands
+status: todo
+bcps: 2
+type: docs
+context: infra
+risk: P3
+depends_on: [e05s02]
+tasks:
+  - id: 1
+    description: >-
+      Write the "TypeScript code style" section in CONVENTIONS.md:
+      only rules the toolchain from e05s02 enforces or that a reviewer
+      can check (strict compiler, ESM imports, no any without a
+      comment, errors as values or typed throws, CLI as a thin shell
+      over a library function). Remove the line that says to add the
+      section later
+    verify: >-
+      S=$(awk '$0=="## TypeScript code style"{f=1;next} /^## /{f=0} f'
+      CONVENTIONS.md)
+      && printf '%s\n' "$S" | grep -Eiq 'strict'
+      && printf '%s\n' "$S" | grep -Eiq 'esm|module'
+      && printf '%s\n' "$S" | grep -Eiq 'any'
+      && ! grep -q 'Add the code-style and test sections' CONVENTIONS.md
+    risk: P3
+    status: todo
+    allure:
+      severity: normal
+  - id: 2
+    description: >-
+      Write the "Tests" section in CONVENTIONS.md: runner, where tests
+      live, naming, red first (a test must fail before the code
+      exists), no test that passes without asserting, and what CI runs
+    verify: >-
+      S=$(awk '$0=="## Tests"{f=1;next} /^## /{f=0} f' CONVENTIONS.md)
+      && printf '%s\n' "$S" | grep -Eiq 'node:test|runner'
+      && printf '%s\n' "$S" | grep -Eiq 'red'
+      && printf '%s\n' "$S" | grep -Eiq 'assert'
+    risk: P3
+    status: todo
+    allure:
+      severity: normal
+  - id: 3
+    description: >-
+      Fill the Run, Test, Build and Lint rows of the AGENTS.md command
+      table with commands that resolve today, and the Test and Lint
+      sections under it. Add the typecheck and the tests to Preflight
+      (owner decision 2026-11-11) and keep CONVENTIONS.md and AGENTS.md
+      in step
+    verify: >-
+      ! grep -E '^\| (Test|Build) .*N/A' AGENTS.md
+      && grep -E '^\| Preflight' AGENTS.md | grep -q 'npm test'
+      && grep -A3 'Preflight is' CONVENTIONS.md | grep -q 'npm test'
+      && bash tools/setup.sh --check && npx tsc --noEmit && npm test
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+    risk: P3
+    status: todo
+    allure:
+      severity: normal

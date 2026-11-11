@@ -343,22 +343,23 @@ waivers:
   date: 2026-11-11
   scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
 handoff:
-  next_skill: slice-tasks
-  next_story: e05
-  note: 'change-request for the e04 checkpoint is merged to main (branch docs/e04-checkpoint-change-request). It added epics e06 to e11
-    (B1, B3, B2, B5, B6, B4) as release 0.2.0 in specs/release-plan.yaml (next_release),
-    recorded B7, B8 and B9 under unscheduled, added hypotheses H28 and H29 and two
-    key decisions to specs/planning-context.yaml, and noted in the e05 epic that its
-    environment setup now covers the Node and TypeScript toolchain and that CONVENTIONS.md
-    needs TypeScript code-style and test sections. WSJF scores are planner estimates;
-    BCPs for e06 to e11 are set when each is sliced. Next, in a fresh session: run
-    slice-tasks for e05 (repository and environment setup), including the CONVENTIONS
-    code-style and test sections. Still deferred by the owner: the experiment task
-    source (any outside path must be named again) and the spend cap. Candidate requirements
-    stay candidates: the per-repository budget setting and auto mode (B9). Use tools/assert-audit-story.sh
-    for the audit gate. Do not run scripts/sync-status-from-epics.sh; it drops cycle-time
-    fields. After the last bp-timing.sh call, run tools/restore-yaml-style.py on specs/state.yaml
-    before committing.'
+  next_skill: plan-work
+  next_story: e05s01
+  note: 'slice-tasks for e05 is done on branch docs/e05-slice-tasks (not
+    committed; the owner decides). Four stories, 11 BCPs: e05s01 port
+    validate-specs-yaml.sh into tools/ and run it in CI; e05s02 one-command
+    setup for the Python and Node toolchains; e05s03 TypeScript code-style
+    and test sections in CONVENTIONS.md plus real AGENTS.md commands; e05s04
+    PR template and protected main. Next, in a fresh session: kickoff-branch
+    and plan-work for e05s01. Owner decisions 2026-11-11 ("do your
+    recommendations"): npm and node:test for e05s02; Preflight adds the
+    typecheck and tests (e05s03); gh api allowed for e05s04 only (task 2
+    records the waiver); the PR template lists the gates and carries no
+    provenance marker (epic done_when changed). Branch protection changes
+    GitHub settings, so still ask right before it. Still deferred by the owner: the experiment
+    task source and the spend cap. Do not run scripts/sync-status-from-epics.sh;
+    it drops cycle-time fields. After the last bp-timing.sh call, run
+    tools/restore-yaml-style.py on specs/state.yaml before committing.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:

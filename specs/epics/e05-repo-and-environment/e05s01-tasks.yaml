@@ -1,0 +1,59 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. Tracer: CI runs the project's own validator.
+story_id: e05s01
+title: Port the specs validator into tools/ and run it in CI
+status: todo
+bcps: 3
+type: chore
+context: infra
+risk: P2
+tasks:
+  - id: 1
+    description: >-
+      RED then GREEN. Write tools/validate-specs-yaml.sh, a port of
+      scripts/validate-specs-yaml.sh that needs no global install and
+      no scripts/ symlink: it parses every specs/**/*.yaml with PyYAML
+      (skipping specs/verifications/fixtures), checks the required keys
+      of state.yaml, release-plan.yaml and execution-status.yaml on the
+      parsed objects, and checks that epic file references exist
+    verify: >-
+      test -x tools/validate-specs-yaml.sh
+      && bash tools/validate-specs-yaml.sh
+      | grep -q 'validate-specs-yaml: OK'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+  - id: 2
+    description: >-
+      Write tools/test-validate-specs-yaml.sh, a selftest built in
+      mktemp -d (never in the repo). The good tree exits 0 first
+      (anti-vacuity); then break one thing per case: corrupt YAML,
+      missing active_flow, missing release.version, empty epics list,
+      missing development_status, epic file that does not exist. Each
+      case exits 1 and names the file
+    verify: bash tools/test-validate-specs-yaml.sh
+    risk: P2
+    status: todo
+    allure:
+      severity: high
+  - id: 3
+    description: >-
+      Add two CI steps (the validator and its selftest) to
+      .github/workflows/ci.yml, and change the Preflight text in
+      AGENTS.md and CONVENTIONS.md from scripts/validate-specs-yaml.sh
+      to tools/validate-specs-yaml.sh. Every command in AGENTS.md must
+      still resolve
+    verify: >-
+      yamllint .github/workflows/ci.yml
+      && grep -q 'tools/validate-specs-yaml.sh' .github/workflows/ci.yml
+      && grep -q 'tools/test-validate-specs-yaml.sh'
+      .github/workflows/ci.yml
+      && ! grep -q 'scripts/validate-specs-yaml' AGENTS.md CONVENTIONS.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    risk: P3
+    status: todo
+    allure:
+      severity: normal
