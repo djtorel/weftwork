@@ -43,7 +43,7 @@ stories:
   - id: e03s07
     title: R13 enforcement design
     bcps: 8
-    status: todo
+    status: done
     tasks: e03s07-tasks.yaml
   - id: e03s08
     title: R15 run termination for autonomous loops

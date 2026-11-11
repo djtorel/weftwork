@@ -17,7 +17,7 @@ development_status:
   e03s04: done
   e03s05: done
   e03s06: done
-  e03s07: todo
+  e03s07: done
   e03s08: todo
   e04: todo
   e04s01: todo
@@ -205,13 +205,16 @@ stories:
     lead_time_minutes: 19
     bcp_per_hour: 0.0
   e03s07:
-    status: todo
+    status: done
     title: R13 enforcement design
     bcps: 8
     epic: e03
     tasks_total: 9
     tasks_passing: 9
     tasks_failing: 0
+    effort_hours: 2.1367
+    lead_time_minutes: 129
+    bcp_per_hour: 3.7
   e03s08:
     status: todo
     title: R15 run termination for autonomous loops
@@ -246,14 +249,14 @@ stories:
     tasks_failing: 0
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-10T03:40:00Z"
+  generated_at: "2026-11-11T02:30:00Z"
   rationale: >-
-    Computed FAIL for the e03s06 release: R1 (five undone stories, e03s07
-    to e04s03, have no code tags; the project has no product code), then
-    the two-level oracle downgrade on 96 percent heuristic links (45 of
-    47). R2 CONCERNS (e01s02, e01s04 and e02s01 lack verify evidence); R4
-    CONCERNS (1 of 19 stories tagged). Owner waiver in state.yaml,
-    2026-11-09, for the e03s06 release only. Blind spots: 0 HIGH.
+    Computed FAIL for the e03s07 release: R1 (four undone stories, e03s08,
+    e04s01, e04s02 and e04s03, have no code tags; the project has no product
+    code), then the two-level oracle downgrade on 96 percent heuristic links
+    (47 of 49). R2 CONCERNS (e01s02, e01s04 and e02s01 lack verify evidence);
+    R4 CONCERNS (1 of 19 stories tagged). Owner waiver in state.yaml,
+    2026-11-10, for the e03s07 release only. Blind spots: 0 HIGH.
     Completeness critic: 0 blockers.
   heuristic_ratio: 0.96
   downgrade_applied: true

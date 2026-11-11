@@ -11,7 +11,7 @@
 #   Kiro in task 3, the survey in task 7 (see the story spec).
 story_id: e03s07
 title: R13 enforcement design
-status: todo
+status: done
 bcps: 8
 type: research
 context: infra
