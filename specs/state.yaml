@@ -237,6 +237,16 @@ waivers:
     The owner acknowledged the finding on 2026-11-10.
   date: 2026-11-10
   scope: e03s07 plan only
+- what: CONVENTIONS.md rule that every source has a publication date, for 5 vendor
+    doc pages in the R13 brief (S25 to S29, Claude Code hooks and permissions, Codex
+    hooks, pi extensions and opencode plugins and permissions)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version, commit or tag read. A real date cannot be
+    found, so the brief marks them as undated. check-brief.sh passes with a warning.
+    R5, R9, R11 and R12 cited the same kind of pages as undated. The owner approved
+    this exception on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s07 only (docs/research/R13-enforcement-design.md sources S25 to S29)
 handoff:
   next_skill: verify-work
   next_story: e03s07
