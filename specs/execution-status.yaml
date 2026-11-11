@@ -231,8 +231,8 @@ stories:
     title: R10 evaluation design
     bcps: 8
     epic: e04
-    tasks_total: 3
-    tasks_passing: 0
+    tasks_total: 9
+    tasks_passing: 9
     tasks_failing: 0
   e04s02:
     status: todo
