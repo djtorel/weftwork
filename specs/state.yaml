@@ -357,22 +357,25 @@ waivers:
   date: 2026-11-11
   scope: e05 only
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   next_story: e05s02
-  note: 'e05s02 is verified (P2 depth) with evidence in
-    specs/verifications/e05s02-verify.yaml. Branch e05s02-toolchain-setup,
-    local commits only; nothing is pushed. Next: audit-code for e05s02, then
-    release-branch. The push and the PR each need the owner''s go-ahead.
-    BUG-005 is not reopened: the reflow came from bp-timing.sh, which its
-    fix covers. e05 total_bcps in execution-status.yaml is 8 but epic.yaml
-    says 11. Later e05 stories: e05s03 TypeScript code-style and test
-    sections, and Preflight adds the typecheck and tests; e05s04 PR template
-    and protected main (branch protection changes GitHub settings, so ask
-    first; its gh api waiver is recorded in its task 2). Still deferred by
-    the owner: the experiment task source and the spend cap. Do not run
-    scripts/sync- status-from-epics.sh; it drops cycle-time fields. Run
-    tools/restore- yaml-style.py --base HEAD on specs/state.yaml after the
-    last bp- timing.sh call, before committing.'
+  note: 'e05s02 is verified (P2 depth) and audited (PASS). Evidence:
+    specs/verifications/e05s02-verify.yaml and
+    specs/verifications/AUDIT-e05-e05s02.md. Branch e05s02-toolchain-setup,
+    local commits only; nothing is pushed. Next: commit-message (nothing
+    left to commit if the tree is clean), then release-branch. The push and
+    the PR each need the owner''s go-ahead. Reconcile at release: e05
+    total_bcps in execution-status.yaml is 8 but epic.yaml says 11. Audit
+    low items for the owner: engines.node >=26 lets setup-node pick a newer
+    major. BUG-005 is not reopened. Later e05 stories: e05s03 TypeScript
+    code-style and test sections, and Preflight adds the typecheck and
+    tests; e05s04 PR template and protected main (branch protection changes
+    GitHub settings, so ask first; its gh api waiver is recorded in its task
+    2). Still deferred by the owner: the experiment task source and the
+    spend cap. Do not run scripts/sync-status-from-epics.sh; it drops
+    cycle-time fields. Run tools/restore-yaml-style.py --base HEAD on
+    specs/state.yaml after the last bp-timing.sh call, before committing.
+    Wrap YAML text with break_on_hyphens=False.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -393,9 +396,9 @@ metrics:
       total_seconds: 789.0
       avg_seconds: 46.411764705882355
     audit-code:
-      calls: 14
-      total_seconds: 593.0
-      avg_seconds: 42.357142857142854
+      calls: 15
+      total_seconds: 688.0
+      avg_seconds: 45.86666666666667
     release-branch:
       calls: 16
       total_seconds: 1639.0

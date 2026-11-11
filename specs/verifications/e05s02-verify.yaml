@@ -84,9 +84,12 @@ gaps:
       scripts/trace-stories.sh --json (the file is gitignored)
     - >-
       bp-timing.sh start verify-work rewrote specs/state.yaml with
-      yaml.dump, which reflowed the handoff note and broke a word.
+      yaml.dump, which reflowed the handoff note past 80 columns.
       This is the known BUG-005 path; its documented fix,
-      tools/restore-yaml-style.py against HEAD, restored it. A test
+      tools/restore-yaml-style.py against HEAD, restored it. The
+      broken word (test- setup.sh) was not from bp-timing.sh: the
+      agent's own note wrapper split on hyphens (Python textwrap
+      default), found in audit-code and fixed there. A test
       on 2026-11-11 ran each gate script (blind spots, completeness
       critic, adversarial, trace-stories) on a saved copy: none
       changed state.yaml. BUG-005 is not reopened
