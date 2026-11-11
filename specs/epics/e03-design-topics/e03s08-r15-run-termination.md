@@ -232,7 +232,7 @@ Headings, in order: `## Sources`, `## Method`,
 
 Decision reference: every step follows the owner's 2026-11-10
 decisions (R15 added to H1; evidence only; 5 BCPs), recorded in the
-plan commit and in the `state.yaml` handoff note.
+plan commit fb7b442 and in the `state.yaml` handoff note.
 
 1. Draft the brief with dated sources, six or more papers including the
    two leads and Bounded Loops → verify: task 1 in `e03s08-tasks.yaml`
