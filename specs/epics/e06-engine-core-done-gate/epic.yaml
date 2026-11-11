@@ -2,6 +2,7 @@
 id: e06
 title: Engine core and done gate (B1)
 wsjf: 3.5
+total_bcps: 17
 risk: P1
 status: todo
 depends_on:
@@ -10,6 +11,49 @@ done_when: >-
   A TypeScript command-line program reads JSON on stdin and answers
   with an exit code, with the evidence gate, the terminal states, a
   counts ledger and the one-shot owner-authored escape hatch
-stories: []
+stories:
+  - id: e06s01
+    title: Run a declared command and answer with its verdict
+    bcps: 3
+    status: todo
+    tasks: e06s01-tasks.yaml
+    delta: MODIFIED
+  - id: e06s02
+    title: Fail closed, and name the tree each verdict ran on
+    bcps: 3
+    status: todo
+    tasks: e06s02-tasks.yaml
+    delta: ADDED
+  - id: e06s03
+    title: Log every verdict in a plain-file counts ledger
+    bcps: 3
+    status: todo
+    tasks: e06s03-tasks.yaml
+    delta: ADDED
+  - id: e06s04
+    title: Name the five terminal states and trip a no-progress breaker
+    bcps: 5
+    status: todo
+    tasks: e06s04-tasks.yaml
+    delta: ADDED
+  - id: e06s05
+    title: Add a one-shot, owner-authored, logged escape hatch
+    bcps: 3
+    status: todo
+    tasks: e06s05-tasks.yaml
+    delta: ADDED
 # Candidate epic B1 in docs/research/SYNTHESIS.md [S5][S13][S14][S15].
-# Sized and sliced with slice-tasks; not estimated yet.
+# Sliced 2026-11-11 (slice-tasks). Order e06s01 to e06s05, one story
+# at a time. e06s01 is the tracer: JSON on stdin, the declared
+# command runs, the exit code carries the verdict. The ledger (s03)
+# comes before the terminal states (s04) because each terminal state
+# is logged with its counters, and before the hatch (s05) because the
+# hatch is counted. WSJF is not rescored: its job size term is the
+# planner's 1 to 10 estimate, not the BCP total.
+# delta MODIFIED on e06s01: before, src/ holds the e05s02 smoke files
+# and the Run row of AGENTS.md says N/A; after, src/ holds the gate
+# and the CLI, and the Run row names the command. The rest is ADDED.
+# Out of scope here, each its own epic: plain-file state and handoff
+# (e08), host adapters and the live-hook check (e07), the budget
+# setting and ceilings over the whole loop (e09), the security
+# baseline (e10), skills and the entry command (e11).

@@ -1,0 +1,84 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. Tracer bullet for B1: JSON on stdin, the
+# declared command runs, the exit code carries the verdict. The
+# library holds the logic and the CLI is a thin shell (CONVENTIONS.md,
+# TypeScript code style). This story replaces the e05s02 smoke files.
+# plan-work 2026-11-11: spec written. The command runs as one shell
+# string (spawn, shell: true), since every declared verify command in
+# this repo is one. parseRequest lives in the library (task 2). Task
+# 2 verify now checks exit 1 exactly, not just any non-zero code.
+story_id: e06s01
+title: Run a declared command and answer with its verdict
+status: todo
+bcps: 3
+type: feat
+context: engine
+risk: P1
+spec: e06s01-gate-tracer.md
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/gate.test.ts first (spec AC-01 to
+      AC-04) and record the failure. Then write src/gate.ts: runGate
+      takes a command and a cwd, runs the command as one shell string
+      there, and resolves (never rejects) to a verdict with done and
+      exitCode. done is true only for exit code 0; a command that
+      cannot start or is killed by a signal is not done with exitCode
+      null. Delete src/smoke.ts and src/smoke.test.ts, which this
+      replaces
+    verify: >-
+      node --test src/gate.test.ts && npm run typecheck
+      && ! test -e src/smoke.ts && ! test -e src/smoke.test.ts
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 2
+    description: >-
+      RED, then GREEN. Add parseRequest to src/gate.ts with its tests
+      in src/gate.test.ts (spec AC-05). Write src/cli.ts as a thin
+      shell: it reads one JSON object from stdin (a "command" and an
+      optional "cwd"), calls the library, prints one JSON line on
+      stdout, and exits 0 for done, 1 for not done and 2 for input it
+      cannot read. The command's own output goes to stderr.
+      src/cli.test.ts starts the real CLI as a child process (spec
+      AC-06 to AC-08)
+    verify: >-
+      node --test src/gate.test.ts src/cli.test.ts
+      && (echo '{"command":"true"}' | node src/cli.ts >/dev/null)
+      && (echo '{"command":"false"}' | node src/cli.ts >/dev/null;
+      test $? -eq 1)
+      && (echo 'not json' | node src/cli.ts >/dev/null 2>&1;
+      test $? -eq 2)
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 3
+    description: >-
+      Make AGENTS.md true again. The Run row of the command table
+      becomes the real command (node src/cli.ts with JSON on stdin),
+      and the Architecture section stops saying that src/ holds only
+      the smoke files. Then run the AGENTS.md Preflight line itself
+      (spec AC-09)
+    verify: >-
+      grep -E '^\| Run ' AGENTS.md | grep -q 'src/cli.ts'
+      && ! grep -q 'N/A until e06' AGENTS.md
+      && ! grep -q 'only the e05s02 smoke' AGENTS.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo
+    allure:
+      severity: minor
+      categories:
+        - "docs"
+        - "e06 B1"

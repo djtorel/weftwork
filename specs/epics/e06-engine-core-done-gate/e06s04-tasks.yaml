@@ -1,0 +1,102 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. Five terminal states: done (verified),
+# blocked, stalled, exhausted and killed, each logged with its counters
+# (R15 [S1][S3]). An error or an exhausted budget never counts as
+# done. The no-progress breaker keys on evidence that can move, and it
+# must be shown to trip and to stay quiet (R15 [S14]). Thresholds are
+# tunable defaults, not findings. The per-repository budget setting and
+# the engine-counted ceilings over the whole loop belong to e09 (B5);
+# this story holds only the simplest ceiling, a cap on failed runs.
+# 5 BCPs: the largest story of the epic. Cut a task out if plan-work
+# finds it over 3 days.
+story_id: e06s04
+title: Name the five terminal states and trip a no-progress breaker
+status: todo
+bcps: 5
+type: feat
+context: engine
+risk: P1
+depends_on: [e06s03]
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/states.test.ts first. Then write
+      src/states.ts: the five terminal states as a string-literal union
+      (no enum; CONVENTIONS.md erasable syntax), and one table that maps
+      each state to a distinct exit code, with done as the only 0. A
+      test asserts that no state other than done maps to 0 and that
+      every exit code is unique
+    verify: >-
+      node --test src/states.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 2
+    description: >-
+      Stalled. A breaker reads the ledger and trips after N gate runs
+      in a row (default 3, set in the input) with the same command, the
+      same tree fingerprint and the same failure output. It keys on
+      evidence that can move, never on an identifier that stays
+      constant. Tests show that it trips on a stuck run and stays quiet
+      when the tree or the failure output changes between runs
+    verify: >-
+      node --test src/breaker.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 3
+    description: >-
+      Exhausted. A ceiling on failed runs in a row (default 5, set in
+      the input) ends the run as exhausted, counted from the ledger. An
+      exhausted run never gives done, even when the last run passed
+      after the ceiling was reached. Test both
+    verify: >-
+      node --test src/ceiling.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 4
+    description: >-
+      Blocked and killed. The input may say that the worker is blocked
+      and why; the engine logs it and answers with the blocked state.
+      When the engine gets SIGTERM or SIGINT while the declared command
+      runs, it stops the command, logs killed and exits with the killed
+      code. A test sends the real signal to a real child process
+    verify: >-
+      node --test src/blocked.test.ts src/killed.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 5
+    description: >-
+      Every terminal state is written to the ledger with its counters
+      (runs, failures in a row, the threshold that tripped), and the
+      CLI answers with the state name and the exit code from the table.
+      Run each of the five states through the real CLI
+    verify: >-
+      node --test src/cli.states.test.ts && npm run typecheck && npm test
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"

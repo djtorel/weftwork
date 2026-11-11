@@ -1,0 +1,69 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. The gate must fail closed: an error, a
+# timeout or a tree that changed under the command never counts as
+# done (R15 [S1][S3][S19]; docs/research/SYNTHESIS.md, evidence gate).
+# Each gate is tried against a held-out failing case, because a gate
+# that cannot fail is vacuous (R13, R15).
+story_id: e06s02
+title: Fail closed, and name the tree each verdict ran on
+status: todo
+bcps: 3
+type: feat
+context: engine
+risk: P1
+depends_on: [e06s01]
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/tree.test.ts first. Then write
+      src/tree.ts: a function that returns a fingerprint of the working
+      tree (tracked files, untracked files that are not ignored, and
+      their contents). The same tree gives the same fingerprint, an
+      edit or a new file changes it, and an ignored file does not
+    verify: >-
+      node --test src/tree.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 2
+    description: >-
+      The verdict carries the declared command and the tree
+      fingerprint taken before the run. A command that cannot start, a
+      command that passes its timeout (a default, set in the input), a
+      command killed by a signal, and a tree that changed while the
+      command ran all give a verdict that is not done, each with its
+      own reason. Test each case by name
+    verify: >-
+      node --test src/gate.test.ts && npm run typecheck
+      && echo '{"command":"no-such-command-xyz"}' | node src/cli.ts
+      | grep -q '"done":false'
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 3
+    description: >-
+      Anti-vacuity. Add src/fixtures/ with one passing script and the
+      held-out failing cases: a script that exits 1, a script that
+      prints "all tests passed" and exits 1, and a script that exits 0
+      after it edited a file. The gate must accept the first and reject
+      every other one. Fixtures are plain files; their names do not end
+      in .test.ts
+    verify: >-
+      node --test src/gate.vacuity.test.ts
+      && ls src/fixtures | grep -q .
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
