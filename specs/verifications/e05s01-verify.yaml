@@ -1,0 +1,77 @@
+---
+story_id: e05s01
+verified_at: "2026-11-11T20:30:00Z"
+verifier: verify-work
+risk: P2
+mode: "default (P2 depth: smoke, typecheck, lint)"
+branch: e05s01-port-validator-ci
+phases:
+  branch_check:
+    passed: true
+    note: "On e05s01-port-validator-ci, not main"
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+  task_verifies:
+    passed: true
+    note: >-
+      Each task verify exited 0 before UAT (step 1a); no
+      pattern mismatch
+  smoke:
+    passed: true
+    note: >-
+      N/A: no app or server. The selftest runs the validator
+      on fresh temp trees
+  typecheck:
+    passed: true
+    note: "N/A: no typed code in the repository yet"
+  lint:
+    passed: true
+    command: >-
+      shellcheck tools/validate-specs-yaml.sh
+      tools/test-validate-specs-yaml.sh;
+      yamllint .github/workflows/ci.yml
+  red_evidence:
+    commit: cb58343
+    captured_at: "2026-11-11T19:40:00Z"
+    note: >-
+      Observed before the port existed (task 1). Output copied from
+      the run; the selftest exited 1 at its first case.
+    output: |
+      FAIL good-tree: want exit 0, got 127: bash:
+      .../tools/validate-specs-yaml.sh: No such file or directory
+  tests:
+    passed: true
+    skipped_by_depth: true
+    note: >-
+      P2 skips tests in verify-work. Selftest run anyway:
+      10 of 10 cases pass
+  security_scan:
+    skipped_by_depth: true
+    note: "P2 skips the security scan"
+  manual:
+    skipped_by_depth: true
+    note: "P2 skips step-by-step UAT"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: "2026-11-11T20:29:00Z"
+    stdout: |
+      validate-specs-yaml: OK
+      check-gate-ignores: OK (6 paths)
+    note: "Single contiguous run"
+  ci:
+    passed: false
+    note: >-
+      NOT VERIFIED: no push and no PR. CI runs AC-e05s01-05
+      only after the owner approves a push and PR
+  gaps:
+    closed: true
+    open:
+      - >-
+        AC-e05s01-05 (CI runs the validator): needs push and PR,
+        owner go-ahead

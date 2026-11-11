@@ -23,8 +23,8 @@ development_status:
   e04s01: done
   e04s02: done
   e04s03: done
-  e05: todo
-  e05s01: todo
+  e05: in_progress
+  e05s01: done
   e05s02: todo
   e05s03: todo
   e05s04: todo
@@ -56,7 +56,7 @@ epics:
     wsjf: 3.8
     total_bcps: 16
   e05:
-    status: todo
+    status: in_progress
     title: Repository and environment setup (wave 5)
     wsjf: 2.5
     total_bcps: 8

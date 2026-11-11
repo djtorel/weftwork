@@ -20,6 +20,8 @@ jobs:
           python-version: "3.x"
       - run: pip install pyyaml yamllint
       - run: yamllint specs
+      - run: bash tools/validate-specs-yaml.sh
+      - run: bash tools/test-validate-specs-yaml.sh
       - run: bash tools/check-brief.sh --selftest
       - run: bash tools/check-briefs.sh
       - run: bash tools/check-gate-ignores.sh
