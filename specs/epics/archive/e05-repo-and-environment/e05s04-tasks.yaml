@@ -3,19 +3,22 @@
 # slice-tasks 2026-11-11. Last in e05: the required check name must
 # stay stable, so CI is final first. Tasks 2 and 3 change GitHub
 # settings (outward-facing); each needs the owner's go-ahead.
-# CONVENTIONS.md limits gh to PRs and clones, and these tasks use
+# The audit-code checklist limits gh to PRs and clones; these use
 # gh api. The owner allowed gh api for e05s04 on 2026-11-11 ("do your
 # recommendations"); task 2 records the waiver. The owner also chose
 # then that the PR template lists the gates and carries no provenance
 # marker. The settings change in task 3 still needs a go-ahead at
 # the time it runs.
+# plan-work 2026-11-11: task 3 verify also checks strict and 0
+# approvals. Classic branch protection, not rulesets (spec §5).
 story_id: e05s04
 title: PR template and protected main
-status: todo
+status: done
 bcps: 3
 type: chore
 context: infra
 risk: P2
+spec: e05s04-pr-template-protected-main.md
 depends_on: [e05s01, e05s02, e05s03]
 tasks:
   - id: 1
@@ -32,7 +35,7 @@ tasks:
       done && ! grep -Eiq 'provenance|co-authored|generated (by|with)'
       "$T"
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: normal
   - id: 2
@@ -47,7 +50,7 @@ tasks:
       assert any('e05s04' in str(w.get('scope')) and 'gh' in w['what']
       for w in d['waivers'])"
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: normal
   - id: 3
@@ -60,12 +63,14 @@ tasks:
       P=$(gh api repos/{owner}/{repo}/branches/main/protection)
       && printf '%s\n' "$P"
       | python3 -I -c "import json,sys; d=json.load(sys.stdin);
-      c=d['required_status_checks']['contexts'];
-      assert 'checks' in c, c;
-      assert d['required_pull_request_reviews'] is not None;
+      s=d['required_status_checks'];
+      assert 'checks' in s['contexts'], s;
+      assert s['strict'], s;
+      r=d['required_pull_request_reviews'];
+      assert r['required_approving_review_count'] == 0, r;
       assert not d['allow_force_pushes']['enabled'];
       assert not d['allow_deletions']['enabled']"
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: high

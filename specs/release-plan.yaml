@@ -70,7 +70,7 @@ epics:
     bcps: 11                # sliced 2026-11-11: 4 stories, 8 to 11 BCPs
     risk: P2
     depends_on: [e04]
-    capsule_dir: epics/e05-repo-and-environment
+    capsule_dir: epics/archive/e05-repo-and-environment
     note: >-
       Added by change-request 2026-11-08 after the owner asked for it.
       Branch protection, PR template, environment setup, porting the
@@ -78,6 +78,7 @@ epics:
       done; the stack choice (open for e04s02) shapes it. Minimal CI is e01s04.
       Input from the e01 checkpoint: agents in CI through GitHub
       Actions (R0 candidate 3).
+      Done and archived by release-branch for e05s04, 2026-11-11.
   # Added by change-request 2026-11-11 from the e04 checkpoint
   # decisions (docs/research/SYNTHESIS.md, "Candidate build epics").
   # All six belong to release 0.2.0 (next_release below). Order is

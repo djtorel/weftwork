@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
-active_epic: e05
-active_story: e05s04
+active_epic: e06
+active_story: null
 phase: planning
 test_plan: lite
 vcs:
@@ -351,57 +351,63 @@ waivers:
   date: 2026-11-11
   scope: e05 only (e05s02 to e05s04 specs)
 - what: plan-consistency-check MED finding (status ledger) for e05s01
-  why: The checker wants failing/passing task statuses. CONVENTIONS.md sets
-    todo, in_progress, done. The owner accepted it on 2026-11-11 ("yes to
-    both"), as for e01 and e03s06.
+  why: The checker wants failing/passing task statuses. CONVENTIONS.md sets todo,
+    in_progress, done. The owner accepted it on 2026-11-11 ("yes to both"), as for
+    e01 and e03s06.
   date: 2026-11-11
   scope: e05 only
+- what: audit-code checklist rule that gh is used only for PRs and clones, for e05s04
+    (gh api to set and read branch protection on main)
+  why: Branch protection has no setting outside the REST API and the web UI. The owner
+    allowed gh api for this story on 2026-11-11 ("do your recommendations"). Calls
+    are limited to repos/{owner}/{repo}/branches/main/protection. Setting it still
+    needs the owner's go-ahead at the time it runs.
+  date: 2026-11-11
+  scope: e05s04 only
 handoff:
-  next_skill: kickoff-branch
-  next_story: e05s04
-  note: '
-    e05s03 passed the release-branch gates on branch
-    e05s03-typescript-conventions: Preflight green, audit PASS, completeness
-    critic 0 blockers, fresh security review with no HIGH, and gate-trace FAIL
-    on R1 (e05s04 undone with no code tags), covered by the standing waiver.
-    The branch is not yet landed. Landing (squash to main) and the push to
-    origin need the owner''s decision; this note assumes it lands. Next story
-    e05s04: PR template and protected main. Start it in a fresh session:
-    kickoff-branch from main with git checkout -b (no worktree), then
-    plan-work. Branch protection changes GitHub settings, so ask right before
-    it. The gh api waiver for e05s04 is recorded in its task 2. Still deferred
-    by the owner: the experiment task source and the spend cap. Open low item:
-    engines.node >=26 lets setup-node pick a newer major; revisit at the e05
-    checkpoint. Do not run scripts/sync-status-from-epics.sh. After the last
-    bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml.'
+  next_skill: slice-tasks
+  next_story: e06
+  note: 'e05 is done and archived. e05s04 (PR template and protected main) passed
+    the release-branch gates on branch e05s04-pr-template-protected-main: Preflight
+    green, audit PASS, fresh security review with no findings at confidence 8 or above,
+    gate-trace OK, completeness critic 0 blockers. It lands by squash merge of its
+    PR. main is now protected on GitHub: a PR and a green, up-to-date "checks" job
+    are required, admins included, 0 approvals, no force push or deletion. So land
+    every branch through a PR (gh pr create, then gh pr merge --squash); scripts/land-branch.sh
+    cannot push to main any more. Next, in a fresh session: kickoff-branch from main
+    with git checkout -b (no worktree), then slice-tasks for e06 (engine core and
+    done gate, B1), which has no stories yet. Owner decisions first: the e05 checkpoint
+    item (engines.node >=26 lets setup-node pick a newer major) and the still-deferred
+    experiment task source and spend cap. Use tools/assert-audit-story.sh for the
+    audit gate. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
+    call, run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 16
-      total_seconds: 229.0
-      avg_seconds: 14.3125
+      calls: 17
+      total_seconds: 239.0
+      avg_seconds: 14.058823529411764
     plan-work:
-      calls: 18
-      total_seconds: 6983.0
-      avg_seconds: 387.94444444444446
+      calls: 19
+      total_seconds: 7082.0
+      avg_seconds: 372.7368421052632
     develop-tdd:
       calls: 19
       total_seconds: 9052.0
       avg_seconds: 476.42105263157896
     verify-work:
-      calls: 18
-      total_seconds: 845.0
-      avg_seconds: 46.94444444444444
+      calls: 19
+      total_seconds: 879.0
+      avg_seconds: 46.26315789473684
     audit-code:
       calls: 16
       total_seconds: 743.0
       avg_seconds: 46.4375
     release-branch:
-      calls: 18
-      total_seconds: 1750.0
-      avg_seconds: 97.22222222222223
+      calls: 19
+      total_seconds: 1846.0
+      avg_seconds: 97.15789473684211
     request-review:
       calls: 9
       total_seconds: 11503.0
