@@ -1,0 +1,66 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. The counts ledger: a plain file that only
+# the engine writes. It holds each verdict and the counters the later
+# stories need (terminal states in e06s04, override counts in e06s05).
+# No database (docs/research/SYNTHESIS.md, shared state).
+# Open for plan-work: where the file lives, whether it is committed or
+# ignored, and its line format.
+story_id: e06s03
+title: Log every verdict in a plain-file counts ledger
+status: todo
+bcps: 3
+type: feat
+context: engine
+risk: P1
+depends_on: [e06s02]
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/ledger.test.ts first. Then write
+      src/ledger.ts: append one entry per line to a plain file and read
+      the entries back. An entry holds a timestamp, the command, the
+      tree fingerprint, the verdict and its reason. A reader skips a
+      torn last line and reports it, and never throws on it
+    verify: >-
+      node --test src/ledger.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 2
+    description: >-
+      The gate appends one ledger entry for every verdict it gives,
+      including the ones that are not done. A function reads the ledger
+      and returns counts: runs, passes, failures, and the failures in
+      a row since the last pass for one command. A recorded done verdict
+      whose tree fingerprint differs from the current tree is stale and
+      does not count as done
+    verify: >-
+      node --test src/gate.ledger.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 3
+    description: >-
+      End to end at the process boundary. In a temporary git
+      repository, run the real CLI twice (one pass, one fail) and show
+      that the ledger holds two entries and that the counts read back
+      as 1 pass and 1 failure. The test builds its repository in a
+      temporary directory and removes it on exit
+    verify: >-
+      node --test src/cli.ledger.test.ts
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "engine"
+        - "e06 B1"

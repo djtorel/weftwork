@@ -364,23 +364,31 @@ waivers:
     needs the owner's go-ahead at the time it runs.
   date: 2026-11-11
   scope: e05s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e06s02
+    to e06s05
+  why: Those four stories get their specs when each is planned. Planning them now
+    would be paperwork. e06s01 itself is clear. The owner chose to waive it for e06,
+    as for e02 to e05, on 2026-11-11 ("approve" to the plan-work recommendations).
+  date: 2026-11-11
+  scope: e06 only (e06s02 to e06s05 specs)
 handoff:
-  next_skill: slice-tasks
-  next_story: e06
-  note: 'e05 is done and archived. e05s04 (PR template and protected main) passed
-    the release-branch gates on branch e05s04-pr-template-protected-main: Preflight
-    green, audit PASS, fresh security review with no findings at confidence 8 or above,
-    gate-trace OK, completeness critic 0 blockers. It lands by squash merge of its
-    PR. main is now protected on GitHub: a PR and a green, up-to-date "checks" job
-    are required, admins included, 0 approvals, no force push or deletion. So land
-    every branch through a PR (gh pr create, then gh pr merge --squash); scripts/land-branch.sh
-    cannot push to main any more. Next, in a fresh session: kickoff-branch from main
-    with git checkout -b (no worktree), then slice-tasks for e06 (engine core and
-    done gate, B1), which has no stories yet. Owner decisions first: the e05 checkpoint
-    item (engines.node >=26 lets setup-node pick a newer major) and the still-deferred
-    experiment task source and spend cap. Use tools/assert-audit-story.sh for the
-    audit gate. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
-    call, run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  next_skill: kickoff-branch
+  next_story: e06s01
+  note: 'e06 is sliced and e06s01 is planned (spec e06s01-gate-tracer.md, 3 tasks,
+    all todo). The planning commit lands through a PR from e06-engine-core-done-gate;
+    after that merge, in a fresh session: kickoff-branch from main with git checkout
+    -b (no worktree), then build-epic. build-epic step 0 (security-review threat
+    model) is due and the owner chose not to waive it for e06, since e06 is the first
+    epic with product code. Then develop-tdd for e06s01. e06s02 to e06s05 have tasks
+    files only; plan-work writes each spec when its turn comes (waived for e06).
+    Open for e06s05 plan-work: what an override answers, and how the engine tells
+    an owner-authored hatch from one the agent wrote (recommendation in the e06s05
+    tasks file). Owner decisions still open: the e05 checkpoint item (engines.node
+    >=26 lets setup-node pick a newer major) and the deferred experiment task source
+    and spend cap. main is protected: land every branch through a PR (gh pr create,
+    then gh pr merge --squash). Use tools/assert-audit-story.sh for the audit gate.
+    Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call,
+    run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -389,9 +397,9 @@ metrics:
       total_seconds: 239.0
       avg_seconds: 14.058823529411764
     plan-work:
-      calls: 19
-      total_seconds: 7082.0
-      avg_seconds: 372.7368421052632
+      calls: 20
+      total_seconds: 7243.0
+      avg_seconds: 362.15
     develop-tdd:
       calls: 19
       total_seconds: 9052.0
