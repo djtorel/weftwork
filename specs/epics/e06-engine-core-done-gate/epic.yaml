@@ -1,0 +1,15 @@
+---
+id: e06
+title: Engine core and done gate (B1)
+wsjf: 3.5
+risk: P1
+status: todo
+depends_on:
+  - e05
+done_when: >-
+  A TypeScript command-line program reads JSON on stdin and answers
+  with an exit code, with the evidence gate, the terminal states, a
+  counts ledger and the one-shot owner-authored escape hatch
+stories: []
+# Candidate epic B1 in docs/research/SYNTHESIS.md [S5][S13][S14][S15].
+# Sized and sliced with slice-tasks; not estimated yet.

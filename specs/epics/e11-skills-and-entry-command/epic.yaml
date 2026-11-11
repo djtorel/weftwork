@@ -1,0 +1,15 @@
+---
+id: e11
+title: Skills and entry command (B4)
+wsjf: 3.6
+risk: P2
+status: todo
+depends_on:
+  - e07
+done_when: >-
+  A small SKILL.md catalog with one entry command per host, placed
+  where each host reads it, with descriptions written as routing
+  metadata
+stories: []
+# Candidate epic B4 in docs/research/SYNTHESIS.md [S16][S1][S3].
+# Runs last: the adapters (e07) install the skills on each host.

@@ -1,0 +1,15 @@
+---
+id: e07
+title: Host adapters (B3)
+wsjf: 4.2
+risk: P2
+status: todo
+depends_on:
+  - e06
+done_when: >-
+  A Claude Code command hook calls the engine, fails closed, is
+  registered and trusted, and the engine can check that it is live; a
+  pi TypeScript wrapper is added only if it stays small
+stories: []
+# Candidate epic B3 in docs/research/SYNTHESIS.md [S5][S13].
+# Claude Code first. Raw WSJF is above e06, but it needs the engine.

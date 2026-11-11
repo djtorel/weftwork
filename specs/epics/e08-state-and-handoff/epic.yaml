@@ -1,0 +1,13 @@
+---
+id: e08
+title: State and handoff (B2)
+wsjf: 3.8
+risk: P2
+status: todo
+depends_on:
+  - e06
+done_when: >-
+  Workflow state is plain files written only by the engine through a
+  format-preserving writer, and the handoff note is checked at resume
+stories: []
+# Candidate epic B2 in docs/research/SYNTHESIS.md [S12][S13][S2].

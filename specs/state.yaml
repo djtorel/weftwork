@@ -343,40 +343,29 @@ waivers:
   date: 2026-11-11
   scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
 handoff:
-  next_skill: change-request
+  next_skill: slice-tasks
   next_story: e05
-  note: >-
-    e04 is released (e04s02 merged as #31, 2fcf5c1). BUG-006 is fixed by the
-    PR that carries this note: tools/assert-audit-story.sh passes only when
-    specs/AUDIT_LATEST.md has a "Story: <active_story>" line and VERDICT:
-    PASS; use it instead of scripts/lib/assert-epic-gate.sh, and have
-    audit-code write that line for every story. Next, in a fresh session, run
-    change-request to record the e04 checkpoint decisions the owner made on
-    2026-11-11: stack is TypeScript on Node, one package that is both a CLI
-    (JSON on stdin, exit code) and a library; build epics after e05 in this
-    order, B1 engine core and done gate, then B3 host adapters (Claude Code
-    first) and B2 state and handoff, then B5 budget and ceilings and B6
-    security baseline, then B4 skills and entry command; record B7, B8 and
-    B9 but do not schedule them (definitions in docs/research/SYNTHESIS.md);
-    add the R15 hypothesis (a loop ends only on engine-enforced conditions)
-    and the R10 hypothesis (a finding needs a paired difference with an
-    interval against a held-out oracle) to specs/planning-context.yaml; keep
-    the standing gate-trace waiver. Likely a new release after 0.1.0 in
-    specs/release-plan.yaml. After that, slice-tasks for e05 (repository and
-    environment setup), including the CONVENTIONS code-style and test
-    sections. Still deferred by the owner: the experiment task source (any
-    outside path must be named again) and the spend cap. Candidate
-    requirements stay candidates: the per-repository budget setting and auto
-    mode (B9). Do not run scripts/sync-status-from-epics.sh; it drops
-    cycle-time fields. After the last bp-timing.sh call, run
-    tools/restore-yaml-style.py on specs/state.yaml before committing.
+  note: 'change-request for the e04 checkpoint is merged to main (branch docs/e04-checkpoint-change-request). It added epics e06 to e11
+    (B1, B3, B2, B5, B6, B4) as release 0.2.0 in specs/release-plan.yaml (next_release),
+    recorded B7, B8 and B9 under unscheduled, added hypotheses H28 and H29 and two
+    key decisions to specs/planning-context.yaml, and noted in the e05 epic that its
+    environment setup now covers the Node and TypeScript toolchain and that CONVENTIONS.md
+    needs TypeScript code-style and test sections. WSJF scores are planner estimates;
+    BCPs for e06 to e11 are set when each is sliced. Next, in a fresh session: run
+    slice-tasks for e05 (repository and environment setup), including the CONVENTIONS
+    code-style and test sections. Still deferred by the owner: the experiment task
+    source (any outside path must be named again) and the spend cap. Candidate requirements
+    stay candidates: the per-repository budget setting and auto mode (B9). Use tools/assert-audit-story.sh
+    for the audit gate. Do not run scripts/sync-status-from-epics.sh; it drops cycle-time
+    fields. After the last bp-timing.sh call, run tools/restore-yaml-style.py on specs/state.yaml
+    before committing.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 12
-      total_seconds: 168.0
-      avg_seconds: 14.0
+      calls: 13
+      total_seconds: 185.0
+      avg_seconds: 14.23076923076923
     plan-work:
       calls: 15
       total_seconds: 5729.0
@@ -413,3 +402,7 @@ metrics:
       calls: 4
       total_seconds: 35.0
       avg_seconds: 8.75
+    change-request:
+      calls: 1
+      total_seconds: 70.0
+      avg_seconds: 70.0

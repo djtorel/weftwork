@@ -1,0 +1,16 @@
+---
+id: e09
+title: Budget and ceilings (B5)
+wsjf: 2.6
+risk: P2
+status: todo
+depends_on:
+  - e06
+done_when: >-
+  A per-repository budget setting with a user-level default, engine
+  counted ceilings over the whole loop, a handover reserve and
+  always-on cost reporting
+stories: []
+# Candidate epic B5 in docs/research/SYNTHESIS.md [S15][S9].
+# The per-repository budget setting is a candidate requirement of the
+# owner; its defaults are untested. The spend cap stays deferred.

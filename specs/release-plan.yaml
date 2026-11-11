@@ -78,3 +78,88 @@ epics:
       done; the stack choice (open for e04s02) shapes it. Minimal CI is e01s04.
       Input from the e01 checkpoint: agents in CI through GitHub
       Actions (R0 candidate 3).
+  # Added by change-request 2026-11-11 from the e04 checkpoint
+  # decisions (docs/research/SYNTHESIS.md, "Candidate build epics").
+  # All six belong to release 0.2.0 (next_release below). Order is
+  # execution order: B1, then B3 and B2, then B5 and B6, then B4. WSJF
+  # scores are planner estimates; BCPs are set when slice-tasks sizes
+  # each epic.
+  - id: e06
+    title: Engine core and done gate (B1)
+    wsjf: 3.5               # (10 + 8 + 10) / 8; estimate
+    risk: P1
+    depends_on: [e05]
+    capsule_dir: epics/e06-engine-core-done-gate
+    release: "0.2.0"
+    note: >-
+      Candidate B1. Holds the evidence gate every later epic needs.
+  - id: e07
+    title: Host adapters (B3)
+    wsjf: 4.2               # (8 + 5 + 8) / 5; estimate
+    risk: P2
+    depends_on: [e06]
+    capsule_dir: epics/e07-host-adapters
+    release: "0.2.0"
+    note: >-
+      Candidate B3. Claude Code first; pi only if the wrapper stays
+      small. Raw WSJF is above e06, but it needs the engine.
+  - id: e08
+    title: State and handoff (B2)
+    wsjf: 3.8               # (8 + 3 + 8) / 5; estimate
+    risk: P2
+    depends_on: [e06]
+    capsule_dir: epics/e08-state-and-handoff
+    release: "0.2.0"
+    note: Candidate B2. Runs in the same step as e07; no dependency.
+  - id: e09
+    title: Budget and ceilings (B5)
+    wsjf: 2.6               # (5 + 3 + 5) / 5; estimate
+    risk: P2
+    depends_on: [e06]
+    capsule_dir: epics/e09-budget-and-ceilings
+    release: "0.2.0"
+    note: >-
+      Candidate B5. The spend cap for experiments stays deferred.
+  - id: e10
+    title: Security baseline (B6)
+    wsjf: 3.2               # (5 + 3 + 8) / 5; estimate
+    risk: P2
+    depends_on: [e07]
+    capsule_dir: epics/e10-security-baseline
+    release: "0.2.0"
+    note: Candidate B6.
+  - id: e11
+    title: Skills and entry command (B4)
+    wsjf: 3.6               # (8 + 5 + 5) / 5; estimate
+    risk: P2
+    depends_on: [e07]
+    capsule_dir: epics/e11-skills-and-entry-command
+    release: "0.2.0"
+    note: >-
+      Candidate B4. Last, because e07 installs the skills on each host.
+
+# Release after 0.1.0. The 0.1.0 release above ends with e05; the
+# validator reads only the "release" block, so this one is a label.
+next_release:
+  version: "0.2.0"
+  codename: First build
+  status: planning
+  semantic_release: false
+  epics: [e06, e07, e08, e09, e10, e11]
+
+# Recorded, not scheduled (owner decision, 2026-11-11). Definitions are
+# in docs/research/SYNTHESIS.md. No capsule exists for these.
+unscheduled:
+  - id: B7
+    title: Measurement harness and first experiment
+    depends_on: [e06, e07]
+    blocked_on: >-
+      the owner sets a spend cap and confirms the experiment task
+      source (any outside path must be named again)
+  - id: B8
+    title: Parallel work, after the first release
+    depends_on: [e06, e08]
+  - id: B9
+    title: Auto mode, after the first release (owner request)
+    depends_on: [e06, e07, e08, e09, e10]
+    note: its candidate hypothesis needs B7 to measure
