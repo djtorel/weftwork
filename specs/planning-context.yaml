@@ -375,22 +375,26 @@ hypotheses:
   # H28 and H29 added by change-request on 2026-11-11 (owner decision
   # at the e04 checkpoint). Both came from briefs as candidates (R15,
   # R10; docs/research/SYNTHESIS.md). Neither has a verdict yet: the
-  # H1-H27 success criterion above is unchanged, and the build epics
-  # and the measurement harness (B7) test them.
+  # H1-H27 success criterion above is unchanged. tested_by names the
+  # measurement harness (B7, unscheduled), not the released briefs:
+  # tools/check-brief.sh wants a verdict in every brief it lists.
   - id: H28
     claim: 'An autonomous loop ends only on conditions the engine
       enforces (a verified gate verdict, a counted ceiling over the
       whole loop, a progress-based breaker on evidence that can move),
       never on the model''s own judgment alone'
-    tested_by:
+    proposed_by:
       - R15
-      - R10
+    tested_by:
+      - B7
   - id: H29
     claim: 'A workflow claim is a finding only when it is a paired
       difference with an interval against a held-out oracle the agent
       never saw; a pass of the declared command alone is not enough'
-    tested_by:
+    proposed_by:
       - R10
+    tested_by:
+      - B7
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing
