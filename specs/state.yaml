@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e05
-active_story: e05s01
+active_story: e05s03
 phase: planning
 test_plan: lite
 vcs:
@@ -350,49 +350,64 @@ waivers:
     option).
   date: 2026-11-11
   scope: e05 only (e05s02 to e05s04 specs)
+- what: plan-consistency-check MED finding (status ledger) for e05s01
+  why: The checker wants failing/passing task statuses. CONVENTIONS.md sets
+    todo, in_progress, done. The owner accepted it on 2026-11-11 ("yes to
+    both"), as for e01 and e03s06.
+  date: 2026-11-11
+  scope: e05 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e05s02
-  note: 'e05s01 (port the specs validator into tools/, run it in CI) is released by
-    PR from e05s01-port-validator-ci, after the owner approved the PR. Next story
-    e05s02 (one-command setup for the Python and Node toolchains). Start it in a fresh
-    session: kickoff-branch from main, then plan-work. Plan decision from the owner,
-    2026-11-11: npm and node:test for e05s02. Later e05 stories: e05s03 TypeScript
-    code-style and test sections, Preflight adds the typecheck and tests; e05s04 PR
-    template and protected main, with gh api allowed for that story only (task 2 records
-    the waiver). The PR template lists the gates and carries no provenance marker
-    (epic done_when changed). Branch protection changes GitHub settings, so ask right
-    before it. Still deferred by the owner: the experiment task source and the spend
-    cap. Do not run scripts/sync-status-from-epics.sh; it drops cycle-time fields.
-    Run tools/restore-yaml-style.py --base main on specs/state.yaml after the last
-    bp-timing.sh call, before committing.'
+  next_story: e05s03
+  note: 'e05s02 (one command sets up the Python and Node toolchains) is released
+    by PR from e05s02-toolchain-setup, after the owner approved the push and
+    the PR; the merge needs its own go-ahead. Next story e05s03 (TypeScript
+    code-style and test sections in CONVENTIONS.md, and real commands).
+    Start it in a fresh session: kickoff-branch from main with git checkout
+    -b (no worktree), then plan-work. active_story is already e05s03. What
+    e05s02 built: tools/setup.sh (run it on a fresh clone; --check installs
+    nothing), tools/test-setup.sh, package.json with exact typescript 7.0.2
+    and @types/node 26.6.6, a strict tsconfig for Node type stripping
+    (erasableSyntaxOnly, so no enum or namespace), npm test is node --test
+    on .ts files, CI on actions/setup-node@v7. e05s03 adds npm run typecheck
+    and npm test to Preflight and the AGENTS.md commands table. Open low
+    item from the e05s02 audit: engines.node >=26 lets setup-node pick a
+    newer major; revisit at the e05 checkpoint. e05s04: PR template and
+    protected main, with gh api allowed for that story only (its task 2
+    records the waiver). The PR template lists the gates and carries no
+    provenance marker. Branch protection changes GitHub settings, so ask
+    right before it. Still deferred by the owner: the experiment task source
+    and the spend cap. Do not run scripts/sync-status-from-epics.sh; it
+    drops cycle-time fields. Run tools/restore-yaml-style.py --base HEAD on
+    specs/state.yaml after the last bp-timing.sh call, before committing.
+    Wrap YAML text with break_on_hyphens=False.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 14
-      total_seconds: 197.0
-      avg_seconds: 14.071428571428571
+      calls: 15
+      total_seconds: 219.0
+      avg_seconds: 14.6
     plan-work:
-      calls: 16
-      total_seconds: 6033.0
-      avg_seconds: 377.0625
-    develop-tdd:
       calls: 17
-      total_seconds: 8726.0
-      avg_seconds: 513.2941176470588
+      total_seconds: 6564.0
+      avg_seconds: 386.11764705882354
+    develop-tdd:
+      calls: 18
+      total_seconds: 9004.0
+      avg_seconds: 500.22222222222223
     verify-work:
-      calls: 16
-      total_seconds: 714.0
-      avg_seconds: 44.625
+      calls: 17
+      total_seconds: 789.0
+      avg_seconds: 46.411764705882355
     audit-code:
-      calls: 14
-      total_seconds: 593.0
-      avg_seconds: 42.357142857142854
+      calls: 15
+      total_seconds: 688.0
+      avg_seconds: 45.86666666666667
     release-branch:
-      calls: 16
-      total_seconds: 1639.0
-      avg_seconds: 102.4375
+      calls: 17
+      total_seconds: 1679.0
+      avg_seconds: 98.76470588235294
     request-review:
       calls: 9
       total_seconds: 11503.0

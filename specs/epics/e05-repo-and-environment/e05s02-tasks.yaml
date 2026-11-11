@@ -5,57 +5,114 @@
 # Owner decision 2026-11-11 ("do your recommendations"): npm as the
 # package manager (ships with Node, no extra install) and the built-in
 # node:test runner (no dependency). Check current docs with ctx7.
+# plan-work 2026-11-11 (owner: "go with suggestions"): setup.sh checks
+# Node but does not install it; pip installs the Python tools only
+# when missing; engines.node >=26; typescript 7.0.2 and @types/node
+# 26; tests run as .ts through Node type stripping; a selftest proves
+# --check fails. Selftest first (RED), then the script (GREEN).
 story_id: e05s02
 title: One command sets up the Python and Node toolchains
-status: todo
+status: done
 bcps: 3
 type: chore
 context: infra
 risk: P2
+spec: e05s02-toolchain-setup.md
 depends_on: [e05s01]
 tasks:
   - id: 1
     description: >-
-      RED then GREEN. Write tools/setup.sh. It installs yamllint and
-      PyYAML (the Python tools CI uses today), is safe to run twice,
-      and has a --check mode that installs nothing and exits 1 naming
-      any missing tool
+      RED. Write tools/test-setup.sh. It builds stub tools in mktemp -d
+      (never in the repo), removes them on exit, and runs
+      tools/setup.sh --check on a PATH of stubs only. All stubs present
+      passes first (anti-vacuity). Then Python cases: no yamllint, and
+      a python3 that cannot import yaml; each exits 1 and names the
+      tool. Run it once before task 2 and record the failure as RED
+      evidence
     verify: >-
-      bash tools/setup.sh && bash tools/setup.sh
-      && bash tools/setup.sh --check
+      test -x tools/test-setup.sh && bash -n tools/test-setup.sh
     risk: P2
-    status: todo
+    status: done
     allure:
-      severity: high
+      severity: normal
+      categories:
+        - "unit"
+        - "e05 wave 5"
   - id: 2
     description: >-
-      Add the Node and TypeScript toolchain: package.json (private,
-      ESM, engines field), tsconfig.json (strict), the lockfile, and
-      a smoke source file with one test that proves the compiler and
-      the test runner run. The smoke files are replaced by e06
+      GREEN. Write tools/setup.sh for the Python tools. Install PyYAML
+      and yamllint with python3 -m pip only when one is missing; if
+      pip refuses (PEP 668), exit 1 and name the fix. --check installs
+      nothing and names each missing tool. Safe to run twice
     verify: >-
-      npm ci && npx tsc --noEmit && npm test
+      test -x tools/setup.sh && bash tools/test-setup.sh
+      && bash tools/setup.sh && bash tools/setup.sh
+      && bash tools/setup.sh --check
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
+      categories:
+        - "unit"
+        - "e05 wave 5"
   - id: 3
     description: >-
-      Extend tools/setup.sh to run the Node install and its --check to
-      test for node, npm and tsc. Make CI call tools/setup.sh instead
-      of pip install, and add typecheck and test steps. The Python
-      tool steps keep passing
+      Add the TypeScript skeleton: package.json (private, ESM,
+      engines.node >=26, scripts typecheck and test), exact dev
+      dependencies typescript 7.0.2 and @types/node 26, the
+      lockfile, tsconfig.json (strict, nodenext, noEmit,
+      erasableSyntaxOnly, verbatimModuleSyntax,
+      allowImportingTsExtensions), and src/smoke.ts with
+      src/smoke.test.ts. Write the test first and see it fail
     verify: >-
-      yamllint .github/workflows/ci.yml
-      && grep -q 'tools/setup.sh' .github/workflows/ci.yml
-      && ! grep -q 'pip install' .github/workflows/ci.yml
-      && bash tools/setup.sh && bash tools/setup.sh --check
-      && npx tsc --noEmit && npm test
+      npm ci && npm run typecheck && npm test
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
+      categories:
+        - "unit"
+        - "e05 wave 5"
   - id: 4
+    description: >-
+      RED then GREEN for Node. Add selftest cases: no node, node
+      v24.0.0 (below engines), no npm, no node_modules/.bin/tsc; each
+      exits 1 and names the tool. Then extend tools/setup.sh: check
+      node, its major version against engines.node, and npm, then run
+      npm ci; --check also tests the local tsc
+    verify: >-
+      bash tools/test-setup.sh && bash tools/setup.sh
+      && bash tools/setup.sh && bash tools/setup.sh --check
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "unit"
+        - "e05 wave 5"
+  - id: 5
+    description: >-
+      CI. Add actions/setup-node@v7 (node-version-file: package.json,
+      cache: npm). Replace pip install with bash tools/setup.sh. Add
+      steps for tools/test-setup.sh, npm run typecheck and npm test.
+      Keep the job name checks and every existing gate step
+    verify: >-
+      yamllint .github/workflows/ci.yml
+      && grep -q 'actions/setup-node@v7' .github/workflows/ci.yml
+      && grep -q 'bash tools/setup.sh' .github/workflows/ci.yml
+      && grep -q 'tools/test-setup.sh' .github/workflows/ci.yml
+      && grep -q 'npm run typecheck' .github/workflows/ci.yml
+      && ! grep -q 'pip install' .github/workflows/ci.yml
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "ci"
+        - "e05 wave 5"
+  - id: 6
     description: >-
       Prove it on a clean tree: copy every tracked and unignored file
       into a new mktemp -d directory, run tools/setup.sh there, then
@@ -65,9 +122,12 @@ tasks:
       T=$(mktemp -d)
       && git ls-files -co --exclude-standard -z
       | xargs -0 cp --parents -t "$T"
-      && (cd "$T" && bash tools/setup.sh && npx tsc --noEmit
+      && (cd "$T" && bash tools/setup.sh && npm run typecheck
       && npm test)
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: high
+      categories:
+        - "integration"
+        - "e05 wave 5"
