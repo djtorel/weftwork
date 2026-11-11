@@ -5,7 +5,7 @@
 # The port also checks capsule_dir (owner decision 2026-11-11).
 story_id: e05s01
 title: Port the specs validator into tools/ and run it in CI
-status: todo
+status: in_progress
 bcps: 3
 type: chore
 context: infra
@@ -27,7 +27,7 @@ tasks:
       test -x tools/test-validate-specs-yaml.sh
       && bash -n tools/test-validate-specs-yaml.sh
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -47,7 +47,7 @@ tasks:
       && bash tools/validate-specs-yaml.sh
       | grep -q 'validate-specs-yaml: OK'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
@@ -69,7 +69,7 @@ tasks:
       && yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: minor
       categories:

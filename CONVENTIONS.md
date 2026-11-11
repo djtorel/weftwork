@@ -58,7 +58,7 @@ Add the code-style and test sections when the stack is chosen (an open question 
 
 ## Always Green and Discovered Defects
 
-- Preflight is `yamllint specs && bash scripts/validate-specs-yaml.sh &&
+- Preflight is `yamllint specs && bash tools/validate-specs-yaml.sh &&
   bash tools/check-gate-ignores.sh`.
 - Preflight MUST pass before forward work.
 - A reproducible gate failure needs `quick-fix` or `fix-bug`, in a separate commit.

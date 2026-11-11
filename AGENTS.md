@@ -37,7 +37,7 @@ Stack: none yet. The project is in a research phase and contains no product code
 | Test | N/A |
 | Build | N/A |
 | Lint | `yamllint specs` |
-| Preflight | `yamllint specs && bash scripts/validate-specs-yaml.sh && bash tools/check-gate-ignores.sh` |
+| Preflight | `yamllint specs && bash tools/validate-specs-yaml.sh && bash tools/check-gate-ignores.sh` |
 | CI | `.github/workflows/ci.yml` (GitHub Actions) |
 
 `scripts/` is a symlink to the global bigpowers install. It is gitignored and machine-local.
