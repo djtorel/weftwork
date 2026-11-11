@@ -89,7 +89,7 @@ tasks:
       && printf '%s\n' "$F" | grep -Eq 'R2([^0-9]|$)'
       && printf '%s\n' "$F" | grep -Eq 'R5([^0-9]|$)'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
