@@ -1,0 +1,14 @@
+---
+id: e10
+title: Security baseline (B6)
+wsjf: 3.2
+risk: P2
+status: todo
+depends_on:
+  - e07
+done_when: >-
+  A protected-paths list, the untrusted-content rule for the engine and
+  its skills, a per-host report of the boundary the host gives, and
+  credential-scrubbing guidance
+stories: []
+# Candidate epic B6 in docs/research/SYNTHESIS.md [S11].

@@ -372,6 +372,25 @@ hypotheses:
       in a host''s own store'
     tested_by:
       - R13
+  # H28 and H29 added by change-request on 2026-11-11 (owner decision
+  # at the e04 checkpoint). Both came from briefs as candidates (R15,
+  # R10; docs/research/SYNTHESIS.md). Neither has a verdict yet: the
+  # H1-H27 success criterion above is unchanged, and the build epics
+  # and the measurement harness (B7) test them.
+  - id: H28
+    claim: 'An autonomous loop ends only on conditions the engine
+      enforces (a verified gate verdict, a counted ceiling over the
+      whole loop, a progress-based breaker on evidence that can move),
+      never on the model''s own judgment alone'
+    tested_by:
+      - R15
+      - R10
+  - id: H29
+    claim: 'A workflow claim is a finding only when it is a paired
+      difference with an interval against a held-out oracle the agent
+      never saw; a pass of the declared command alone is not enough'
+    tested_by:
+      - R10
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing
@@ -397,3 +416,12 @@ key_decisions:
       effort, plus token efficiency
     rationale: Owner's goal is lower cost/token usage without
       losing quality
+  # Added by change-request on 2026-11-11 (owner decisions at the e04
+  # checkpoint).
+  - decision: Stack is TypeScript on Node, one package that is both a
+      command-line program (JSON on stdin, exit code) and a library
+    rationale: Owner confirmed the e04 recommendation
+  - decision: Build epics run B1, then B3 and B2, then B5 and B6, then
+      B4; B7, B8 and B9 are recorded but not scheduled
+    rationale: Owner decision; B1 holds the done gate every later epic
+      needs, and B4 installs skills through B3

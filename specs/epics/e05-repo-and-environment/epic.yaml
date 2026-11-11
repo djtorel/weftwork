@@ -15,3 +15,10 @@ stories: []
 #   GitHub settings (protect main, required check, PR template)
 #   Environment setup (one command installs yamllint and PyYAML)
 #   Port validate-specs-yaml.sh into tools/ so CI can run it
+# MODIFIED by change-request 2026-11-11 (owner decision, stack is
+# TypeScript on Node, one package that is a CLI and a library):
+#   Environment setup: before, "installs yamllint and PyYAML"; after,
+#     it also installs the Node and TypeScript toolchain
+#   ADDED: CONVENTIONS.md code-style and test sections for TypeScript
+#     (CONVENTIONS.md says to add them when the stack is chosen)
+# e06 (B1) depends on this epic for the repository, CI and toolchain.
