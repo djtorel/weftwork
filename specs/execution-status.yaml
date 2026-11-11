@@ -20,7 +20,7 @@ development_status:
   e03s07: done
   e03s08: done
   e04: todo
-  e04s01: todo
+  e04s01: done
   e04s02: todo
   e04s03: todo
   e05: todo
@@ -227,13 +227,16 @@ stories:
     lead_time_minutes: 25
     bcp_per_hour: 12.0
   e04s01:
-    status: todo
+    status: done
     title: R10 evaluation design
     bcps: 8
     epic: e04
     tasks_total: 9
     tasks_passing: 9
     tasks_failing: 0
+    effort_hours: 1.4097
+    lead_time_minutes: 88
+    bcp_per_hour: 5.7
   e04s02:
     status: todo
     title: Research synthesis

@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e04
-active_story: e04s01
+active_story: e04s03
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e04s01-evaluation-design
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -334,40 +334,41 @@ waivers:
   date: 2026-11-10
   scope: e04 only
 handoff:
-  next_skill: release-branch
-  next_story: e04s01
+  next_skill: kickoff-branch
+  next_story: e04s03
   note: >-
-    e04s01 (R10 evaluation design) is on branch e04s01-evaluation-design.
-    Commits 9b9cfd3 (brief) and 3b032c2 (plan, status, handoff) exist; the
-    review fixes, the audit and verification files and this handoff are
-    uncommitted. docs/research/R10-evaluation.md has 35 sources (all arXiv; 7
-    read in passages, 28 at abstract level), 13 sections, a
-    detectable-difference table backed by a stdlib python block, 10 experiment
-    protocols, a 50-row triage table and six verdicts, all refined. All nine
-    task verify commands pass and tools/check-brief.sh exits 0; tasks are done
-    and tasks_passing is 9; the story status stays todo until release-branch.
-    verify-work passed (P2) and audit-code passed with one open item
-    (specs/verifications/AUDIT-e04-e04s01.md): a read-only gh run list call this
-    session is a deviation the owner has not accepted. request-review passed in
-    round 4 (A 95.0, B 97.2, zero must-fix; round 1 A 93.0 and B 92.9, round 2
-    90 and 90, round 3 A 91.4 and B 95.4). Every finding from rounds 1 to 4 that
-    was a must-fix or should-fix is fixed in the working tree; the last small
-    edits after round 4 (wording and labels only) were not re-reviewed. Next is
-    release-branch, which needs the owner's go-ahead for the push, the pull
-    request and the merge. The review fixes, the audit and verification files
-    and this handoff are committed in the commit that follows 3b032c2. Not
-    applied: R3 names the computed risk score as an R10 input and was not in the
-    triage inputs (covered by C32 and C45); commit 9b9cfd3 says '40-row' and
-    'nine earlier briefs' where the brief now has 50 rows from 12 briefs, so fix
-    the wording in the PR body. Owner decisions still open: which repository
-    supplies the tasks and who sets the spend cap (an outside path needs the
-    owner to name it); the gh deviation and the e04 threat-model waiver were
-    accepted on 2026-11-10 and recorded in the waivers. Routed to e04s03, not
-    R10: four unread R11 papers (arXiv:2609.39678, 2610.02456, 2603.10387,
-    2608.25817) and the R13 and R15 papers read only in passages. e04s02 takes
-    the stack choice. e04s03 runs before e04s02. Every commit needs a Story:
-    e04s01 trailer. After the last bp-timing.sh call, rebuild only the changed
-    blocks of specs/state.yaml in their original style, because
+    e04s01 (R10 evaluation design) is released by a pull request from branch
+    e04s01-evaluation-design; the push, the pull request and the merge wait for
+    the owner's go-ahead. Brief: docs/research/R10-evaluation.md (35 sources, 10
+    protocols, a 50-row triage table from 12 briefs, six verdicts all refined,
+    nothing measured). Gates: verify-work PASS (P2); audit-code PASS;
+    request-review passed in round 4 (A 95.0, B 97.2, zero must-fix; rounds 1 to
+    3 failed and were fixed; the last wording edits after round 4 were not
+    re-reviewed); security review PASS at the branch head
+    (specs/security/REVIEW.md); assert-epic-gate release PASS; Preflight green;
+    completeness critic 0 blockers; blind spots 0 HIGH; formal gate-trace
+    verdict not run (the standing waiver covers R1 and R4); CI result is in the
+    pull request. Waivers recorded: the gh run list deviation and the e04
+    threat-model waiver (owner, 2026-11-10), and the e04s02 and e04s03 spec
+    waiver. The e04 capsule stays open (e04s02 and e04s03 are todo), so nothing
+    is archived. The e04s01 cycle-time row is in specs/metrics/cycle-times.md
+    (git-derived: 1.41 hours over 3 commits, which understates the session). The
+    PR body must say the brief has 50 triage rows from 12 briefs, because commit
+    9b9cfd3 says 40 rows and nine briefs. Next is kickoff-branch for e04s03 (R16
+    evidence refresh, 5 BCPs; it runs before e04s02, whose synthesis uses its H8
+    and H10 verdicts), in a fresh session after the merge: sync main, delete the
+    local and remote branch, confirm a clean tree and green CI on the merge
+    commit. plan-work for e04s03 must first decide whether to add the reading
+    routed to it from R10 and earlier briefs: four unread R11 papers
+    (arXiv:2609.39678, 2610.02456, 2603.10387 and 2608.25817) and the R13 and
+    R15 papers read only in passages; the current e04s03 tasks cover only the
+    three R16 questions and the BMAD v7 re-check. Open for the owner, carried
+    over: which repository supplies the task set and who sets the spend cap for
+    the first R10 experiment (an outside path needs the owner to name it; e04s02
+    takes this with the stack choice); undecided R7 items; the e04 checkpoint
+    reviews the standing gate-trace waiver. Every commit needs a Story trailer.
+    After the last bp-timing.sh call, rebuild only the changed blocks of
+    specs/state.yaml in their original style, because
     tools/restore-yaml-style.py leaves a changed block reflowed.
 metrics:
   story_start: '2026-11-09T16:34:35Z'
@@ -393,9 +394,9 @@ metrics:
       total_seconds: 464.0
       avg_seconds: 42.18181818181818
     release-branch:
-      calls: 12
-      total_seconds: 1281.0
-      avg_seconds: 106.75
+      calls: 13
+      total_seconds: 1339.0
+      avg_seconds: 103.0
     request-review:
       calls: 7
       total_seconds: 9913.0

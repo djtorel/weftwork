@@ -6,7 +6,7 @@
 #   the story spec).
 story_id: e04s01
 title: R10 evaluation design
-status: todo
+status: done
 bcps: 8
 type: research
 context: infra
