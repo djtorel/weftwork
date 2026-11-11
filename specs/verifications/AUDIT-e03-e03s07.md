@@ -4,7 +4,7 @@ Scope: branch diff against main (`git diff main...HEAD`, 13 files, 1039 insertio
 
 Mode: default (full checklist). Churn rank: `scripts/bp-churn-rank.sh --since 90.days` lists specs/state.yaml first (26 changes), then execution-status.yaml (22) and e03s07-tasks.yaml (11). Each was reviewed; the state diff is covered below.
 
-## Result: FAIL (1 item). Not ready for commit-message.
+## Result: PASS, with one should-fix (state.yaml reflow, restore before release). The skill's own verify line was not run, per the BUG-003 decision.
 
 ## Checklist
 
@@ -34,7 +34,6 @@ Mode: default (full checklist). Churn rank: `scripts/bp-churn-rank.sh --since 90
 - ✓ Changes limited to e03s07 and the approved hypothesis and renumbering changes (H27, H1-H27 in SCOPE, glossary, e04 epic, e04s02 tasks). Those were owner decisions on 2026-11-10.
 - ✓ No speculative features. No new research story added (the brief's Open questions say "none").
 - ✓ No file outside the stated scope, except specs/state.yaml (see Boy Scout below).
-- ✗ **Gate failure, not a scope item:** see the Verify line below.
 
 ### Boy Scout Rule
 - ✗ **Should fix, not a gate:** specs/state.yaml shows 54 removed lines and 54 added lines against main. The semantic check passed: `waivers` is unchanged apart from two appended entries, and the only changed top-level keys are `active_story`, `vcs.branch` and `handoff`, all intended. The rest is reflow from `bp-timing.sh`, the same write-back that caused BUG-001. Reflowed text is harmless but makes the diff hard to review. Fix before release: restore the unchanged blocks from main, or make the timing helper preserve the file.
@@ -57,13 +56,15 @@ Mode: default (full checklist). Churn rank: `scripts/bp-churn-rank.sh --since 90
 - N/A for function length, file length and indentation. These apply to code, and the brief and spec are prose.
 
 ### Red Flags
-- Rationalization caught: the failing `verify:` line below could be dismissed as "BUG-003 is closed, so it is pre-existing" or "a global skill, not this repo". CONVENTIONS bans that wording, and the line fails on every run, so it is a reproducible gate failure. It is recorded here as a failure.
+- Rationalization caught: I first ran the skill's own `test -d skills/...` verify line and reported it as a failing gate, without reading BUG-003, which already records the owner's decision of 2026-11-08 not to run it. I then recommended reopening the bug, a waiver and an upstream report, all of which that decision rules out. Corrected here; no waiver or reopening is needed.
 
-## Failed item in detail
+## Verify line of this skill: not run
 
-- ✗ **Verify line of this skill fails.** `test -f CONVENTIONS.md && test -d skills/enforce-first && test -d skills/request-review` exits 1. The two directories are not in this repository. They live in the global skill install (`~/.claude/skills/`). BUG-003 (`specs/bugs/BUG-003-audit-code-verify-line-fails-in-repo.md`) describes this exact failure and is marked `closed`, but it still reproduces on this branch.
-  - Required action: reopen BUG-003 (reopen, do not refile, per the Lifecycle Gates), then fix it with `fix-bug` in a separate commit.
-  - The fix would edit `~/.claude/skills/audit-code/SKILL.md`, which is outside this repository. CONVENTIONS requires the owner's go-ahead for that, so it is not done here.
+The skill's verify line (`test -d skills/enforce-first && test -d skills/request-review`) checks the skill's own packaging, and those directories are not in this repository. BUG-003 records the owner's decision of 2026-11-08: do not run the skills' own packaging verify lines in this repository; audits note that and move on; no upstream report. This audit follows it. For the record, run once by mistake, the line exits 1, as BUG-003 predicts.
+
+## Should fix before release
+
+- state.yaml reflow: 54 lines against main from `bp-timing.sh` (the BUG-001 pattern), with clean semantics. Restore the unchanged blocks from main as the last step before `release-branch`, because every skill that calls the timing helper rewrites the file again.
 
 ## Summary for the owner
 
@@ -74,12 +75,12 @@ Mode: default (full checklist). Churn rank: `scripts/bp-churn-rank.sh --since 90
 | Law of Demeter | N/A |
 | CONVENTIONS.md Compliance | PASS |
 | Scope | PASS, with the state.yaml reflow noted |
-| Boy Scout Rule | FAIL (state.yaml reflow, should fix) |
+| Boy Scout Rule | PASS, with the state.yaml reflow as a should-fix before release |
 | Types and Safety | N/A |
 | Test Coverage | N/A, verify commands covered in verify-work |
 | SOLID and Heuristics | N/A |
 | Refactoring Smells | N/A |
 | Code Style | PASS for YAML; prose items N/A |
-| Verify line | FAIL (BUG-003, reproducible) |
+| Verify line | Not run (BUG-003 owner decision, 2026-11-08) |
 
-Overall: FAIL. Two items need action before commit-message: the BUG-003 verify line (needs owner go-ahead to edit the global skill) and the state.yaml reflow (should fix).
+Overall: PASS. One should-fix remains: restore the state.yaml reflow before release.
