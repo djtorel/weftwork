@@ -36,7 +36,7 @@ success_criteria:
   - Briefs R0-R14 exist in docs/research/, plus any stories R0
     adds
   - Every brief follows brief_rules below
-  - Every hypothesis H1-H26 has a verdict (confirmed / refined
+  - Every hypothesis H1-H27 has a verdict (confirmed / refined
     / refuted) with sources
   - Together the briefs give enough evidence to elaborate the
     v1 spec and answer open_question_for_this_phase
@@ -238,6 +238,7 @@ hypotheses:
       - R14
       - R1
       - R2
+      - R13
   - id: H7
     claim: Ceremony proportional to risk
     tested_by:
@@ -361,6 +362,15 @@ hypotheses:
       better than resuming a transcript'
     tested_by:
       - R12
+  # H27 added by plan-work for e03s07 on 2026-11-10 (owner decision):
+  # SEED section 9 asks where state lives when two hosts share a repo,
+  # and no hypothesis covered it. R13 was also added to H6 that day.
+  - id: H27
+    claim: 'When two hosts share a repo, workflow state lives in one
+      set of plain repo files that both reach through the engine, not
+      in a host''s own store'
+    tested_by:
+      - R13
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing

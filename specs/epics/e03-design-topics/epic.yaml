@@ -2,7 +2,7 @@
 id: e03
 title: Design topics (wave 3)
 wsjf: 1.6
-total_bcps: 41
+total_bcps: 44
 risk: P2
 status: in_progress
 depends_on:
@@ -42,8 +42,8 @@ stories:
     tasks: e03s06-tasks.yaml
   - id: e03s07
     title: R13 enforcement design
-    bcps: 5
-    status: todo
+    bcps: 8
+    status: done
     tasks: e03s07-tasks.yaml
   - id: e03s08
     title: R15 run termination for autonomous loops

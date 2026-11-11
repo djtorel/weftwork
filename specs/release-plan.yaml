@@ -35,8 +35,8 @@ epics:
       Done and archived by release-branch for e02s04, 2026-11-08.
   - id: e03
     title: Design topics (wave 3)
-    wsjf: 1.6               # (6 + 4 + 6) / 10
-    bcps: 41
+    wsjf: 1.6               # (6 + 4 + 6) / 10; not rescored for e03s07
+    bcps: 44
     risk: P2
     depends_on: [e02]
     capsule_dir: epics/e03-design-topics

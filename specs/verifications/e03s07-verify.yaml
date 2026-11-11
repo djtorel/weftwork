@@ -1,0 +1,83 @@
+---
+story_id: e03s07
+verified_at: '2026-11-11T01:11:15Z'
+verifier: verify-work
+branch: e03s07-r13-enforcement-design
+risk: P2
+mode: >-
+  default (P2 skips build, tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e03s07-r13-enforcement-design
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: '2026-11-11T01:11:15Z'
+    note: >-
+      Preflight run on the branch. CI: no PR open, so gh pr checks does not
+      apply.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e03-design-topics/e03s07-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-11T01:11:15Z'
+    note: >-
+      One contiguous pass over tasks 1 to 9 on the brief as on disk at commit
+      7ae3149. Tasks 1 and 9 warn about 5 undated sources (S25 to S29), which
+      the owner approved as an exception on 2026-11-10 (waiver in state.yaml).
+      A separate check, bash tools/check-briefs.sh over all briefs, exited 0
+      earlier in the session.
+    output: |
+      task 1: exit 0 warning: 5 undated source(s)
+      task 2: exit 0
+      task 3: exit 0
+      task 4: exit 0
+      task 5: exit 0
+      task 6: exit 0
+      task 7: exit 0
+      task 8: exit 0
+      task 9: exit 0 warning: 5 undated source(s)
+      TERMINAL_EXIT=0
+  completeness_critic:
+    passed: true
+    note: >-
+      BLOCKER=0 WARNING=0 FILLED=1 (scripts/lib/completeness-critic.sh). The
+      first run reported BLOCKER=1 (active story e03s07 had zero explicit
+      story-tag links) because the gitignored traceability matrix was stale;
+      after bash scripts/trace-stories.sh --json it reported BLOCKER=0.
+  blind_spots:
+    passed: true
+    note: >-
+      0 HIGH, 5 MEDIUM double-tag findings (shared state.yaml and other
+      stories' files) and 1 LOW stale-tag (e03s06); see specs/blind-spots.json.
+  build:
+    passed: null
+    note: 'Not applicable: no product code.'
+  typecheck:
+    passed: null
+    note: 'Not applicable: no code.'
+  smoke:
+    passed: null
+    note: 'Not applicable: no app.'
+  tests:
+    passed: null
+    note: 'Skipped: P2. The task verify commands are the terminal verdict.'
+  security_scan:
+    passed: null
+    note: >-
+      Skipped: P2. The e03 threat-model step was waived in state.yaml.
+  manual:
+    passed: null
+    note: >-
+      Step-by-step UAT skipped for P2. The owner's Verification Script in the
+      story spec (five steps) is still theirs to run; no confirmation of it
+      was recorded.
+  gaps:
+    closed: true
+    note: 'No gaps logged.'
