@@ -6,7 +6,7 @@
 #   (see the story spec).
 story_id: e03s08
 title: R15 run termination for autonomous loops
-status: in_progress
+status: done
 bcps: 5
 type: research
 context: infra

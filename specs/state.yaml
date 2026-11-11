@@ -297,43 +297,43 @@ waivers:
   date: 2026-11-10
   scope: every release until the first story that ships product code; revisit at
     the e04 checkpoint, and drop it as soon as an undone story could carry a code tag
+- what: CONVENTIONS.md rule that every source has a publication date, for 5 vendor
+    doc pages in the R15 brief (S18 to S21 Claude Code cli-reference, hooks and goal
+    pages and the Codex config-reference, and S23 the pi docs settings and usage pages)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version, commit or tag read. A real date cannot be
+    found, so the brief marks them as undated. check-brief.sh passes with a warning.
+    R5, R9, R11, R12 and R13 cited the same kind of pages as undated. The owner approved
+    this exception on 2026-11-10 ("do your recommendations").
+  date: 2026-11-10
+  scope: e03s08 only (docs/research/R15-run-termination.md sources S18 to S21 and S23)
 handoff:
-  next_skill: verify-work
-  next_story: e03s08
-  note: 'e03s08 (R15 run termination, 5 BCPs): develop-tdd is done on branch e03s08-run-termination
-    (made from main at 6b7e313 with git checkout -b, BUG-002). The brief docs/research/R15-run-termination.md
-    is written (30 sources, 16 of them papers read in full-text passages; verdicts
-    H1 refined and H15 refined). RED then GREEN: all eight task verify commands failed
-    with no brief and pass now; check-brief.sh passes for R15 with 5 undated- source
-    warnings; check-briefs.sh and Preflight are green. Task statuses are done and
-    the story is in_progress in e03s08-tasks.yaml; epic.yaml and execution-status.yaml
-    still read todo for e03s08 and are reconciled at release-branch. Nothing is committed:
-    the plan, the brief, the H1 tested_by edit in specs/planning-context.yaml (R15
-    added, owner decision 2026-11-10), and these state files are all in the working
-    tree. Commit and push need the owner''s go-ahead and every commit needs a Story:
-    e03s08 trailer; commit in steps if the owner agrees (the plan, then the brief),
-    since a single-commit story gives a meaningless cycle-time row. Next is verify-work
-    (human spot-check from the Verification Script in the story spec), then audit-code,
-    request-review, commit-message and release-branch, in a fresh session. What a
-    reviewer should check first: the S8 and S9 numbers are per cell (StopLoss keeps
-    99.0 percent of successful runs only on Verified with one executor); S7 rates
-    come from tau2-bench and from older-model AppWorld outputs; S3 reads 47 vacuity
-    defects as R13 did; S2 was read by keyword search, not end to end; the claim that
-    R9 and R13 do not mention Claude Code''s eight-continuation Stop-hook cap; and
-    that no Codex page for what ends a goal was found. Owner decisions needed at release:
-    the undated-source exception for S18 to S21 and S23 (Claude Code cli-reference,
-    hooks and goal pages, the Codex config reference, the pi docs), as for R9, R11,
-    R12 and R13; the standing gate-trace waiver already covers that gate. The brief
-    proposes one candidate hypothesis for e04s02 (loops end only on conditions the
-    harness or engine enforces) and adds no new story. My session copies of the fetched
-    sources were in a temporary directory that was removed mid-session, so a reviewer
-    should re-fetch from the URLs in Sources. Open for the owner, carried over: undecided
-    R7 items; e04s02 takes the stack choice; four R11 papers left unread (arXiv:2609.39678,
-    2610.02456, 2603.10387 and 2608.25817); R13 papers read only to the abstract (listed
-    in the brief). BUG-005 is fixed: after the last bp-timing.sh call of a story run
-    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD. Record cycle
-    time through tools/record- cycle-time.sh with --file specs/metrics/cycle-times.md
-    and take the SHA range before the squash merge.'
+  next_skill: kickoff-branch
+  next_story: e04s01
+  note: >-
+    e03s08 (R15 run termination) and epic e03 are released by a pull request
+    from branch e03s08-run-termination; the merge waits for the owner's go-
+    ahead. Brief: docs/research/R15-run-termination.md (30 sources, 16 papers;
+    verdicts H1 refined, H15 refined; one candidate hypothesis for e04s02 in
+    Open questions). Gates: security review PASS at the branch head
+    (specs/security/REVIEW.md); assert-epic-gate release PASS; Preflight
+    green; completeness critic 0 blockers; blind spots 0 HIGH; formal gate-
+    trace verdict not run (the standing waiver covers R1 and R4); CI result is
+    in the pull request. Waivers recorded: the undated-source exception for
+    S18 to S21 and S23 (owner, 2026-11-10). The e03 capsule is archived to
+    specs/epics/archive/e03-design-topics and release-plan.yaml points there.
+    The e03s08 cycle-time row is recorded by the last commit on the branch.
+    Lesson: scripts/sync-status-from-epics.sh rewrote execution-status.yaml
+    and dropped timing history; check its diff before keeping any run. Next is
+    kickoff-branch for e04s01 (R10 evaluation design, 8 BCPs; e04s03 runs
+    before e04s02), in a fresh session after the merge: sync main, delete the
+    local and remote branch, confirm a clean tree and green CI on the merge
+    commit. Open for the owner, carried over: undecided R7 items; e04s02 takes
+    the stack choice; four R11 papers left unread (arXiv:2609.39678,
+    2610.02456, 2603.10387 and 2608.25817); R13 and R15 papers read only in
+    passages (listed in each brief). Every commit needs a Story trailer. Run
+    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD after the
+    last bp-timing.sh call.
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
@@ -350,17 +350,17 @@ metrics:
       total_seconds: 6781.0
       avg_seconds: 521.6153846153846
     verify-work:
-      calls: 11
-      total_seconds: 580.0
-      avg_seconds: 52.72727272727273
+      calls: 12
+      total_seconds: 592.0
+      avg_seconds: 49.333333333333336
     audit-code:
-      calls: 10
-      total_seconds: 429.0
-      avg_seconds: 42.9
-    release-branch:
       calls: 11
-      total_seconds: 1218.0
-      avg_seconds: 110.72727272727273
+      total_seconds: 464.0
+      avg_seconds: 42.18181818181818
+    release-branch:
+      calls: 12
+      total_seconds: 1281.0
+      avg_seconds: 106.75
     request-review:
       calls: 7
       total_seconds: 9913.0
