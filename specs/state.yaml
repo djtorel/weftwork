@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e05
-active_story: e05s02
+active_story: e05s03
 phase: planning
 test_plan: lite
 vcs:
@@ -357,23 +357,28 @@ waivers:
   date: 2026-11-11
   scope: e05 only
 handoff:
-  next_skill: commit-message
-  next_story: e05s02
-  note: 'e05s02 is verified (P2 depth) and audited (PASS). Evidence:
-    specs/verifications/e05s02-verify.yaml and
-    specs/verifications/AUDIT-e05-e05s02.md. Branch e05s02-toolchain-setup,
-    local commits only; nothing is pushed. Next: commit-message (nothing
-    left to commit if the tree is clean), then release-branch. The push and
-    the PR each need the owner''s go-ahead. Reconcile at release: e05
-    total_bcps in execution-status.yaml is 8 but epic.yaml says 11. Audit
-    low items for the owner: engines.node >=26 lets setup-node pick a newer
-    major. BUG-005 is not reopened. Later e05 stories: e05s03 TypeScript
-    code-style and test sections, and Preflight adds the typecheck and
-    tests; e05s04 PR template and protected main (branch protection changes
-    GitHub settings, so ask first; its gh api waiver is recorded in its task
-    2). Still deferred by the owner: the experiment task source and the
-    spend cap. Do not run scripts/sync-status-from-epics.sh; it drops
-    cycle-time fields. Run tools/restore-yaml-style.py --base HEAD on
+  next_skill: kickoff-branch
+  next_story: e05s03
+  note: 'e05s02 (one command sets up the Python and Node toolchains) is released
+    by PR from e05s02-toolchain-setup, after the owner approved the push and
+    the PR; the merge needs its own go-ahead. Next story e05s03 (TypeScript
+    code-style and test sections in CONVENTIONS.md, and real commands).
+    Start it in a fresh session: kickoff-branch from main with git checkout
+    -b (no worktree), then plan-work. active_story is already e05s03. What
+    e05s02 built: tools/setup.sh (run it on a fresh clone; --check installs
+    nothing), tools/test-setup.sh, package.json with exact typescript 7.0.2
+    and @types/node 26.6.6, a strict tsconfig for Node type stripping
+    (erasableSyntaxOnly, so no enum or namespace), npm test is node --test
+    on .ts files, CI on actions/setup-node@v7. e05s03 adds npm run typecheck
+    and npm test to Preflight and the AGENTS.md commands table. Open low
+    item from the e05s02 audit: engines.node >=26 lets setup-node pick a
+    newer major; revisit at the e05 checkpoint. e05s04: PR template and
+    protected main, with gh api allowed for that story only (its task 2
+    records the waiver). The PR template lists the gates and carries no
+    provenance marker. Branch protection changes GitHub settings, so ask
+    right before it. Still deferred by the owner: the experiment task source
+    and the spend cap. Do not run scripts/sync-status-from-epics.sh; it
+    drops cycle-time fields. Run tools/restore-yaml-style.py --base HEAD on
     specs/state.yaml after the last bp-timing.sh call, before committing.
     Wrap YAML text with break_on_hyphens=False.'
 metrics:
@@ -400,9 +405,9 @@ metrics:
       total_seconds: 688.0
       avg_seconds: 45.86666666666667
     release-branch:
-      calls: 16
-      total_seconds: 1639.0
-      avg_seconds: 102.4375
+      calls: 17
+      total_seconds: 1679.0
+      avg_seconds: 98.76470588235294
     request-review:
       calls: 9
       total_seconds: 11503.0

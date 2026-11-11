@@ -59,7 +59,7 @@ epics:
     status: in_progress
     title: Repository and environment setup (wave 5)
     wsjf: 2.5
-    total_bcps: 8
+    total_bcps: 11
   e06:
     status: todo
     title: Engine core and done gate (B1)
@@ -297,6 +297,10 @@ stories:
     effort_hours: 0.8611
     lead_time_minutes: 52
     bcp_per_hour: 5.8
+  e05s02:
+    effort_hours: 0.5675
+    lead_time_minutes: 37
+    bcp_per_hour: 5.3
 gate_trace:
   verdict: WAIVED
   generated_at: "2026-11-11T03:10:00Z"

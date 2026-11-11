@@ -21,7 +21,7 @@ stories:
   - id: e05s02
     title: One command sets up the Python and Node toolchains
     bcps: 3
-    status: todo
+    status: done
     tasks: e05s02-tasks.yaml
     delta: MODIFIED
   - id: e05s03
