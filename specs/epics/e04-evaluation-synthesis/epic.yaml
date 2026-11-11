@@ -26,5 +26,5 @@ stories:
   - id: e04s03
     title: R16 evidence refresh
     bcps: 5
-    status: todo
+    status: done
     tasks: e04s03-tasks.yaml

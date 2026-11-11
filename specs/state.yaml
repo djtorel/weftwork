@@ -223,8 +223,9 @@ waivers:
     e04s02 and e04s03). R2 for missing verify evidence; e01s02, e01s04 and e02s01
     were released before verify evidence files were written for them. R4 for coverage,
     1 of 19 stories is tagged. Oracle downgrade, 45 of 47 links come from file and
-    task heuristics. Blind-spot check 0 HIGH; completeness critic 0 blockers. The owner replied "do what you recommend" to the agent's gate-trace question
-    on 2026-11-09 and approved the wording on the same day.
+    task heuristics. Blind-spot check 0 HIGH; completeness critic 0 blockers. The
+    owner replied "do what you recommend" to the agent's gate-trace question on 2026-11-09
+    and approved the wording on the same day.
   date: 2026-11-09
   scope: e03s06 release only (stories e03s07 to e04s03 for R1; e01s02, e01s04 and
     e02s01 for R2)
@@ -295,8 +296,8 @@ waivers:
     0 blockers. The owner approved this standing waiver on 2026-11-10 ("do what you
     recommend"). It replaces the one-release waivers from the BUG-005 fix on.
   date: 2026-11-10
-  scope: every release until the first story that ships product code; revisit at
-    the e04 checkpoint, and drop it as soon as an undone story could carry a code tag
+  scope: every release until the first story that ships product code; revisit at the
+    e04 checkpoint, and drop it as soon as an undone story could carry a code tag
 - what: CONVENTIONS.md rule that every source has a publication date, for 5 vendor
     doc pages in the R15 brief (S18 to S21 Claude Code cli-reference, hooks and goal
     pages and the Codex config-reference, and S23 the pi docs settings and usage pages)
@@ -306,101 +307,97 @@ waivers:
     R5, R9, R11, R12 and R13 cited the same kind of pages as undated. The owner approved
     this exception on 2026-11-10 ("do your recommendations").
   date: 2026-11-10
-  scope: e03s08 only (docs/research/R15-run-termination.md sources S18 to S21 and S23)
-- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for
-    e04s02 and e04s03
-  why: Those two stories get their specs when each is planned. Planning them now
-    would be paperwork, and e04s02 needs the e04s03 verdicts first. The e04s01
-    findings cleared when its spec was written. The owner chose to waive it for
-    e04, as for e03, on 2026-11-10 (answer to a plan-work question, recommended
-    option).
+  scope: e03s08 only (docs/research/R15-run-termination.md sources S18 to S21 and
+    S23)
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e04s02
+    and e04s03
+  why: Those two stories get their specs when each is planned. Planning them now would
+    be paperwork, and e04s02 needs the e04s03 verdicts first. The e04s01 findings
+    cleared when its spec was written. The owner chose to waive it for e04, as for
+    e03, on 2026-11-10 (answer to a plan-work question, recommended option).
   date: 2026-11-10
   scope: e04 only (e04s02 and e04s03 specs)
-- what: CONVENTIONS.md rule that gh is used only for PRs and repo clones (audit-
-    code item) for e04s01
-  why: One read-only gh run list --branch main --limit 3 call checked CI on the
-    merge commit b4382d6; all three runs succeeded. Nothing in the diff depends
-    on it and the call cannot be undone. The owner accepted the deviation on
-    2026-11-10 ("do what you recommend"). From now on read CI through the pull
-    request.
+- what: CONVENTIONS.md rule that gh is used only for PRs and repo clones (audit- code
+    item) for e04s01
+  why: One read-only gh run list --branch main --limit 3 call checked CI on the merge
+    commit b4382d6; all three runs succeeded. Nothing in the diff depends on it and
+    the call cannot be undone. The owner accepted the deviation on 2026-11-10 ("do
+    what you recommend"). From now on read CI through the pull request.
   date: 2026-11-10
   scope: e04s01 only
 - what: security-review threat model for e04 (build-epic step 0)
-  why: No product code. e04 writes the R10 and R16 briefs and the synthesis
-    only; the executable surface is check-brief.sh, the task verify strings and
-    one stdlib python power calculation in the R10 brief, which reads no file or
-    network. Briefs read arXiv pages and docs, read only. The owner chose to
-    waive it on 2026-11-10 ("do what you recommend"), as for e01 to e03.
+  why: No product code. e04 writes the R10 and R16 briefs and the synthesis only;
+    the executable surface is check-brief.sh, the task verify strings and one stdlib
+    python power calculation in the R10 brief, which reads no file or network. Briefs
+    read arXiv pages and docs, read only. The owner chose to waive it on 2026-11-10
+    ("do what you recommend"), as for e01 to e03.
   date: 2026-11-10
   scope: e04 only
+- what: CONVENTIONS.md rule that every source has a publication date, for 1 vendor
+    doc page in the R16 brief (S2, Claude Code skills documentation)
+  why: The page shows no publication date, and none could be found. The source line
+    records the installed version read (2.1.321). A real date cannot be found, so
+    the brief marks it as undated. check-brief.sh passes with a warning. R5, R9, R11,
+    R12, R13 and R15 cited the same kind of page as undated. The owner approved this
+    exception on 2026-11-11 ("approve s2").
+  date: 2026-11-11
+  scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
 handoff:
   next_skill: kickoff-branch
-  next_story: e04s03
-  note: >-
-    e04s01 (R10 evaluation design) is released by a pull request from branch
-    e04s01-evaluation-design; the push, the pull request and the merge wait for
-    the owner's go-ahead. Brief: docs/research/R10-evaluation.md (35 sources, 10
-    protocols, a 50-row triage table from 12 briefs, six verdicts all refined,
-    nothing measured). Gates: verify-work PASS (P2); audit-code PASS;
-    request-review passed in round 4 (A 95.0, B 97.2, zero must-fix; rounds 1 to
-    3 failed and were fixed; the last wording edits after round 4 were not
-    re-reviewed); security review PASS at the branch head
-    (specs/security/REVIEW.md); assert-epic-gate release PASS; Preflight green;
-    completeness critic 0 blockers; blind spots 0 HIGH; formal gate-trace
-    verdict not run (the standing waiver covers R1 and R4); CI result is in the
-    pull request. Waivers recorded: the gh run list deviation and the e04
-    threat-model waiver (owner, 2026-11-10), and the e04s02 and e04s03 spec
-    waiver. The e04 capsule stays open (e04s02 and e04s03 are todo), so nothing
-    is archived. The e04s01 cycle-time row is in specs/metrics/cycle-times.md
-    (git-derived: 1.41 hours over 3 commits, which understates the session). The
-    PR body must say the brief has 50 triage rows from 12 briefs, because commit
-    9b9cfd3 says 40 rows and nine briefs. Next is kickoff-branch for e04s03 (R16
-    evidence refresh, 5 BCPs; it runs before e04s02, whose synthesis uses its H8
-    and H10 verdicts), in a fresh session after the merge: sync main, delete the
-    local and remote branch, confirm a clean tree and green CI on the merge
-    commit. plan-work for e04s03 must first decide whether to add the reading
-    routed to it from R10 and earlier briefs: four unread R11 papers
-    (arXiv:2609.39678, 2610.02456, 2603.10387 and 2608.25817) and the R13 and
-    R15 papers read only in passages; the current e04s03 tasks cover only the
-    three R16 questions and the BMAD v7 re-check. Open for the owner, carried
-    over: which repository supplies the task set and who sets the spend cap for
-    the first R10 experiment (an outside path needs the owner to name it; e04s02
-    takes this with the stack choice); undecided R7 items; the e04 checkpoint
-    reviews the standing gate-trace waiver. Every commit needs a Story trailer.
-    After the last bp-timing.sh call, rebuild only the changed blocks of
-    specs/state.yaml in their original style, because
-    tools/restore-yaml-style.py leaves a changed block reflowed.
+  next_story: e04s02
+  note: 'e04s03 (R16 evidence refresh) is released on branch e04s03-evidence-refresh:
+    the plan commit ef2047a and the brief commit ab8f57d carry the Story: e04s03 trailer.
+    Gates: Preflight green; the verify-work terminal verdict and lint pass (P2 mode,
+    evidence in specs/verifications/e04s03-verify.yaml); audit-code passes (specs/verifications/AUDIT-e04-e04s03.md);
+    assert-epic-gate release PASS; request-review passed in round 3 (A 97.6, B 100,
+    zero must-fix; rounds 1 and 2 failed and were fixed); security review refreshed
+    for this branch in specs/security/REVIEW.md (no findings at confidence 8 or above);
+    the completeness critic has zero blockers; gate-trace was not re-run and rests
+    on the standing waiver (R1 and R4, owner, 2026-11-10). Waivers recorded: the S2
+    undated-source exception (owner, 2026-11-11). The e04 capsule stays open (e04s02
+    is todo). Pending the owner''s go-ahead: push, a squash PR and the merge. After
+    the merge, sync main, delete the local and remote branch, confirm a clean tree
+    and green CI on the merge commit. The cycle-time row for e04s03 is recorded after
+    the merge from the branch SHA range. Next is kickoff-branch for e04s02 (research
+    synthesis, 3 BCPs, SYNTHESIS.md covering H1 to H27 and the minimum useful first
+    release), in a fresh session after the merge. Its synthesis uses the R16 H8 and
+    H10 verdicts. Open for the owner before e04s02: which repository supplies the
+    task set and who sets the spend cap for the first R10 experiment; the stack choice,
+    which e04s02 takes; undecided R7 items; the e04 checkpoint reviews the standing
+    gate-trace waiver. Warning: do not run scripts/sync-status-from-epics.sh. On 2026-11-11
+    it rewrote specs/execution-status.yaml and dropped cycle-time fields; the file
+    was restored from HEAD. Every commit needs a Story trailer.'
 metrics:
-  story_start: '2026-11-09T16:34:35Z'
+  story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 11
-      total_seconds: 149.0
-      avg_seconds: 13.545454545454545
+      calls: 12
+      total_seconds: 168.0
+      avg_seconds: 14.0
     plan-work:
-      calls: 13
-      total_seconds: 5082.0
-      avg_seconds: 390.9230769230769
-    develop-tdd:
       calls: 14
-      total_seconds: 8006.0
-      avg_seconds: 571.8571428571429
+      total_seconds: 5485.0
+      avg_seconds: 391.7857142857143
+    develop-tdd:
+      calls: 15
+      total_seconds: 8305.0
+      avg_seconds: 553.6666666666666
     verify-work:
-      calls: 13
-      total_seconds: 631.0
-      avg_seconds: 48.53846153846154
+      calls: 14
+      total_seconds: 664.0
+      avg_seconds: 47.42857142857143
     audit-code:
-      calls: 11
-      total_seconds: 464.0
-      avg_seconds: 42.18181818181818
+      calls: 12
+      total_seconds: 515.0
+      avg_seconds: 42.916666666666664
     release-branch:
-      calls: 13
-      total_seconds: 1339.0
-      avg_seconds: 103.0
+      calls: 14
+      total_seconds: 1413.0
+      avg_seconds: 100.92857142857143
     request-review:
-      calls: 7
-      total_seconds: 9913.0
-      avg_seconds: 1416.142857142857
+      calls: 8
+      total_seconds: 10793.0
+      avg_seconds: 1349.125
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
@@ -410,6 +407,6 @@ metrics:
       total_seconds: 131.0
       avg_seconds: 131.0
     commit-message:
-      calls: 1
-      total_seconds: 7.0
+      calls: 2
+      total_seconds: 14.0
       avg_seconds: 7.0
