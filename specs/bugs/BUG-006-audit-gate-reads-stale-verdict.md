@@ -1,6 +1,6 @@
 ---
 bug_id: BUG-006
-status: open
+status: fixed
 severity: medium
 scope: specs/AUDIT_LATEST.md, read by the global scripts/lib/assert-epic-gate.sh
 title: the audit gate passes any story because AUDIT_LATEST.md holds a stale PASS
@@ -54,6 +54,13 @@ itself added no check.
    fails unless `AUDIT_LATEST.md` names the active story in `state.yaml`
    and says PASS. Whether to change the global gate in bigpowers is the
    owner's decision.
+
+## Resolution (durable fix, 2026-11-11)
+
+Step 3 is done: `tools/assert-audit-story.sh` fails unless `AUDIT_LATEST.md`
+has a `Story: <active_story>` line and `VERDICT: PASS`. The regression test
+is `tools/test-assert-audit-story.sh`, run by CI. CONVENTIONS.md says to use
+the wrapper. The global gate is unchanged; that stays the owner's call.
 
 ## Verify
 
