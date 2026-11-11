@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e05
-active_story: null
+active_story: e05s01
 phase: planning
 test_plan: lite
 vcs:
@@ -342,51 +342,57 @@ waivers:
     exception on 2026-11-11 ("approve s2").
   date: 2026-11-11
   scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e05s02,
+    e05s03 and e05s04
+  why: Those three stories get their specs when each is planned. Planning them now
+    would be paperwork. e05s01 itself is clear. The owner chose to waive it for e05,
+    as for e02, e03 and e04, on 2026-11-11 (answer to a plan-work question, recommended
+    option).
+  date: 2026-11-11
+  scope: e05 only (e05s02 to e05s04 specs)
 handoff:
-  next_skill: plan-work
-  next_story: e05s01
-  note: 'slice-tasks for e05 is done on branch docs/e05-slice-tasks (not
-    committed; the owner decides). Four stories, 11 BCPs: e05s01 port
-    validate-specs-yaml.sh into tools/ and run it in CI; e05s02 one-command
-    setup for the Python and Node toolchains; e05s03 TypeScript code-style
-    and test sections in CONVENTIONS.md plus real AGENTS.md commands; e05s04
-    PR template and protected main. Next, in a fresh session: kickoff-branch
-    and plan-work for e05s01. Owner decisions 2026-11-11 ("do your
-    recommendations"): npm and node:test for e05s02; Preflight adds the
-    typecheck and tests (e05s03); gh api allowed for e05s04 only (task 2
-    records the waiver); the PR template lists the gates and carries no
-    provenance marker (epic done_when changed). Branch protection changes
-    GitHub settings, so still ask right before it. Still deferred by the owner: the experiment
-    task source and the spend cap. Do not run scripts/sync-status-from-epics.sh;
-    it drops cycle-time fields. After the last bp-timing.sh call, run
-    tools/restore-yaml-style.py on specs/state.yaml before committing.'
+  next_skill: kickoff-branch
+  next_story: e05s02
+  note: 'e05s01 (port the specs validator into tools/, run it in CI) is released by
+    PR from e05s01-port-validator-ci, after the owner approved the PR. Next story
+    e05s02 (one-command setup for the Python and Node toolchains). Start it in a fresh
+    session: kickoff-branch from main, then plan-work. Plan decision from the owner,
+    2026-11-11: npm and node:test for e05s02. Later e05 stories: e05s03 TypeScript
+    code-style and test sections, Preflight adds the typecheck and tests; e05s04 PR
+    template and protected main, with gh api allowed for that story only (task 2 records
+    the waiver). The PR template lists the gates and carries no provenance marker
+    (epic done_when changed). Branch protection changes GitHub settings, so ask right
+    before it. Still deferred by the owner: the experiment task source and the spend
+    cap. Do not run scripts/sync-status-from-epics.sh; it drops cycle-time fields.
+    Run tools/restore-yaml-style.py --base main on specs/state.yaml after the last
+    bp-timing.sh call, before committing.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 13
-      total_seconds: 185.0
-      avg_seconds: 14.23076923076923
+      calls: 14
+      total_seconds: 197.0
+      avg_seconds: 14.071428571428571
     plan-work:
-      calls: 15
-      total_seconds: 5729.0
-      avg_seconds: 381.93333333333334
-    develop-tdd:
       calls: 16
-      total_seconds: 8600.0
-      avg_seconds: 537.5
+      total_seconds: 6033.0
+      avg_seconds: 377.0625
+    develop-tdd:
+      calls: 17
+      total_seconds: 8726.0
+      avg_seconds: 513.2941176470588
     verify-work:
-      calls: 15
-      total_seconds: 697.0
-      avg_seconds: 46.46666666666667
+      calls: 16
+      total_seconds: 714.0
+      avg_seconds: 44.625
     audit-code:
-      calls: 13
-      total_seconds: 555.0
-      avg_seconds: 42.69230769230769
+      calls: 14
+      total_seconds: 593.0
+      avg_seconds: 42.357142857142854
     release-branch:
-      calls: 15
-      total_seconds: 1460.0
-      avg_seconds: 97.33333333333333
+      calls: 16
+      total_seconds: 1639.0
+      avg_seconds: 102.4375
     request-review:
       calls: 9
       total_seconds: 11503.0
