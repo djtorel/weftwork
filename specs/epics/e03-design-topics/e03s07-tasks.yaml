@@ -60,7 +60,7 @@ tasks:
       && printf '%s\n' "$M" | grep -Eiq 'arxiv'
       && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
