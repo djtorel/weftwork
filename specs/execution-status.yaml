@@ -220,7 +220,7 @@ stories:
     title: R15 run termination for autonomous loops
     bcps: 5
     epic: e03
-    tasks_total: 3
+    tasks_total: 8
     tasks_passing: 0
     tasks_failing: 0
   e04s01:

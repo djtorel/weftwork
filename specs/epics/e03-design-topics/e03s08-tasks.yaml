@@ -1,41 +1,246 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# plan-work 2026-11-10: the three placeholder tasks are replaced by
+#   eight, one per brief section. Owner decision, same day: R15 is added
+#   to H1's tested_by (completion detection), evidence only, 5 BCPs
+#   (see the story spec).
 story_id: e03s08
 title: R15 run termination for autonomous loops
-status: todo
+status: in_progress
 bcps: 5
+type: research
+context: infra
+risk: P2
+spec: e03s08-r15-run-termination.md
 research_story: R15
 brief: docs/research/R15-run-termination.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least six papers (arXiv or DOI links),
+      including the two R0 leads arXiv:2604.08224 and arXiv:2607.00038
+      and Bounded Loops, arXiv:2609.27871
     verify: >-
-      bash tools/check-brief.sh docs/research/R15-run-termination.md
-      R15 --sources
-    status: todo
+      B=docs/research/R15-run-termination.md;
+      bash tools/check-brief.sh "$B" R15 --sources
+      && S=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B")
+      && test "$(printf '%s\n' "$S" | grep -E '^- \[S[0-9]+\]'
+      | grep -Eic 'arxiv\.org|doi\.org')" -ge 6
+      && printf '%s\n' "$S" | grep -q '2604\.08224'
+      && printf '%s\n' "$S" | grep -q '2607\.00038'
+      && printf '%s\n' "$S" | grep -q '2609\.27871'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 2
     description: >-
-      Search for peer-reviewed or arXiv studies of stop
-      conditions: completion detection, dual exit checks,
-      circuit breakers, rate limits and budget ceilings. Open
-      the two unverified leads from R0 (arXiv:2604.08224,
-      arXiv:2607.00038) and report what they say, or state that
-      no study exists
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, that the two R0 leads were opened and read
+      (or why one could not be), that no workflow or measurement was
+      run (owner decision, 2026-11-10), and the arXiv queries used
     verify: >-
-      grep -Eqi '2604.08224' docs/research/R15-run-termination.md
-      && grep -Eqi '2607.00038' docs/research/R15-run-termination.md
-      && grep -Eqi 'circuit breaker' docs/research/R15-run-termination.md
-      && grep -Eqi 'budget' docs/research/R15-run-termination.md
-    status: todo
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R15-run-termination.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -q '2604\.08224'
+      && printf '%s\n' "$M" | grep -q '2607\.00038'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+      && printf '%s\n' "$M" | grep -Eiq 'measur'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
   - id: 3
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R15 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Write Completion detection: how a loop decides it is done: the
+      model's own claim, a verified gate, and ralph's dual exit check
+      (completion indicators and an explicit exit signal), starting
+      from the H1 verdicts of R4 and R7, R0's ralph entry and R13's
+      Bounded Loops reading. Input to H1. Each bullet cites a source or
+      says it is unsourced
     verify: >-
-      bash tools/check-brief.sh docs/research/R15-run-termination.md
-      R15
-    status: todo
+      F=$(awk '$0=="## Completion detection"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R15-run-termination.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'completion'
+      && printf '%s\n' "$F" | grep -iq 'dual exit'
+      && printf '%s\n' "$F" | grep -iq 'exit signal'
+      && printf '%s\n' "$F" | grep -Eq 'R0([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R4([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R7([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -q 'R13'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Budget, rate and context ceilings: what stops a run by
+      count, cost, time or window size, starting from R9's H15 verdict
+      (budget ceilings partial), R12's context ceiling and compaction
+      loop, and R13's budget ceiling enforced inside an attempt. Input
+      to H15. Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Budget, rate and context ceilings"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R15-run-termination.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'budget'
+      && printf '%s\n' "$F" | grep -iq 'rate limit'
+      && printf '%s\n' "$F" | grep -iq 'context'
+      && printf '%s\n' "$F" | grep -iq 'ceiling'
+      && printf '%s\n' "$F" | grep -Eq 'R9([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -q 'R12'
+      && printf '%s\n' "$F" | grep -q 'R13'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Circuit breakers and no-progress detection: what stops a
+      loop that is running but not getting anywhere (repeated failure,
+      repeated output, no change in the tree), ralph's breaker from
+      R0, and any study of it. If the search finds none, say so with
+      the queries run. Input to H15. Each bullet cites a source or says
+      it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Circuit breakers and no-progress detection"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R15-run-termination.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'circuit breaker'
+      && printf '%s\n' "$F" | grep -Eiq 'no[- ]progress|stagnat'
+      && printf '%s\n' "$F" | grep -Eq 'R0([^0-9]|$)'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Host stop controls: what each host gives a loop to stop it
+      (Claude Code Stop hook and its caps, Codex, pi, opencode), read
+      from R5, R9 and R13, with the version or commit read. Include
+      R13's finding that a Stop hook exit 2 sends the agent back to
+      work and onFailure does not apply to Stop hooks. Input to H15 and
+      H1. Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Host stop controls"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R15-run-termination.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'stop hook'
+      && printf '%s\n' "$F" | grep -iq 'claude code'
+      && printf '%s\n' "$F" | grep -iq 'codex'
+      && printf '%s\n' "$F" | grep -Eq '(^|[^A-Za-z])pi([^A-Za-z]|$)'
+      && printf '%s\n' "$F" | grep -iq 'opencode'
+      && printf '%s\n' "$F" | grep -Eq 'R5([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R9([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -q 'R13'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
+      Write Stop conditions compared: one table with columns
+      Condition, Enforced by, What it stops, Failure mode, Evidence; at
+      least seven rows including Model done claim, Verified completion
+      gate, Dual exit check, Budget ceiling, Context ceiling, Rate
+      limit and Circuit breaker; no empty cell; every row cites [S<n>]
+      or says unsourced; Enforced by names a mechanism (model, harness,
+      engine, CI, human), not a product
+    verify: >-
+      B=docs/research/R15-run-termination.md;
+      M=$(awk '$0=="## Stop conditions compared"{f=1;next}
+      /^## /{f=0} f' "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Condition *\|'
+      | grep -Ei '\| *Enforced by *\|'
+      | grep -Ei '\| *What it stops *\|'
+      | grep -Ei '\| *Failure mode *\|' | grep -Eiq '\| *Evidence *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Condition *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 7
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=6;i++)
+      if($i~/^ *$/)b=1; if(NF!=7)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for t in 'Model done claim' 'Verified completion gate'
+      'Dual exit check' 'Budget ceiling' 'Context ceiling' 'Rate limit'
+      'Circuit breaker'; do
+      printf '%s\n' "$R" | grep -Eiq "^\| *\**$t"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 8
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources) for every
+      hypothesis assigned to R15 in planning-context.yaml (H1 and H15),
+      plus implications for weftwork, earns-its-place vs ceremony
+      verdicts, and open questions (including candidate measurements
+      for R10)
+    verify: >-
+      B=docs/research/R15-run-termination.md;
+      bash tools/check-brief.sh "$B" R15
+      && for h in Sources Method 'Completion detection'
+      'Budget, rate and context ceilings'
+      'Circuit breakers and no-progress detection'
+      'Host stop controls' 'Stop conditions compared'
+      Verdicts 'Implications for weftwork'
+      'Earns its place vs ceremony' 'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Completion detection|';
+      O="${O}## Budget, rate and context ceilings|";
+      O="${O}## Circuit breakers and no-progress detection|";
+      O="${O}## Host stop controls|## Stop conditions compared|";
+      O="${O}## Verdicts|## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

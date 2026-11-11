@@ -206,6 +206,7 @@ hypotheses:
       - R4
       - R7
       - R10
+      - R15
   - id: H2
     claim: 'Deterministic where possible: stack facts, commands,
       gate verdicts come from code, not the model'
