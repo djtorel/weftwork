@@ -229,40 +229,37 @@ waivers:
   date: 2026-11-09
   scope: e03s06 release only (stories e03s07 to e04s03 for R1; e01s02, e01s04 and
     e02s01 for R2)
+- what: plan-consistency-check MED finding (status ledger) for e03s06, and the same
+    finding for e03s07 tasks
+  why: The checker wants failing and passing task statuses. CONVENTIONS.md sets todo,
+    in_progress and done. e03s07 tasks start at todo, as for e01 and e02. The CRITICAL
+    and HIGH findings for e03s08 (no story spec) are covered by the e03 waiver above.
+    The owner acknowledged the finding on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s07 plan only
 handoff:
-  next_skill: plan-work
+  next_skill: develop-tdd
   next_story: e03s07
-  note: 'e03s06 (R12 context and memory) is released by PR #25, squash-merged into
-    main. Brief: docs/research/R12-context-memory.md (73 sources, 56 arXiv papers;
-    verdicts H3, H8, H11, H24, H25 and H26 all refined). Hypotheses now run H1 to
-    H26. The request-review gate was waived after five rounds (best scores 94.1 and
-    92.3), gate-trace was waived for this release, and the changes after round 5 were
-    not re-reviewed; all are recorded in the waivers above. R8 was corrected in four
-    lines. The e03s06 cycle-time row has effort 0.0 h because the story is one commit;
-    its ledger note says to keep it out of averages. Next is kickoff-branch for e03s07
-    (R13 enforcement design, 5 BCPs), in a fresh session. Start the branch with git
-    checkout -b in this checkout, not a worktree (BUG-002). e03s07 has a tasks file
-    (e03s07-tasks.yaml, placeholder tasks) and no story spec, so plan-work follows
-    kickoff-branch, as for e03s05 and e03s06. active_story in this file still reads
-    e03s06 until kickoff-branch sets it. Inputs for R13 from earlier briefs. R12 says
-    state should be plain repo files written by one format-preserving tool, and that
-    where state lives when two hosts share a repo is R13''s question. R11 sets the
-    threats table that gates must enforce. R2 says state writes need a format-preserving
-    writer. The planning-context queries to R13 include advisory skills against enforced
-    hooks, ceremony scaled to risk, escape hatches, gate retirement, and SEED section
-    9 (engine CLI against library). Lessons from e03s06 for the next brief: read the
-    full text of every paper whose number carries a verdict and check which arms it
-    ran (full history, recent window, no memory); run plain arXiv queries as well
-    as narrow ones; count matches before a bulk replace; recheck counts after each
-    review round; a single-commit story makes the cycle-time row meaningless, so commit
-    in steps. Open for the owner, carried over: whether to log the tools/record-cycle-time
-    reflow of the gate_trace block as BUG-005 (it turned Preflight red until the block
-    was restored); the audit skill verify checks skills/ dirs that do not exist (BUG-003);
-    the gitignored traceability matrix regenerates with bash scripts/trace-stories.sh
-    --json; undecided R7 items; e04s02 takes the stack choice; the gate-trace waiver
-    covers one release at a time; four R11 papers left unread (arXiv:2609.39678, 2610.02456,
-    2603.10387 and 2608.25817); R8 could carry the per-element 1.27 percent figure
-    for S33. Every commit needs a Story trailer. Record cycle time through tools/record-cycle-time.sh.'
+  note: 'e03s07 (R13 enforcement design, 8 BCPs, raised from 5) is planned on branch e03s07-r13-enforcement-design.
+    Spec: specs/epics/e03-design-topics/e03s07-r13-enforcement-design.md; tasks: e03s07-tasks.yaml
+    (nine tasks, all todo; every verify command was run against a fixture brief).
+    Owner decisions on 2026-11-10: R13 added to H6; H27 added (where state lives when
+    two hosts share a repo); live H1-H26 references moved to H1-H27; evidence only,
+    no measurement. R13 now tests H2, H4, H5, H6, H7, H16 and H27. Next is develop-tdd
+    for e03s07: write docs/research/R13-enforcement-design.md task by task, and commit
+    in steps with the Story: e03s07 trailer. plan-consistency-check: e03s07 is clear;
+    the e03s08 CRITICAL and HIGH findings (no story spec) are covered by the e03 waiver;
+    the MED status-ledger finding for e03s06 follows the project''s todo, in_progress,
+    done convention. Lessons from e03s06: read the full text of every paper whose
+    number carries a verdict (R8 read ContextCov as abstract only); run plain arXiv
+    queries as well as narrow ones; count matches before a bulk replace; recheck counts
+    after each review round. Open for the owner, carried over: whether to log the
+    tools/record-cycle-time reflow of the gate_trace block as BUG-005; BUG-003 is
+    closed but earlier handoffs listed it as open; undecided R7 items; e04s02 takes
+    the stack choice; the gate-trace waiver covers one release at a time; four R11
+    papers left unread (arXiv:2609.39678, 2610.02456, 2603.10387 and 2608.25817);
+    R8 could carry the per-element 1.27 percent figure for S33. Record cycle time
+    through tools/record-cycle-time.sh.'
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
@@ -271,9 +268,9 @@ metrics:
       total_seconds: 138.0
       avg_seconds: 13.8
     plan-work:
-      calls: 10
-      total_seconds: 2752.0
-      avg_seconds: 275.2
+      calls: 11
+      total_seconds: 4439.0
+      avg_seconds: 403.54545454545456
     develop-tdd:
       calls: 11
       total_seconds: 4296.0

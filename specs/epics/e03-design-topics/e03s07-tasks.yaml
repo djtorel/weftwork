@@ -1,54 +1,282 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
 # Change request 2026-11-08, MODIFIED: e03s07 scope.
 # Before: R13 compares enforcement across the tools using R3 and R5 as
 #   read, and tests the hypotheses assigned to it.
 # After: R13 also locates the "Code as Agent Harness" survey (an R5 open
 #   question) and reads Kiro's steering and hooks pages directly (an R3
 #   open question). BCPs stay at 5; both tasks are small.
+# plan-work 2026-11-10: the four placeholder tasks are replaced by nine.
+#   The two change-request items keep their checks, scoped to a section:
+#   Kiro in task 3, the survey in task 7 (see the story spec).
 story_id: e03s07
 title: R13 enforcement design
 status: todo
-bcps: 5
+bcps: 8
+type: research
+context: infra
+risk: P2
+spec: e03s07-r13-enforcement-design.md
 research_story: R13
 brief: docs/research/R13-enforcement-design.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
-    verify: >-
-      bash tools/check-brief.sh docs/research/R13-enforcement-design.md
-      R13 --sources
-    status: todo
-  - id: 2
-    description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R13 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
-    verify: >-
-      bash tools/check-brief.sh docs/research/R13-enforcement-design.md
-      R13
-    status: todo
-  - id: 3
-    description: >-
-      Locate the survey "Code as Agent Harness" listed in
-      SCOPE_LATEST.yaml: search arXiv by title, retry Semantic Scholar,
-      and record its arXiv id and what it says about H9 and H16, or
-      state that no such survey exists and list the searches run
-    verify: >-
-      grep -Ei 'Code as Agent Harness'
-      docs/research/R13-enforcement-design.md
-      | grep -Eqi 'arXiv:[0-9]{4}\.[0-9]{4,5}|no such survey|could not locate'
-    status: todo
-  - id: 4
-    description: >-
-      Read the Kiro steering and hooks pages directly, not through a
-      summary, and compare Kiro's enforcement with the other tools.
-      R3 read them through a summary only
+      dates); list at least six papers (arXiv or DOI links),
+      including the papers passed forward by R8 and R4,
+      arXiv:2603.00822 (ContextCov) and arXiv:2407.01489 (Agentless)
     verify: >-
       B=docs/research/R13-enforcement-design.md;
-      grep -Ei 'kiro' "$B" | grep -Eqi 'steering'
-      && grep -Ei 'kiro' "$B" | grep -Eqi 'hooks'
+      bash tools/check-brief.sh "$B" R13 --sources
+      && S=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B")
+      && test "$(printf '%s\n' "$S" | grep -E '^- \[S[0-9]+\]'
+      | grep -Eic 'arxiv\.org|doi\.org')" -ge 6
+      && printf '%s\n' "$S" | grep -q '2603\.00822'
+      && printf '%s\n' "$S" | grep -q '2407\.01489'
+    risk: P2
     status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 2
+    description: >-
+      Write the Method section: access date, the version, release or
+      commit read for each tool, whether any page came through a
+      summarizing subagent, that the Kiro steering and hooks pages
+      were read directly, that no workflow or measurement was run
+      (owner decision, 2026-11-10), and the arXiv queries used
+    verify: >-
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R13-enforcement-design.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'commit|version'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M" | grep -Eiq 'kiro'
+      && printf '%s\n' "$M" | grep -Eiq 'workflow'
+      && printf '%s\n' "$M" | grep -Eiq 'measur'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 3
+    description: >-
+      Write Advisory and enforced: what each host can enforce
+      (tool-call hooks, permission rules, engine gates) against what
+      it only asks of the model (skills, context-file rules); R2's
+      unregistered guard hook; Kiro's steering and hooks pages, read
+      directly, not through a summary (change request 2026-11-08).
+      Cite R2 and R5. Input to H6 and H16. Each bullet cites a
+      source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Advisory and enforced"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R13-enforcement-design.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'advisory'
+      && printf '%s\n' "$F" | grep -iq 'hook'
+      && printf '%s\n' "$F" | grep -iq 'skill'
+      && printf '%s\n' "$F" | grep -i 'kiro' | grep -iq 'steering'
+      && printf '%s\n' "$F" | grep -i 'kiro' | grep -iq 'hook'
+      && printf '%s\n' "$F" | grep -Eq 'R2([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R5([^0-9]|$)'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 4
+    description: >-
+      Write Ceremony scaled to risk: how tools scale ceremony (size,
+      kind, human choice, declared risk) and any evidence that
+      risk-scaled verification works, starting from the H7 verdicts
+      of R1, R2 and R3 and R2's computed-risk-score candidate. Input
+      to H7. Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Ceremony scaled to risk"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R13-enforcement-design.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'ceremony'
+      && printf '%s\n' "$F" | grep -iq 'risk'
+      && printf '%s\n' "$F" | grep -iq 'size'
+      && printf '%s\n' "$F" | grep -Eq 'R1([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R2([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R3([^0-9]|$)'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 5
+    description: >-
+      Write Escape hatches and gate retirement: logged escape hatches,
+      retiring overridden gates, adding a gate only after an observed
+      failure, starting from R14's H4 verdict, and this repository's
+      waiver ledger in specs/state.yaml as one record from one repo,
+      not a rate. Input to H4. Each bullet cites a source or says it
+      is unsourced
+    verify: >-
+      F=$(awk '$0=="## Escape hatches and gate retirement"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R13-enforcement-design.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'escape hatch'
+      && printf '%s\n' "$F" | grep -iq 'retire'
+      && printf '%s\n' "$F" | grep -iq 'override'
+      && printf '%s\n' "$F" | grep -iq 'observed failure'
+      && printf '%s\n' "$F" | grep -iq 'waiver'
+      && printf '%s\n' "$F" | grep -q 'R14'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 6
+    description: >-
+      Write Model judgment and deterministic checks: which verdicts
+      come from code and which from the model, and the evidence for
+      each, starting from the H2 verdicts of R4 and R8 and R7's
+      evidence-gate and escalation findings. Input to H2. Each bullet
+      cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Model judgment and deterministic checks"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R13-enforcement-design.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'deterministic'
+      && printf '%s\n' "$F" | grep -iq 'model judgment'
+      && printf '%s\n' "$F" | grep -Eq 'R4([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R7([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -Eq 'R8([^0-9]|$)'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 7
+    description: >-
+      Write Engine shape and shared state: SEED section 9 (engine CLI
+      against library), where state lives when two hosts share a
+      repo, the format-preserving writer (R2, R12), managed blocks in
+      generated files (R8's H5 verdict), and the "Code as Agent
+      Harness" survey listed in SCOPE_LATEST.yaml (change request
+      2026-11-08): search arXiv by title, retry Semantic Scholar, and
+      record its arXiv id and what it says about H9 and H16, or state
+      that no such survey exists and list the searches run. Cite R5
+      and R12. Input to H5, H16 and H27. Each bullet cites a source
+      or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Engine shape and shared state"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R13-enforcement-design.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -q 'CLI'
+      && printf '%s\n' "$F" | grep -iq 'library'
+      && printf '%s\n' "$F" | grep -iq 'two hosts'
+      && printf '%s\n' "$F" | grep -iq 'format-preserving'
+      && printf '%s\n' "$F" | grep -iq 'managed block'
+      && printf '%s\n' "$F" | grep -Eq 'R5([^0-9]|$)'
+      && printf '%s\n' "$F" | grep -q 'R12'
+      && printf '%s\n' "$F" | grep -Ei 'Code as Agent Harness'
+      | grep -Eqi
+      'arXiv:[0-9]{4}\.[0-9]{4,5}|no such survey|could not locate'
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 8
+    description: >-
+      Write Enforcement compared: one table with columns Mechanism,
+      Enforced by, What it stops, Bypass, Evidence; at least six rows
+      including Skill instruction, Context file rule, Tool-call hook,
+      Engine gate, CI check and Human approval; no empty cell; every
+      row cites [S<n>] or says unsourced; Enforced by names a
+      mechanism (model, harness, engine, CI, human), not a product
+    verify: >-
+      B=docs/research/R13-enforcement-design.md;
+      M=$(awk '$0=="## Enforcement compared"{f=1;next} /^## /{f=0} f'
+      "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *Mechanism *\|'
+      | grep -Ei '\| *Enforced by *\|'
+      | grep -Ei '\| *What it stops *\|'
+      | grep -Ei '\| *Bypass *\|' | grep -Eiq '\| *Evidence *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *Mechanism *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 6
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=6;i++)
+      if($i~/^ *$/)b=1; if(NF!=7)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for t in 'Skill instruction' 'Context file rule'
+      'Tool-call hook' 'Engine gate' 'CI check' 'Human approval'; do
+      printf '%s\n' "$R" | grep -Eiq "^\| *\**$t"
+      || { echo "missing row: $t"; exit 1; }; done
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"
+  - id: 9
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources) for every
+      hypothesis assigned to R13 in planning-context.yaml (H2, H4,
+      H5, H6, H7, H16, H27), plus implications for weftwork,
+      earns-its-place vs ceremony verdicts, and open questions
+      (including candidate measurements for R10)
+    verify: >-
+      B=docs/research/R13-enforcement-design.md;
+      bash tools/check-brief.sh "$B" R13
+      && for h in Sources Method 'Advisory and enforced'
+      'Ceremony scaled to risk' 'Escape hatches and gate retirement'
+      'Model judgment and deterministic checks'
+      'Engine shape and shared state' 'Enforcement compared'
+      Verdicts 'Implications for weftwork'
+      'Earns its place vs ceremony' 'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Advisory and enforced|';
+      O="${O}## Ceremony scaled to risk|";
+      O="${O}## Escape hatches and gate retirement|";
+      O="${O}## Model judgment and deterministic checks|";
+      O="${O}## Engine shape and shared state|## Enforcement compared|";
+      O="${O}## Verdicts|## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 3"

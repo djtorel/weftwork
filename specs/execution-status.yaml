@@ -39,7 +39,7 @@ epics:
     status: in_progress
     title: Design topics (wave 3)
     wsjf: 1.6
-    total_bcps: 41
+    total_bcps: 44
   e04:
     status: todo
     title: Evaluation and synthesis (wave 4)
@@ -207,9 +207,9 @@ stories:
   e03s07:
     status: todo
     title: R13 enforcement design
-    bcps: 5
+    bcps: 8
     epic: e03
-    tasks_total: 4
+    tasks_total: 9
     tasks_passing: 0
     tasks_failing: 0
   e03s08:
