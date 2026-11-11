@@ -67,7 +67,7 @@ epics:
   - id: e05
     title: Repository and environment setup (wave 5)
     wsjf: 2.5               # (5 + 3 + 5) / 5; estimate, rescore later
-    bcps: 8
+    bcps: 11                # sliced 2026-11-11: 4 stories, 8 to 11 BCPs
     risk: P2
     depends_on: [e04]
     capsule_dir: epics/e05-repo-and-environment

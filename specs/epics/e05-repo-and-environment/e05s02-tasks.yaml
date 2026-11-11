@@ -1,0 +1,73 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11. The owner chose TypeScript on Node, one
+# package that is a CLI and a library (change-request 2026-11-11).
+# Owner decision 2026-11-11 ("do your recommendations"): npm as the
+# package manager (ships with Node, no extra install) and the built-in
+# node:test runner (no dependency). Check current docs with ctx7.
+story_id: e05s02
+title: One command sets up the Python and Node toolchains
+status: todo
+bcps: 3
+type: chore
+context: infra
+risk: P2
+depends_on: [e05s01]
+tasks:
+  - id: 1
+    description: >-
+      RED then GREEN. Write tools/setup.sh. It installs yamllint and
+      PyYAML (the Python tools CI uses today), is safe to run twice,
+      and has a --check mode that installs nothing and exits 1 naming
+      any missing tool
+    verify: >-
+      bash tools/setup.sh && bash tools/setup.sh
+      && bash tools/setup.sh --check
+    risk: P2
+    status: todo
+    allure:
+      severity: high
+  - id: 2
+    description: >-
+      Add the Node and TypeScript toolchain: package.json (private,
+      ESM, engines field), tsconfig.json (strict), the lockfile, and
+      a smoke source file with one test that proves the compiler and
+      the test runner run. The smoke files are replaced by e06
+    verify: >-
+      npm ci && npx tsc --noEmit && npm test
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+  - id: 3
+    description: >-
+      Extend tools/setup.sh to run the Node install and its --check to
+      test for node, npm and tsc. Make CI call tools/setup.sh instead
+      of pip install, and add typecheck and test steps. The Python
+      tool steps keep passing
+    verify: >-
+      yamllint .github/workflows/ci.yml
+      && grep -q 'tools/setup.sh' .github/workflows/ci.yml
+      && ! grep -q 'pip install' .github/workflows/ci.yml
+      && bash tools/setup.sh && bash tools/setup.sh --check
+      && npx tsc --noEmit && npm test
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+  - id: 4
+    description: >-
+      Prove it on a clean tree: copy every tracked and unignored file
+      into a new mktemp -d directory, run tools/setup.sh there, then
+      the typecheck and the test. No state from this checkout may be
+      needed (node_modules is ignored and is not copied)
+    verify: >-
+      T=$(mktemp -d)
+      && git ls-files -co --exclude-standard -z
+      | xargs -0 cp --parents -t "$T"
+      && (cd "$T" && bash tools/setup.sh && npx tsc --noEmit
+      && npm test)
+    risk: P2
+    status: todo
+    allure:
+      severity: high

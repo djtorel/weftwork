@@ -2,16 +2,47 @@
 id: e05
 title: Repository and environment setup (wave 5)
 wsjf: 2.5
-total_bcps: 8
+total_bcps: 11
 risk: P2
 status: todo
 depends_on:
   - e04
 done_when: >-
-  main is protected with the CI check required, a PR template carries
-  the provenance marker, and one command sets up the toolchain
-stories: []
-# Candidate stories, to be sliced with slice-tasks when e04 is done:
+  main is protected with the CI check required, a PR template lists
+  the gates, one command sets up the Python and Node toolchains, and
+  CI runs the validator, the typecheck and the tests
+stories:
+  - id: e05s01
+    title: Port the specs validator into tools/ and run it in CI
+    bcps: 3
+    status: todo
+    tasks: e05s01-tasks.yaml
+    delta: MODIFIED
+  - id: e05s02
+    title: One command sets up the Python and Node toolchains
+    bcps: 3
+    status: todo
+    tasks: e05s02-tasks.yaml
+    delta: MODIFIED
+  - id: e05s03
+    title: TypeScript code-style and test conventions, and real commands
+    bcps: 2
+    status: todo
+    tasks: e05s03-tasks.yaml
+    delta: ADDED
+  - id: e05s04
+    title: PR template and protected main
+    bcps: 3
+    status: todo
+    tasks: e05s04-tasks.yaml
+    delta: ADDED
+# Sliced 2026-11-11 (slice-tasks). Order e05s01, s02, s03, s04, one
+# story at a time. BCPs grew from 8 to 11: the TypeScript toolchain
+# and conventions were added by the change-request below. WSJF is not
+# rescored. done_when MODIFIED: before, the PR template carried the
+# provenance marker; after, it lists the gates, because AGENTS.md bans
+# the marker. Owner confirmed 2026-11-11.
+# Original candidate stories:
 #   GitHub settings (protect main, required check, PR template)
 #   Environment setup (one command installs yamllint and PyYAML)
 #   Port validate-specs-yaml.sh into tools/ so CI can run it
