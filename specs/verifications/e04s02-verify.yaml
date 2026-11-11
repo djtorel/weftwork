@@ -1,0 +1,109 @@
+---
+story_id: e04s02
+verified_at: '2026-11-11T17:31:32Z'
+verifier: verify-work
+branch: e04s02-research-synthesis
+risk: P2
+mode: >-
+  default (P2 runs smoke, typecheck and lint only; build, tests, security scan
+  and step-by-step UAT are skipped by risk rule). The adversarial gate was run
+  because it has no P2 exemption.
+phases:
+  branch_check:
+    passed: true
+    branch: e04s02-research-synthesis
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: '2026-11-11T17:31:32Z'
+    note: >-
+      Preflight run on the branch with the uncommitted e04s02 changes. CI: no PR
+      open, so gh pr checks does not apply.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e04-evaluation-synthesis/e04s02-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-11T17:31:32Z'
+    note: >-
+      One contiguous pass over tasks 1 to 7 on docs/research/SYNTHESIS.md as it
+      stands on disk (uncommitted). Task 2 checks the 27-row Verdicts table
+      against each brief's own Verdicts lines. Task 7 checks the whole-file
+      headings and that H1 to H27 all appear.
+    output: |
+      task 1: exit 0
+      task 2: exit 0 (table ok)
+      task 3: exit 0
+      task 4: exit 0
+      task 5: exit 0
+      task 6: exit 0
+      task 7: exit 0
+      TERMINAL_EXIT=0
+  lint:
+    passed: true
+    command: 'bash tools/check-briefs.sh'
+    exit_code: 0
+    captured_at: '2026-11-11T17:31:32Z'
+    note: >-
+      Every research brief, including SYNTHESIS.md, passes check-brief.sh. The
+      warnings are the approved undated-source exception (S2 in R16) and the
+      undated sources already recorded in earlier briefs.
+  typecheck:
+    passed: null
+    note: >-
+      No product code; no typecheck target exists.
+  smoke:
+    passed: null
+    note: >-
+      No app or server process. The terminal verdict is the smoke evidence for a
+      document-only story.
+  security_scan:
+    passed: null
+    note: skipped by risk rule (P2)
+  blind_spots:
+    passed: true
+    note: >-
+      0 HIGH; the MEDIUM double-tag findings are the shared tasks files and
+      briefs that name several stories, unchanged from earlier stories.
+  completeness_critic:
+    passed: true
+    note: >-
+      First run: BLOCKER=1, active story e04s02 had zero explicit story-tag
+      links.
+      Cause: the traceability matrix predated the e04s02 notes, the same cause
+      as
+      e04s03. Fix: ran bash scripts/trace-stories.sh, which rebuilds the
+      gitignored
+      matrix. Second run: BLOCKER=0 WARNING=0 FILLED=1; e04s02 has 2
+      explicit_tag
+      links.
+  nfr_gate:
+    passed: null
+    note: skipped by risk rule (NFR gate applies to P0 only)
+  adversarial_gate:
+    passed: true
+    command: bash scripts/verify-adversarial.sh
+    note: >-
+      PASS. Gate is a hard gate with no P2 exemption, so it was run. Evidence is
+      in specs/verifications/ADVERSARIAL_LATEST.yaml (gitignored).
+  ci:
+    passed: null
+    note: No PR open; CI checks after the PR is opened.
+  manual:
+    passed: null
+    note: >-
+      Step-by-step UAT skipped by risk rule (P2). The human checks are the
+      Verification Script in the e04s02 spec: spot-check three verdict rows,
+      read the first-release answer, and confirm nothing is stated as decided
+      that the owner has not decided.
+  gaps:
+    closed: true
+    note: >-
+      No gap against the promised behaviour in the seven tasks. Open items are
+      recorded in SYNTHESIS.md Open questions (task source, spend cap, stack
+      commitment, R7 remainder, the candidate hypothesis, and reading routed and
+      not done).

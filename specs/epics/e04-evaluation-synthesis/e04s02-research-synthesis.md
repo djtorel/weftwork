@@ -226,7 +226,7 @@ none.
 
 Decision reference: every step follows the owner's 2026-11-11 decisions
 (task source and spend cap deferred, stack recommended, estimate kept),
-recorded in the `state.yaml` handoff and in the plan commit.
+recorded in the `state.yaml` handoff and in the plan commit `432a538`.
 
 1. Draft Sources and Method → verify: task 1 in `e04s02-tasks.yaml`
 2. Build the Verdicts table → verify: task 2
