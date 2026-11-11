@@ -1,0 +1,92 @@
+---
+story_id: e04s01
+verified_at: '2026-11-11T05:00:00Z'
+verifier: verify-work
+branch: e04s01-evaluation-design
+risk: P2
+mode: >-
+  default (P2 skips build, tests, security scan and step-by-step UAT)
+phases:
+  branch_check:
+    passed: true
+    branch: e04s01-evaluation-design
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash scripts/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+    exit_code: 0
+    captured_at: '2026-11-11T05:00:00Z'
+    note: >-
+      Preflight run on the branch. CI: no PR open, so gh pr checks does not
+      apply.
+  terminal_verdict:
+    passed: true
+    command: >-
+      python3 loop over each task verify: command in
+      specs/epics/e04-evaluation-synthesis/e04s01-tasks.yaml
+    exit_code: 0
+    captured_at: '2026-11-11T05:00:00Z'
+    note: >-
+      One contiguous pass over tasks 1 to 9 on the brief at commit 9b9cfd3,
+      run again with the same result after the round 1 review fixes
+      (uncommitted). No undated sources: all 35 are arXiv papers with a
+      publication date. A separate check, bash tools/check-briefs.sh over
+      all briefs, exited 0 in the same session.
+    output: |
+      task 1: exit 0
+      task 2: exit 0
+      task 3: exit 0
+      task 4: exit 0
+      task 5: exit 0
+      task 6: exit 0
+      task 7: exit 0
+      task 8: exit 0
+      task 9: exit 0
+      TERMINAL_EXIT=0
+  completeness_critic:
+    passed: true
+    note: >-
+      BLOCKER=0 WARNING=0 FILLED=1 (scripts/lib/completeness-critic.sh),
+      after bash scripts/trace-stories.sh --json refreshed the gitignored
+      traceability matrix.
+  blind_spots:
+    passed: true
+    note: >-
+      0 HIGH, 6 MEDIUM double-tag findings (shared tasks files and briefs
+      that name several stories) and 0 LOW; see specs/blind-spots.json,
+      which is gitignored.
+  build:
+    passed: null
+    note: skipped (P2; no product code)
+  typecheck:
+    passed: null
+    note: skipped (no product code)
+  lint:
+    passed: true
+    command: yamllint specs
+    note: >-
+      Part of Preflight; the Markdown brief has no linter in this project.
+  tests:
+    passed: null
+    note: skipped (P2)
+  security_scan:
+    passed: null
+    note: >-
+      skipped (P2). The brief adds no executable surface: its one python
+      block is a stdlib power calculation run by task 6 and reads no
+      file or network. No threat model exists for e04; the e01 to e03
+      waivers do not cover it; the owner waived it for e04 on 2026-11-10
+      (recorded in state.yaml).
+  manual:
+    passed: null
+    note: >-
+      skipped (P2). Left for human review: the spot checks in the story
+      spec Verification Script (verdicts against sources, three triage
+      rows against each brief's Open questions, the power table against
+      the python output, two protocols against the table).
+  gaps:
+    closed: true
+    note: >-
+      Open for the owner, not gaps: the task source repository and the
+      spend cap; 28 of 35 papers read at abstract level only.

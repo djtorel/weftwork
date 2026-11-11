@@ -1,43 +1,303 @@
 ---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# plan-work 2026-11-10: the three placeholder tasks are replaced by
+#   nine, one per brief section group. Owner decisions, same day: design
+#   only (no agent trial), triage table plus core protocol, 8 BCPs (see
+#   the story spec).
 story_id: e04s01
 title: R10 evaluation design
-status: todo
+status: done
 bcps: 8
+type: research
+context: infra
+risk: P2
+spec: e04s01-r10-evaluation-design.md
 research_story: R10
 brief: docs/research/R10-evaluation.md
 tasks:
   - id: 1
     description: >-
       Draft the brief with dated sources (access and publication
-      dates) and cite papers wherever literature exists
-      on the topic
+      dates); list at least ten papers (arXiv or DOI links), including
+      the six earlier briefs flagged for R10: SWE-bench
+      (arXiv:2310.06770), the SWE-bench correctness study
+      (2503.15223), cross-model code review (2607.21656), the reasoning
+      effort economics paper (2610.34491), SlopCodeBench (2603.24755)
+      and HiL-Bench (2604.09408)
     verify: >-
-      bash tools/check-brief.sh docs/research/R10-evaluation.md
-      R10 --sources
-    status: todo
+      B=docs/research/R10-evaluation.md;
+      bash tools/check-brief.sh "$B" R10 --sources
+      && S=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B")
+      && test "$(printf '%s\n' "$S" | grep -E '^- \[S[0-9]+\]'
+      | grep -Eic 'arxiv\.org|doi\.org')" -ge 10
+      && for i in 2310.06770 2503.15223 2607.21656 2610.34491
+      2603.24755 2604.09408; do
+      printf '%s\n' "$S" | grep -qF "$i"
+      || { echo "missing paper: $i"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
   - id: 2
     description: >-
-      Define the arms (plain, evidence gates, full ceremony,
-      fixed tier, routed), the task set, and the measures
-      (pass rate, cost per accepted task), plus patch correctness
-      against a stronger oracle than the project's own tests
-      and quality drift over long tasks
+      Write the Method section: access date, that R10 is design only
+      and ran no agent trial (owner decision, 2026-11-10), that the
+      sample-size table comes from a stdlib calculation shown in the
+      brief, whether any page came through a summarizing subagent, that
+      no file outside the repository was read, and the arXiv queries
+      used
     verify: >-
-      grep -Eqi 'plain' docs/research/R10-evaluation.md
-      && grep -Eqi 'gates' docs/research/R10-evaluation.md
-      && grep -Eqi 'ceremony' docs/research/R10-evaluation.md
-      && grep -Eqi 'routed' docs/research/R10-evaluation.md
-      && grep -Eqi 'cost per accepted' docs/research/R10-evaluation.md
-      && grep -Eqi 'oracle' docs/research/R10-evaluation.md
-      && grep -Eqi 'drift' docs/research/R10-evaluation.md
-    status: todo
+      M=$(awk '$0=="## Method"{f=1;next} /^## /{f=0} f'
+      docs/research/R10-evaluation.md);
+      printf '%s\n' "$M" | grep -Eq '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      && printf '%s\n' "$M" | grep -Eiq 'design only'
+      && printf '%s\n' "$M" | grep -Eiq 'trial'
+      && printf '%s\n' "$M" | grep -Eiq 'stdlib'
+      && printf '%s\n' "$M" | grep -Eiq 'subagent'
+      && printf '%s\n' "$M"
+      | grep -Eiq 'no file outside|outside (this|the) repository'
+      && printf '%s\n' "$M" | grep -Eiq 'arxiv'
+      && printf '%s\n' "$M" | grep -Eiq 'quer(y|ies)'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
   - id: 3
     description: >-
-      Add verdicts (confirmed/refined/refuted, with sources)
-      for every hypothesis assigned to R10 in planning-context.yaml,
-      plus implications for weftwork, earns-its-place
-      vs ceremony verdicts, and open questions
+      Write Evaluation methods in the literature: how coding-agent work
+      is measured (benchmarks and oracles, variance across runs, cost
+      reporting, contamination, ablations of scaffolds and ceremony,
+      long-horizon drift), starting from R4's benchmark and oracle
+      findings, R7's cross-model and decider evaluation, R8's erosion
+      measures and R9's tier and effort studies. Each bullet cites a
+      source or says it is unsourced
     verify: >-
-      bash tools/check-brief.sh docs/research/R10-evaluation.md
-      R10
-    status: todo
+      F=$(awk '$0=="## Evaluation methods in the literature"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R10-evaluation.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for w in oracle variance cost contamination ablation drift; do
+      printf '%s\n' "$F" | grep -iq "$w"
+      || { echo "missing topic: $w"; exit 1; }; done
+      && for r in R4 R7 R8 R9; do
+      printf '%s\n' "$F" | grep -Eq "$r([^0-9]|$)"
+      || { echo "missing brief: $r"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 4
+    description: >-
+      Write Arms and Task set. Arms: plain, evidence gates, full
+      ceremony, fixed tier and routed, each with what it changes, plus
+      what is held fixed (model, host, tools, budget cap), read from R2,
+      R9 and R13. Task set: where tasks come from, selection criteria,
+      a seeded-defect subset, a held-out failing case per task and at
+      least one long task for drift; any path outside this repository
+      needs the owner to name it. Each bullet cites a source or says it
+      is unsourced
+    verify: >-
+      B=docs/research/R10-evaluation.md;
+      A=$(awk '$0=="## Arms"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      T=$(awk '$0=="## Task set"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      printf '%s\n' "$A" | grep -q '^- '
+      && ! printf '%s\n' "$A" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for a in plain 'evidence gates' 'full ceremony' 'fixed tier'
+      routed 'held fixed'; do
+      printf '%s\n' "$A" | grep -Eiq "^- \**$a"
+      || { echo "missing arm bullet: $a"; exit 1; }; done
+      && printf '%s\n' "$A" | grep -Eq 'R9([^0-9]|$)'
+      && printf '%s\n' "$A" | grep -q 'R13'
+      && printf '%s\n' "$T" | grep -q '^- '
+      && ! printf '%s\n' "$T" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for w in seeded held-out long repository outside owner; do
+      printf '%s\n' "$T" | grep -iq "$w"
+      || { echo "missing task-set topic: $w"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 5
+    description: >-
+      Write Measures and oracles: pass rate by declared command, cost
+      per accepted task with "accepted" defined, a stronger oracle than
+      the project's own tests, quality drift and verbosity over long
+      tasks, token and cache accounting, and escalation counts, from
+      R4's oracle finding, R8's erosion measures and R9's cost
+      accounting. Each bullet cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Measures and oracles"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R10-evaluation.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for w in 'pass rate' 'cost per accepted task' accepted oracle
+      drift verbos token cache escalation; do
+      printf '%s\n' "$F" | grep -iq "$w"
+      || { echo "missing measure: $w"; exit 1; }; done
+      && for r in R4 R8 R9; do
+      printf '%s\n' "$F" | grep -Eq "$r([^0-9]|$)"
+      || { echo "missing brief: $r"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 6
+    description: >-
+      Write Sample size and variance: a table of detectable pass-rate
+      differences for at least three task-set sizes, at a stated power
+      and alpha, for a paired design (exact McNemar or sign test on
+      discordant pairs), with bootstrap or confidence intervals,
+      how runs per task are chosen, and the stdlib python snippet that
+      produced the table in a fenced python block. The snippet must run
+      and print at least three lines. This is a calculation, not a
+      measurement
+    verify: >-
+      B=docs/research/R10-evaluation.md;
+      S=$(awk '$0=="## Sample size and variance"{f=1;next}
+      /^## /{f=0} f' "$B");
+      printf '%s\n' "$S" | grep -Eiq 'power'
+      && printf '%s\n' "$S" | grep -Eiq 'alpha'
+      && printf '%s\n' "$S" | grep -Eiq 'paired'
+      && printf '%s\n' "$S" | grep -Eiq 'bootstrap|confidence interval'
+      && printf '%s\n' "$S" | grep -Eiq 'runs per task'
+      && test "$(printf '%s\n' "$S" | grep -E '^\|'
+      | grep -Ev '^\|[ :|-]+\|$' | grep -c .)" -ge 4
+      && C=$(printf '%s\n' "$S"
+      | awk '/^```python$/{f=1;next} /^```$/{f=0} f')
+      && test -n "$C"
+      && O=$(printf '%s\n' "$C" | python3 -I -)
+      && test "$(printf '%s\n' "$O" | grep -c '[0-9]')" -ge 3
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 7
+    description: >-
+      Write Experiment protocols: one bullet per experiment, written
+      "- E<n> (<key>):", for H1, H4, H7, H17, H19 and H20 and for the
+      four R7 experiments (different-family reviewer, fresh briefed
+      context, round cost, decider Ask-F1). Each bullet names the arms,
+      the measure, a decision rule fixed before any run, and the cost,
+      and cites a source or says it is unsourced
+    verify: >-
+      F=$(awk '$0=="## Experiment protocols"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' docs/research/R10-evaluation.md);
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '^- E[0-9]+ \('
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for w in arms measure 'decision rule' cost; do
+      ! printf '%s\n' "$F" | grep -Eivq "$w"
+      || { echo "a bullet lacks: $w"; exit 1; }; done
+      && for k in H1 H4 H7 H17 H19 H20 different-family fresh
+      'round cost' Ask-F1; do
+      printf '%s\n' "$F" | grep -Eiq "^- E[0-9]+ \([^)]*$k[^0-9]"
+      || { echo "missing protocol: $k"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 8
+    description: >-
+      Write Candidate measurements triage: one table with columns ID,
+      Source, Hypothesis, Measurement, Cost, Call; at least 25 rows
+      covering the candidates in the Open questions of R4, R6, R7, R8,
+      R9, R11, R12, R13 and R15; Cost is S, M or L; Call is run first,
+      run later, build epic or drop; no empty cell; at least one run
+      first and at least one run later or drop
+    verify: >-
+      B=docs/research/R10-evaluation.md;
+      M=$(awk '$0=="## Candidate measurements triage"{f=1;next}
+      /^## /{f=0} f' "$B");
+      printf '%s\n' "$M" | grep -m1 -E '^\| *ID *\|'
+      | grep -Ei '\| *Source *\|' | grep -Ei '\| *Hypothesis *\|'
+      | grep -Ei '\| *Measurement *\|' | grep -Ei '\| *Cost *\|'
+      | grep -Eiq '\| *Call *\|'
+      && R=$(printf '%s\n' "$M" | grep -E '^\|'
+      | grep -Ev '^\| *ID *\|' | grep -Ev '^\|[ :|-]+\|$')
+      && test "$(printf '%s\n' "$R" | grep -c .)" -ge 25
+      && printf '%s\n' "$R" | awk -F'|' '{for(i=2;i<=7;i++)
+      if($i~/^ *$/)b=1; if(NF!=8)b=1} END{exit b}'
+      && ! printf '%s\n' "$R" | awk -F'|' '$6 !~ /^ *[SML] *$/'
+      | grep -q .
+      && ! printf '%s\n' "$R" | awk -F'|'
+      '$7 !~ /^ *(run first|run later|build epic|drop) *$/' | grep -q .
+      && printf '%s\n' "$R" | awk -F'|' '$7 ~ /run first/{n++}
+      END{exit !n}'
+      && printf '%s\n' "$R" | awk -F'|' '$7 ~ /run later|drop/{n++}
+      END{exit !n}'
+      && for t in R4 R6 R7 R8 R9 R11 R12 R13 R15; do
+      printf '%s\n' "$R" | awk -F'|' -v t="$t"
+      '$3 ~ ("(^|[^0-9A-Za-z])" t "([^0-9]|$)"){n++} END{exit !n}'
+      || { echo "no row from brief: $t"; exit 1; }; done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 9
+    description: >-
+      Add verdicts (confirmed/refined/refuted, with sources) for every
+      hypothesis assigned to R10 in planning-context.yaml (H1, H4, H7,
+      H17, H19 and H20), plus implications for weftwork,
+      earns-its-place vs ceremony verdicts, and open questions
+      (including candidate hypotheses for e04s02)
+    verify: >-
+      B=docs/research/R10-evaluation.md;
+      bash tools/check-brief.sh "$B" R10
+      && for h in Sources Method 'Evaluation methods in the literature'
+      Arms 'Task set' 'Measures and oracles' 'Sample size and variance'
+      'Experiment protocols' 'Candidate measurements triage'
+      Verdicts 'Implications for weftwork'
+      'Earns its place vs ceremony' 'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U")
+      <(printf '%s\n' "$L"))"
+      && O='## Sources|## Method|## Evaluation methods in the literature|';
+      O="${O}## Arms|## Task set|## Measures and oracles|";
+      O="${O}## Sample size and variance|## Experiment protocols|";
+      O="${O}## Candidate measurements triage|## Verdicts|";
+      O="${O}## Implications for weftwork|";
+      O="${O}## Earns its place vs ceremony|## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
