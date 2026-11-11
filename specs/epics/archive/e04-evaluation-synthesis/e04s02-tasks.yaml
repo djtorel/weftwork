@@ -1,0 +1,259 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# plan-work 2026-11-11: the three placeholder tasks become seven, one per
+#   brief section group. Owner decisions, same day (accepted the agent's
+#   recommendations): task source and experiment spend cap deferred, stack
+#   recommended as TypeScript on Node, estimate kept at 3 BCPs (see the
+#   story spec).
+story_id: e04s02
+title: Research synthesis
+status: done
+bcps: 3
+type: research
+context: infra
+risk: P2
+spec: e04s02-research-synthesis.md
+research_story: synthesis
+brief: docs/research/SYNTHESIS.md
+tasks:
+  - id: 1
+    description: >-
+      Draft Sources and Method: one dated source per brief R0 to R16
+      (access date and the date the brief reached main), and a Method
+      that states the access date, that nothing new was read or run,
+      how the verdict table was built, that no file outside the
+      repository was read, and the subagent use
+    verify: >-
+      B=docs/research/SYNTHESIS.md; D='[0-9]{4}-[0-9]{2}-[0-9]{2}';
+      sec() { awk -v h="## $1" '$0==h{f=1;next} /^## /{f=0} f' "$B"; };
+      S=$(sec Sources);
+      test "$(printf '%s\n' "$S" | grep -Ec '^- \[S[0-9]+\]')" -eq 17
+      && ! printf '%s\n' "$S" | grep -E '^- \[S[0-9]+\]'
+      | grep -Ev "accessed: $D published: $D"
+      | grep -q .
+      && for r in R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16;
+      do printf '%s\n' "$S" | grep -Eq "(^|[^0-9A-Za-z])$r([^0-9]|$)"
+      || { echo "missing source: $r"; exit 1; }; done
+      && M=$(sec Method)
+      && printf '%s\n' "$M" | grep -Eq "$D"
+      && printf '%s\n' "$M" | grep -Eqi 'no new (reading|source)'
+      && printf '%s\n' "$M" | grep -Eqi 'table'
+      && printf '%s\n' "$M"
+      | grep -Eqi 'no (other )?file outside|outside (this|the) repository'
+      && printf '%s\n' "$M" | grep -Eqi 'subagent'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 2
+    description: >-
+      Build the Verdicts table: one row per hypothesis H1 to H27,
+      columns H, Claim, Briefs, Verdict, What the briefs add, Evidence.
+      Briefs lists exactly the briefs whose own Verdicts section has a
+      line for that hypothesis; Verdict is confirmed, refined or
+      refuted and equals the briefs' word when they all agree; Evidence
+      is measured, literature, docs, design-only or none; no empty cell
+    verify: |
+      python3 -I - <<'PY'
+      import glob, re, sys
+      V = {}
+      for f in glob.glob("docs/research/R[0-9]*-*.md"):
+          r = re.match(r".*/(R\d+)-", f).group(1)
+          sec = False
+          for l in open(f):
+              l = l.rstrip("\n")
+              if l.startswith("## "):
+                  sec = l == "## Verdicts"
+              elif sec:
+                  m = re.match(r"^- (H\d+): *([a-z]+)", l)
+                  if m:
+                      V.setdefault(m.group(1), {})[r] = m.group(2)
+      sec, rows = False, {}
+      for l in open("docs/research/SYNTHESIS.md"):
+          l = l.rstrip("\n")
+          if l.startswith("## "):
+              sec = l == "## Verdicts"
+          elif sec and re.match(r"^\| *H\d+ *\|", l):
+              c = [x.strip() for x in l.strip().strip("|").split("|")]
+              rows.setdefault(c[0], []).append(c)
+      bad = []
+      ok_ev = {"measured", "literature", "docs", "design-only", "none"}
+      for i in range(1, 28):
+          h = "H%d" % i
+          r = rows.get(h, [])
+          if len(r) != 1:
+              bad.append("%s: %d rows" % (h, len(r)))
+              continue
+          c = r[0]
+          if len(c) != 6 or "" in c:
+              bad.append("%s: empty or missing cell" % h)
+              continue
+          want = set(V.get(h, {}))
+          if set(re.findall(r"R\d+", c[2])) != want:
+              bad.append("%s: briefs cell is not %s" % (h, sorted(want)))
+          words = set(V.get(h, {}).values())
+          if c[3] not in ("confirmed", "refined", "refuted"):
+              bad.append("%s: verdict %r" % (h, c[3]))
+          elif len(words) == 1 and c[3] not in words:
+              bad.append("%s: briefs all say %s" % (h, sorted(words)))
+          if not {x.strip() for x in c[5].split(",")} <= ok_ev:
+              bad.append("%s: evidence %r" % (h, c[5]))
+      known = {"H%d" % i for i in range(1, 28)}
+      if set(rows) - known:
+          bad.append("extra rows %s" % sorted(set(rows) - known))
+      print("\n".join(bad) or "table ok")
+      sys.exit(1 if bad else 0)
+      PY
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 3
+    description: >-
+      Write Evidence and conflicts: what was measured (R16 only), what
+      is design only (R10), where two briefs disagree or a later brief
+      supersedes an earlier line, and the gaps no brief closes. Each
+      bullet cites a source or says it is unsourced
+    verify: >-
+      B=docs/research/SYNTHESIS.md;
+      F=$(awk '$0=="## Evidence and conflicts"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && printf '%s\n' "$F" | grep -iq 'measured'
+      && printf '%s\n' "$F" | grep -iq 'design only'
+      && printf '%s\n' "$F" | grep -iq 'conflict'
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 4
+    description: >-
+      Answer the open question: the minimum useful first release, with
+      reasons from the briefs. Four labelled bullets answer the other
+      SEED-SPEC section 9 questions (Engine form, Shared state, Skills
+      and engine, Parallelism), each citing briefs. State the
+      recommended stack (TypeScript on Node) and the deferred owner
+      decisions (task source, spend cap)
+    verify: >-
+      B=docs/research/SYNTHESIS.md;
+      M=$(awk '$0=="## Minimum useful first release"{f=1;next}
+      /^## /{f=0} f' "$B");
+      F=$(awk '$0=="## Minimum useful first release"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      printf '%s\n' "$M" | grep -Eqi 'minimum useful first release'
+      && for k in 'Engine form' 'Shared state' 'Skills and engine'
+      Parallelism; do printf '%s\n' "$F" | grep -E "^- $k"
+      | grep -Eq '\[S[0-9]+\]' || { echo "missing or unsourced: $k"; exit 1; };
+      done
+      && for w in TypeScript 'task source' 'spend cap'; do
+      printf '%s\n' "$M" | grep -iq "$w" || { echo "missing: $w"; exit 1; };
+      done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 5
+    description: >-
+      Write Implications for weftwork: the inputs for the v1 spec, one
+      bullet each, citing the brief that justifies it, including the
+      product budget setting (per-repository plain files, user-level
+      default, stopping off by default, cost always shown), the task
+      source options and the stack recommendation. Each bullet cites a
+      source or says it is unsourced
+    verify: >-
+      B=docs/research/SYNTHESIS.md;
+      F=$(awk '$0=="## Implications for weftwork"{f=1;next}
+      /^## /{f=0} f&&/^- /{if(b)print b;b=$0;next} f&&/^  /{b=b" "$0}
+      END{if(b)print b}' "$B");
+      printf '%s\n' "$F" | grep -q '^- '
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]|unsourced'
+      && for w in 'v1 spec' budget 'task source' TypeScript; do
+      printf '%s\n' "$F" | grep -iq "$w" || { echo "missing: $w"; exit 1; };
+      done
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 6
+    description: >-
+      Under a "Candidate build epics" heading, list the epics that
+      would build the first release (engine, adapters, skills, or
+      whatever the synthesis supports), written "- B<n> (<name>):",
+      each citing the briefs that justify it and saying what it depends
+      on. Say they are sliced with slice-tasks at the e04 checkpoint,
+      and refer to the existing e05 epic instead of repeating it
+    verify: >-
+      B=docs/research/SYNTHESIS.md;
+      M=$(awk '$0=="## Candidate build epics"{f=1;next} /^## /{f=0} f' "$B");
+      F=$(printf '%s\n' "$M" | awk 'f&&/^  /{b=b" "$0;next}
+      /^- B[0-9]+ \(/{if(b)print b;b=$0;f=1;next} END{if(b)print b}');
+      test "$(printf '%s\n' "$F" | grep -Ec '^- B[0-9]+ \(')" -ge 4
+      && ! printf '%s\n' "$F" | grep -Eivq '\[S[0-9]+\]'
+      && ! printf '%s\n' "$F" | grep -Eivq 'depends on'
+      && printf '%s\n' "$M" | grep -q 'slice-tasks'
+      && printf '%s\n' "$M" | grep -q 'e04 checkpoint'
+      && printf '%s\n' "$M" | grep -q 'e05'
+      && grep -Eqi '^#+ .*candidate build epics' "$B"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"
+  - id: 7
+    description: >-
+      Write Earns its place vs ceremony and Open questions (the
+      deferred task source and spend cap, the stack commitment at the
+      e04 checkpoint, per-call hook cost, the remaining R7 reading),
+      then run the whole-file check: headings in order, every section
+      non-empty, every cited source listed, H1 to H27 present
+    verify: >-
+      B=docs/research/SYNTHESIS.md;
+      for h in Sources Method Verdicts 'Evidence and conflicts'
+      'Minimum useful first release' 'Implications for weftwork'
+      'Candidate build epics' 'Earns its place vs ceremony'
+      'Open questions'; do
+      awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' "$B"
+      | grep -q '[^[:space:]]' || { echo "empty section: $h"; exit 1; };
+      done
+      && U=$(grep -Eo '\[S[0-9]+\]' "$B" | sort -u)
+      && L=$(awk '$0=="## Sources"{f=1;next} /^## /{f=0} f' "$B"
+      | grep -Eo '^- \[S[0-9]+\]' | cut -c3- | sort -u)
+      && test -z "$(comm -23 <(printf '%s\n' "$U") <(printf '%s\n' "$L"))"
+      && for i in $(seq 1 27); do grep -q "H$i\b" "$B" || exit 1; done
+      && Q=$(awk '$0=="## Open questions"{f=1;next} /^## /{f=0} f' "$B")
+      && for w in 'task source' 'spend cap' 'per-call' R7; do
+      printf '%s\n' "$Q" | grep -iq "$w"
+      || { echo "open questions lacks: $w"; exit 1; };
+      done
+      && O='## Sources|## Method|## Verdicts|## Evidence and conflicts|';
+      O="${O}## Minimum useful first release|## Implications for weftwork|";
+      O="${O}## Candidate build epics|## Earns its place vs ceremony|";
+      O="${O}## Open questions";
+      test "$(grep -E '^## ' "$B" | paste -sd'|')" = "$O"
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "Research brief"
+        - "Wave 4"

@@ -4,7 +4,7 @@ title: Evaluation and synthesis (wave 4)
 wsjf: 3.8
 total_bcps: 16
 risk: P2
-status: todo
+status: done
 depends_on:
   - e03
 done_when: >-
@@ -20,7 +20,7 @@ stories:
   - id: e04s02
     title: Research synthesis
     bcps: 3
-    status: todo
+    status: done
     tasks: e04s02-tasks.yaml
   # e04s03 runs before e04s02: the synthesis uses its H8 and H10 verdicts.
   - id: e04s03

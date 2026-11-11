@@ -55,7 +55,7 @@ epics:
     bcps: 16
     risk: P2
     depends_on: [e03]
-    capsule_dir: epics/e04-evaluation-synthesis
+    capsule_dir: epics/archive/e04-evaluation-synthesis
     note: >-
       Highest raw WSJF after e01, but it needs a candidate workflow and
       every earlier brief, so it stays last. Rescored by change-request

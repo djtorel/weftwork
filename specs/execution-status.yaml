@@ -19,9 +19,9 @@ development_status:
   e03s06: done
   e03s07: done
   e03s08: done
-  e04: todo
+  e04: done
   e04s01: done
-  e04s02: todo
+  e04s02: done
   e04s03: done
   e05: todo
 epics:
@@ -41,7 +41,7 @@ epics:
     wsjf: 1.6
     total_bcps: 44
   e04:
-    status: todo
+    status: done
     title: Evaluation and synthesis (wave 4)
     wsjf: 3.8
     total_bcps: 16
@@ -238,13 +238,18 @@ stories:
     lead_time_minutes: 88
     bcp_per_hour: 5.7
   e04s02:
-    status: todo
+    status: done
+    completed_at: '2026-11-11T11:04:03-07:00'
+    started_at: '2026-11-11T09:44:57-07:00'
     title: Research synthesis
     bcps: 3
     epic: e04
-    tasks_total: 3
-    tasks_passing: 0
+    tasks_total: 7
+    tasks_passing: 7
     tasks_failing: 0
+    effort_hours: 0.3667
+    lead_time_minutes: 24
+    bcp_per_hour: 8.2
   e04s03:
     status: done
     started_at: '2026-11-11T07:08:32-07:00'

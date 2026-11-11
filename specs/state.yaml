@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: build_epic
 active_epic: e04
-active_story: e04s03
+active_story: e04s02
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e04s02-research-synthesis
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -343,31 +343,43 @@ waivers:
   date: 2026-11-11
   scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
 handoff:
-  next_skill: kickoff-branch
-  next_story: e04s02
-  note: 'e04s03 (R16 evidence refresh) is released on branch e04s03-evidence-refresh:
-    the plan commit ef2047a and the brief commit ab8f57d carry the Story: e04s03 trailer.
-    Gates: Preflight green; the verify-work terminal verdict and lint pass (P2 mode,
-    evidence in specs/verifications/e04s03-verify.yaml); audit-code passes (specs/verifications/AUDIT-e04-e04s03.md);
-    assert-epic-gate release PASS; request-review passed in round 3 (A 97.6, B 100,
-    zero must-fix; rounds 1 and 2 failed and were fixed); security review refreshed
-    for this branch in specs/security/REVIEW.md (no findings at confidence 8 or above);
-    the completeness critic has zero blockers; gate-trace was not re-run and rests
-    on the standing waiver (R1 and R4, owner, 2026-11-10). Waivers recorded: the S2
-    undated-source exception (owner, 2026-11-11). The e04 capsule stays open (e04s02
-    is todo). Pending the owner''s go-ahead: push, a squash PR and the merge. After
-    the merge, sync main, delete the local and remote branch, confirm a clean tree
-    and green CI on the merge commit. The cycle-time row for e04s03 is in
-    specs/metrics/cycle-times.md (git-derived: 0.86 hours over 3 commits, which
-    understates the session). Next is kickoff-branch for e04s02 (research
-    synthesis, 3 BCPs, SYNTHESIS.md covering H1 to H27 and the minimum useful first
-    release), in a fresh session after the merge. Its synthesis uses the R16 H8 and
-    H10 verdicts. Open for the owner before e04s02: which repository supplies the
-    task set and who sets the spend cap for the first R10 experiment; the stack choice,
-    which e04s02 takes; undecided R7 items; the e04 checkpoint reviews the standing
-    gate-trace waiver. Warning: do not run scripts/sync-status-from-epics.sh. On 2026-11-11
-    it rewrote specs/execution-status.yaml and dropped cycle-time fields; the file
-    was restored from HEAD. Every commit needs a Story trailer.'
+  next_skill: slice-tasks
+  next_story: e05
+  note: 'e04s02 (research synthesis) is ready to release from branch e04s02-research-synthesis,
+    cut from main at 8985ca1. Commits: 40a60c3 (quick-fix for BUG-006: the global
+    assert-epic-gate.sh read a stale AUDIT_LATEST.md PASS, so the gate passed every
+    story since, and the gate PASS results recorded for e03s08, e04s01 and e04s03
+    rested on it), 432a538 (plan) and 178e258 (synthesis: docs/research/SYNTHESIS.md
+    with the H1 to H27 table, the first-release answer and eight candidate build epics
+    B1 to B9). Gates: Preflight green; the terminal verdict, lint and adversarial
+    gate passed in verify-work (P2); audit-code passed (AUDIT_LATEST.md holds the
+    e04s02 PASS); assert-epic-gate release PASS; request-review passed in round 3
+    of 5 (A 99.0, B 97.9, zero must-fix); security review refreshed for this branch
+    in specs/security/REVIEW.md (no findings at confidence 8 or above); completeness
+    critic zero blockers after the traceability matrix was rebuilt with scripts/trace-stories.sh;
+    gate-trace not re-run, covered by the standing waiver (R1 and R4, 2026-11-10).
+    The e04 epic is complete (e04s01, e04s02 and e04s03 are done), so its capsule
+    moved to specs/epics/archive/e04-evaluation-synthesis and release-plan.yaml points
+    there. Cycle time for e04s02 is in specs/metrics/cycle-times.md. Pending the owner''s
+    go-ahead: the handoff commit with state.yaml, execution-status.yaml, the epic
+    and tasks status, release-plan.yaml, REVIEW.md and the moved capsule; then push,
+    a squash PR and the merge; then sync main, delete the branch, and check CI on
+    the merge commit. Next is the e04 checkpoint, with the owner, before slice-tasks
+    for e05 (repository and environment setup, which B1 depends on). The checkpoint
+    decides: confirm or change the TypeScript on Node stack (recommended, unmeasured
+    per-call hook cost); which of the candidate build epics B1 to B9 become real epics
+    and in what order; whether to add R15''s candidate hypothesis and R10''s (paired
+    difference with an interval against a held-out oracle) to planning-context.yaml;
+    and whether to keep the standing gate-trace waiver. The owner''s deferred decisions
+    stay open: the task source (any outside path must be named again) and the experiment
+    spend cap. The owner''s candidate requirements stay candidates: the per-repository
+    budget setting and auto mode (B9). After the checkpoint, the BUG-006 durable fix
+    is a fix-bug story in a fresh session: a tools/ wrapper that fails unless AUDIT_LATEST.md
+    names the active story and says PASS, and audit-code writing AUDIT_LATEST.md every
+    time; changing the global gate in bigpowers is the owner''s call. Do not run scripts/sync-status-from-epics.sh:
+    it rewrote specs/execution-status.yaml on 2026-11-11 and dropped cycle-time fields.
+    After the last bp-timing.sh call, run tools/restore-yaml-style.py on specs/state.yaml
+    before committing.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -376,29 +388,29 @@ metrics:
       total_seconds: 168.0
       avg_seconds: 14.0
     plan-work:
-      calls: 14
-      total_seconds: 5485.0
-      avg_seconds: 391.7857142857143
-    develop-tdd:
       calls: 15
-      total_seconds: 8305.0
-      avg_seconds: 553.6666666666666
+      total_seconds: 5729.0
+      avg_seconds: 381.93333333333334
+    develop-tdd:
+      calls: 16
+      total_seconds: 8600.0
+      avg_seconds: 537.5
     verify-work:
-      calls: 14
-      total_seconds: 664.0
-      avg_seconds: 47.42857142857143
+      calls: 15
+      total_seconds: 697.0
+      avg_seconds: 46.46666666666667
     audit-code:
-      calls: 12
-      total_seconds: 515.0
-      avg_seconds: 42.916666666666664
+      calls: 13
+      total_seconds: 555.0
+      avg_seconds: 42.69230769230769
     release-branch:
-      calls: 14
-      total_seconds: 1413.0
-      avg_seconds: 100.92857142857143
+      calls: 15
+      total_seconds: 1460.0
+      avg_seconds: 97.33333333333333
     request-review:
-      calls: 8
-      total_seconds: 10793.0
-      avg_seconds: 1349.125
+      calls: 9
+      total_seconds: 11503.0
+      avg_seconds: 1278.111111111111
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
@@ -408,6 +420,6 @@ metrics:
       total_seconds: 131.0
       avg_seconds: 131.0
     commit-message:
-      calls: 2
-      total_seconds: 14.0
-      avg_seconds: 7.0
+      calls: 4
+      total_seconds: 35.0
+      avg_seconds: 8.75
