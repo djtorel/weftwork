@@ -1,12 +1,12 @@
 workflow_mode: solo-git
-active_flow: build_epic
-active_epic: e04
-active_story: e04s02
+active_flow: null
+active_epic: e05
+active_story: null
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e04s02-research-synthesis
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -343,43 +343,33 @@ waivers:
   date: 2026-11-11
   scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
 handoff:
-  next_skill: slice-tasks
+  next_skill: change-request
   next_story: e05
-  note: 'e04s02 (research synthesis) is ready to release from branch e04s02-research-synthesis,
-    cut from main at 8985ca1. Commits: 40a60c3 (quick-fix for BUG-006: the global
-    assert-epic-gate.sh read a stale AUDIT_LATEST.md PASS, so the gate passed every
-    story since, and the gate PASS results recorded for e03s08, e04s01 and e04s03
-    rested on it), 432a538 (plan) and 178e258 (synthesis: docs/research/SYNTHESIS.md
-    with the H1 to H27 table, the first-release answer and eight candidate build epics
-    B1 to B9). Gates: Preflight green; the terminal verdict, lint and adversarial
-    gate passed in verify-work (P2); audit-code passed (AUDIT_LATEST.md holds the
-    e04s02 PASS); assert-epic-gate release PASS; request-review passed in round 3
-    of 5 (A 99.0, B 97.9, zero must-fix); security review refreshed for this branch
-    in specs/security/REVIEW.md (no findings at confidence 8 or above); completeness
-    critic zero blockers after the traceability matrix was rebuilt with scripts/trace-stories.sh;
-    gate-trace not re-run, covered by the standing waiver (R1 and R4, 2026-11-10).
-    The e04 epic is complete (e04s01, e04s02 and e04s03 are done), so its capsule
-    moved to specs/epics/archive/e04-evaluation-synthesis and release-plan.yaml points
-    there. Cycle time for e04s02 is in specs/metrics/cycle-times.md. Pending the owner''s
-    go-ahead: the handoff commit with state.yaml, execution-status.yaml, the epic
-    and tasks status, release-plan.yaml, REVIEW.md and the moved capsule; then push,
-    a squash PR and the merge; then sync main, delete the branch, and check CI on
-    the merge commit. Next is the e04 checkpoint, with the owner, before slice-tasks
-    for e05 (repository and environment setup, which B1 depends on). The checkpoint
-    decides: confirm or change the TypeScript on Node stack (recommended, unmeasured
-    per-call hook cost); which of the candidate build epics B1 to B9 become real epics
-    and in what order; whether to add R15''s candidate hypothesis and R10''s (paired
-    difference with an interval against a held-out oracle) to planning-context.yaml;
-    and whether to keep the standing gate-trace waiver. The owner''s deferred decisions
-    stay open: the task source (any outside path must be named again) and the experiment
-    spend cap. The owner''s candidate requirements stay candidates: the per-repository
-    budget setting and auto mode (B9). After the checkpoint, the BUG-006 durable fix
-    is a fix-bug story in a fresh session: a tools/ wrapper that fails unless AUDIT_LATEST.md
-    names the active story and says PASS, and audit-code writing AUDIT_LATEST.md every
-    time; changing the global gate in bigpowers is the owner''s call. Do not run scripts/sync-status-from-epics.sh:
-    it rewrote specs/execution-status.yaml on 2026-11-11 and dropped cycle-time fields.
-    After the last bp-timing.sh call, run tools/restore-yaml-style.py on specs/state.yaml
-    before committing.'
+  note: >-
+    e04 is released (e04s02 merged as #31, 2fcf5c1). BUG-006 is fixed by the
+    PR that carries this note: tools/assert-audit-story.sh passes only when
+    specs/AUDIT_LATEST.md has a "Story: <active_story>" line and VERDICT:
+    PASS; use it instead of scripts/lib/assert-epic-gate.sh, and have
+    audit-code write that line for every story. Next, in a fresh session, run
+    change-request to record the e04 checkpoint decisions the owner made on
+    2026-11-11: stack is TypeScript on Node, one package that is both a CLI
+    (JSON on stdin, exit code) and a library; build epics after e05 in this
+    order, B1 engine core and done gate, then B3 host adapters (Claude Code
+    first) and B2 state and handoff, then B5 budget and ceilings and B6
+    security baseline, then B4 skills and entry command; record B7, B8 and
+    B9 but do not schedule them (definitions in docs/research/SYNTHESIS.md);
+    add the R15 hypothesis (a loop ends only on engine-enforced conditions)
+    and the R10 hypothesis (a finding needs a paired difference with an
+    interval against a held-out oracle) to specs/planning-context.yaml; keep
+    the standing gate-trace waiver. Likely a new release after 0.1.0 in
+    specs/release-plan.yaml. After that, slice-tasks for e05 (repository and
+    environment setup), including the CONVENTIONS code-style and test
+    sections. Still deferred by the owner: the experiment task source (any
+    outside path must be named again) and the spend cap. Candidate
+    requirements stay candidates: the per-repository budget setting and auto
+    mode (B9). Do not run scripts/sync-status-from-epics.sh; it drops
+    cycle-time fields. After the last bp-timing.sh call, run
+    tools/restore-yaml-style.py on specs/state.yaml before committing.
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
