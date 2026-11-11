@@ -223,9 +223,8 @@ waivers:
     e04s02 and e04s03). R2 for missing verify evidence; e01s02, e01s04 and e02s01
     were released before verify evidence files were written for them. R4 for coverage,
     1 of 19 stories is tagged. Oracle downgrade, 45 of 47 links come from file and
-    task heuristics. Blind-spot check 0 HIGH; completeness critic 0 blockers. The
-    owner replied "do what you recommend" to the agent's gate-trace question on 2026-11-09
-    and approved the wording on the same day.
+    task heuristics. Blind-spot check 0 HIGH; completeness critic 0 blockers. The owner replied "do what you recommend" to the agent's gate-trace question
+    on 2026-11-09 and approved the wording on the same day.
   date: 2026-11-09
   scope: e03s06 release only (stories e03s07 to e04s03 for R1; e01s02, e01s04 and
     e02s01 for R2)
@@ -247,39 +246,52 @@ waivers:
     this exception on 2026-11-10.
   date: 2026-11-10
   scope: e03s07 only (docs/research/R13-enforcement-design.md sources S25 to S29)
+- what: request-review dual-blind AND-gate for e03s07 (rounds 1 to 2)
+  why: Round 1 failed (reviewer A 95.3 with two must-fix, B 95.1 with four; four
+    distinct). Round 2 failed (A 91.6 with two must-fix, B 95.8 with two). Each
+    round found real errors in the brief (a figure said to be absent from a page
+    that held it, a pi behaviour said to be undocumented that the docs describe,
+    a Windows exception to a hook rule, a ratio the paper does not give, a false
+    claim that no remedy had been tested) and every finding was checked against
+    its source and fixed. New papers kept turning up. The agreed cap of two rounds
+    was reached. The fixes from both rounds were not re-reviewed. The owner chose
+    on 2026-11-10 to waive the gate and release.
+  date: 2026-11-10
+  scope: e03s07 only (docs/research/R13-enforcement-design.md wording and evidence;
+    no change to verify commands)
+- what: CONVENTIONS.md rule that every source has a publication date, for 2 further
+    sources in the R13 brief (S56 NeurIPS workshop poster, S59 Claude Code monitoring-usage
+    docs page)
+  why: Neither shows a publication date, and none could be found. S56 has no arXiv
+    id and its OpenReview metadata was not readable; S59 is a vendor doc page. Each
+    source line records what was read. check-brief.sh passes with a warning (7 undated
+    sources in all, with S25 to S29). The owner extended the undated exception to
+    these two on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s07 only (docs/research/R13-enforcement-design.md sources S56 and S59)
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   next_story: e03s07
   note: >-
-    e03s07 request-review round 2 of 2 FAILED the AND-gate on 2026-11-11:
-    reviewer A 91.6 with 2 must-fix, reviewer B 95.8 by its own arithmetic
-    (its header said 94.9) with 2 must-fix. The agreed cap of two rounds is
-    reached. Confirmed against the sources and fixed in
-    docs/research/R13-enforcement-design.md: Claude Code has a
-    Windows-without-Git-Bash case where a failed hook blocks, and onFailure
-    needs v2.1.295 or later (my round 1 Method sentence calling the Windows
-    claim unconfirmed was false); the /hooks menu and first-run notice
-    exist, so no page offers a way to confirm a hook is live was too broad;
-    Claude Code can log permission decisions; two benchmarks test defences
-    against an agent tampering with its own evaluation, so no test of a
-    remedy was false; Codex fails open on unsupported PreToolUse output
-    fields; the S20 refusal result and the S4 deputy result had dropped
-    qualifiers. Added sources S55 to S59, now 59. Round 1 and round 2 fixes
-    are NOT re-reviewed. Open for the owner: (1) request-review failed the
-    AND-gate in both rounds; record a waiver as for e03s02 to e03s06 and
-    release, or run a round 3. (2) S56 (a NeurIPS workshop poster) and S59
-    (a Claude Code docs page) are undated; the existing undated exception
-    covers S25 to S29 only, so extend it or drop them. check-brief now warns
-    7 undated sources. (3) New gate-trace waiver for this release. (4)
-    Restore the state.yaml reflow (54 lines against main, semantically
-    clean) as the last step before release-branch. The squash message
-    drafted in commit-message is the one that reaches main. Commits are not
-    pushed; CI runs check-briefs.sh on every brief. Reviewer lesson, twice
-    now: my not found statements from narrow searches were the main source
-    of errors, so search the full text with plain keywords before writing
-    one. Carried over: BUG-005 decision, undecided R7 items, e04s02 stack
+    e03s07 is ready for release-branch. The request-review gate failed both
+    rounds and was waived by the owner on 2026-11-10; the undated-source
+    exception was extended to S56 and S59. Both are recorded in the waivers
+    above. The brief docs/research/R13-enforcement-design.md has 59 sources,
+    passes check-brief.sh R13 and check-briefs.sh, and all nine task verify
+    commands exit 0. Round 1 and round 2 fixes were not re-reviewed. Still
+    to do in release-branch: write the gate-trace waiver for this release
+    from the computed verdict, reconcile story status in the tasks file,
+    epic.yaml and execution-status.yaml, write the handoff for the next
+    story (e03s08, R15 run termination, kickoff-branch), and ask the owner
+    before each push, PR and merge. Use the squash message drafted in
+    commit-message. Record cycle time through tools/record-cycle-time.sh
+    with --file specs/metrics/cycle-times.md and take the SHA range before
+    the squash merge. Start the next story in a fresh session. Carried over
+    for the owner: BUG-005 decision, undecided R7 items, e04s02 stack
     choice, four unread R11 papers (arXiv:2609.39678, 2610.02456,
-    2603.10387, 2608.25817). Every commit needs a Story trailer.
+    2603.10387, 2608.25817). Lesson for R15: my not found statements from
+    narrow searches caused most review errors, so search the full text with
+    plain keywords before writing one. Every commit needs a Story trailer.
 metrics:
   story_start: '2026-11-09T16:34:35Z'
   skill_timings:
