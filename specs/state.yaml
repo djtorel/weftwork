@@ -450,6 +450,7 @@ metrics:
       calls: 22
       total_seconds: 1160.0
       avg_seconds: 52.72727272727273
+      _start: '2026-11-12T03:44:39Z'
     audit-code:
       calls: 17
       total_seconds: 836.0

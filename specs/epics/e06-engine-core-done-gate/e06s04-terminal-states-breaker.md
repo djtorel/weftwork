@@ -585,14 +585,18 @@ Scenario: AC-e06s04-32 the old scenarios still hold
    prints `"state":"failed"` and `exit=1`: the tree moved, so the count
    restarts.
 3. Exhausted: `rm .git/weftwork/ledger.jsonl; for i in 1 2; do echo '{"command":"exit 7","maxFailures":2}' | node $R/src/cli.ts; echo "exit=$?"; done`
-   prints exit 1 then exit 5. Then `echo '{"command":"true","maxFailures":2}' | node $R/src/cli.ts; echo "exit=$?"`
-   prints `"reason":"not-run"` and exit 5. After `rm .git/weftwork/ledger.jsonl`
-   the same line prints `"state":"done"` and exit 0.
+   prints exit 1 then exit 5. Then `echo '{"command":"exit 7","maxFailures":2}' | node $R/src/cli.ts; echo "exit=$?"`
+   prints `"reason":"not-run"` and exit 5, and the command did not run. The
+   ceiling is per command, so `echo '{"command":"true","maxFailures":2}' | node $R/src/cli.ts`
+   is done and exits 0. After `rm .git/weftwork/ledger.jsonl` the `exit 7`
+   line prints `"state":"failed"` and exit 1 again.
 4. Blocked: `echo '{"command":"touch ran","blocked":"need the API key"}' | node $R/src/cli.ts; echo "exit=$?"; ls ran`
    prints exit 3, `"detail":"need the API key"`, and `ls` says no such file.
 5. Killed: `node $R/src/cli.ts <<< '{"command":"sleep 60"}' & P=$!; sleep 1; kill -TERM $P; wait $P; echo "exit=$?"; pgrep -f 'sleep 60'`
    prints a `"state":"killed"` line, `exit=6`, and `pgrep` prints nothing.
-   Repeat with `kill -INT $P`.
+   Repeat with `kill -INT $P`. A signal while the CLI still waits for stdin
+   (for example `(sleep 30 | node $R/src/cli.ts & P=$!; ...)` with the pipe
+   held open) must exit 6 at once, with `"state":"killed"` and no ledger line.
 6. `cat .git/weftwork/ledger.jsonl` shows run lines and state lines with
    `runs`, `failStreak`, `threshold` and `detail`.
 7. Mutation checks (anti-vacuity): copy `src` to a scratch directory (with
