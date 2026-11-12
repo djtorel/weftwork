@@ -112,8 +112,10 @@ function classify(verdict: Verdict, entries: LedgerEntry[], request: GateRequest
  * Decide how a run ends, and log every terminal state. Resolves, never
  * rejects, for an expected failure. `signal` aborts the command (killed).
  */
-export async function runEngine(request: GateRequest, signal?: AbortSignal): Promise<Answer> {
-  const path = await ledgerPath(request.cwd);
+
+/** The answer for a run that must not start: the ceiling is reached or the
+ * worker is blocked. Null when the run may go ahead. */
+async function refusedBeforeRun(path: string | null, request: GateRequest): Promise<Answer | null> {
   const before = await readEntries(path);
   const ceiling = checkCeiling(before, request.command, request.maxFailures ?? defaultMaxFailures);
   if (ceiling !== null) {
@@ -125,6 +127,19 @@ export async function runEngine(request: GateRequest, signal?: AbortSignal): Pro
     const answer = refused(request, 'blocked', request.blocked);
     await logState(path, before, answer, null);
     return answer;
+  }
+  return null;
+}
+
+/**
+ * Decide how a run ends, and log every terminal state. Resolves, never
+ * rejects, for an expected failure. `signal` aborts the command (killed).
+ */
+export async function runEngine(request: GateRequest, signal?: AbortSignal): Promise<Answer> {
+  const path = await ledgerPath(request.cwd);
+  const refusal = await refusedBeforeRun(path, request);
+  if (refusal !== null) {
+    return refusal;
   }
   const verdict = await runGate(request, signal);
   const after = await readEntries(path);

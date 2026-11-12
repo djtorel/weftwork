@@ -12,10 +12,11 @@
 // entry is `JSON.stringify` output, so a newline in a command cannot start
 // a second entry (C3).
 import { execFile } from 'node:child_process';
-import { appendFile, mkdir, open, readFile } from 'node:fs/promises';
+import { appendFile, mkdir, open, readFile, type FileHandle } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import type { Verdict } from './gate.ts';
+import { isRecord } from './json.ts';
 import { terminalStates, type State } from './states.ts';
 
 const run = promisify(execFile);
@@ -124,10 +125,6 @@ export async function appendState(
   at: Date,
 ): Promise<AppendResult> {
   return writeLine(path, { ...entry, at: at.toISOString() });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isExitCode(value: unknown): value is number | null {
@@ -241,20 +238,28 @@ export async function readLedger(path: string): Promise<LedgerRead> {
  * fragment before the first newline is dropped, not counted, and `truncated`
  * is true. Also returns the state lines. Never throws.
  */
+/** The last `maxBytes` bytes of an open file, cut to whole lines. */
+async function tailText(
+  handle: FileHandle,
+  maxBytes: number,
+): Promise<{ text: string; truncated: boolean }> {
+  const { size } = await handle.stat();
+  const length = Math.min(size, maxBytes);
+  const buffer = Buffer.alloc(length);
+  const { bytesRead } = await handle.read(buffer, 0, length, size - length);
+  const text = buffer.toString('utf8', 0, bytesRead);
+  if (size <= maxBytes) {
+    return { text, truncated: false };
+  }
+  const cut = text.indexOf('\n');
+  return { text: cut === -1 ? '' : text.slice(cut + 1), truncated: true };
+}
+
 export async function readLedgerTail(path: string, maxBytes: number): Promise<LedgerTail> {
-  let handle;
+  let handle: FileHandle | undefined;
   try {
     handle = await open(path, 'r');
-    const { size } = await handle.stat();
-    const length = Math.min(size, maxBytes);
-    const buffer = Buffer.alloc(length);
-    const { bytesRead } = await handle.read(buffer, 0, length, size - length);
-    let text = buffer.toString('utf8', 0, bytesRead);
-    const truncated = size > maxBytes;
-    if (truncated) {
-      const cut = text.indexOf('\n');
-      text = cut === -1 ? '' : text.slice(cut + 1);
-    }
+    const { text, truncated } = await tailText(handle, maxBytes);
     return { ok: true, ...parseLines(text), truncated };
   } catch (error) {
     return isMissing(error)

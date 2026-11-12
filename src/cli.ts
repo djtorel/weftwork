@@ -35,43 +35,66 @@ type Read =
   | { ok: true; text: string }
   | { ok: false; reason: 'too-large' | 'aborted' | 'unreadable' };
 
+type StdinEvent = { kind: 'chunk'; chunk: Buffer } | { kind: 'end' | 'error' | 'abort' };
+
+/** Listen to stdin and the abort, and feed each event to `feed`. Returns the
+ * function that stops listening. */
+function listenStdin(signal: AbortSignal, feed: (event: StdinEvent) => void): () => void {
+  const stdin = process.stdin;
+  const onData = (chunk: Buffer) => feed({ kind: 'chunk', chunk });
+  const onEnd = () => feed({ kind: 'end' });
+  const onError = () => feed({ kind: 'error' });
+  const onAbort = () => feed({ kind: 'abort' });
+  stdin.on('data', onData).on('end', onEnd).on('error', onError);
+  signal.addEventListener('abort', onAbort, { once: true });
+  return () => {
+    stdin.off('data', onData).off('end', onEnd).off('error', onError);
+    signal.removeEventListener('abort', onAbort);
+  };
+}
+
 /**
- * Read stdin as text. Resolves at once when `signal` aborts (F4), so a signal
- * is not held up by a caller that keeps stdin open. Resolves, never rejects.
+ * Feed stdin events and the abort to `step`. `step` returns the final result,
+ * or null to keep reading. A signal that has already aborted resolves at once
+ * (F4). Resolves, never rejects.
  */
-function readInput(signal: AbortSignal): Promise<Read> {
+function readEvents(signal: AbortSignal, step: (event: StdinEvent) => Read | null): Promise<Read> {
   return new Promise((resolve) => {
-    const chunks: Buffer[] = [];
-    let size = 0;
-    const stop = (result: Read) => {
-      process.stdin.off('data', onData);
-      process.stdin.off('end', onEnd);
-      process.stdin.off('error', onError);
-      signal.removeEventListener('abort', onAbort);
-      if (!result.ok) {
-        process.stdin.destroy();
-      }
-      resolve(result);
-    };
-    const onData = (chunk: Buffer) => {
-      size += chunk.length;
-      if (size > maxInputBytes) {
-        stop({ ok: false, reason: 'too-large' });
-      } else {
-        chunks.push(chunk);
-      }
-    };
-    const onEnd = () => stop({ ok: true, text: Buffer.concat(chunks).toString('utf8') });
-    const onError = () => stop({ ok: false, reason: 'unreadable' });
-    const onAbort = () => stop({ ok: false, reason: 'aborted' });
     if (signal.aborted) {
-      onAbort();
+      resolve({ ok: false, reason: 'aborted' });
       return;
     }
-    signal.addEventListener('abort', onAbort, { once: true });
-    process.stdin.on('data', onData);
-    process.stdin.on('end', onEnd);
-    process.stdin.on('error', onError);
+    let stop: () => void = () => undefined;
+    stop = listenStdin(signal, (event) => {
+      const result = step(event);
+      if (result !== null) {
+        stop();
+        if (!result.ok) {
+          process.stdin.destroy();
+        }
+        resolve(result);
+      }
+    });
+  });
+}
+
+/** Read stdin as text, or the reason it could not be read. Never rejects. */
+function readInput(signal: AbortSignal): Promise<Read> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  return readEvents(signal, (event) => {
+    if (event.kind === 'chunk') {
+      size += event.chunk.length;
+      if (size > maxInputBytes) {
+        return { ok: false, reason: 'too-large' };
+      }
+      chunks.push(event.chunk);
+      return null;
+    }
+    if (event.kind === 'end') {
+      return { ok: true, text: Buffer.concat(chunks).toString('utf8') };
+    }
+    return { ok: false, reason: event.kind === 'abort' ? 'aborted' : 'unreadable' };
   });
 }
 
