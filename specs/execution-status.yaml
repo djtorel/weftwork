@@ -323,6 +323,10 @@ stories:
     effort_hours: 0.1631
     lead_time_minutes: 12
     bcp_per_hour: 18.4
+  e06s04:
+    effort_hours: 0.45
+    lead_time_minutes: 33
+    bcp_per_hour: 11.1
 gate_trace:
   verdict: WAIVED
   generated_at: "2026-11-12T03:00:08Z"
