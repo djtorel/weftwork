@@ -223,5 +223,8 @@ needs slopcheck and a fresh review of `package.json`.
 - e06s02: the git and hashing code (T5). Run security-review on the
   diff.
 - e06s03: the ledger writer and reader (T3).
+- e06s04: the signal handling and the process-group kill (T6, C7), the
+  capped tail reader and the state lines (T3, F3), and the order of checks
+  that decides `done` (T7). Run security-review on the diff.
 - e06s05: the override reader (T4). The owner decision on how the engine
   tells a hatch is open and changes this section.
