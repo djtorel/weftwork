@@ -86,7 +86,7 @@ tasks:
     verify: >-
       node --test src/breaker.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
