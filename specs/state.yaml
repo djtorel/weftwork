@@ -8,8 +8,9 @@ vcs:
   kind: git
   branch: e06s02-fail-closed-tree
 epic_cycle:
-  step: 6
-  completed_steps: 0,1,2,3,4,5
+  step: 7
+  completed_steps: 0,1,2,3,4,5,6
+  audit_result: pass
   threat_model: specs/security/epics/e06/THREAT_MODEL.md
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
@@ -394,14 +395,15 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   next_story: e06s02
   note: 'e06s02 is planned and approved by the owner (spec
     e06s02-fail-closed-tree.md, 4 tasks) and kicked off on branch
     e06s02-fail-closed-tree. develop-tdd is done: all 4 tasks pass (73 tests).
     verify-work passed and the owner confirmed UAT
-    (specs/verifications/e06s02-verify.yaml). Next: audit-code, commit-message
-    and release-branch. Do not repeat build-epic step 0: the e06 threat model is
+    (specs/verifications/e06s02-verify.yaml). Audit passed
+    (specs/verifications/AUDIT-e06-e06s02.md). Next: commit-message and
+    release-branch. Do not repeat build-epic step 0: the e06 threat model is
     specs/security/epics/e06/THREAT_MODEL.md. Controls C5, C6, C7 and C10 apply
     to this story; run security-review on its diff because it adds the first git
     calls and hashing code. Tag new src files with // story: e06s02. Waivers for
