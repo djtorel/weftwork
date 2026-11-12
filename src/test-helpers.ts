@@ -5,6 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import assert from 'node:assert/strict';
+import { ledgerPath, readLedger, type LedgerEntry } from './ledger.ts';
 
 const tempDirs: string[] = [];
 
@@ -46,4 +48,16 @@ export function makeTestRepo(files: Record<string, string> = { 'tracked.txt': 'o
   git(dir, 'add', '-A');
   git(dir, 'commit', '-q', '-m', 'init');
   return dir;
+}
+
+/** The ledger of the repository at `repo`, read back. Fails the test if the
+ * path cannot be found or the file cannot be read. */
+export async function readRepoLedger(
+  repo: string,
+): Promise<{ entries: LedgerEntry[]; skipped: number }> {
+  const path = await ledgerPath(repo);
+  assert.notEqual(path, null);
+  const read = await readLedger(path as string);
+  assert.ok(read.ok);
+  return read;
 }

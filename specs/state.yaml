@@ -391,63 +391,69 @@ waivers:
   scope: e06s01 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e06s03
-  note: 'e06s02 is released: fingerprintTree (src/tree.ts) and the named verdict reasons,
-    timeout and process-group kill (src/gate.ts) are on main. Next story is e06s03
-    (log every verdict in a plain-file counts ledger). In a fresh session, sync main,
-    then run kickoff-branch with git checkout -b (no worktree). Do not repeat build-epic
-    step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md. e06s03
-    has a tasks file only, so plan-work writes its spec first (waived for e06). Its
-    tasks file lists what plan-work must ask the owner: where the ledger file lives,
-    whether it is committed or ignored, and its line format. Carry threat model controls
-    C3 (one JSON object per line with JSON.stringify, so a command with a newline
-    cannot start a second entry) and C4 (the gate never reads done from the ledger)
-    into e06s03, and run security-review on its diff. The ledger is writable by the
-    agent, so a forged or erased entry is a residual risk (threat model T3); say so
-    in the spec. A verdict now holds reason, command and fingerprint, which the ledger
-    entry should record. Tests build temporary git repositories with src/test-helpers.ts
-    and never run a command in the real repository. Tag new src files with // story:
-    e06s03. Coverage is measurable with node --test --experimental-test-coverage (98.6
-    percent lines at e06s02); no coverage waiver is needed while it stays above 80
-    percent overall and 95 percent for the engine code. Waivers for e06 are in waivers:
-    gate-trace R1 (until e06 closes). Known limit recorded in the threat model: a
-    command that starts its own session (setsid) leaves the process group. e06s04
-    to e06s05 have tasks files only. Owner decisions still open: a CI step that reports
-    coverage, the e06s05 questions (what an override answers, and how the engine tells
-    an owner-authored hatch from one the agent wrote), the e05 checkpoint item (engines.node
-    >=26 lets setup-node pick a newer major), and the deferred experiment task source
-    and spend cap. main is protected: land every branch through a PR (gh pr create,
-    then gh pr merge --squash). Use tools/assert-audit-story.sh for the audit gate,
-    which needs active_story set until the merge. Do not run scripts/sync-status-from-epics.sh.
+  next_story: e06s04
+  note: 'e06s03 is released: the counts ledger is on main after the squash merge.
+    src/ledger.ts holds ledgerPath (the file is <git dir>/weftwork/ledger.jsonl, mode
+    0600 in a 0700 directory, never in the tree), appendEntry, readLedger (entries
+    plus a skipped count, never throws) and countsFor (runs, passes, failures, failStreak,
+    fresh for one command). runGate logs every verdict and a passed verdict that cannot
+    be logged is not done with the reason no-ledger. Next story is e06s04 (name the
+    five terminal states and trip a no- progress breaker). In a fresh session, sync
+    main, then run kickoff-branch with git checkout -b (no worktree). Do not repeat
+    build-epic step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md.
+    e06s04 has a tasks file only, so plan-work writes its spec first (waived for e06).
+    Carry into e06s04: the breaker reads failStreak from countsFor; a nonzero skipped
+    count means lines were lost, so treat it as a reason to look and not as a count
+    of failures. Cap what the breaker reads from the ledger (for example the last
+    1 MiB), since readLedger holds the whole file (security review F3, CWE-400). The
+    ledger is writable by the agent, so erasing failures to defeat the breaker is
+    a residual risk (threat model T3); say so in the spec. Known residuals recorded
+    in the threat model and specs/security/REVIEW.md: the writer follows symlinks
+    in .git (F1, LOW) and a command that starts its own session (setsid) leaves the
+    process group. e06s04 also owns signal forwarding: a detached child no longer
+    gets Ctrl-C, and it replaces the exit codes 0, 1 and 2 with one code per terminal
+    state. Tests build temporary git repositories with src/test-helpers.ts (makeTestRepo,
+    readRepoLedger) and never run a command in the real repository. Tag new src files
+    with // story: e06s04. Coverage is measurable with node --test --experimental-test-coverage
+    (99.1 percent lines at e06s03, 111 tests); no coverage waiver is needed while
+    it stays above 80 percent overall and 95 percent for the engine code. Waivers
+    for e06 are in waivers: gate-trace R1 (until e06 closes). e06s05 has a tasks file
+    only. Owner decisions still open: a CI step that reports coverage, the e06s05
+    questions (what an override answers, and how the engine tells an owner-authored
+    hatch from one the agent wrote), the e05 checkpoint item (engines.node >=26 lets
+    setup-node pick a newer major), and the deferred experiment task source and spend
+    cap. main is protected: land every branch through a PR (gh pr create, then gh
+    pr merge --squash), and ask the owner before each push, PR and merge. Use tools/assert-audit-story.sh
+    for the audit gate, which needs active_story set until the merge. Do not run scripts/sync-status-from-epics.sh.
     After the last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD
     on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 17
-      total_seconds: 239.0
-      avg_seconds: 14.058823529411764
+      calls: 18
+      total_seconds: 256.0
+      avg_seconds: 14.222222222222221
     plan-work:
-      calls: 21
-      total_seconds: 7699.0
-      avg_seconds: 366.6190476190476
+      calls: 22
+      total_seconds: 8698.0
+      avg_seconds: 395.3636363636364
     develop-tdd:
-      calls: 21
-      total_seconds: 9487.0
-      avg_seconds: 451.76190476190476
+      calls: 22
+      total_seconds: 9636.0
+      avg_seconds: 438.0
     verify-work:
-      calls: 21
-      total_seconds: 1069.0
-      avg_seconds: 50.904761904761905
+      calls: 22
+      total_seconds: 1160.0
+      avg_seconds: 52.72727272727273
     audit-code:
-      calls: 16
-      total_seconds: 743.0
-      avg_seconds: 46.4375
+      calls: 17
+      total_seconds: 836.0
+      avg_seconds: 49.1764705882353
     release-branch:
-      calls: 21
-      total_seconds: 2859.0
-      avg_seconds: 136.14285714285714
+      calls: 22
+      total_seconds: 2910.0
+      avg_seconds: 132.27272727272728
     request-review:
       calls: 9
       total_seconds: 11503.0

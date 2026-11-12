@@ -1,0 +1,91 @@
+---
+story_id: e06s03
+type: verification
+context: engine
+verified_at: "2026-11-12T02:50:11Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, step-by-step manual)"
+branch: e06s03-counts-ledger
+phases:
+  branch_check:
+    passed: true
+    note: "On the feature branch, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open yet, so gh pr checks does not apply. Local Preflight
+      run below.
+  pre_uat_verify_validation:
+    passed: true
+    note: "Tasks 1, 2 and 3 verify commands re-run; all pass."
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 109 of 109"
+    coverage: "99.11% lines overall; ledger.ts 100%, gate.ts 97.73%"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-12T02:50:11Z"
+    note: "Single run. Output tail: tests 109, pass 109, fail 0."
+  blind_spots:
+    passed: true
+    note: "0 HIGH, 21 MEDIUM (double-tag), 3 LOW. No HIGH findings."
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      First run gave a BLOCKER (zero explicit tag links) because
+      specs/traceability-matrix.json was stale. After
+      scripts/trace-stories.sh regenerated it: BLOCKER 0.
+  security_scan:
+    passed: true
+    note: >-
+      5-phase scan of src/ledger.ts, src/gate.ts and src/cli.ts against the
+      e06 threat model, with two probes (symlink follow, file mode). 0 HIGH,
+      0 MEDIUM, 3 LOW (symlink follow, default mode, no size cap), none
+      blocking. Report in specs/security/REVIEW.md.
+  nfr_gate:
+    skipped: true
+    note: "P0 only."
+  adversarial_gate:
+    passed: true
+    note: "bash scripts/verify-adversarial.sh passed."
+  mutation_checks:
+    passed: true
+    note: >-
+      Scratch copy with the append changed to write nothing: 4 of 8 tests
+      in src/gate.ledger.test.ts failed. Copy deleted.
+  manual:
+    steps:
+      - step: "Two CLI runs (true, exit 7) then cat the ledger"
+        expected: "Two verdict lines, then two ledger lines (done true, false)"
+        actual: "As expected; exit 0 for the first run"
+        passed: true
+      - step: "git status --short after the runs"
+        expected: "No output"
+        actual: "No output"
+        passed: true
+      - step: "Append a torn line, then run the CLI"
+        expected: "The new entry is on its own line"
+        actual: "torn line kept apart; new entry intact on its own line"
+        passed: true
+      - step: "Make .git/weftwork a file, then run true"
+        expected: "done false, reason no-ledger, exit 1"
+        actual: "done false, reason no-ledger, a stderr note, exit 1"
+        passed: true
+      - step: "Mutation check (anti-vacuity)"
+        expected: "gate.ledger tests fail on the mutated copy"
+        actual: "4 of 8 failed"
+        passed: true
+  gaps:
+    closed: true
+    open_notes:
+      - >-
+        F2 (LOW) fixed after verify: directory 0700, file 0600, with a test.
+        Tests now 111 of 111.
