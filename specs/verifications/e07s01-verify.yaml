@@ -1,0 +1,96 @@
+---
+story_id: e07s01
+type: verification
+context: adapter
+verified_at: "2026-11-12T18:55:00Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, scan, manual)"
+branch: e07s01-claude-stop-hook
+phases:
+  branch_check:
+    passed: true
+    note: "On e07s01-claude-stop-hook, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open, so gh pr checks does not apply. Local Preflight
+      below: 281 of 281 tests (after review rounds 1 and 2).
+  pre_uat_verify_validation:
+    passed: true
+    note: >-
+      Task 1 and 2 verify commands (node --test on both files, then
+      typecheck) and the task 3 grep were re-run here; all exit 0.
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 281 of 281"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh && bash
+      tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-12T18:50:00Z"
+    note: >-
+      Single run of the full Preflight after review round 2, on the
+      working tree on top of 4c40e3a. Output tail: tests 281, pass 281,
+      fail 0. This replaces the earlier run at bd7e259 (271 tests).
+  security_scan:
+    passed: true
+    note: >-
+      One finding at confidence 9, found by review round 1 and fixed: the
+      command ran in the Stop input's cwd, which follows the agent's cd.
+      It now runs in CLAUDE_PROJECT_DIR (AC-e07s01-11). Two items at
+      confidence 6 remain in specs/security/REVIEW.md and are owned by
+      e07s02 and e07s04. The first scan missed the finding; the revised
+      addendum says so.
+  blind_spots:
+    passed: true
+    note: "0 HIGH, 32 MEDIUM, 7 LOW."
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      First run: one WARNING (the traceability matrix predated the e07s01
+      files). scripts/trace-stories.sh --json regenerated it. The second
+      run is clean.
+  adversarial:
+    passed: true
+    note: "scripts/verify-adversarial.sh: PASS."
+  audit_and_review:
+    passed: true
+    note: >-
+      audit-code: PASS (specs/AUDIT_LATEST.md). request-review round 1 of
+      5: Reviewer A 84.6 percent, Reviewer B 86.4 percent, one must-fix
+      each (the cd bypass), AND-gate FAIL. Fixed with the owner's choice
+      of CLAUDE_PROJECT_DIR. Round 2: Reviewer A 94.1 percent and
+      Reviewer B 96.2 percent, zero must-fix, AND-gate PASS. The round 2
+      should-fix items (security addendum wording, a stale spec risk
+      sentence, a test that passed with missing output) are fixed. Left
+      as consider by decision: a shared Result type, the hookAnswer
+      runtime default, the stall threshold in the stalled-run test, and
+      the e07s02 notes in the review addendum.
+  manual:
+    status: confirmed_by_owner
+    steps:
+      - step: "2 failing command in a scratch repo"
+        observed: >-
+          exit 2, stdout empty, stderr "weftwork: not done (failed,
+          exit-nonzero): false" and a line asking to make it pass.
+        passed: true
+      - step: "3 passing command"
+        observed: "exit 0, stdout and stderr empty."
+        passed: true
+      - step: "extra: repeated failures on the same tree"
+        observed: >-
+          The third failed run answered exit 0 with systemMessage
+          "weftwork: not done (stalled): 3 failed runs in a row on the
+          same tree with the same failure". The stop is allowed.
+        passed: true
+  gaps:
+    closed: true
+    note: "No gap from UAT."
+  validation_gate:
+    tasks_passing: "3 of 3"
+    note: "Tasks are status done in e07s01-tasks.yaml (project value)."

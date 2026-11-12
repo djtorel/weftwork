@@ -40,7 +40,7 @@ Host contract, read on 2026-11-12 from the Claude Code hooks docs
 - Claude Code overrides a Stop block after eight consecutive
   continuations with no tool call (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`).
 
-Owner decisions (2026-11-12, plan-work, three questions; each took the
+Owner decisions (2026-11-12; 1 to 3 in plan-work, 4 after review round 1; each took the
 recommended option):
 
 1. **The declared command is an argument of the hook entry.** The
@@ -55,6 +55,13 @@ recommended option):
 3. **overridden allows the stop with a warning.** That is what the
    owner's record is for. The warning says "overridden" and "not done",
    never "done".
+4. **The command runs in `CLAUDE_PROJECT_DIR`, not in the Stop input's
+   `cwd`** (owner, 2026-11-12, after review round 1; recommended option).
+   The hooks docs say `cwd` follows the agent's `cd`, and
+   `${CLAUDE_PROJECT_DIR}` "stays put". With `cwd`, an agent could write
+   a passing check in a sub directory, `cd` into it and stop. The
+   variable unset, empty or relative blocks the stop. In a worktree
+   session the gate checks the main checkout (section 6).
 
 ## 2. Zoom-out
 
@@ -81,10 +88,21 @@ existing file this story edits is AGENTS.md (Architecture section).
 
 #### ADDED: the host answer, `src/claude-hook.ts`
 
-- `parseHookInput(text)` returns `{ ok: true, cwd }` for a JSON object
-  whose `cwd` is a non-empty string, and `{ ok: false, error }`
-  otherwise. Other fields are ignored, `stop_hook_active` included: the
-  engine's stop rules and the host's cap end a loop, not this hook.
+- `parseHookInput(text)` returns `{ ok: true }` for a JSON object and
+  `{ ok: false, error }` otherwise. No field is read from it. `cwd`
+  follows the agent's `cd` (see AC-11), `last_assistant_message` is the
+  agent's own text, and `stop_hook_active` is ignored: the engine's stop
+  rules and the host's cap end a loop, not this hook.
+- `projectDir(env)` returns the directory the command runs in:
+  `CLAUDE_PROJECT_DIR`, which the host sets and the agent cannot change.
+  It is `{ ok: false, error }` when the variable is unset, empty or not an
+  absolute path, and the stop is blocked (fail-closed).
+- `hookRequest(args, dir)` returns the engine request for exactly
+  `['--', <command>]`, built by `parseRequest` from gate.ts, so a blank
+  command is refused by the same rule as the engine CLI. Anything else is
+  `{ ok: false, error }` with a usage line.
+- `hostBlockExitCode` is 2, the one code the host reads as a block.
+  `blockStop(message)` builds every blocking answer from it.
 - `hookAnswer(answer)` maps an engine `Answer` to
   `{ exitCode, stdout, stderr }`:
 
@@ -104,8 +122,8 @@ existing file this story edits is AGENTS.md (Architecture section).
 #### ADDED: the thin CLI, `src/claude-hook-cli.ts`
 
 - It reads stdin, takes exactly one argument after `--` as the declared
-  command, calls `runEngine({ command, cwd })` with the hook's `cwd`,
-  writes `stdout` and `stderr` as `hookAnswer` says, and sets the exit
+  command, calls `runEngine` in `CLAUDE_PROJECT_DIR`, not in the Stop
+  input's `cwd`, writes `stdout` and `stderr` as `hookAnswer` says, and sets the exit
   code. It has no logic of its own (CONVENTIONS.md, TypeScript code
   style).
 - A header comment says: the command is shell code from the owner's hook
@@ -162,12 +180,26 @@ Feature: Claude Code Stop hook
     And the systemMessage contains "overridden" and "not done"
 
   # AC-e07s01-05
-  Scenario: Hook input is read for cwd only
+  Scenario: Hook input is checked, not read
     Given the Stop input from the docs, with stop_hook_active true
     When parseHookInput reads it
-    Then it returns ok with that cwd
-    And input that is not JSON, not an object, or has no string cwd
-      returns not ok
+    Then it returns ok
+    And input that is not JSON, or not an object, returns not ok
+
+  # AC-e07s01-11
+  Scenario: The agent's cd does not move the owner's command
+    Given a repository whose root check fails and whose sub directory has
+      a check of the same name that passes
+    And CLAUDE_PROJECT_DIR is the root
+    When the CLI gets a Stop input whose cwd is the sub directory
+    Then the root check runs and the stop is blocked
+    And a missing, empty or relative CLAUDE_PROJECT_DIR blocks the stop
+
+  # AC-e07s01-12
+  Scenario: A blank or malformed command never answers done
+    When the CLI gets "--" and a command of only spaces, or no command, or
+      more than one
+    Then it exits 2 and stdout is empty
 
   # AC-e07s01-06
   Scenario: The real CLI blocks on a failing command
@@ -257,12 +289,28 @@ No new packages. It uses Node built-ins and `typescript` and
   explicit `timeout` on the entry. Both task files carry this note.
 - **Long command output on stderr.** On exit 2, Claude gets all of
   stderr, which includes the declared command's output. A large test log
-  costs context. The reason line comes first, so it is never lost. Cap
-  the output only if a real session shows the cost.
-- **The host contract can change.** The field names and exit codes come
-  from the docs on 2026-11-12. AC-05 uses the docs' example input, so a
-  change in the contract shows up as a failing test when the fixture is
-  refreshed, not as a silent pass.
+  costs context. The command's output and the engine's notes go to
+  stderr while the command runs, so the reason line comes last, after
+  them (AC-08 asserts this order; the review of round 1 found the first
+  draft of this spec had it backwards). If the host ever keeps only the
+  start of stderr, the reason is what gets lost. Revisit with the cap in
+  e07s02, or when a real session shows the cost.
+- **The gate checks the project root, not a worktree.** The command runs
+  in `CLAUDE_PROJECT_DIR`, which stays at the root where the session
+  started (hooks docs, read 2026-11-12). In a Claude Code worktree
+  session the Stop input's `cwd` is the worktree and the gate would still
+  check the main checkout. This project uses plain branches, so it does
+  not hit this. e07s04 must say so in its live check.
+- **Some `failed` reasons cannot be fixed by Claude.** `no-tree`,
+  `no-ledger` and `tree-changed` all answer "Make that command pass".
+  With no git tree there is no ledger, so no stop rule can trip and only
+  the host's cap ends the loop. e07s02 owns the non-git case and these
+  reasons.
+- **The host contract can change.** The exit codes and the stdout JSON
+  shape come from the docs on 2026-11-12. The hook reads no field of the
+  Stop input, so no field rename can break it. The exit-2 rule and the
+  `systemMessage` shape are not tested against the real host here: only
+  the live check in e07s04 can catch a change in them.
 - **The eight-continuation cap.** Claude Code overrides the ninth
   consecutive block with no tool call. The engine's stall rule ends a
   same-tree loop sooner, so the cap is a backstop, not the stop rule.
@@ -271,7 +319,7 @@ No new packages. It uses Node built-ins and `typescript` and
 
 1. `npm test`. All tests pass, including `claude-hook*`.
 2. In a scratch git repository, run
-   `echo "{\"cwd\":\"$PWD\"}" | node <weftwork>/src/claude-hook-cli.ts -- false; echo $?`.
+   `echo "{\"cwd\":\"$PWD\"}" | CLAUDE_PROJECT_DIR="$PWD" node <weftwork>/src/claude-hook-cli.ts -- false; echo $?`.
    Expect `2` and a `weftwork: not done (failed` line.
 3. Run the same with `-- true`. Expect `0` and no stdout.
 4. A real Claude Code session waits for e07s03, which registers the hook.

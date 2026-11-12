@@ -456,3 +456,68 @@ No HIGH or MEDIUM finding at confidence 8 or above. The two items above are
 suppressed at confidence 6 and do not block the gate. The T4 residual
 (authorship of the record is not proof) is unchanged and stays documented in
 the threat model.
+
+## Addendum for e07s01 (2026-11-12, verify-work step 5; revised after review
+round 1)
+
+Scope: `git diff main...HEAD -- src` on e07s01-claude-stop-hook (4 files:
+src/claude-hook.ts, src/claude-hook-cli.ts and their tests). Read against
+threat model T1 (the declared command is the owner's) and the host contract
+for the Stop hook. Every new function was read in full. Probes beyond the
+story's own tests: the UAT steps, and in review rounds 1 and 2 the reviewers
+ran the real CLI against throwaway repositories.
+
+### Findings at or above confidence 8
+
+- **The command ran in the agent's directory (confidence 9). Fixed in round
+  1 of review.** The first version of this addendum called the hook's `cwd`
+  "trusted, confidence 6". That was wrong. The host is trusted, but the value
+  it sends is the agent's working directory: the hooks docs (read 2026-11-12)
+  say the Stop input's `cwd` is "the new directory after Claude runs `cd`".
+  An agent could write a passing `check.sh` in a sub directory, `cd` into it
+  and stop, and the owner's check would run there and answer done. Two
+  reviewers found it independently and one reproduced it. Fix: the command
+  runs in `CLAUDE_PROJECT_DIR`, which "stays put", the Stop input's fields
+  are never read, and an unset, empty or relative variable blocks the stop
+  (AC-e07s01-11). Round 2 tried `..`, a symlink, a file, `/`, a newline and a
+  missing path: each runs in the right repository or ends in a block.
+  Residual: in a worktree session the gate checks the main checkout (spec
+  section 6).
+
+### Below the reporting threshold (confidence 6, recorded)
+
+- **Fail-open on a crash.** The host treats any exit code other than 2 as a
+  non-blocking error. An uncaught throw from `runEngine`, or a stdin read
+  error, ends the CLI with exit 1 and the stop goes ahead. The CLI header
+  states it. e07s02 owns the fault list and e07s04 checks for it.
+- **Stdin has no size cap, and a host that never closes it.** `readStdin`
+  reads to the end of input. The writer is the host, not the agent. e07s02
+  adds the cap and the timeout, as in src/cli.ts. It also covers the CLI
+  exiting 2 on a bad directory or argument before it reads stdin (a host
+  still writing could see EPIPE; exit 2 still blocks).
+- **Host environment reaches the engine's git calls.** `GIT_DIR`,
+  `GIT_WORK_TREE` and `GIT_INDEX_FILE` in the hook's environment would move
+  the fingerprint. Only the host and the owner's settings `env` set them, and
+  the agent cannot reach them except by editing settings.json, which is e10.
+  Note for e10 and e07s04.
+
+### Checked and clean
+
+- **Shell.** The new files have no `exec`, `spawn`, `shell:`, `eval` or file
+  access (grep of both files). The only process that starts is the engine's,
+  through `runEngine`.
+- **Command source.** The command is the one argument after `--` from the
+  owner's hook entry. The agent's text (`last_assistant_message`) is never
+  read. `parseHookInput` reads no field at all (changed in round 1).
+- **Blank command.** Refused by the engine CLI's own rule, through
+  `parseRequest` (changed in round 1; before, `' '` answered done).
+- **Output.** No message of weftwork's says "done" except after "not" (test
+  AC-e07s01-04, which strips the owner's command and detail first). The
+  declared command's output goes to stderr, so stdout holds only the host's
+  JSON or nothing.
+
+### Result for verify-work
+
+One finding at confidence 9, fixed and covered by a test. Two items at
+confidence 6 remain, and they do not block the gate. e07s02 and e07s04 own
+all of the residuals above.
