@@ -4,63 +4,102 @@
 # the engine writes. It holds each verdict and the counters the later
 # stories need (terminal states in e06s04, override counts in e06s05).
 # No database (docs/research/SYNTHESIS.md, shared state).
-# Open for plan-work: where the file lives, whether it is committed or
-# ignored, and its line format.
+# plan-work 2026-11-12: spec written, five owner decisions approved. The
+# ledger is <git dir>/weftwork/ledger.jsonl (git never lists files in the
+# git dir, so a write does not change the tree fingerprint). It is not
+# committed and not tamper proof (threat model T3). One JSON object per
+# line, no version field, unknown keys ignored. Counts are per-command
+# history, with a separate fresh flag. A passed verdict that cannot be
+# logged becomes not done with the new reason no-ledger. Threat model
+# controls C3, C4, C5 and C10 apply; tasks 1 and 2 are security: medium.
 story_id: e06s03
 title: Log every verdict in a plain-file counts ledger
-status: todo
+status: in_progress
 bcps: 3
 type: feat
 context: engine
 risk: P1
 depends_on: [e06s02]
+spec: e06s03-counts-ledger.md
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Write src/ledger.test.ts first. Then write
-      src/ledger.ts: append one entry per line to a plain file and read
-      the entries back. An entry holds a timestamp, the command, the
-      tree fingerprint, the verdict and its reason. A reader skips a
-      torn last line and reports it, and never throws on it
+      RED, then GREEN. Write src/ledger.test.ts first (spec AC-01 to
+      AC-08) and record the failure. Then write src/ledger.ts:
+      ledgerPath finds <git dir>/weftwork/ledger.jsonl with git by
+      argument array; appendEntry makes the directory and appends one
+      write of newline, JSON.stringify of the entry, newline; readLedger
+      returns the entries and a count of skipped lines and never throws;
+      countsFor returns runs, passes, failures, failStreak and fresh for
+      one command. A torn last line is skipped and reported, and does not
+      spoil the next entry
     verify: >-
       node --test src/ledger.test.ts && npm run typecheck
+      && ! grep -nE 'shell:|execSync|[^a-zA-Z]exec\(' src/ledger.ts
+      && grep -q 'JSON.stringify' src/ledger.ts
     risk: P1
-    status: todo
+    security: medium
+    status: done
     allure:
       severity: critical
       categories:
         - "engine"
+        - "Security Review"
         - "e06 B1"
   - id: 2
     description: >-
-      The gate appends one ledger entry for every verdict it gives,
-      including the ones that are not done. A function reads the ledger
-      and returns counts: runs, passes, failures, and the failures in
-      a row since the last pass for one command. A recorded done verdict
-      whose tree fingerprint differs from the current tree is stale and
-      does not count as done
+      RED, then GREEN. Write src/gate.ledger.test.ts (spec AC-09 to
+      AC-13) and record the failures. Then change src/gate.ts: add the
+      reason no-ledger, and append one ledger entry for every verdict
+      runGate gives, after the second fingerprint. A passed verdict that
+      cannot be logged is not done with reason no-ledger. Any other verdict
+      is kept and a line goes to stderr. The gate never reads the ledger.
+      Update the src/cli.ts header comment (the command string is stored)
     verify: >-
-      node --test src/gate.ledger.test.ts && npm run typecheck
+      node --test src/gate.ledger.test.ts src/gate.test.ts
+      && npm run typecheck && grep -q "'no-ledger'" src/gate.ts
+      && ! grep -n 'readLedger' src/gate.ts
     risk: P1
-    status: todo
+    security: medium
+    status: done
     allure:
       severity: critical
       categories:
         - "engine"
+        - "Security Review"
         - "e06 B1"
   - id: 3
     description: >-
-      End to end at the process boundary. In a temporary git
+      End to end at the process boundary (spec AC-14). In a temporary git
       repository, run the real CLI twice (one pass, one fail) and show
-      that the ledger holds two entries and that the counts read back
-      as 1 pass and 1 failure. The test builds its repository in a
-      temporary directory and removes it on exit
+      that stdout of each is one JSON line, that the ledger holds two
+      entries, that the counts read back as 2 runs, 1 pass and 1 failure,
+      and that git status shows no change. The test builds its repository
+      in a temporary directory and removes it on exit
     verify: >-
       node --test src/cli.ledger.test.ts
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
         - "engine"
+        - "e06 B1"
+  - id: 4
+    description: >-
+      Run the Preflight line from AGENTS.md (spec AC-15) and run
+      security-review on the diff. No new security findings in the
+      ledger writer and reader (threat model T3 trigger). Run the
+      mutation check from the Verification Script by hand
+    verify: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    risk: P1
+    security: medium
+    status: in_progress
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "Security Review"
         - "e06 B1"
