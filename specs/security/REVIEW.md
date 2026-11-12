@@ -47,3 +47,78 @@ Below-threshold notes (not reported as findings):
 ## Decision
 
 PASS for this branch. Gate 2a is satisfied. No HIGH findings.
+
+# Security review for branch e06s01-gate-tracer (e06s01, run a declared command)
+
+review_date: 2026-11-12
+branch: e06s01-gate-tracer
+base: main (4975ebb)
+scope: src/gate.ts, src/cli.ts (product code); src/gate.test.ts and
+  src/cli.test.ts (test files, excluded from production risk by rule 12)
+method: security-review 5-phase scan, read-only, confidence cutoff 8
+threat model: specs/security/epics/e06/THREAT_MODEL.md (T1 to T8, C1 to C10)
+
+## Scope resolution and context
+
+- Languages: TypeScript on Node 26. No dependency change. No new package.
+- Inputs: one JSON object on stdin (at most 1 MiB), read by cli.ts and
+  parsed by parseRequest in gate.ts.
+- Sinks: spawn with shell: true in runGate (gate.ts), the command as one
+  shell string, cwd from the request or process.cwd(). Stdout carries
+  the verdict JSON only. The child's stdout and stderr go to the engine's
+  stderr.
+- Existing patterns: the e05 PR review found none of this surface. This
+  is the first product code in the repo.
+
+## Vulnerability assessment (phase 3)
+
+Traced stdin → parseRequest → runGate → spawn. The only attacker-reachable
+value that reaches a sink is `command` (shell code, by design) and `cwd`.
+Both come from the declared request, not from the code path.
+
+| Surface | Result |
+|---------|--------|
+| Command injection via `command` (CWE-78) | Suppressed, see below |
+| Path traversal via `cwd` (CWE-22) | Suppressed, same trust as command |
+| Unbounded stdin (CWE-400) | Capped at 1 MiB; DOS is excluded (rule 1) |
+| Error text reflected to stdout (CWE-209) | Static strings only; no input echoed |
+| Information exposure via inherited env (CWE-200) | Suppressed, precedent 3 |
+| Child output on stderr | Suppressed, log spoofing excluded (rule 13); T8 residual owned by e10 |
+| Shell-string secrets in `command` | Owner's plan responsibility (C1); no secret handled here |
+| NUL-byte crash (fixed in this story) | Not exploitable: spawn throws, caught, returns not done |
+| Fail-open (CWE-754) | Every error path resolves done: false; tested (AC-04, AC-06) |
+| Test files | Excluded, rule 12 |
+
+## False-positive filtering (phase 4)
+
+- **Command injection (CWE-78), confidence 7, suppressed.** The engine
+  runs `command` as shell code by design. An attacker who can set
+  `command` already runs code as this user, so the engine gives no new
+  privilege. The shell-script precedent (11) says report only with a
+  concrete untrusted-input path. None exists in this diff: the owner's
+  plan supplies the command (C1). Not reported as HIGH.
+- **Re-open trigger:** e07, when a host forwards agent-supplied content
+  into the stdin JSON. At that point the command-is-code surface becomes
+  a concrete untrusted path (threat model T1). Re-run this scan then.
+
+## Findings
+
+No findings at confidence 8 or above. No HIGH findings.
+
+## Result for audit-code
+
+"diff scanned — no unaddressed HIGH findings": PASS for e06s01.
+Residual risks recorded in the threat model, not in this report:
+T1 (command choice), T3 and T4 (agent-writable ledger and override,
+e06s03 and e06s05), T8 (output and env pass-through, e10).
+
+## Addendum for e06s01 at b69ecf0 (2026-11-12)
+
+The scan above ran before the `failUnreadable` helper in src/cli.ts
+(part of b69ecf0). The re-check covers that change only. The helper
+prints a static error string, or a message from parseRequest, which
+has four fixed strings. The input-size message interpolates the cap
+constant, not input. No sink changed: spawn, the command, and the cwd
+are as reviewed. No new finding, none at confidence 8 or above.
+Result for the release gate: REVIEW.md matches the branch diff at
+b69ecf0.

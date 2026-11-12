@@ -34,7 +34,7 @@ Stack: TypeScript on Node 26 or later, npm, and the built-in `node:test` runner.
 
 | Action | Command |
 | ------ | ------- |
-| Run | N/A until e06 ships the CLI |
+| Run | `echo '{"command":"npm test"}' \| node src/cli.ts` |
 | Test | `npm test` |
 | Build | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint specs` |
@@ -78,7 +78,7 @@ There is no emitted build. Node runs `.ts` files by type stripping, and `tsc --n
 
 ## Architecture
 
-`src/` holds only the e05s02 smoke files until e06 adds the engine. `docs/SEED-SPEC.md` sketches an engine, thin host adapters, and portable skills. That sketch is provisional.
+`src/` holds the gate library (`gate.ts`) and the thin CLI (`cli.ts`); e06 adds the rest of the engine. `docs/SEED-SPEC.md` sketches an engine, thin host adapters, and portable skills. That sketch is provisional.
 Research briefs go in `docs/research/`. Plans, epics, and state go in `specs/`.
 
 ## Conventions

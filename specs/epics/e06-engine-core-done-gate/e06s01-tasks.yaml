@@ -31,7 +31,7 @@ tasks:
       node --test src/gate.test.ts && npm run typecheck
       && ! test -e src/smoke.ts && ! test -e src/smoke.test.ts
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
@@ -55,7 +55,7 @@ tasks:
       && (echo 'not json' | node src/cli.ts >/dev/null 2>&1;
       test $? -eq 2)
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
@@ -76,7 +76,7 @@ tasks:
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: minor
       categories:

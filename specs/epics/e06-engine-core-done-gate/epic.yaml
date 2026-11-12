@@ -15,7 +15,7 @@ stories:
   - id: e06s01
     title: Run a declared command and answer with its verdict
     bcps: 3
-    status: todo
+    status: done
     tasks: e06s01-tasks.yaml
     delta: MODIFIED
   - id: e06s02
