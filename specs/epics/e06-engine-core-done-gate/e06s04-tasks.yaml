@@ -170,7 +170,7 @@ tasks:
       node --test src/cli.states.test.ts && npm run typecheck && npm test
     risk: P1
     security: medium
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
