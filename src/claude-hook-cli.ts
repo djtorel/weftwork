@@ -12,11 +12,12 @@
 // directory, input that is too large, empty, unreadable or never ends, a
 // throw, and SIGTERM or SIGINT (which kill the command's process group first).
 //
-// Fail-open residual: the host treats any other exit code, a hook that
-// outlives its timeout and a crash before this code runs (a missing file, a
-// Node that is too old) as a non-blocking error, and the stop goes ahead.
-// SIGKILL cannot be caught either. Nothing in this file can close that gap;
-// the live check in e07s04 is the detector.
+// Fail-open residual: the host treats any exit code but 2 (an uncaught error
+// is exit 1) as a non-blocking error, and the stop goes ahead. So does a hook
+// that outlives its timeout, and so does a crash before this code runs (a
+// missing file, a Node that is too old). SIGKILL cannot be caught either.
+// Nothing in this file can close that gap; the live check in e07s04 is the
+// detector.
 import {
   blockStop,
   failClosed,

@@ -17,7 +17,7 @@
 # directories and never this repository's ledger.
 story_id: e07s02
 title: The adapter fails closed on every fault of its own
-status: todo
+status: in_progress
 bcps: 5
 type: feat
 context: adapter
@@ -93,7 +93,7 @@ tasks:
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
