@@ -3,7 +3,7 @@
 // a temporary git repository, never in the real one.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Verdict } from './gate.ts';
 import { appendEntry, countsFor, ledgerPath, readLedger, type LedgerEntry } from './ledger.ts';
@@ -80,6 +80,13 @@ test('AC-e06s03-02 writing an entry does not change the tree fingerprint', async
   const before = await fingerprintTree(repo);
   assertOk(await appendEntry(await pathIn(repo), verdict(), at));
   assert.deepEqual(await fingerprintTree(repo), before);
+});
+
+test('AC-e06s03-02 the ledger file and directory are private to the owner', async () => {
+  const path = await pathIn(makeTestRepo());
+  assertOk(await appendEntry(path, verdict(), at));
+  assert.equal(statSync(path).mode & 0o077, 0);
+  assert.equal(statSync(join(path, '..')).mode & 0o077, 0);
 });
 
 test('AC-e06s03-03 two entries are written and read back in order', async () => {

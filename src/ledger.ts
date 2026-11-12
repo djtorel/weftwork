@@ -63,7 +63,8 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
 /**
  * Append one entry for `verdict` in a single write. The leading newline ends
  * any torn line a crashed writer left, so the entry starts on its own line.
- * Never throws.
+ * The directory is made 0700 and the file 0600, since each entry holds a
+ * command string that may hold a secret (T8). Never throws.
  */
 export async function appendEntry(path: string, verdict: Verdict, at: Date): Promise<AppendResult> {
   const entry: LedgerEntry = {
@@ -75,8 +76,8 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date): Pro
     fingerprint: verdict.fingerprint,
   };
   try {
-    await mkdir(dirname(path), { recursive: true });
-    await appendFile(path, `\n${JSON.stringify(entry)}\n`);
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    await appendFile(path, `\n${JSON.stringify(entry)}\n`, { mode: 0o600 });
     return { ok: true };
   } catch (error) {
     return { ok: false, error: messageOf(error) };
