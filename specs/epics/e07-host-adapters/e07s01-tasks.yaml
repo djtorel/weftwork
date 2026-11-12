@@ -17,7 +17,7 @@
 # temporary repositories instead.
 story_id: e07s01
 title: A Claude Code Stop hook calls the engine and blocks the stop
-status: in_progress
+status: done
 bcps: 5
 type: feat
 context: adapter

@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e07
-active_story: e07s01
+active_story: e07s02
 phase: planning
 test_plan: lite
 vcs:
@@ -406,9 +406,35 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: release-branch
-  next_story: e07s01
-  note: 'e07 (host adapters, B3) is sliced and e07s01 is planned, on branch e07-host-adapters, not yet committed or pushed. Stories: e07s01 Stop hook tracer (5 BCPs), e07s02 fail closed (3), e07s03 install and register (5), e07s04 live check (5). Spec: specs/epics/e07-host-adapters/e07s01-claude-stop-hook.md. Owner decisions 2026-11-12: the declared command is an argument of the hook entry; blocked, stalled, exhausted, killed and overridden allow the stop with a systemMessage that says not done; failed blocks with exit 2. Waivers recorded for e07: missing specs for e07s02 to e07s04, and gate-trace R1. Next: commit the planning on e07-host-adapters and land it by PR (as for e06, PR 39), with the owner''s go-ahead for each push, PR and merge; then kickoff-branch e07s01-claude-stop-hook from main and develop-tdd. Carry to e07s02 and e07s03: a hook the host kills on timeout fails open, so the engine timeout must be under the hook timeout, and the entry sets an explicit timeout. Residuals to carry: F5 (an agent can make the ledger unreadable to switch the stop rules off), owned by e08 or e09; setsid residual (T6); T4 authorship of override.json is not proof; read-then-rename gap recorded in specs/security/REVIEW.md. main is protected. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  next_skill: kickoff-branch
+  next_story: e07s02
+  note: 'e07s01 (Claude Code Stop hook tracer) is released in its own PR; e07s02 is
+    next, from main, in a fresh session. e07 (host adapters, B3) has four stories:
+    e07s02 fails closed on every fault of its own (3 BCPs), e07s03 installs and registers
+    the hook (5), e07s04 checks it is live (5). Only e07s02 has a story spec still
+    to write: its tasks file exists, its .md does not (waiver recorded for e07s02
+    to e07s04). Run plan-work for e07s02 first, then kickoff-branch, develop-tdd.
+    Owner decisions that bind the rest of e07 (2026-11-12): the declared command is
+    an argument of the hook entry; blocked, stalled, exhausted, killed and overridden
+    allow the stop with a systemMessage that says not done; failed blocks with exit
+    2; the command runs in CLAUDE_PROJECT_DIR and the Stop input''s cwd is never read,
+    because it follows the agent''s cd. Carry to e07s02 (from e07s01 review, specs/security/REVIEW.md
+    e07s01 addendum): the fail-open crash residual; the stdin size cap and a host
+    that never closes stdin; the CLI can exit 2 before it reads stdin (EPIPE); the
+    non-git directory, where failed no-tree, no-ledger and tree-changed still say
+    make the command pass and only the host cap of eight ends the loop; and the engine
+    timeout must stay under the hook timeout, because a hook the host kills on timeout
+    fails open. Carry to e07s03: write an explicit timeout on the settings entry.
+    Carry to e07s04: the live check must say that in a worktree session the gate checks
+    the main checkout, and that GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE in the hook
+    environment would move the fingerprint (also a note for e10). Other residuals:
+    F5 (an agent can make the ledger unreadable to switch the stop rules off), owned
+    by e08 or e09; the setsid residual (T6); T4, authorship of override.json is not
+    proof; the read-then-rename gap in specs/security/REVIEW.md. The gate-trace R1
+    waiver covers e07 only; drop it when e07 closes. e06s05 cycle time is not recorded
+    yet. main is protected: land by PR, with the owner''s go-ahead for each push,
+    PR and merge. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
+    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -433,9 +459,9 @@ metrics:
       total_seconds: 1398.0
       avg_seconds: 73.57894736842105
     release-branch:
-      calls: 24
-      total_seconds: 2993.0
-      avg_seconds: 124.70833333333333
+      calls: 25
+      total_seconds: 3027.0
+      avg_seconds: 121.08
     request-review:
       calls: 10
       total_seconds: 12252.0
