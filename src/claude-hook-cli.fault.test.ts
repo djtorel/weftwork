@@ -7,7 +7,7 @@
 // Every case uses a temporary directory, never this repository's ledger.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -171,4 +171,20 @@ test('AC-e07s02-10 a bad argument list blocks without reading stdin', async () =
     assert.match(out.stderr, /usage/);
     assert.ok(Date.now() - started < 5000, 'it did not wait for stdin');
   }
+});
+
+test('AC-e07s02-11 a CLI that cannot start does not exit 2: the residual this story cannot close', () => {
+  const missing = join(makeTempDir(), 'claude-hook-cli.ts');
+  const result = spawnSync(process.execPath, [missing, '--', 'true'], { encoding: 'utf8' });
+  assert.notEqual(result.status, 2, 'the host would not read this as a block');
+});
+
+test('AC-e07s02-11 the CLI header names the residual and points to e07s04', () => {
+  const source = readFileSync(cliPath, 'utf8');
+  const header = source.slice(0, source.indexOf('\nimport '));
+  assert.match(header, /fail-open residual/i);
+  assert.match(header, /exit 1/);
+  assert.match(header, /crash before this code runs/);
+  assert.match(header, /SIGKILL/);
+  assert.match(header, /e07s04/);
 });
