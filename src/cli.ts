@@ -13,9 +13,11 @@
 // "fingerprint" of the tree taken before the run) and, for blocked, stalled
 // and exhausted, a "detail".
 //
-// SIGTERM and SIGINT stop the declared command and its children, log it, and
-// end with exit 6. The command runs in its own process group, so it gets no
-// Ctrl-C of its own. Node no longer exits on those signals once a listener is
+// SIGTERM and SIGINT end the run with exit 6 at any point after the CLI starts.
+// While the CLI reads stdin, it answers killed at once and nothing is logged,
+// since no command is known. While a declared command runs, the command and its
+// children are killed, the run is logged, and the CLI exits 6. The command runs
+// in its own process group, so it gets no Ctrl-C of its own. Node no longer exits on those signals once a listener is
 // installed, so this file ends by its own exit code. Other signals are not
 // handled.
 //
@@ -29,18 +31,48 @@ import { badInputExitCode, exitCodes } from './states.ts';
 
 const maxInputBytes = 1024 * 1024;
 
-/** Read stdin as text, or null when it holds more than the cap. */
-async function readInput(): Promise<string | null> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of process.stdin) {
-    size += chunk.length;
-    if (size > maxInputBytes) {
-      return null;
+type Read =
+  | { ok: true; text: string }
+  | { ok: false; reason: 'too-large' | 'aborted' | 'unreadable' };
+
+/**
+ * Read stdin as text. Resolves at once when `signal` aborts (F4), so a signal
+ * is not held up by a caller that keeps stdin open. Resolves, never rejects.
+ */
+function readInput(signal: AbortSignal): Promise<Read> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const stop = (result: Read) => {
+      process.stdin.off('data', onData);
+      process.stdin.off('end', onEnd);
+      process.stdin.off('error', onError);
+      signal.removeEventListener('abort', onAbort);
+      if (!result.ok) {
+        process.stdin.destroy();
+      }
+      resolve(result);
+    };
+    const onData = (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > maxInputBytes) {
+        stop({ ok: false, reason: 'too-large' });
+      } else {
+        chunks.push(chunk);
+      }
+    };
+    const onEnd = () => stop({ ok: true, text: Buffer.concat(chunks).toString('utf8') });
+    const onError = () => stop({ ok: false, reason: 'unreadable' });
+    const onAbort = () => stop({ ok: false, reason: 'aborted' });
+    if (signal.aborted) {
+      onAbort();
+      return;
     }
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString('utf8');
+    signal.addEventListener('abort', onAbort, { once: true });
+    process.stdin.on('data', onData);
+    process.stdin.on('end', onEnd);
+    process.stdin.on('error', onError);
+  });
 }
 
 function print(line: object): void {
@@ -58,11 +90,19 @@ for (const name of ['SIGTERM', 'SIGINT'] as const) {
   process.on(name, () => controller.abort());
 }
 
-const input = await readInput();
-if (input === null) {
-  failUnreadable(`input is over ${maxInputBytes} bytes`);
+const read = await readInput(controller.signal);
+if (!read.ok && read.reason === 'aborted') {
+  // Nothing ran and no command is known, so nothing is logged.
+  print({ done: false, exitCode: null, reason: 'killed', state: 'killed' });
+  process.exitCode = exitCodes.killed;
+} else if (!read.ok) {
+  failUnreadable(
+    read.reason === 'too-large'
+      ? `input is over ${maxInputBytes} bytes`
+      : 'input could not be read',
+  );
 } else {
-  const parsed = parseRequest(input, process.cwd());
+  const parsed = parseRequest(read.text, process.cwd());
   if (parsed.ok) {
     const answer = await runEngine(parsed.request, controller.signal);
     print(answer);
