@@ -406,40 +406,30 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: kickoff-branch
-  next_story: e07s02
-  note: 'e07s01 (Claude Code Stop hook tracer) is released in its own PR; e07s02 is
-    next, from main, in a fresh session. e07 (host adapters, B3) has four stories:
-    e07s02 fails closed on every fault of its own (5 BCPs, resized from 3 at plan-work), e07s03 installs and registers
-    the hook (5), e07s04 checks it is live (5). e07s02 is planned (spec
-    e07s02-fail-closed-faults.md, four tasks, owner decisions: engine timeout 600 s
-    and hook timeout 660 s as exported constants, faults Claude cannot fix still block
-    with an honest message, one story of 5 BCPs). e07s03 and e07s04 have no spec yet
-    (waiver recorded). Next: kickoff-branch e07s02 (branch e07s02-fail-closed-faults),
-    then develop-tdd.
-    Owner decisions that bind the rest of e07 (2026-11-12): the declared command is
-    an argument of the hook entry; blocked, stalled, exhausted, killed and overridden
-    allow the stop with a systemMessage that says not done; failed blocks with exit
-    2; the command runs in CLAUDE_PROJECT_DIR and the Stop input''s cwd is never read,
-    because it follows the agent''s cd. Carry to e07s02 (from e07s01 review, specs/security/REVIEW.md
-    e07s01 addendum): the fail-open crash residual; the stdin size cap and a host
-    that never closes stdin; the CLI can exit 2 before it reads stdin (EPIPE); the
-    non-git directory, where failed no-tree, no-ledger and tree-changed still say
-    make the command pass and only the host cap of eight ends the loop; and the engine
-    timeout must stay under the hook timeout, because a hook the host kills on timeout
-    fails open. Carry to e07s03: write an explicit timeout on the settings entry.
-    Carry to e07s04: the live check must say that in a worktree session the gate checks
-    the main checkout, and that GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE in the hook
-    environment would move the fingerprint (also a note for e10). Other residuals:
-    F5 (an agent can make the ledger unreadable to switch the stop rules off), owned
-    by e08 or e09; the setsid residual (T6); T4, authorship of override.json is not
-    proof; the read-then-rename gap in specs/security/REVIEW.md. The gate-trace R1
-    waiver covers e07 only; drop it when e07 closes. e06s05 cycle time is not recorded
-    yet. main is protected: land by PR, with the owner''s go-ahead for each push,
-    PR and merge. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
-    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  next_skill: plan-work
+  next_story: e07s03
+  note: 'e07s02 (the adapter fails closed) is done and released by PR once the owner
+    approves; start e07s03 in a fresh session. e07s03 has a tasks file (e07s03-tasks.yaml)
+    but NO story spec yet, so plan-work comes first: it writes the spec beside the
+    tasks file, then kickoff-branch from main. e07s03 installs and registers the Stop
+    hook (5 BCPs). Carry to e07s03 (from the e07s01 and e07s02 reviews): write an
+    explicit timeout on the settings entry, equal to hookTimeoutSeconds (660) from
+    src/claude-hook.ts; the engine''s command timeout is engineTimeoutMs (600000)
+    and the CLI''s own deadline is hookDeadlineMs (645 s). Carry to e07s04: the live
+    check must say that in a worktree session the gate checks the main checkout, and
+    that GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE in the hook environment would move
+    the fingerprint (also a note for e10); a SIGKILL or a crash before the handlers
+    exist is fail-open and only e07s04 can see it. Open residuals, owned elsewhere:
+    a stuck git process outlives the hook (engine git calls take no abort signal;
+    an e06 story); signal-killed runs and the failure ceiling (e06 decision, unverified);
+    F5, an agent can make the ledger unreadable to switch stop rules off (e08 or e09);
+    the setsid residual (T6); T4, authorship of override.json is not proof. The gate-trace
+    R1 waiver covers e07 only; drop it when e07 closes. main is protected: land by
+    PR, with the owner''s explicit go-ahead for each push, PR and merge. Do not run
+    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run tools/restore-yaml-style.py
+    --base HEAD on specs/state.yaml.'
 metrics:
-  story_start: '2026-11-11T14:08:32Z'
+  story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
       calls: 22
@@ -450,21 +440,21 @@ metrics:
       total_seconds: 14511.0
       avg_seconds: 558.1153846153846
     develop-tdd:
-      calls: 25
-      total_seconds: 10477.0
-      avg_seconds: 419.08
+      calls: 26
+      total_seconds: 10963.0
+      avg_seconds: 421.65384615384613
     verify-work:
-      calls: 25
-      total_seconds: 2099.0
-      avg_seconds: 83.96
+      calls: 26
+      total_seconds: 2991.0
+      avg_seconds: 115.03846153846153
     audit-code:
       calls: 19
       total_seconds: 1398.0
       avg_seconds: 73.57894736842105
     release-branch:
-      calls: 25
-      total_seconds: 3027.0
-      avg_seconds: 121.08
+      calls: 26
+      total_seconds: 3104.0
+      avg_seconds: 119.38461538461539
     request-review:
       calls: 10
       total_seconds: 12252.0

@@ -21,7 +21,7 @@ stories:
   - id: e07s02
     title: The adapter fails closed on every fault of its own
     bcps: 5
-    status: todo
+    status: done
     tasks: e07s02-tasks.yaml
     delta: ADDED
   - id: e07s03

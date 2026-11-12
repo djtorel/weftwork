@@ -17,7 +17,7 @@
 # directories and never this repository's ledger.
 story_id: e07s02
 title: The adapter fails closed on every fault of its own
-status: in_progress
+status: done
 bcps: 5
 type: feat
 context: adapter
