@@ -1,10 +1,11 @@
-// story: e06s02
+// story: e06s02, e07s02
 // Shared by the test files: temporary directories and temporary git
 // repositories, so no test runs a command in the real repository.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import {
   ledgerPath,
@@ -114,4 +115,33 @@ export async function readRepoStates(repo: string): Promise<StateEntry[]> {
   const read = await readLedgerTail(path as string, 1024 * 1024);
   assert.ok(read.ok);
   return read.states;
+}
+
+/** A FIFO in a fresh temporary directory (BUG-007). Opening one blocks. */
+export function makeFifo(): string {
+  const path = join(makeTempDir(), 'fifo');
+  execFileSync('mkfifo', [path]);
+  return path;
+}
+
+/**
+ * Run `expression` in a child process with the exports of `module` (a file in
+ * src/) bound to `m`, after `setup`, and return what it printed. For calls that
+ * can hang where nothing in this process could end them: opening a FIFO blocks
+ * in a thread nothing can abort, and a process stuck there cannot leave even
+ * with process.exit. A child that has not finished after 8 s is killed, and
+ * `finished` is false, so a regression fails the test instead of hanging the
+ * runner.
+ */
+export function inChild(module: string, expression: string, setup = '') {
+  const url = pathToFileURL(join(import.meta.dirname, module)).href;
+  const script =
+    `import * as m from ${JSON.stringify(url)};\nimport * as fs from 'node:fs';\n${setup}\n` +
+    `console.log(JSON.stringify(await ${expression}));\n`;
+  const out = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    timeout: 8000,
+    killSignal: 'SIGKILL',
+    encoding: 'utf8',
+  });
+  return { finished: out.status === 0, stdout: out.stdout, stderr: out.stderr };
 }

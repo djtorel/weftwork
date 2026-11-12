@@ -17,7 +17,7 @@
 # directories and never this repository's ledger.
 story_id: e07s02
 title: The adapter fails closed on every fault of its own
-status: todo
+status: done
 bcps: 5
 type: feat
 context: adapter
@@ -35,7 +35,7 @@ tasks:
     verify: >-
       node --test src/claude-hook.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
@@ -53,7 +53,7 @@ tasks:
       node --test src/claude-hook.fault.test.ts src/claude-hook.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
@@ -74,7 +74,7 @@ tasks:
       src/claude-hook-cli.fault.test.ts src/claude-hook-cli.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
@@ -93,7 +93,7 @@ tasks:
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:

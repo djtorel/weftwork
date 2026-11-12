@@ -1,18 +1,26 @@
-// story: e07s01
+// story: e07s01, e07s02
 // The Claude Code Stop hook mapping (e07s01 AC-01 to AC-05, AC-11, AC-12): an
 // engine answer becomes an exit code and the host's output, the Stop input is
 // checked, and the directory and command come from the owner, not the agent.
+// e07s02 AC-01 and AC-02: the timeout pair, and a failed run that says what is
+// wrong for each reason.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Answer } from './engine.ts';
 import {
   blockStop,
+  engineTimeoutMs,
   hookAnswer,
+  hookDeadline,
+  hookDeadlineMs,
   hookRequest,
+  hookTimeoutSeconds,
   hostBlockExitCode,
   parseHookInput,
   projectDir,
+  stdinDeadlineMs,
 } from './claude-hook.ts';
+import type { Reason } from './gate.ts';
 import { isRecord } from './json.ts';
 import type { State } from './states.ts';
 
@@ -131,7 +139,10 @@ test('AC-e07s01-11 a missing, empty or relative project directory is not ok', ()
 
 test('AC-e07s01-12 one command after -- becomes the request', () => {
   const result = hookRequest(['--', 'npm test'], '/work/repo');
-  assert.deepEqual(result, { ok: true, request: { command: 'npm test', cwd: '/work/repo' } });
+  assert.deepEqual(result, {
+    ok: true,
+    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: engineTimeoutMs },
+  });
 });
 
 test('AC-e07s01-12 anything but -- and one command is not ok', () => {
@@ -155,4 +166,84 @@ test('AC-e07s01-12 blockStop blocks with one weftwork line on stderr', () => {
     stderr: 'weftwork: why\n',
   });
   assert.equal(hostBlockExitCode, 2);
+});
+
+test('AC-e07s02-01 the hook timeout exceeds the engine timeout by 60 seconds or more', () => {
+  assert.equal(engineTimeoutMs, 600000);
+  assert.equal(hookTimeoutSeconds, 660);
+  assert.ok(hookTimeoutSeconds * 1000 - engineTimeoutMs >= 60000);
+});
+
+test('AC-e07s02-01 hookRequest gives the engine the engine timeout', () => {
+  const result = hookRequest(['--', 'npm test'], '/work/repo');
+  assert.ok(result.ok);
+  assert.equal(result.request.timeoutMs, engineTimeoutMs);
+});
+
+const failedWords: Array<[Reason, RegExp]> = [
+  ['exit-nonzero', /Make that command pass/],
+  ['signal', /Make that command pass/],
+  ['timeout', /ran past/],
+  ['tree-changed', /changed the working tree/],
+  ['no-tree', /could not check/],
+  ['no-ledger', /could not check/],
+  ['not-started', /could not check/],
+  ['not-run', /could not check/],
+];
+
+for (const [reason, words] of failedWords) {
+  test(`AC-e07s02-02 a failed run with reason ${reason} blocks and says what is wrong`, () => {
+    const out = hookAnswer(answer('failed', { reason }));
+    assert.equal(out.exitCode, hostBlockExitCode);
+    assert.equal(out.stdout, '');
+    assert.match(out.stderr, new RegExp(`not done \\(failed, ${reason}\\): npm test`));
+    assert.match(out.stderr, words);
+  });
+}
+
+test('AC-e07s02-02 a fault Claude cannot fix, or a run too slow, says to tell the owner', () => {
+  for (const reason of ['timeout', 'no-tree', 'no-ledger', 'not-started', 'not-run'] as const) {
+    assert.match(hookAnswer(answer('failed', { reason })).stderr, /tell the owner/, reason);
+  }
+});
+
+test('AC-e07s02-02 a passing run that changed the tree says the result is not trusted', () => {
+  assert.match(hookAnswer(answer('failed', { reason: 'tree-changed' })).stderr, /not trusted/);
+});
+
+test('AC-e07s02-02 no failed reason says the work is done', () => {
+  for (const [reason] of failedWords) {
+    const out = hookAnswer(answer('failed', { reason }));
+    const ours = out.stderr.replaceAll('npm test', '');
+    assert.equal(ours.toLowerCase().replaceAll('not done', '').includes('done'), false, reason);
+  }
+});
+
+test('AC-e07s02-12 the hook deadline sits below the host timeout and above engine plus stdin', () => {
+  assert.equal(hookTimeoutSeconds * 1000 - hookDeadlineMs, 15000);
+  assert.ok(hookDeadlineMs >= engineTimeoutMs + stdinDeadlineMs);
+});
+
+test('AC-e07s02-12 an unset or unusable deadline variable leaves the built-in deadline', () => {
+  const unusable = [undefined, '', '0', '-5', 'abc', '1.5', String(hookDeadlineMs), '9999999'];
+  for (const value of unusable) {
+    assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: value }), hookDeadlineMs, String(value));
+  }
+  assert.equal(hookDeadline({}), hookDeadlineMs);
+});
+
+test('AC-e07s02-12 a shorter deadline from the variable is used, and never a longer one', () => {
+  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: '1500' }), 1500);
+  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: String(hookDeadlineMs - 1) }), hookDeadlineMs - 1);
+});
+
+test('AC-e07s02-15 the timeout line names the limit', () => {
+  const out = hookAnswer(answer('failed', { reason: 'timeout' }));
+  assert.match(out.stderr, new RegExp(`${engineTimeoutMs / 1000} s`));
+});
+
+test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded', () => {
+  const out = hookAnswer(answer('failed', { reason: 'no-ledger' }));
+  assert.match(out.stderr, /could not be recorded/);
+  assert.match(out.stderr, /could not check/);
 });

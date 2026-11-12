@@ -521,3 +521,154 @@ ran the real CLI against throwaway repositories.
 One finding at confidence 9, fixed and covered by a test. Two items at
 confidence 6 remain, and they do not block the gate. e07s02 and e07s04 own
 all of the residuals above.
+
+## Addendum for e07s02 (2026-11-12, verify-work step 5; revised after review
+rounds 1 and 2)
+
+Scope: `git diff main -- src` on e07s02-fail-closed-faults: the adapter
+(src/claude-hook.ts, src/claude-hook-cli.ts), `src/ledger.ts` and `src/tree.ts`
+(BUG-007), and their tests and test helpers. Read against threat model T1, T3,
+T6 and T7 and the e07s01 addendum. Probes: the verify-work manual steps, the
+CLI tests that start the real process, and the probes of four reviewers over
+two rounds, which I repeated where it mattered.
+
+My first scan of this story found nothing at confidence 8 or above. The
+reviews found four things that were real. The first scan read the adapter and
+`src/process.ts` but not how the engine opens files, so it missed F1; it also
+rated F2 at confidence 6 on the guess that nothing would send two signals.
+
+### Findings at or above confidence 8
+
+- **F1. A FIFO where the engine opens a file hangs the hook, so the stop goes
+  ahead — HIGH — CWE-400, T3 and T7 — confidence 9 — FIXED (BUG-007).** Round
+  1, reviewer B, reproduced by me: `src/ledger.ts` opened the ledger with flags
+  that block on a FIFO, at three sites (`readLedgerTail`, `readLedger`, and the
+  append in `writeLine`, which nobody had probed). An agent that can write under
+  `.git/` runs `mkfifo .git/weftwork/ledger.jsonl`; the engine then waits for
+  ever in a thread-pool call nothing can abort. The hook cannot answer, and the
+  host's timeout drops its output and lets the stop go ahead. A timer that
+  calls `process.exit(2)` does not help: I measured `process.exit` and
+  `process.reallyExit` in a process stuck opening a FIFO, and both ran until
+  killed. Fix: `openRegular` opens with `O_NONBLOCK` and refuses anything but a
+  regular file, the pattern `override.ts` already uses. A FIFO, a device or a
+  directory is now a `no-ledger` answer, which the hook maps to exit 2.
+  Round 2 found the same class at a second site (F4 below).
+- **F2. A second SIGTERM or SIGINT ended the hook with exit 143 (fail-open) —
+  MEDIUM — CWE-754 — confidence 9 — FIXED.** Both round 1 reviewers reproduced
+  it (exit 143 at a 4 ms and a 10 ms gap); I had rated it 6. `process.once`
+  left the second signal to Node's default action. The handlers use
+  `process.on`; a test sends two signals 5 ms apart and fails with `once`.
+- **F3. The hook had no deadline of its own — MEDIUM — T6 and T7 — confidence
+  8 — FIXED for work that can be interrupted.** The engine's 600 s clock starts
+  at spawn, the host's 660 s clock at the hook's start, so the "60 s margin" was
+  about 50 s and nothing enforced it; and a SIGTERM did nothing while work that
+  ignores the abort signal was pending, because the handler had replaced Node's
+  default exit. Now the CLI arms `hookDeadlineMs` (645 s from start) and a 2 s
+  grace timer after a signal; both write the block with `writeSync` and leave
+  with exit 2. `WEFTWORK_HOOK_DEADLINE_MS` can only shorten the deadline: a
+  longer, zero, negative, non-integer or non-numeric value is ignored (tested,
+  and two reviewers tried hex, whitespace, `Infinity`, `-0`, `1e3`, `1e400`
+  and 2^53 more). An agent cannot set the hook's environment except through
+  settings.json (e10). Tests use a stub `git` that hangs as the work that
+  cannot be aborted.
+- **F4. `tree.ts` `hashFile` could hang the same way after a swap — MEDIUM —
+  CWE-367 and CWE-400 — confidence 8 — FIXED (BUG-007).** Round 2, reviewer B,
+  by reading; I confirmed the code path. The fingerprint called `lstat`, saw a
+  regular file, then opened it with `createReadStream`, which blocks on a FIFO.
+  A process the agent left running could swap the file in between. The
+  reviewer's race of 3000 swaps against 300 fingerprints did not hit, so the
+  window is narrow, but the hang is certain once a FIFO is reached: the test
+  hangs on the old code. Fix: `hashFile` opens with
+  `O_RDONLY | O_NONBLOCK | O_NOFOLLOW`, checks `fstat` on the open file, and a
+  file that is no longer regular makes the fingerprint not ok (`no-tree`, exit
+  2). Fingerprints of regular files are unchanged (the tree tests pass).
+
+### Residuals from the e07s01 addendum, now closed
+
+- **Fail-open on a crash.** An uncaught error or a stdin read error in `run`
+  goes through `failClosed`. An error outside the awaited chain goes through the
+  `uncaughtException` and `unhandledRejection` handlers, which abort the engine
+  (so the command's process group is killed) and exit 2. Both are tested in the
+  real process (AC-e07s02-14) by preloading a module that raises the error
+  while a command runs. The rejection test runs with
+  `--unhandled-rejections=warn`, because in Node's default mode a rejection
+  becomes an uncaught exception and the first handler would catch it: without
+  the flag the second handler's test passes when the handler is deleted.
+- **No stdin cap, and a host that never closes stdin.** `readHookInput`
+  enforces 1 MiB across chunks and a 10 s total deadline, and destroys the
+  stream on every path (AC-e07s02-03 to -05). Memory stays bounded because the
+  size check runs before each chunk is kept.
+
+### Residuals that stay
+
+- **A stuck `git` makes each Stop attempt cost the full deadline, and the
+  process outlives the hook (T6, not fail-open).** Git blocks on a FIFO in
+  several places. Reviewer A reproduced `.git/index` and `.git/HEAD` as FIFOs;
+  reviewer B found, and I checked (git 2.56.1), that a FIFO named `.gitignore`
+  in the working tree hangs `git ls-files --exclude-standard`, which needs no
+  write under `.git/` (a FIFO named `.gitattributes` did not hang it). The hook
+  leaves with exit 2 at its 645 s deadline, so the stop is blocked, not
+  allowed; but every Stop attempt takes that long, and the engine's `execFile`
+  calls for git in `tree.ts` and `ledger.ts` take no abort signal or timeout, so
+  one stuck `git` stays per attempt. An agent that can create files can already
+  start background processes (the setsid residual, T6), so the orphan is not a
+  new capability; the delay is a cost to the owner. Passing the abort signal and
+  a timeout to the git calls is an e06 change for its own story.
+- **Other thread-pool calls blocked in a syscall.** F1 and F4 close the ones an
+  agent can reach through the ledger and the fingerprint. A stalled network file
+  system, for example, would still hold a call that no timer can end.
+- **A signal in the first ~100 ms of start-up exits 143, and a crash before the
+  handlers are installed exits 1.** Both reviewers reproduced the first. The
+  impact is low, because the host's own timeout kill comes about 660 s after the
+  start. The header lists these with SIGKILL as the fail-open residual, and e07s04
+  is the detector.
+- **`leave` can lose the reason line.** It swallows a `writeSync` error (such
+  as EAGAIN on a full non-blocking pipe), so the exit code stays 2 but the text
+  can be lost. The messages are under 1 KB against a 64 KB pipe buffer.
+  (A thrown value that cannot be printed, such as an object with no prototype,
+  used to throw out of `messageOf` and end in exit 1 or Node's exit 7; found by
+  reviewer A in round 3 and fixed, with a test.)
+- **SIGHUP and SIGQUIT are not handled** and take Node's default action. The
+  host's timeout kill is not one of them. Named in the CLI header.
+- **Signal-killed runs and the failure ceiling.** Reviewer B says repeated
+  signal kills count toward the ceiling. Not verified; it changes engine
+  semantics, so it is an e06 decision (recorded in BUG-007).
+
+### Checked and clean
+
+- **Signal ordering.** After `runEngine`, the CLI checks the controller before
+  it trusts the answer, so an aborted run, including one that returns
+  `overridden`, becomes exit 2. A signal during the stdin wait ends the wait at
+  once (a mutant without `stdin.destroy()` fails its test).
+- **Process kill.** The abort path reaches `killGroup`, the SIGKILL-to-group
+  used on timeout (`src/process.ts`). Tests check that a running command is gone
+  after the deadline, after a signal, and after an uncaught error (a mutant that
+  drops `abort()` from the fault handler fails).
+- **BUG-007 holes tried by reviewers.** A symlink from the ledger to a FIFO or
+  to `/dev/zero` or `/dev/null`, a FIFO as the ledger's directory, a directory
+  or a missing path, a FIFO as `override.json` (already guarded), a FIFO in the
+  working tree (`tree.ts` never opens it) and a hostile `core.fsmonitor` (the
+  engine passes `-c core.fsmonitor=false`) all give exit 2 or no hang. `fstat` is
+  on the open handle, so there is no open-then-stat race. The ledger change
+  keeps mode 0600 on create, append semantics and the empty-ledger read of a
+  missing file, and does not add `O_NOFOLLOW` there.
+- **Late stream errors.** My first version added a no-op `error` listener on
+  the stream. It was dead code: Node's async iterator already leaves a
+  listener, so a late `error` does not throw. Checked on a `PassThrough` in three
+  paths and by a reviewer on the real stdin, with data and with a hung stdin.
+  The line is removed and a test pins the behaviour.
+- **Output.** Stdout holds nothing on a block, and no weftwork line says "done"
+  without "not" (a test covers every failed reason).
+- **T1.** The command comes only from the owner's hook entry; no Stop input
+  field is read; the stdin reader never feeds the command. No new `exec`,
+  `spawn`, `shell:` or `eval` in the source files.
+
+### Result for verify-work
+
+Four findings at confidence 8 or above (F1 high; F2, F3 and F4 medium), all
+fixed and covered by tests that I broke on purpose to check they fail (the
+mutation checks also found two weak tests and one dead line, which were fixed).
+No finding is open at that level, so the security gate does not block. The
+residuals above stay, with the stuck-git orphan the one worth an e06 story. The
+fail-open residual that remains is a crash or a signal before the handlers are
+installed and SIGKILL, and e07s04 owns the check for those.

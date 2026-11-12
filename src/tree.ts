@@ -1,16 +1,18 @@
-// story: e06s02
+// story: e06s02, e07s02
 // A fingerprint of a git working tree: the files that git lists as tracked
 // or as untracked and not ignored, with their contents. The gate takes it
 // before and after a command, so a command that edits the tree is not done.
 //
 // Git is run with an argument array and never through a shell (threat
 // model C5). A symbolic link is hashed as its target string and never
-// followed (C6). A FIFO, a socket or a directory is never opened.
+// followed (C6). A FIFO, a socket or a directory is not opened by the listing.
+// A file swapped for one after the listing is opened without blocking and
+// refused (hashFile, BUG-007).
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { constants } from 'node:fs';
 import type { Stats } from 'node:fs';
-import { lstat, readlink } from 'node:fs/promises';
+import { lstat, open, readlink } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -58,12 +60,29 @@ async function listFiles(root: Buffer): Promise<Buffer[]> {
   return [...paths.values()];
 }
 
-async function hashFile(path: Buffer): Promise<string> {
-  const hash = createHash('sha256');
-  for await (const chunk of createReadStream(path)) {
-    hash.update(chunk);
+/**
+ * The SHA-256 of a file's bytes. lstat saw a regular file, but a process the
+ * agent left running can swap it for a FIFO before this opens it, and opening a
+ * FIFO blocks in a thread nothing can abort (BUG-007). So open without
+ * blocking and without following a link, then look again at the open file: a
+ * file that is no longer a regular file is an error, and the fingerprint is not
+ * ok. Exported for its test.
+ */
+export async function hashFile(path: Buffer): Promise<string> {
+  const flags = constants.O_RDONLY | constants.O_NONBLOCK | constants.O_NOFOLLOW;
+  const handle = await open(path, flags);
+  try {
+    if (!(await handle.stat()).isFile()) {
+      throw new Error('a listed file changed while it was read');
+    }
+    const hash = createHash('sha256');
+    for await (const chunk of handle.createReadStream({ autoClose: false })) {
+      hash.update(chunk);
+    }
+    return hash.digest('hex');
+  } finally {
+    await handle.close();
   }
-  return hash.digest('hex');
 }
 
 async function describeStats(stats: Stats, path: Buffer): Promise<Described> {

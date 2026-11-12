@@ -3,9 +3,18 @@
 // "no such file". Shared by ledger.ts and override.ts, so each reads a missing
 // file the same way and neither copies the other.
 
-/** The message of an error, or the text of anything else that was thrown. */
+/** The message of an error, or the text of anything else that was thrown. A value
+ * that cannot be turned into text (an object with no prototype, or a throwing
+ * `toString`) must not throw out of a function that promises not to throw. */
 export function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) {
+    return error.message;
+  }
+  try {
+    return String(error);
+  } catch {
+    return 'an error that cannot be printed';
+  }
 }
 
 /** True when the error is "no such file" (ENOENT). */
