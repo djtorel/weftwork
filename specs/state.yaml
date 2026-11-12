@@ -391,69 +391,50 @@ waivers:
   scope: e06s01 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e06s04
-  note: 'e06s03 is released: the counts ledger is on main after the squash merge.
-    src/ledger.ts holds ledgerPath (the file is <git dir>/weftwork/ledger.jsonl, mode
-    0600 in a 0700 directory, never in the tree), appendEntry, readLedger (entries
-    plus a skipped count, never throws) and countsFor (runs, passes, failures, failStreak,
-    fresh for one command). runGate logs every verdict and a passed verdict that cannot
-    be logged is not done with the reason no-ledger. Next story is e06s04 (name the
-    five terminal states and trip a no- progress breaker). In a fresh session, sync
-    main, then run kickoff-branch with git checkout -b (no worktree). Do not repeat
-    build-epic step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md.
-    e06s04 has a tasks file only, so plan-work writes its spec first (waived for e06).
-    Carry into e06s04: the breaker reads failStreak from countsFor; a nonzero skipped
-    count means lines were lost, so treat it as a reason to look and not as a count
-    of failures. Cap what the breaker reads from the ledger (for example the last
-    1 MiB), since readLedger holds the whole file (security review F3, CWE-400). The
-    ledger is writable by the agent, so erasing failures to defeat the breaker is
-    a residual risk (threat model T3); say so in the spec. Known residuals recorded
-    in the threat model and specs/security/REVIEW.md: the writer follows symlinks
-    in .git (F1, LOW) and a command that starts its own session (setsid) leaves the
-    process group. e06s04 also owns signal forwarding: a detached child no longer
-    gets Ctrl-C, and it replaces the exit codes 0, 1 and 2 with one code per terminal
-    state. Tests build temporary git repositories with src/test-helpers.ts (makeTestRepo,
-    readRepoLedger) and never run a command in the real repository. Tag new src files
-    with // story: e06s04. Coverage is measurable with node --test --experimental-test-coverage
-    (99.1 percent lines at e06s03, 111 tests); no coverage waiver is needed while
-    it stays above 80 percent overall and 95 percent for the engine code. Waivers
-    for e06 are in waivers: gate-trace R1 (until e06 closes). e06s05 has a tasks file
-    only. Owner decisions still open: a CI step that reports coverage, the e06s05
-    questions (what an override answers, and how the engine tells an owner-authored
-    hatch from one the agent wrote), the e05 checkpoint item (engines.node >=26 lets
-    setup-node pick a newer major), and the deferred experiment task source and spend
-    cap. main is protected: land every branch through a PR (gh pr create, then gh
-    pr merge --squash), and ask the owner before each push, PR and merge. Use tools/assert-audit-story.sh
-    for the audit gate, which needs active_story set until the merge. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD
-    on specs/state.yaml.'
+  next_story: e06s05
+  note: 'e06s04 is released (its PR is the squash onto main, once the owner has approved
+    the push, PR and merge). Five terminal states, the stall rule, the ceiling, blocked
+    and killed are in src/states.ts, src/breaker.ts, src/engine.ts and src/process.ts.
+    Exit codes are 0 done, 1 failed, 2 bad input, 3 blocked, 4 stalled, 5 exhausted,
+    6 killed. Preflight 196 of 196; coverage 98.7 percent lines. Open for e06s05:
+    the one-shot owner-authored escape hatch. Its open questions are in specs/epics/e06-engine-core-done-gate/epic.yaml
+    and the threat model T4: what an override answers, how the engine tells an owner-authored
+    hatch from one the agent wrote, and how it meets exhausted (a ceiling must not
+    be overridden by the hatch unless the owner says so). e06s05 has a tasks file
+    only, so plan-work writes its spec first (waived for e06). Residual to carry:
+    F5 (an agent can make the ledger unreadable to switch the stop rules off), owned
+    by e08 or e09; setsid residual (T6). Start the next story in a fresh session:
+    sync main, then kickoff-branch with git checkout -b (no worktree). Do not run
+    scripts/sync-status-from-epics.sh. main is protected: land every branch through
+    a PR, and ask the owner before each push, PR and merge. After the last bp-timing.sh
+    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 18
-      total_seconds: 256.0
-      avg_seconds: 14.222222222222221
+      calls: 19
+      total_seconds: 268.0
+      avg_seconds: 14.105263157894736
     plan-work:
-      calls: 22
-      total_seconds: 8698.0
-      avg_seconds: 395.3636363636364
+      calls: 23
+      total_seconds: 9546.0
+      avg_seconds: 415.04347826086956
     develop-tdd:
-      calls: 22
-      total_seconds: 9636.0
-      avg_seconds: 438.0
+      calls: 23
+      total_seconds: 10050.0
+      avg_seconds: 436.95652173913044
     verify-work:
-      calls: 22
-      total_seconds: 1160.0
-      avg_seconds: 52.72727272727273
+      calls: 23
+      total_seconds: 1624.0
+      avg_seconds: 70.6086956521739
     audit-code:
-      calls: 17
-      total_seconds: 836.0
-      avg_seconds: 49.1764705882353
+      calls: 18
+      total_seconds: 945.0
+      avg_seconds: 52.5
     release-branch:
-      calls: 22
-      total_seconds: 2910.0
-      avg_seconds: 132.27272727272728
+      calls: 23
+      total_seconds: 2944.0
+      avg_seconds: 128.0
     request-review:
       calls: 9
       total_seconds: 11503.0

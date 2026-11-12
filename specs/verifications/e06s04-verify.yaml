@@ -1,0 +1,102 @@
+---
+story_id: e06s04
+type: verification
+context: engine
+verified_at: "2026-11-12T04:00:00Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, scan, manual)"
+branch: e06s04-terminal-states-breaker
+phases:
+  branch_check:
+    passed: true
+    note: "On e06s04-terminal-states-breaker, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open, so gh pr checks does not apply. Local Preflight
+      below: 196 of 196 tests.
+  pre_uat_verify_validation:
+    passed: true
+    note: >-
+      Tasks 1 to 7 verify commands re-run after the F4 fix; all exit 0.
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 196 of 196 after the F4 fix"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-12T04:00:00Z"
+    note: >-
+      Single run after the last code change (4e03219). Output tail:
+      tests 196, pass 196, fail 0.
+  security_scan:
+    passed: true
+    note: >-
+      Scan of the e06s04 diff against main. No HIGH finding. F4 (MEDIUM,
+      confidence 9) found and fixed in 4e03219, tested in
+      src/cli.signal.test.ts. F5 (LOW, confidence 8) is a residual owned
+      by e08 or e09. Recorded in specs/security/REVIEW.md.
+  blind_spots:
+    passed: true
+    note: "0 HIGH, 21 MEDIUM, 4 LOW."
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      The first run had one BLOCKER: the traceability matrix was stale.
+      trace-stories.sh regenerated it. The second run is clean.
+  adversarial:
+    passed: true
+    note: "scripts/verify-adversarial.sh: PASS."
+  manual:
+    status: confirmed_by_owner
+    steps:
+      - step: "1 stall: three exit 7 runs, the third exits 4"
+        observed: >-
+          exit 1, exit 1, exit 4; state stalled, detail names 3 runs.
+        passed: true
+      - step: "2 tree moved: a fresh ledger, three stalls, then an edit"
+        observed: >-
+          failed, failed, stalled; after the edit, failed at exit 1.
+          The next run is exhausted at 5 (the ceiling counts all
+          failures in a row, across trees).
+        passed: true
+      - step: "3 exhausted: ceiling 2, then not-run; true still done"
+        observed: >-
+          exhausted at run 2 (exit 5); not-run at run 3 without running
+          the command; true is done; after deleting the ledger, exit 7
+          is failed again.
+        passed: true
+      - step: "4 blocked: the command does not run, exit 3, detail set"
+        observed: >-
+          exit 3, state blocked, detail "need the API key"; the marker
+          file is absent.
+        passed: true
+      - step: "5 killed: SIGTERM during a run, exit 6, the child is gone"
+        observed: >-
+          exit 6, state killed; the sleep child is gone (checked by pid,
+          not pgrep).
+        passed: true
+      - step: "5b killed during stdin read (F4): exit 6 at once"
+        observed: >-
+          src/cli.signal.test.ts passes for SIGTERM and SIGINT with
+          stdin held open. Not repeated by hand.
+        passed: true
+      - step: "6 ledger: state lines well formed; mode 0600 in 0700"
+        observed: >-
+          ledger.jsonl is mode 600 and its directory is mode 700; state
+          lines carry runs, failStreak, threshold and detail; the tree
+          is unchanged.
+        passed: true
+  gaps:
+    closed: true
+    note: >-
+      Three defects in the spec's Verification Script (steps 2, 3 and
+      the pgrep check in 5) are fixed in 75fa794 and 41569a9. The
+      security finding F4 is fixed in 4e03219. The gaps count is 0 once
+      the owner confirmed the manual steps on 2026-11-12.

@@ -293,3 +293,90 @@ documented, none blocking. F2 needs an owner decision: apply the two mode
 arguments now, or leave it.
 
 Diff scanned: no unaddressed HIGH findings.
+
+## Addendum for e06s04 (2026-11-12, verify-work step 5)
+
+Scope: `git diff main...HEAD -- src` on e06s04-terminal-states-breaker (17
+files, plus the signal, ledger tail, state-line and gate changes). Read
+against threat model T3, T6, T7, C4, C7 and F3. The stop rules and the kill
+path were read in full. A process test ran the real CLI with a SIGTERM
+sent while stdin was still open.
+
+### F4. SIGTERM and SIGINT do nothing while stdin is open — MEDIUM — CWE-400 — confidence 9 — FIXED
+
+Fixed on e06s04 in `4e03219` (fix(engine)). The stdin read stops on abort and
+answers killed, exit 6. Tests: `src/cli.signal.test.ts` (SIGTERM and SIGINT
+with stdin open). The recommendation below was implemented as written.
+
+src/cli.ts, the signal listeners. `process.on('SIGTERM', abort)` is installed
+before `readInput()`. Once a listener is set, Node no longer exits on SIGTERM
+(Node 26 `process` docs). While the host holds stdin open, `readInput` keeps
+waiting, and the abort only sets a flag that nothing reads yet.
+
+- Probe: `spawn` the CLI, send SIGTERM at 0.5 s, keep stdin open. The process
+  stayed alive for 4 s and exited only when stdin was ended (code 6, command
+  not run). Before e06s04 the same SIGTERM ended Node at once.
+- Exploit scenario: a host or an operator stops the engine with SIGTERM while
+  the host still holds the pipe, as a hung caller does. The engine does not
+  stop until the pipe closes, and a stuck caller keeps it alive. The CLI
+  header says SIGTERM "stop[s] the declared command ... and end[s] with exit 6",
+  which is false in this window.
+- Why MEDIUM: an availability hang, not a verdict change. No `done` is
+  produced, the command does not run, and the input is capped at 1 MiB.
+- Recommendation: make the read cancellable. Reject the stdin read when the
+  signal aborts, then answer `killed` and exit 6 at once. Example:
+  `const input = await readInput(controller.signal)`, with `readInput`
+  resolving null on abort and the caller then calling `failUnreadable` or
+  printing a killed answer. Add a test that sends SIGTERM before stdin is
+  closed and expects exit 6 within 2 s.
+
+### F5. The stop rules switch off when the ledger cannot be read — LOW — CWE-754 — confidence 8
+
+src/engine.ts, `readEntries`. An unreadable ledger returns no entries, so
+`checkCeiling` and `checkStall` never trip, and the run goes on (AC-28
+asserts this). `done` stays fail-closed: a passing run whose write also
+fails becomes `no-ledger`, so no false done. The loss is the loop bound.
+
+- Probe: `mkdir .git/weftwork/ledger.jsonl`. The first `exit 7` answers
+  `failed`, and the second answers not done with the stop rules off.
+- Scenario: an agent in a loop makes the ledger unreadable (a directory, or a
+  symlink, which F1 already allows) to remove the stop rules, the same class
+  as T3 erasure. Its effect is a longer loop, not a false done.
+- Why LOW: the agent already has write access to the file (T3). This is a
+  documented residual, not a new one.
+- Recommendation for e08 or e09, not e06s04: decide whether an unreadable
+  ledger should fail the loop closed (answer exhausted), which needs a
+  deliberate owner decision. Record the choice in the threat model.
+
+### Checked and clean
+
+- No string-built shell in the new code. `runCommand` is the only spawn, with
+  the declared `command` and nothing else (C2). `engine.ts` and `ledger.ts` do
+  not call `exec` or a shell.
+- `done` cannot come from the ledger. `engine.ts` takes `done` only from the
+  `runGate` verdict, and AC-27 asserts this with a forged done run line and a
+  forged done state line.
+- A `killed` abort, a pre-aborted signal and a late abort (after exit) all
+  leave `done` false or unchanged (AC-16, AC-17 and the late-abort case).
+- The tail read is bounded: `readLedgerTail` reads at most 1 MiB by byte
+  offset and drops the cut fragment (F3 is fixed for the stop-rule path).
+- State-line `detail` holds the worker's `blocked` text (1 to 1000 characters,
+  not only spaces) and fixed count text. It is written by `JSON.stringify`, so
+  a newline cannot start a second line (C3).
+- The process-group kill (C7) is unchanged in what it does. The abort path
+  calls the same `killGroup`.
+
+### Result for verify-work
+
+No HIGH finding. F4 (MEDIUM) is fixed and tested. One LOW residual remains
+(F5, confidence 8, owned by e08 or e09). The setsid residual (T6, MEDIUM) is
+unchanged.
+
+### Re-check of the refactor commits (2026-11-12, release-branch)
+
+Commits b561f3e and 058d659 moved the child-process control into
+src/process.ts and split the CLI input reader. Read against the scan above:
+killGroup, the timeout, the abort and the close-time kill are unchanged in
+what they do. The abort path still ends the whole group with SIGKILL, and the
+disarm still clears the timer and the abort listener. The stdin reader still
+stops on abort and on every read error. No new finding.

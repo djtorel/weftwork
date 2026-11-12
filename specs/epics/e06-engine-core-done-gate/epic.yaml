@@ -33,7 +33,7 @@ stories:
   - id: e06s04
     title: Name the five terminal states and trip a no-progress breaker
     bcps: 5
-    status: todo
+    status: done
     tasks: e06s04-tasks.yaml
     delta: ADDED
   - id: e06s05
