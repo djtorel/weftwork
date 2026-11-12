@@ -97,3 +97,14 @@ for (const text of errorCases) {
     }
   });
 }
+
+// A NUL byte makes spawn throw at once. runGate must still resolve.
+test('AC-e06s01-04 a command with a NUL byte is not done, no throw', async () => {
+  const verdict = await runGate({ command: 'true\u0000x', cwd: repoRoot });
+  assert.deepEqual(verdict, { done: false, exitCode: null });
+});
+
+test('AC-e06s01-04 a cwd with a NUL byte is not done, no throw', async () => {
+  const verdict = await runGate({ command: 'true', cwd: '/tmp\u0000x' });
+  assert.deepEqual(verdict, { done: false, exitCode: null });
+});

@@ -74,3 +74,14 @@ test('AC-e06s01-08 the CLI honours cwd', () => {
   assert.equal(result.status, 0);
   assert.equal(oneJsonLine(result.stdout).done, true);
 });
+
+test('AC-e06s01-06 the CLI answers one JSON line for a NUL byte', () => {
+  for (const input of [
+    JSON.stringify({ command: 'true\u0000x' }),
+    JSON.stringify({ command: 'true', cwd: '/tmp\u0000x' }),
+  ]) {
+    const result = runCli(input);
+    assert.equal(result.status, 1);
+    assert.deepEqual(oneJsonLine(result.stdout), { done: false, exitCode: null });
+  }
+});

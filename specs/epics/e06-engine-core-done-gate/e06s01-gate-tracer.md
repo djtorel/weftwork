@@ -152,6 +152,8 @@ Scenario Outline: AC-e06s01-04 an abnormal run is not done, no throw
     | case                                       |
     | "true" with a cwd that does not exist      |
     | "kill -TERM $$" (the shell kills itself)   |
+    | "true" with a NUL byte in the command      |
+    | "true" with a NUL byte in the cwd          |
 
 Scenario Outline: AC-e06s01-05 parseRequest accepts and rejects input
   When parseRequest reads <text> with default cwd "/d"
@@ -182,6 +184,7 @@ Scenario Outline: AC-e06s01-06 the CLI answers at the process boundary
     | {"command":"true"}        | 0    | true  |
     | {"command":"false"}       | 1    | false |
     | {"command":"exit 7"}      | 1    | false |
+    | NUL byte in the command   | 1    | false |
     | not json                  | 2    | false |
     | {}                        | 2    | false |
     | 1 MiB + 1 byte of input   | 2    | false |
