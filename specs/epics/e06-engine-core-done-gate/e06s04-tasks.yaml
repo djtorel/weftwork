@@ -66,7 +66,7 @@ tasks:
       && grep -q 'JSON.stringify' src/ledger.ts
     risk: P1
     security: medium
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
