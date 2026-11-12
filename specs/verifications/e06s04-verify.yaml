@@ -54,49 +54,49 @@ phases:
     passed: true
     note: "scripts/verify-adversarial.sh: PASS."
   manual:
-    status: awaiting_owner_confirmation
+    status: confirmed_by_owner
     steps:
       - step: "1 stall: three exit 7 runs, the third exits 4"
         observed: >-
           exit 1, exit 1, exit 4; state stalled, detail names 3 runs.
-        passed: pending
+        passed: true
       - step: "2 tree moved: a fresh ledger, three stalls, then an edit"
         observed: >-
           failed, failed, stalled; after the edit, failed at exit 1.
           The next run is exhausted at 5 (the ceiling counts all
           failures in a row, across trees).
-        passed: pending
+        passed: true
       - step: "3 exhausted: ceiling 2, then not-run; true still done"
         observed: >-
           exhausted at run 2 (exit 5); not-run at run 3 without running
           the command; true is done; after deleting the ledger, exit 7
           is failed again.
-        passed: pending
+        passed: true
       - step: "4 blocked: the command does not run, exit 3, detail set"
         observed: >-
           exit 3, state blocked, detail "need the API key"; the marker
           file is absent.
-        passed: pending
+        passed: true
       - step: "5 killed: SIGTERM during a run, exit 6, the child is gone"
         observed: >-
           exit 6, state killed; the sleep child is gone (checked by pid,
           not pgrep).
-        passed: pending
+        passed: true
       - step: "5b killed during stdin read (F4): exit 6 at once"
         observed: >-
           src/cli.signal.test.ts passes for SIGTERM and SIGINT with
           stdin held open. Not repeated by hand.
-        passed: pending
+        passed: true
       - step: "6 ledger: state lines well formed; mode 0600 in 0700"
         observed: >-
           ledger.jsonl is mode 600 and its directory is mode 700; state
           lines carry runs, failStreak, threshold and detail; the tree
           is unchanged.
-        passed: pending
+        passed: true
   gaps:
-    closed: false
+    closed: true
     note: >-
       Three defects in the spec's Verification Script (steps 2, 3 and
       the pgrep check in 5) are fixed in 75fa794 and 41569a9. The
       security finding F4 is fixed in 4e03219. The gaps count is 0 once
-      the owner confirms the manual steps.
+      the owner confirmed the manual steps on 2026-11-12.

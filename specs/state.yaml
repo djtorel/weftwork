@@ -390,16 +390,19 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   next_story: e06s04
-  note: 'e06s04 is built, tasks 1 to 7 done, Preflight green (194 tests), on branch
-    e06s04-terminal-states-breaker (made with git checkout -b, no worktree). Task
-    8 is open: it needs the security-review on the diff (signal handling, the capped
-    tail reader, the order of checks that decides done) and its mutation checks passed
-    (stall rule, ceiling and abort listener each made to do nothing failed a test;
-    the abort one shows as cancelled by timeout). Next: verify-work, then security-review,
-    audit-code (write Story: e06s04 in specs/AUDIT_LATEST.md), request-review, release-branch.
-    The spec is specs/epics/e06-engine-core-done-gate/e06s04-terminal-states-breaker.md
+  note: 'verify-work passed for e06s04 (2026-11-12): Preflight 196 of 196, the manual
+    steps confirmed by the owner, evidence in specs/verifications/e06s04-verify.yaml,
+    security scan done (F4 fixed in 4e03219, F5 residual owned by e08 or e09). Next:
+    audit-code, which must write Story: e06s04 in specs/AUDIT_LATEST.md. Earlier:
+    e06s04 is built, tasks 1 to 7 done, Preflight green (194 tests), on branch e06s04-terminal-states-breaker
+    (made with git checkout -b, no worktree). Task 8 is open: it needs the security-review
+    on the diff (signal handling, the capped tail reader, the order of checks that
+    decides done) and its mutation checks passed (stall rule, ceiling and abort listener
+    each made to do nothing failed a test; the abort one shows as cancelled by timeout).
+    Next: verify-work, then security-review, audit-code (write Story: e06s04 in specs/AUDIT_LATEST.md),
+    request-review, release-branch. The spec is specs/epics/e06-engine-core-done-gate/e06s04-terminal-states-breaker.md
     and the eight tasks are in e06s04-tasks.yaml next to it. Run develop-tdd task
     by task, RED first, and record each failure. Tag new src files with // story:
     e06s04 and put a Story: e06s04 trailer on every commit. Owner decisions made at
@@ -447,10 +450,9 @@ metrics:
       total_seconds: 10050.0
       avg_seconds: 436.95652173913044
     verify-work:
-      calls: 22
-      total_seconds: 1160.0
-      avg_seconds: 52.72727272727273
-      _start: '2026-11-12T03:44:39Z'
+      calls: 23
+      total_seconds: 1624.0
+      avg_seconds: 70.6086956521739
     audit-code:
       calls: 17
       total_seconds: 836.0
