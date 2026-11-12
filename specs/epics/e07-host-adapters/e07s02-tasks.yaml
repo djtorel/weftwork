@@ -74,7 +74,7 @@ tasks:
       src/claude-hook-cli.fault.test.ts src/claude-hook-cli.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
