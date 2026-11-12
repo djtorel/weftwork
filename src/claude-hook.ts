@@ -12,6 +12,7 @@ import type { Answer } from './engine.ts';
 import { parseRequest, type GateRequest, type Reason } from './gate.ts';
 import { isRecord } from './json.ts';
 import { isAbsolute } from 'node:path';
+import type { Readable } from 'node:stream';
 
 /** The one exit code the host reads as "block the stop". Any other code is a
  * non-blocking error and the stop goes ahead. */
@@ -30,6 +31,15 @@ export type HookOutput = { exitCode: number; stdout: string; stderr: string };
 
 export type HookInput = { ok: true } | { ok: false; error: string };
 
+export type HookText = { ok: true; text: string } | { ok: false; error: string };
+
+/** The Stop input is a few hundred bytes. Same cap as the engine CLI's stdin. */
+export const maxHookInputBytes = 1024 * 1024;
+
+/** How long the host may take to end its input. The Stop input is written at
+ * once, so a longer wait means a host that never closes stdin. */
+export const stdinDeadlineMs = 10000;
+
 export type ProjectDir = { ok: true; dir: string } | { ok: false; error: string };
 
 export type HookRequest = { ok: true; request: GateRequest } | { ok: false; error: string };
@@ -37,6 +47,70 @@ export type HookRequest = { ok: true; request: GateRequest } | { ok: false; erro
 /** Block the stop. Claude reads stderr as the reason to keep working. */
 export function blockStop(message: string): HookOutput {
   return { exitCode: hostBlockExitCode, stdout: '', stderr: `weftwork: ${message}\n` };
+}
+
+/** Read the host's input: at most `maxBytes`, ended within `deadlineMs`. It
+ * never rejects. A refusal releases the stream, so an open stdin cannot keep
+ * the process alive. Bytes are counted and decoded once, so a character split
+ * across two chunks is read whole. */
+export function readHookInput(
+  stream: Readable,
+  maxBytes: number,
+  deadlineMs: number,
+): Promise<HookText> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let settled = false;
+    const finish = (result: HookText): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      stream.off('data', onData);
+      stream.off('end', onEnd);
+      // `onError` stays: an error after the result must not go uncaught, and
+      // an uncaught error would exit 1, which the host reads as "go ahead".
+      stream.off('close', onClose);
+      if (!result.ok) {
+        stream.destroy();
+      }
+      resolve(result);
+    };
+    const onData = (chunk: Buffer | string): void => {
+      const bytes = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+      size += bytes.length;
+      if (size > maxBytes) {
+        finish({ ok: false, error: `input is too large (over ${maxBytes} bytes)` });
+        return;
+      }
+      chunks.push(bytes);
+    };
+    const onEnd = (): void => finish({ ok: true, text: Buffer.concat(chunks).toString('utf8') });
+    const onError = (error: Error): void =>
+      finish({ ok: false, error: `input could not be read: ${error.message}` });
+    const onClose = (): void => finish({ ok: false, error: 'input was closed before it ended' });
+    const timer = setTimeout(
+      () => finish({ ok: false, error: `input did not end within ${deadlineMs} ms` }),
+      deadlineMs,
+    );
+    stream.on('data', onData);
+    stream.on('end', onEnd);
+    stream.on('error', onError);
+    stream.on('close', onClose);
+  });
+}
+
+/** Run `work`. A throw or a rejection becomes a block, so no path of the
+ * adapter ends in an exit code the host reads as "go ahead": only exit 2
+ * blocks, and an uncaught error exits 1. */
+export async function failClosed(work: () => Promise<HookOutput>): Promise<HookOutput> {
+  try {
+    return await work();
+  } catch (error) {
+    return blockStop(`adapter fault: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 /** Check that the Stop input is a JSON object. No field is read from it:
