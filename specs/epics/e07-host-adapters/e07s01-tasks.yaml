@@ -17,7 +17,7 @@
 # temporary repositories instead.
 story_id: e07s01
 title: A Claude Code Stop hook calls the engine and blocks the stop
-status: todo
+status: in_progress
 bcps: 5
 type: feat
 context: adapter
@@ -37,7 +37,7 @@ tasks:
     verify: >-
       node --test src/claude-hook.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
@@ -56,7 +56,7 @@ tasks:
       node --test src/claude-hook.test.ts src/claude-hook-cli.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
@@ -72,7 +72,7 @@ tasks:
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: minor
       categories:

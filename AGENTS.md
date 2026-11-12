@@ -78,7 +78,7 @@ There is no emitted build. Node runs `.ts` files by type stripping, and `tsc --n
 
 ## Architecture
 
-`src/` holds the gate library (`gate.ts`), the working-tree fingerprint (`tree.ts`) and the thin CLI (`cli.ts`); e06 adds the rest of the engine. `docs/SEED-SPEC.md` sketches an engine, thin host adapters, and portable skills. That sketch is provisional.
+`src/` holds the gate library (`gate.ts`), the working-tree fingerprint (`tree.ts`) and the thin CLI (`cli.ts`); e06 adds the rest of the engine. The Claude Code adapter is `claude-hook.ts` (Stop input and engine answer mapping) and its thin CLI `claude-hook-cli.ts`. `docs/SEED-SPEC.md` sketches an engine, thin host adapters, and portable skills. That sketch is provisional.
 Research briefs go in `docs/research/`. Plans, epics, and state go in `specs/`.
 
 ## Conventions
