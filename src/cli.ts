@@ -114,17 +114,7 @@ for (const name of ['SIGTERM', 'SIGINT'] as const) {
 }
 
 const read = await readInput(controller.signal);
-if (!read.ok && read.reason === 'aborted') {
-  // Nothing ran and no command is known, so nothing is logged.
-  print({ done: false, exitCode: null, reason: 'killed', state: 'killed' });
-  process.exitCode = exitCodes.killed;
-} else if (!read.ok) {
-  failUnreadable(
-    read.reason === 'too-large'
-      ? `input is over ${maxInputBytes} bytes`
-      : 'input could not be read',
-  );
-} else {
+if (read.ok) {
   const parsed = parseRequest(read.text, process.cwd());
   if (parsed.ok) {
     const answer = await runEngine(parsed.request, controller.signal);
@@ -133,4 +123,14 @@ if (!read.ok && read.reason === 'aborted') {
   } else {
     failUnreadable(parsed.error);
   }
+} else if (read.reason === 'aborted') {
+  // Nothing ran and no command is known, so nothing is logged.
+  print({ done: false, exitCode: null, reason: 'killed', state: 'killed' });
+  process.exitCode = exitCodes.killed;
+} else {
+  failUnreadable(
+    read.reason === 'too-large'
+      ? `input is over ${maxInputBytes} bytes`
+      : 'input could not be read',
+  );
 }

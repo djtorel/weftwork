@@ -20,9 +20,11 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
       stdout += String(chunk);
     });
     const closed = new Promise<number | null>((resolve) => child.on('close', resolve));
-    // Stdin stays open: the CLI is still waiting for the request.
-    const timer = setTimeout(() => child.kill('SIGKILL'), 3000);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Stdin stays open: the CLI is still waiting for the request. Startup is
+    // about 200 ms and longer under a parallel suite; a signal sent before the
+    // listeners are installed gets the default action, so wait well past it.
+    const timer = setTimeout(() => child.kill('SIGKILL'), 4000);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     child.kill(signal);
     const code = await closed;
     clearTimeout(timer);

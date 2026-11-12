@@ -5,7 +5,7 @@
 // optional AbortSignal stops the command and its children (e06s04). The
 // process control lives in process.ts.
 import { appendEntry, ledgerPath } from './ledger.ts';
-import { isRecord } from './json.ts';
+import { isInteger, isRecord } from './json.ts';
 import { runCommand, type Outcome } from './process.ts';
 import { fingerprintTree, type FingerprintResult } from './tree.ts';
 
@@ -63,7 +63,7 @@ const maxBlockedLength = 1000;
 const maxThreshold = 1000;
 
 function isCount(value: unknown, min: number): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= maxThreshold;
+  return isInteger(value) && value >= min && value <= maxThreshold;
 }
 
 function isBlocked(value: unknown): value is string {

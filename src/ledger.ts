@@ -16,7 +16,7 @@ import { appendFile, mkdir, open, readFile, type FileHandle } from 'node:fs/prom
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import type { Verdict } from './gate.ts';
-import { isRecord } from './json.ts';
+import { isInteger, isRecord } from './json.ts';
 import { terminalStates, type State } from './states.ts';
 
 const run = promisify(execFile);
@@ -150,9 +150,7 @@ function toEntry(data: unknown): LedgerEntry | null {
   return { at, done, exitCode, reason, command, fingerprint };
 }
 
-function isCount(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value);
-}
+
 
 const knownStates: readonly string[] = [...terminalStates, 'failed'];
 
@@ -162,10 +160,10 @@ function toState(data: Record<string, unknown>): StateEntry | null {
   if (typeof at !== 'string' || typeof state !== 'string' || !knownStates.includes(state)) {
     return null;
   }
-  if (typeof command !== 'string' || !isCount(runs) || !isCount(failStreak)) {
+  if (typeof command !== 'string' || !isInteger(runs) || !isInteger(failStreak)) {
     return null;
   }
-  if (threshold !== null && !isCount(threshold)) {
+  if (threshold !== null && !isInteger(threshold)) {
     return null;
   }
   if (detail !== null && typeof detail !== 'string') {

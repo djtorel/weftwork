@@ -43,15 +43,12 @@ function outcomeOf(code: number | null, timedOut: boolean, aborted: boolean): Ou
  * abort of `signal` ends the group the same way, at once, with SIGKILL.
  */
 /**
- * Kill the group on timeout or on abort. Returns the function that disarms
- * both, so a finished child is never killed by a late timer or signal.
+ * Kill the group on timeout or on abort. Returns the flags that say which
+ * happened, and `disarm`, which cancels both, so a finished child is never
+ * killed by a late timer or signal.
  */
-function armKill(
-  child: ChildProcess,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
-  flags: { timedOut: boolean; aborted: boolean },
-): () => void {
+function armKill(child: ChildProcess, limits: { timeoutMs: number; signal?: AbortSignal }) {
+  const flags = { timedOut: false, aborted: false };
   const kill = () => killGroup(child.pid);
   const onAbort = () => {
     flags.aborted = true;
@@ -60,18 +57,18 @@ function armKill(
   const timer = setTimeout(() => {
     flags.timedOut = true;
     kill();
-  }, timeoutMs);
-  signal?.addEventListener('abort', onAbort, { once: true });
-  return () => {
+  }, limits.timeoutMs);
+  limits.signal?.addEventListener('abort', onAbort, { once: true });
+  const disarm = () => {
     clearTimeout(timer);
-    signal?.removeEventListener('abort', onAbort);
+    limits.signal?.removeEventListener('abort', onAbort);
   };
+  return { flags, disarm };
 }
 
 function watchChild(child: ChildProcess, timeoutMs: number, signal?: AbortSignal): Promise<Outcome> {
   return new Promise((resolve) => {
-    const flags = { timedOut: false, aborted: false };
-    const disarm = armKill(child, timeoutMs, signal, flags);
+    const { flags, disarm } = armKill(child, { timeoutMs, signal });
     child.on('error', () => {
       disarm();
       resolve(notStarted);
