@@ -581,9 +581,11 @@ Scenario: AC-e06s04-32 the old scenarios still hold
 1. In a scratch git repository, a stalled run:
    `R=$(pwd); cd $(mktemp -d) && git init -q && echo a > f && git add f && git -c user.name=t -c user.email=t@e.invalid commit -qm i && for i in 1 2 3; do echo '{"command":"exit 7"}' | node $R/src/cli.ts; echo "exit=$?"; done`
    prints exit 1, 1, 4, and the third line has `"state":"stalled"`.
-2. `echo x >> f; echo '{"command":"exit 7"}' | node $R/src/cli.ts; echo "exit=$?"`
-   prints `"state":"failed"` and `exit=1`: the tree moved, so the count
-   restarts.
+2. Start from an empty ledger (`rm .git/weftwork/ledger.jsonl`), run `exit 7`
+   three times (stalled, exit 4), then `echo x >> f` and run `exit 7` again:
+   it prints `"state":"failed"` and `exit=1`. The stall count restarts with
+   the tree, but the default ceiling of 5 still counts all failures in a row,
+   so the fourth failure is below it.
 3. Exhausted: `rm .git/weftwork/ledger.jsonl; for i in 1 2; do echo '{"command":"exit 7","maxFailures":2}' | node $R/src/cli.ts; echo "exit=$?"; done`
    prints exit 1 then exit 5. Then `echo '{"command":"exit 7","maxFailures":2}' | node $R/src/cli.ts; echo "exit=$?"`
    prints `"reason":"not-run"` and exit 5, and the command did not run. The
@@ -594,9 +596,11 @@ Scenario: AC-e06s04-32 the old scenarios still hold
    prints exit 3, `"detail":"need the API key"`, and `ls` says no such file.
 5. Killed: `node $R/src/cli.ts <<< '{"command":"sleep 60"}' & P=$!; sleep 1; kill -TERM $P; wait $P; echo "exit=$?"; pgrep -f 'sleep 60'`
    prints a `"state":"killed"` line, `exit=6`, and `pgrep` prints nothing.
-   Repeat with `kill -INT $P`. A signal while the CLI still waits for stdin
-   (for example `(sleep 30 | node $R/src/cli.ts & P=$!; ...)` with the pipe
-   held open) must exit 6 at once, with `"state":"killed"` and no ledger line.
+   Repeat with `kill -INT $P`. Check the child by its pid, not with `pgrep -f`,
+   which also matches the shell that runs the check. A signal while the CLI
+   still waits for stdin must exit 6 at once, with `"state":"killed"` and no
+   ledger line. The test `src/cli.signal.test.ts` does this with a real signal
+   and an open pipe.
 6. `cat .git/weftwork/ledger.jsonl` shows run lines and state lines with
    `runs`, `failStreak`, `threshold` and `detail`.
 7. Mutation checks (anti-vacuity): copy `src` to a scratch directory (with
