@@ -144,8 +144,9 @@ for (const { name, cwd } of noTreePlaces) {
 
 test('AC-e06s02-08 a timeout ends the whole process group', { timeout: 10000 }, async () => {
   const pidFile = join(makeTempDir(), 'pid');
+  // 1000 ms leaves the shell time to write the pid file on a slow runner.
   const command = `sleep 30 & echo $! > "${pidFile}"; wait`;
-  const verdict = await runGate({ command, cwd: makeTestRepo(), timeoutMs: 300 });
+  const verdict = await runGate({ command, cwd: makeTestRepo(), timeoutMs: 1000 });
   assert.equal(verdict.reason, 'timeout');
   const pid = Number(readFileSync(pidFile, 'utf8'));
   assert.ok(await waitUntilGone(pid, 2000), 'the background process is gone');

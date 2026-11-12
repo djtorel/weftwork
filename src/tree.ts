@@ -22,7 +22,11 @@ export type FingerprintResult =
   | { ok: true; fingerprint: string }
   | { ok: false; error: string };
 
-type Entry = { path: Buffer; kind: string; digest: string };
+type Kind = 'file' | 'file-x' | 'link' | 'missing' | 'other';
+
+type Described = { kind: Kind; digest: string };
+
+type Entry = Described & { path: Buffer };
 
 /** Run git in `cwd`. core.fsmonitor=false stops a repository's own config
  * from naming a program for git to run. */
@@ -62,18 +66,16 @@ async function hashFile(path: Buffer): Promise<string> {
   return hash.digest('hex');
 }
 
-function describeStats(stats: Stats, path: Buffer): Promise<{ kind: string; digest: string }> {
+async function describeStats(stats: Stats, path: Buffer): Promise<Described> {
   if (stats.isSymbolicLink()) {
-    return readlink(path, 'buffer').then((target) => ({
-      kind: 'link',
-      digest: createHash('sha256').update(target).digest('hex'),
-    }));
+    const target = await readlink(path, 'buffer');
+    return { kind: 'link', digest: createHash('sha256').update(target).digest('hex') };
   }
   if (stats.isFile()) {
     const kind = (stats.mode & 0o111) === 0 ? 'file' : 'file-x';
-    return hashFile(path).then((digest) => ({ kind, digest }));
+    return { kind, digest: await hashFile(path) };
   }
-  return Promise.resolve({ kind: 'other', digest: '-' });
+  return { kind: 'other', digest: '-' };
 }
 
 async function describeEntry(root: Buffer, relative: Buffer): Promise<Entry> {
@@ -81,7 +83,7 @@ async function describeEntry(root: Buffer, relative: Buffer): Promise<Entry> {
   try {
     return { path: relative, ...(await describeStats(await lstat(path), path)) };
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       return { path: relative, kind: 'missing', digest: '-' };
     }
     throw error;

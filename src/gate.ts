@@ -2,8 +2,8 @@
 // The evidence gate: done means a declared command, run by the engine,
 // exited 0 and left the working tree as it found it. The agent's own claim
 // is never evidence (e06s01, e06s02).
-import { spawn } from 'node:child_process';
-import { fingerprintTree } from './tree.ts';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { fingerprintTree, type FingerprintResult } from './tree.ts';
 
 export type GateRequest = { command: string; cwd: string; timeoutMs?: number };
 
@@ -35,8 +35,16 @@ export const defaultTimeoutMs = 600000;
 // Node's timer limit. A larger value would fire at once.
 const maxTimeoutMs = 2147483647;
 
+const bad = (error: string): ParseResult => ({ ok: false, error });
+
 function isTimeout(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= maxTimeoutMs;
+  return (
+    typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= maxTimeoutMs
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** The JSON object in `text`, or the reason it is not one. */
@@ -47,10 +55,7 @@ function readObject(text: string): Record<string, unknown> | string {
   } catch {
     return 'input is not JSON';
   }
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-    return 'input must be one JSON object';
-  }
-  return data as Record<string, unknown>;
+  return isRecord(data) ? data : 'input must be one JSON object';
 }
 
 /**
@@ -62,23 +67,20 @@ function readObject(text: string): Record<string, unknown> | string {
 export function parseRequest(text: string, defaultCwd: string): ParseResult {
   const data = readObject(text);
   if (typeof data === 'string') {
-    return { ok: false, error: data };
+    return bad(data);
   }
   const { command, cwd, timeoutMs } = data;
   if (typeof command !== 'string' || command.trim() === '') {
-    return { ok: false, error: '"command" must be a non-empty string' };
+    return bad('"command" must be a non-empty string');
   }
   if (cwd !== undefined && typeof cwd !== 'string') {
-    return { ok: false, error: '"cwd" must be a string' };
+    return bad('"cwd" must be a string');
   }
   if (timeoutMs !== undefined && !isTimeout(timeoutMs)) {
-    return { ok: false, error: `"timeoutMs" must be an integer from 1 to ${maxTimeoutMs}` };
+    return bad(`"timeoutMs" must be an integer from 1 to ${maxTimeoutMs}`);
   }
-  const request: GateRequest = { command, cwd: cwd ?? defaultCwd };
-  if (timeoutMs !== undefined) {
-    request.timeoutMs = timeoutMs;
-  }
-  return { ok: true, request };
+  const timeout = timeoutMs === undefined ? {} : { timeoutMs };
+  return { ok: true, request: { command, cwd: cwd ?? defaultCwd, ...timeout } };
 }
 
 type Outcome = { reason: Reason; exitCode: number | null };
@@ -108,43 +110,46 @@ function outcomeOf(code: number | null, timedOut: boolean): Outcome {
 }
 
 /**
- * Run `command` as one shell string in `cwd`, in its own process group.
- * Node's own timeout signals only the shell, so the group gets SIGKILL on
- * timeout, and again after the shell exits, so a background process cannot
- * keep writing after the second fingerprint (threat model C7). Resolves,
- * never rejects. Output goes to the engine's stderr, so stdout stays free
- * for the verdict.
+ * Wait for the child to end. On timeout the whole group gets SIGKILL, and it
+ * gets SIGKILL again after the shell exits, so a background process still in
+ * the group cannot keep writing after the second fingerprint (threat model
+ * C7). Node's own timeout signals only the shell, so it is not used.
  */
-function runCommand(command: string, cwd: string, timeoutMs: number): Promise<Outcome> {
+function watchChild(child: ChildProcess, timeoutMs: number): Promise<Outcome> {
   return new Promise((resolve) => {
-    try {
-      const child = spawn(command, { cwd, shell: true, detached: true, stdio: ['ignore', 2, 2] });
-      let timedOut = false;
-      const timer = setTimeout(() => {
-        timedOut = true;
-        killGroup(child.pid);
-      }, timeoutMs);
-      child.on('error', () => {
-        clearTimeout(timer);
-        resolve(notStarted);
-      });
-      child.on('close', (code) => {
-        clearTimeout(timer);
-        killGroup(child.pid);
-        resolve(outcomeOf(code, timedOut));
-      });
-    } catch {
-      // spawn throws at once for a NUL byte in the command or the cwd.
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killGroup(child.pid);
+    }, timeoutMs);
+    child.on('error', () => {
+      clearTimeout(timer);
       resolve(notStarted);
-    }
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      killGroup(child.pid);
+      resolve(outcomeOf(code, timedOut));
+    });
   });
 }
 
-function verdictOf(
-  request: GateRequest,
-  outcome: Outcome,
-  fingerprint: string | null,
-): Verdict {
+/**
+ * Run `command` as one shell string in `cwd`, in its own process group.
+ * Resolves, never rejects. Output goes to the engine's stderr, so stdout
+ * stays free for the verdict.
+ */
+async function runCommand(command: string, cwd: string, timeoutMs: number): Promise<Outcome> {
+  try {
+    const child = spawn(command, { cwd, shell: true, detached: true, stdio: ['ignore', 2, 2] });
+    return await watchChild(child, timeoutMs);
+  } catch {
+    // spawn throws at once for a NUL byte in the command or the cwd.
+    return notStarted;
+  }
+}
+
+function verdictOf(request: GateRequest, outcome: Outcome, fingerprint: string | null): Verdict {
   return {
     done: outcome.reason === 'passed',
     exitCode: outcome.exitCode,
@@ -152,6 +157,24 @@ function verdictOf(
     command: request.command,
     fingerprint,
   };
+}
+
+/** `passed` only when the tree is the same after the run as before it. */
+function settle(before: string, after: FingerprintResult): Reason {
+  if (after.ok) {
+    return after.fingerprint === before ? 'passed' : 'tree-changed';
+  }
+  return 'no-tree';
+}
+
+async function runAndCompare(request: GateRequest, before: string): Promise<Verdict> {
+  const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
+  const outcome = await runCommand(request.command, request.cwd, timeoutMs);
+  if (outcome.reason === 'passed') {
+    const reason = settle(before, await fingerprintTree(request.cwd));
+    return verdictOf(request, { reason, exitCode: outcome.exitCode }, before);
+  }
+  return verdictOf(request, outcome, before);
 }
 
 /**
@@ -162,14 +185,8 @@ function verdictOf(
  */
 export async function runGate(request: GateRequest): Promise<Verdict> {
   const before = await fingerprintTree(request.cwd);
-  if (!before.ok) {
-    return verdictOf(request, { reason: 'no-tree', exitCode: null }, null);
+  if (before.ok) {
+    return runAndCompare(request, before.fingerprint);
   }
-  const outcome = await runCommand(request.command, request.cwd, request.timeoutMs ?? defaultTimeoutMs);
-  if (outcome.reason !== 'passed') {
-    return verdictOf(request, outcome, before.fingerprint);
-  }
-  const after = await fingerprintTree(request.cwd);
-  const reason: Reason = !after.ok ? 'no-tree' : after.fingerprint === before.fingerprint ? 'passed' : 'tree-changed';
-  return verdictOf(request, { reason, exitCode: outcome.exitCode }, before.fingerprint);
+  return verdictOf(request, { reason: 'no-tree', exitCode: null }, null);
 }
