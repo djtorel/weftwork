@@ -64,7 +64,7 @@ tasks:
       node --test src/claude-install.test.ts
       src/claude-install-cli.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: passing
     allure:
       severity: critical
       categories:
