@@ -84,7 +84,7 @@ tasks:
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P2
-    status: todo
+    status: passing
     allure:
       severity: normal
       categories:
