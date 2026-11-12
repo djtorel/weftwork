@@ -150,7 +150,7 @@ tasks:
       && ! grep -nE 'shell:|execSync|[^a-zA-Z]exec\(' src/engine.ts
     risk: P1
     security: medium
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
