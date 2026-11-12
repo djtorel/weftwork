@@ -1,0 +1,147 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-11; plan-work 2026-11-12 (spec:
+# e06s05-one-shot-escape-hatch.md). The escape hatch: owner-authored,
+# one-shot and logged with counts. The agent may not propose allow-rules,
+# so a hatch names one exact command and one exact tree, never a pattern
+# (docs/research/SYNTHESIS.md, escape hatch and ledger; R13, R14). No
+# retirement logic: there are no overrides to count yet, and false
+# alarms are counted as well as overrides.
+# Owner decisions (2026-11-12, "use the recommendations"): (1) an override
+# answers a new state "overridden", exit code 7, and never "done"; (2) the
+# owner writes <git dir>/weftwork/override.json by hand, and authorship
+# is not proof (T4 residual); (3) only failed and stalled can be
+# overridden, never exhausted, blocked, killed or done, and an overridden
+# run still counts as failed; (4) a "kind" of override or false-alarm,
+# counted apart. Wording changed from the slice: "a wildcard or a pattern
+# in the command" became "an unknown key, a bad fingerprint or a command
+# of only glob characters", because the match is exact string equality
+# and a literal "*" in a real command is allowed. Tasks 1 to 5 are the
+# spec's steps 1 to 5; task 6 is its step 6. The slice had three tasks.
+story_id: e06s05
+title: Add a one-shot, owner-authored, logged escape hatch
+status: todo
+bcps: 3
+type: feat
+context: engine
+risk: P1
+depends_on: [e06s04]
+spec: e06s05-one-shot-escape-hatch.md
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Change src/states.test.ts for the new row, write
+      src/ledger.override.test.ts, and record the failures. Then add the
+      state "overridden" and exit code 7 to src/states.ts, and add the
+      optional "kind" and "author" fields, the known state and
+      overrideCounts to src/ledger.ts. terminalStates stays the five
+    verify: >-
+      node --test src/states.test.ts src/ledger.override.test.ts
+      src/ledger.states.test.ts src/ledger.test.ts && npm run typecheck
+    risk: P1
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 2
+    description: >-
+      RED, then GREEN. Write src/override.test.ts first. Then write
+      src/override.ts: parseOverride and readOverride for one record that
+      holds one exact command, one exact tree fingerprint (64 hex), a
+      reason, an author and a kind. The reader rejects a missing or blank
+      field, an unknown key, a bad fingerprint, a command of only glob
+      characters, a file over 64 KiB, a symlink and a FIFO (never opened),
+      and returns the problem as a value, not a throw
+    verify: >-
+      node --test src/override.test.ts && npm run typecheck && ! grep -nE
+      'shell:|execSync|[^a-zA-Z]exec\(' src/override.ts
+    risk: P1
+    security: medium
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "Security Review"
+        - "e06 B1"
+  - id: 3
+    description: >-
+      One shot. Write src/override.once.test.ts first. Then add
+      takeOverride: a matching record is taken by an atomic rename to
+      override.used-<epoch ms>-<random>.json and returned once. A record for
+      another command, another tree or a null fingerprint stays and gives
+      null. Two takers at once get one winner. override.ts never reads the
+      ledger and never writes to stdout or stderr
+    verify: >-
+      node --test src/override.once.test.ts src/override.test.ts && npm run
+      typecheck && ! grep -nE 'readLedger|countsFor|process\.std'
+      src/override.ts
+    risk: P1
+    security: medium
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "Security Review"
+        - "e06 B1"
+  - id: 4
+    description: >-
+      The engine step. Write src/engine.override.test.ts first. Then, after
+      a run that classifies as failed or stalled, call takeOverride and
+      answer "overridden" with the reason, writing one state line with
+      kind and author. exhausted (before or after the run), blocked, killed
+      and done never take the record. An overridden run still counts as a
+      failed run. A state line that cannot be written leaves the answer as
+      it was. Nothing about the record reaches stdout or stderr unless it
+      is taken, and gate.ts is not changed
+    verify: >-
+      node --test src/engine.override.test.ts src/engine.test.ts
+      src/blocked.test.ts && npm run typecheck && ! grep -nE 'override'
+      src/gate.ts
+    risk: P1
+    security: medium
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "Security Review"
+        - "e06 B1"
+  - id: 5
+    description: >-
+      Counts through the real CLI. Write src/cli.override.test.ts first.
+      Run the real CLI through a fail, an override, a second fail and a
+      false-alarm override in a temporary repository, check the exit codes
+      1, 7, 1, 7 and read the counts back with countsFor and
+      overrideCounts. Check that stdout and stderr of a run with no
+      record, a bad record and a record for another tree are the same, and
+      never name the hatch. Update the header of src/cli.ts
+    verify: >-
+      node --test src/cli.override.test.ts && npm run typecheck && npm test
+    risk: P2
+    status: done
+    allure:
+      severity: normal
+      categories:
+        - "engine"
+        - "e06 B1"
+  - id: 6
+    description: >-
+      Run the Preflight line from AGENTS.md, then security-review on the
+      diff (the override reader, the take and the silence rule; threat
+      model T4), then the mutation checks from the Verification Script
+    verify: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh && bash
+      tools/check-gate-ignores.sh && npm run typecheck && npm test
+    risk: P1
+    security: medium
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "Security Review"
+        - "e06 B1"

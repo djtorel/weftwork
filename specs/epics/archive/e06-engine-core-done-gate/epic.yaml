@@ -4,7 +4,7 @@ title: Engine core and done gate (B1)
 wsjf: 3.5
 total_bcps: 17
 risk: P1
-status: todo
+status: done
 depends_on:
   - e05
 done_when: >-
@@ -39,7 +39,7 @@ stories:
   - id: e06s05
     title: Add a one-shot, owner-authored, logged escape hatch
     bcps: 3
-    status: todo
+    status: done
     tasks: e06s05-tasks.yaml
     delta: ADDED
 # Candidate epic B1 in docs/research/SYNTHESIS.md [S5][S13][S14][S15].

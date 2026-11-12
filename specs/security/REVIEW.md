@@ -380,3 +380,79 @@ killGroup, the timeout, the abort and the close-time kill are unchanged in
 what they do. The abort path still ends the whole group with SIGKILL, and the
 disarm still clears the timer and the abort listener. The stdin reader still
 stops on abort and on every read error. No new finding.
+
+## Addendum for e06s05 (2026-11-12, verify-work step 5)
+
+Scope: `git diff main...HEAD -- src` on e06s05-one-shot-escape-hatch (11 files,
+940 lines added; the new code is src/override.ts, plus the overrideAnswer step
+in src/engine.ts, the state-line fields in src/ledger.ts and the states table).
+Read against threat model T4, the silence rule (R13 [S56]), C4 and T3. Every
+new function was read in full. No process probe was run for this addendum.
+
+### Findings at or above confidence 8
+
+None.
+
+### Below the reporting threshold (confidence 6, not reproduced)
+
+These are suppressed by the 8/10 rule. They are recorded so the owner can see
+them. Both need a local writer who can swap `override.json` during a window of
+microseconds, and that writer already has the T4 power to write a record.
+
+- **Race between lstat and open, FIFO (CWE-367).** `readOverride` runs `lstat`,
+  then `open(O_RDONLY|O_NOFOLLOW)` without `O_NONBLOCK`. A FIFO swapped in
+  between the two calls makes the open block until a writer appears. The
+  engine's `overrideAnswer` does not watch the abort signal, so a SIGTERM
+  would not stop the wait. Effect: the engine hangs (an availability problem,
+  as F4 was). Possible fix: open with `O_NONBLOCK`, then `fstat` the handle
+  and require `isFile()`. **Fixed after review round 1 (3b7c164):** the open
+  now uses `O_NOFOLLOW | O_NONBLOCK`, `lstat` is gone, and `fstat` on the
+  handle checks the type. The FIFO test fails if `O_NONBLOCK` is removed.
+- **Read, then rename of a different file (CWE-367).** `takeOverride` validates
+  the record it reads, then renames whatever is at `override.json` at rename
+  time. A swap between the two calls consumes the second file, which was never
+  validated, and logs the author and reason of the first. Effect: an owner
+  record for another run could be used up, and the log would name the wrong
+  author. Possible fix: after the rename, read the moved `override.used-*`
+  file and compare it with the text that was validated, or hold a lock.
+
+### Checked and clean
+
+- **Exact match, no pattern.** `takeOverride` compares the command and the
+  fingerprint with `===`. `parseOverride` rejects a command made only of
+  glob or regex characters. A `*` inside a real command matches only itself.
+- **Size and file type.** `readOverride` checks `lstat` (regular file only,
+  under 64 KiB), opens with `O_NOFOLLOW`, and reads into a buffer of
+  64 KiB + 1 bytes. A symlink is refused. `rename` acts on the directory entry,
+  so it cannot move a symlink's target. A FIFO at rest is never opened.
+- **One use.** The rename is atomic. A second taker finds no file and gets
+  null, and tests cover two takers at once (AC-11).
+- **Silence rule.** `takeOverride` and `readOverride` never write to stdout or
+  stderr. `overrideAnswer` writes a line only after the record is taken. A bad,
+  missing, or non-matching record adds no output (AC-19, byte-identical CLI
+  runs, and no occurrence of "overrid" or "hatch" in either stream).
+- **Only failed and stalled runs.** `overrideAnswer` returns early for every
+  other state. `exhausted` is decided before the run, and it outranks stalled
+  after it. `blocked`, `killed` and `done` never reach the record (AC-14).
+- **done is not reachable from the record.** `gate.ts` does not import or
+  mention `override`. `done` still comes only from `runGate`. A forged done
+  run and a forged overridden state line in the ledger leave `done` false
+  (AC-18).
+- **Ceiling not reset.** The overridden run is logged by `runGate` as a failed
+  run, so `failingRun`, `checkCeiling` and `checkStall` count it (AC-16).
+- **Ledger injection.** Every field of the state line goes through
+  `JSON.stringify`, so a newline in a reason or author cannot start a second
+  line (C3). The reason and author are length-capped (1000 and 200) and
+  rejected when blank.
+- **Shell.** `override.ts` and `engine.ts` have no `exec`, `execSync` or
+  `shell:` (checked by the task 2 and task 4 verify commands).
+- **Path.** The record path is `dirname(ledgerPath)/override.json`. The
+  ledger path comes from `git rev-parse --absolute-git-dir`, not from the
+  request, so the request cannot move the record.
+
+### Result for verify-work
+
+No HIGH or MEDIUM finding at confidence 8 or above. The two items above are
+suppressed at confidence 6 and do not block the gate. The T4 residual
+(authorship of the record is not proof) is unchanged and stays documented in
+the threat model.

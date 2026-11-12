@@ -1,162 +1,171 @@
 # Audit (latest)
 
-Story: e06s04
-Branch: e06s04-terminal-states-breaker
-Diff: git diff main...HEAD -- src (24 files)
+Story: e06s05
+Branch: e06s05-one-shot-escape-hatch
+Diff: git diff main...HEAD -- src specs (working tree was clean, so the
+  branch diff stands in for "uncommitted changes"; the refactor below is
+  uncommitted until this audit's commit)
 Mode: default (full checklist)
-Result: PASS after fixes (see "Fixed during this audit")
+Churn: bp-churn-rank.sh ranked spec and state files first. The code files
+  were read in full, starting with src/override.ts and src/engine.ts.
+Result: PASS with one accepted deviation (G29, below)
 
 VERDICT: PASS
 
-## Look-here-first (churn)
+## What the audit found and fixed
 
-`bp-churn-rank.sh --since 90.days` ranked the spec and state files first. The
-code hotspots were the e06 engine files, all new in this story. They were
-read in full: src/engine.ts, src/cli.ts, src/gate.ts, src/process.ts,
-src/ledger.ts, src/breaker.ts, src/states.ts, src/json.ts.
+The first pass failed these items. Each is fixed and the suite is green
+(248 of 248, `npm run typecheck` clean).
+
+1. **File length.** src/ledger.ts was 332 lines (limit 300; it was 295
+   before this story). The state-line code moved to src/ledger-state.ts,
+   and ledger.ts is now 256 lines. ledger.ts re-exports the moved names, so
+   the callers did not change.
+2. **Function length.** toState (29 lines), logState (26), overrideAnswer
+   (25), parseOverride (24), readOverride (24) and takeOverride (24) were
+   over the 20-line limit. Each is now split, and every changed function is
+   20 lines or fewer.
+3. **Duplication (G5).** messageOf and isMissing were copied into ledger.ts
+   and override.ts. They are now in src/errors.ts. The kind check was
+   written twice; it is now isKind in src/ledger-state.ts.
+4. **Argument count (F1).** stateLine and logState took five arguments, and
+   takeOverride took four. They now take one StateWrite object, and
+   takeOverride takes (path, run, now).
+5. **Names (N4).** `bad` is now `rejected`, and `keys` is now `recordKeys`.
+   The override helper `isFingerprint` clashed with the ledger helper of the
+   same name, with different meaning, so it is now `isTreeFingerprint`.
+6. **Boy Scout.** A double blank line in ledger.ts was removed.
+7. **A bug caught during the refactor.** Passing the whole record as the
+   state-line extra would have written the record's fingerprint and reason
+   into the line. Only kind and author are passed now. The AC-12 test
+   compares the whole state line, so it would fail on that bug.
 
 ## Checklist
 
 ### Supply Chain & Security
-- ✓ slopcheck: no new dependency. package.json and the lock file are unchanged.
-- ✓ No `[SLOP]` package.
-- ✓ No secrets in the diff (grep for sk-, ghp_, AKIA and .env values: none).
-- ✓ OWASP spot-check. Injection: the declared command runs through a shell
-  by design (C1, C2); no other string reaches a shell. Sensitive data: the
-  ledger stores the command string (T8), documented in the CLI header and the
-  spec. Misconfiguration: the ledger is mode 0600 in a 0700 directory (F2).
-- ✓ Security scan (verify-work step 5): no HIGH finding. F4 (MEDIUM) fixed in
-  4e03219 with tests. F5 (LOW residual) is in specs/security/REVIEW.md, owned
-  by e08 or e09.
+- ✓ slopcheck: no new package (package.json unchanged)
+- ✓ No `[SLOP]` package
+- ✓ No secrets in the diff (sk-, ghp_, AKIA, PRIVATE KEY): grep clean
+- ✓ OWASP spot-check: done by security-review (see specs/security/REVIEW.md,
+  e06s05 addendum). No finding at 8 or above.
+- ✓ No unaddressed HIGH finding
 
 ### Provenance & Metadata
-- ✓ The story spec and tasks file carry type, context and risk.
-- ✓ Steps reference the threat model controls (C2, C4, C7, F3). The spec
-  references the owner decisions by date.
+- ✓ The story spec and tasks file carry type and context
+- ✓ Steps cite the threat model (T3, T4) and the owner decisions of
+  2026-11-12
 
 ### Law of Demeter
-- ✓ No method chain through an unrelated object in the new code (grep for
-  `).x().y(`: none). `stdin.on(...).on(...)` is one object's fluent API and is
-  allowed.
+- ✓ No method chains through unrelated objects in the added code (grep)
 
 ### CONVENTIONS.md Compliance
-- ✓ Output files are in specs/ and src/. No file was written to the project root.
-- ✓ No `gh issue create` anywhere in the diff.
-- ✓ No `gh` call in this story.
-- ✓ No call to api.github.com in the diff.
+- ✓ Output is in specs/ and specs/verifications/
+- ✓ No `gh issue create`; no scripts changed in this story
+- ✓ No direct GitHub REST call
 
 ### Scope
-- ✓ The changes are the e06s04 tasks, the F4 fix (a security finding of this
-  story) and the refactor the checklist requires (see below).
-- ✓ No speculative feature. The engine answers five terminal states and the
-  spec's out-of-scope list is respected: no run id, no budget ceiling, no
-  output capture, no escape hatch.
-- ✓ No file outside the stated scope. test-helpers.ts gained isAlive and the
-  readers the spec named.
-- ✓ No open reproducible gate failure. Preflight is green at 196 tests.
-- ✓ Boy Scout: the files touched are cleaner than before (see below).
+- ✓ Changes follow the stated scope. The ledger split was needed for the
+  300-line rule and touches only the state-line code.
+- ✓ No speculative feature
+- ✓ No file outside the stated scope (state.yaml, execution-status,
+  epic.yaml and the security review are the handoff and evidence files)
+- ✓ No reproducible gate failure (Preflight 248 of 248)
+- ✓ Boy Scout applied to ledger.ts
 
 ### Boy Scout Rule
-- ✓ Every touched file is cleaner. Long functions split, duplication removed.
-- ✓ No dead code. Every new function has a caller (grep counts 2 or more).
-- ✓ No commented-out code (the one hit is prose: "An abort stops the command").
+- ✓ Every touched file is cleaner than before (see fixes 1 to 6)
+- ✓ No dead code: `tsc --noUnusedLocals --noUnusedParameters` is clean
+- ✓ No commented-out code
 
 ### Types and Safety
-- ✓ No `any`. No `@ts-ignore` or `eslint-disable`. No `as unknown as`.
-- ✓ Casts in new code: `state as State` in src/ledger.ts follows the check
-  `knownStates.includes(state)`, so the cast is backed by a runtime check. The
-  `as string` and `as Record` casts are in tests, on values the test just made.
-- ✓ tsconfig is unchanged and strict. `npm run typecheck` exit 0.
+- ✓ No `any`
+- ✓ No `@ts-ignore` or `eslint-disable`
+- ✓ No `as unknown as`. The `state as State` cast in ledger-state.ts is
+  older than this story and remains.
 
 ### Test Coverage
-- ✓ Every new function has at least one test: states (table), ledger
-  (appendState, failingRun, readLedgerTail, tailText through the tail tests),
-  breaker (checkStall, checkCeiling), process (runCommand, armKill, watchChild
-  through gate and killed tests), engine (runEngine, refusedBeforeRun,
-  classify, logState, readEntries through engine and blocked tests), cli
-  (readInput, readEvents, listenStdin through cli.signal and cli.states),
-  json (isRecord and isInteger through the parse and ledger tests).
-- ✓ Bug fix F4 has a regression test: src/cli.signal.test.ts (SIGTERM and
-  SIGINT with stdin open).
-- ✓ Tests go through public interfaces (runEngine, runGate, parseRequest,
-  readLedgerTail, the real CLI). They do not reach into private helpers.
-- ✓ F.I.R.S.T: each test runs in a temporary git repository. The F4 test
-  waits 1.5 s before the signal, documented in the file (startup is about
-  200 ms, and a signal that arrives first gets the default action). No test
-  depends on another's state.
+- ✓ Every new function has a test: parseOverride, readOverride, takeOverride
+  (with isForRun), overrideCounts, overrideAnswer and takeRecord (engine
+  tests), stateLine and logState (the AC-12 and AC-02 state-line tests),
+  errors.ts (the ledger error-path and missing-file tests)
+- ✓ Boundaries are tested: 64 KiB cap, 65537 bytes, 1000 and 1001 characters,
+  63 and 64 hex characters, and a 201-character author
+- ✓ Tests call public functions, not internals
+- ✓ F.I.R.S.T: temporary repositories and directories; a FIFO test that
+  cannot hang (2-second race)
+- ✓ Not a bug fix, so no regression test was required
 
 ### SOLID and Heuristics
-- ✓ Single responsibility: src/process.ts holds child-process control, and
-  src/gate.ts keeps the verdict rules. src/engine.ts orders the checks and
-  logs. src/breaker.ts holds the stop rules. src/cli.ts is a thin shell.
-- ✓ Open/closed: the stop rules are pure functions over ledger entries, so a
-  new rule is an added function, not an edit to the engine.
-- ✓ Dependency inversion: the engine takes the gate, the ledger and the
-  request as arguments and uses the module functions directly. Tests use
-  real temporary repositories, not mocks, except stderr.
-- ✓ HEURISTICS.md (C, E, F, G, N, T) checked against the diff. The rules
-  below were fixed. The rest are met:
-  - F1 (arguments, never more than 3): armKill took four. It now takes one
-    limits object. No new function has more than three.
-  - F2 (output arguments): armKill mutated a flags object it was given. It
-    now returns its own flags. Fixed.
-  - G5 (duplication): isRecord was in gate.ts and ledger.ts. isInteger and
-    isCount were duplicated too. They now live in src/json.ts. Fixed.
-  - G30 (one thing): watchChild and readInput each did several things. They
-    now delegate to armKill and listenStdin/readEvents. Fixed.
-  - G29 (negative conditionals): the remaining `if (!x)` are guard clauses on
-    positive predicates (`!isTimeout(x)`, `!read.ok`), which are early returns.
-    G29 targets negatively named predicates, and the diff adds none. The CLI
-    main branch was rewritten positively.
-  - G25 (magic numbers): the caps and thresholds are named (maxInputBytes,
-    maxBlockedLength, maxThreshold, ledgerReadCap, defaultStallAfter,
-    defaultMaxFailures). The file modes 0700 and 0600 are named by their use.
-  - C5 (commented-out code): none.
-  - T9 (fast tests): the suite runs in about 2.5 s. The two slow tests are the
-    real-process timeouts, which are bounded.
+- ✓ SRP: each new module has one reason to change. ledger-state.ts holds
+  the state-line shape, override.ts the record, errors.ts the error reading.
+- ✓ OCP and DIP: the clock is injected (`now`) into takeOverride, so tests
+  control it
+- ✗→accepted **G29 (avoid negative conditionals).** The new guards use early
+  returns such as `if (!isForRun(...)) return null`. The positive form
+  would nest the rename and the state write. Early returns are the style of
+  the existing validators (gate.ts, ledger.ts). The owner accepted this
+  deviation on 2026-11-12.
+- ✓ F1 (arguments): no function takes more than three now. takeOverride has
+  three. classify was already three.
+- ✓ F2 (output arguments) and F3 (flag arguments): none
+- ✓ F4 (dead function): none
+- ✓ G25 (magic numbers): the cap is named (overrideFileCap), and so are the
+  reason and author limits
+- ✓ G30 and G34 (one thing; stepdown): readOverride hands the open file to
+  readRecord, and takeOverride calls readOverride
+- ✓ G31 (temporal coupling): the order of the checks is explicit in the
+  calls to classify and overrideAnswer
+- ✓ C1 to C5: the header comments hold story tags and design rules, not
+  history; no commented-out code
+- ✓ N1, N4 and N7: the names say what they do (see fix 5)
+- ✓ T1 and T5: boundaries as listed above
+- ✓ T9: the suite runs in about 3 seconds
 
 ### Refactoring Smells (Fowler)
-- Checked: Mysterious Name (none; names are the spec's terms), Duplicated
-  Code (fixed, see above), Feature Envy (none), Data Clumps (the timeout and
-  signal pair is passed as one limits object, fixed), Primitive Obsession
-  (the states are a string-literal union, not loose strings), Message Chains
-  (none), Middle Man (none).
+- Duplicated Code: fixed (fix 3)
+- Long Function: fixed (fix 2)
+- Primitive Obsession: none new (the extra object, OverrideFields, is a
+  record of two fields)
+- Data Clumps: `command` and `fingerprint` travel together as RunKey,
+  and the record's own fields are in Override. Both are named types.
+- Mysterious Name: fixed (fix 5)
+- Feature Envy, Message Chains, Middle Man: none found
 
 ### Code Style (CONVENTIONS.md)
-- ✓ Functions: 20 lines or fewer. A scan of every non-test src file found
-  none over 20 lines. This was the largest fix (readInput 35, parseRequest
-  31, watchChild 28, readLedgerTail 23, runEngine 22, readEvents 27).
-- ✓ Files: 300 lines or fewer. The largest is src/ledger.ts at 295, close to
-  the cap. e09 will add rotation there, so split it then.
-- ✓ Names: unique enough, no name with 5 or more hits in new code.
-- ✓ Early returns over nested ifs. Nesting is at most 2 levels in the new code.
-- ✓ Comments explain WHY (the F4 reason, the per-command ceiling, why the
-  kill is a whole group).
+- ✓ Functions: 20 lines or fewer for every changed function
+- ✓ Files: under 300 lines (ledger.ts 256, engine.ts 208, override.ts 173)
+- ✓ Names: specific; no name has five or more definitions in src
+- ✓ No duplication left in the changed code
+- ✓ Early returns over nesting; no function nests more than two levels
+- ✗→accepted Conditionals as positives (G29): see above
+- ✓ Comments explain why (the threat-model references and the reasons for
+  the cap and the silence rule)
 
-## Fixed during this audit
+### Red Flags (rationalizations caught)
+- "The working tree is clean, so there is nothing to audit." That is not
+  true of the story. The branch diff was reviewed against main instead, and
+  this is recorded above.
+- "The 300-line limit was already nearly reached, so the overage is not
+  mine." It is mine: the story pushed the file from 295 to 332, so I fixed
+  it rather than deferring it.
+- "The ledger split is outside the story." The 300-line rule is part of the
+  checklist, so the split is in scope.
+- "G29 is style only." Recorded as a deviation for the owner to decide. It
+  was not silently passed.
 
-1. Long functions split (see Code Style): readInput, parseRequest,
-   watchChild, readLedgerTail, runEngine, readEvents. Child-process control
-   moved to src/process.ts, which keeps gate.ts under 300 lines. Commit b561f3e.
-2. isRecord, isInteger and isCount shared in src/json.ts. Commits b561f3e and 058d659.
-3. armKill: arity reduced to two; the output argument removed. Commit 058d659.
-4. CLI main branch positive. Commit 058d659.
-5. F4 test: startup wait raised to 1.5 s. The first run was racing the CLI's
-   startup. Commit 058d659.
+## Result
 
-## Red flags caught
+VERDICT: PASS. All items pass, except G29, which the owner accepted as a
+documented deviation.
 
-- "The tests pass, so the refactor is safe." It was not enough for the
-  refactor: the F4 SIGINT test failed on the first run. The fix was the wait,
-  not the product, and the cause is recorded in the test.
-- "A cast is fine, the code is correct." The `state as State` cast was
-  checked: it follows a runtime check, so it stays, and the reason is noted.
-- "G29 says no negatives, so every `if (!x)` must go." Rejected: guard
-  clauses on positive predicates are early returns. Only a negatively named
-  predicate would be a G29 breach, and there are none.
+## Notes for the next skills
 
-## Verdict
-
-PASS. The checklist items are met after the five fixes above. Preflight is
-green at 196 tests (exit 0, commit 058d659). Next: request-review for an
-independent second opinion.
+- **Evidence is now stale.** specs/verifications/e06s05-verify.yaml records
+  the terminal verdict at df6c6ea, and the mutation checks used code that
+  this refactor changed. The rename, the no-match path and the record-leak
+  guard are still covered by the suite. The mutation patterns in the verify
+  script no longer match the engine text (the `answer.state !== 'failed'`
+  guard was rewritten), so re-run the mutation checks with new patterns and
+  update the evidence file.
+- request-review should see the 2 files that moved (ledger-state.ts,
+  errors.ts) and the StateWrite change in engine.ts.

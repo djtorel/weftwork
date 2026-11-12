@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e06
-active_story: null
+active_story: e06s05
 phase: planning
 test_plan: lite
 vcs:
@@ -390,55 +390,40 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: kickoff-branch
-  next_story: e06s05
-  note: 'e06s04 is released (its PR is the squash onto main, once the owner has approved
-    the push, PR and merge). Five terminal states, the stall rule, the ceiling, blocked
-    and killed are in src/states.ts, src/breaker.ts, src/engine.ts and src/process.ts.
-    Exit codes are 0 done, 1 failed, 2 bad input, 3 blocked, 4 stalled, 5 exhausted,
-    6 killed. Preflight 196 of 196; coverage 98.7 percent lines. Open for e06s05:
-    the one-shot owner-authored escape hatch. Its open questions are in specs/epics/e06-engine-core-done-gate/epic.yaml
-    and the threat model T4: what an override answers, how the engine tells an owner-authored
-    hatch from one the agent wrote, and how it meets exhausted (a ceiling must not
-    be overridden by the hatch unless the owner says so). e06s05 has a tasks file
-    only, so plan-work writes its spec first (waived for e06). Residual to carry:
-    F5 (an agent can make the ledger unreadable to switch the stop rules off), owned
-    by e08 or e09; setsid residual (T6). Start the next story in a fresh session:
-    sync main, then kickoff-branch with git checkout -b (no worktree). Do not run
-    scripts/sync-status-from-epics.sh. main is protected: land every branch through
-    a PR, and ask the owner before each push, PR and merge. After the last bp-timing.sh
-    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  next_skill: slice-tasks
+  next_story: e07
+  note: 'e06 (engine core and done gate) is released on branch e06s05-one-shot-escape-hatch, not yet landed on main. Stories e06s01 to e06s05 are done. Capsule archived to specs/epics/archive/e06-engine-core-done-gate; epic and execution-status set to done. Gates: Preflight 251 of 251; line coverage 99.14 percent overall, override, engine and ledger 98 percent or more; audit-code PASS (G29 accepted); request-review round 2 at 100 percent for both reviewers; gate-trace verify OK; traceability regenerated; completeness critic clean; 0 HIGH blind spots. Next epic is e07 (host adapters, B3). It has no sliced stories yet (stories: []). Next skill: slice-tasks for e07, in a fresh session. Do not run kickoff-branch until e07 has stories. Residuals to carry: F5 (an agent can make the ledger unreadable to switch the stop rules off), owned by e08 or e09; setsid residual (T6); T4 authorship of override.json is not proof; read-then-rename gap recorded in specs/security/REVIEW.md. Open for the owner before e07: whether to rescore e07 WSJF, and whether the pi wrapper stays in scope. Ask the owner before each push, PR and merge. main is protected. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 19
-      total_seconds: 268.0
-      avg_seconds: 14.105263157894736
+      calls: 20
+      total_seconds: 281.0
+      avg_seconds: 14.05
     plan-work:
-      calls: 23
-      total_seconds: 9546.0
-      avg_seconds: 415.04347826086956
+      calls: 24
+      total_seconds: 9992.0
+      avg_seconds: 416.3333333333333
     develop-tdd:
-      calls: 23
-      total_seconds: 10050.0
-      avg_seconds: 436.95652173913044
+      calls: 24
+      total_seconds: 10400.0
+      avg_seconds: 433.3333333333333
     verify-work:
-      calls: 23
-      total_seconds: 1624.0
-      avg_seconds: 70.6086956521739
+      calls: 24
+      total_seconds: 2050.0
+      avg_seconds: 85.41666666666667
     audit-code:
-      calls: 18
-      total_seconds: 945.0
-      avg_seconds: 52.5
+      calls: 19
+      total_seconds: 1398.0
+      avg_seconds: 73.57894736842105
     release-branch:
-      calls: 23
-      total_seconds: 2944.0
-      avg_seconds: 128.0
+      calls: 24
+      total_seconds: 2993.0
+      avg_seconds: 124.70833333333333
     request-review:
-      calls: 9
-      total_seconds: 11503.0
-      avg_seconds: 1278.111111111111
+      calls: 10
+      total_seconds: 12252.0
+      avg_seconds: 1225.2
     kickoff-branch:
       calls: 1
       total_seconds: 26.0

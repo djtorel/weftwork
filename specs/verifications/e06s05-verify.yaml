@@ -1,0 +1,123 @@
+---
+story_id: e06s05
+type: verification
+context: engine
+verified_at: "2026-11-12T15:25:57Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, scan, manual)"
+branch: e06s05-one-shot-escape-hatch
+phases:
+  branch_check:
+    passed: true
+    note: "On e06s05-one-shot-escape-hatch, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open, so gh pr checks does not apply. Local Preflight
+      below: 251 of 251 tests.
+  pre_uat_verify_validation:
+    passed: true
+    note: >-
+      Tasks 1 to 6 verify commands were run during develop-tdd and again
+      here; all exit 0. The task greps were re-run after audit-code and
+      review round 1 and are clean.
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 251 of 251"
+  terminal_verdict:
+    command: "npm test"
+    exit_code: 0
+    captured_at: "2026-11-12T15:25:57Z"
+    output_file: >-
+      /tmp/claude-1000/-home-domtorr-Dev-personal-projects-weftwork/
+      0c2174d4-e332-4019-a90d-035b4da50d69/scratchpad/
+      e06s05-npm-test-final.txt
+    note: >-
+      Single run on the committed code at aca4d2c, after audit-code and
+      review round 1. Output tail: tests 251, pass 251, fail 0. This
+      replaces the earlier run at df6c6ea (248 tests).
+  security_scan:
+    passed: true
+    note: >-
+      Scan of the e06s05 diff against main, read against threat model
+      T4. No finding at confidence 8 or above. Two candidates at
+      confidence 6 were recorded in specs/security/REVIEW.md. The first,
+      a lstat-to-open FIFO race that could hang the engine, was fixed
+      after review round 1 (3b7c164: open with O_NOFOLLOW and
+      O_NONBLOCK, then fstat on the handle). The second, a read-then-
+      rename race that consumes an unvalidated file, stays as a recorded
+      residual inside T4. The T4 residual (authorship of the record is
+      not proof) is unchanged.
+  blind_spots:
+    passed: true
+    note: "0 HIGH, 21 MEDIUM, 5 LOW."
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      First run: one BLOCKER (zero explicit story-tag links for
+      e06s05, because the traceability matrix predated the new files)
+      and one WARNING (active_story was null). active_story was set to
+      e06s05 and scripts/trace-stories.sh --json regenerated the matrix.
+      The second run is clean.
+  adversarial:
+    passed: true
+    note: "scripts/verify-adversarial.sh: PASS."
+  mutation_checks:
+    passed: true
+    note: >-
+      Re-run on 2026-11-12 against aca4d2c, in a scratch copy of src
+      (baseline 50 of 50 pass). Each mutation must fail the tests it
+      targets, and each did: skipping the rename (2 failed), letting any
+      state take the record (3 failed), accepting unknown keys (2 failed),
+      the engine ignoring records (7 failed across the CLI and engine
+      files), opening without O_NONBLOCK (1 failed: the FIFO test hangs
+      and is caught), and not stripping a byte order mark (1 failed).
+      The earlier patterns no longer matched after the audit refactor.
+  audit_and_review:
+    passed: true
+    note: >-
+      audit-code: PASS with G29 accepted by the owner (a0c3088).
+      request-review: round 2 of 5, Reviewer A 100 percent and Reviewer B
+      100 percent, zero must-fix and zero should-fix, on aca4d2c. Round 1
+      scored 83.3 and 88.9 on three should-fix items, all fixed in
+      3b7c164. Consider items left open by decision: the read-then-rename
+      gap, and a short-read loop in readRecord.
+  manual:
+    status: confirmed_by_owner
+    steps:
+      - step: "1 first run: exit 9 answers failed, exit 1, with a fingerprint"
+        observed: >-
+          state failed, exit 1, fingerprint 431948502c39...
+        passed: true
+      - step: "2 matching record: same run answers overridden, exit 7"
+        observed: >-
+          state overridden, done false, detail "flaky network", exit 7;
+          the record renamed to override.used-<ms>.json.
+        passed: true
+      - step: "3 next run after use: failed, exit 1"
+        observed: >-
+          state failed, exit 1; the used record is not read again.
+        passed: true
+      - step: "4 wrong-tree record: same output as no record, file kept"
+        observed: >-
+          failed, exit 1; override.json still in place.
+        passed: true
+      - step: "5 ledger: one overridden line with kind and author"
+        observed: >-
+          {"state":"overridden","runs":2,"failStreak":2,"threshold":null,
+          "detail":"flaky network","kind":"override","author":"dom"}
+        passed: true
+  gaps:
+    closed: true
+    note: >-
+      No gap from UAT. The completeness-critic BLOCKER and WARNING
+      above were closed in this run.
+  validation_gate:
+    tasks_passing: "6 of 6"
+    note: >-
+      Task 6 closed here: security review, mutation checks and
+      Preflight are done.
