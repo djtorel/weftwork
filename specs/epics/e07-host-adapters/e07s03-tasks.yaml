@@ -1,22 +1,25 @@
 ---
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
-# slice-tasks 2026-11-12. Register the hook so a real Claude Code
-# session calls it. R2 found a guard hook in this repository that was
-# never registered and did nothing, so registration is its own story.
-# The install step edits the project's .claude/settings.json: it adds
-# the Stop entry, keeps every other key and every other hook, and is
-# safe to run twice. Settings are JSON, so a parse and a stable
-# re-print keeps the file valid; keep the owner's key order.
-# plan-work: confirm against the installed Claude Code docs which
-# settings file is shared with the team and whether a project hook
-# needs the user to trust it on first use (Codex hashes a hook and
-# skips it until it is trusted; Claude Code's rule must be read, not
-# assumed). If trust is a manual step, the install prints it.
-# From e07s01 plan-work: the entry carries the declared command as the
-# argument after -- (owner decision), and it must set an explicit
-# timeout that is longer than the engine's timeout (see e07s02).
-# A hook entry runs shell code from a repository file. Treat the
-# settings file as untrusted input when read back (e10).
+# slice-tasks 2026-11-12; plan-work 2026-11-12 (spec:
+# e07s03-install-stop-hook.md). Register the hook so a real Claude
+# Code session calls it. R2 found a guard hook in this repository that
+# was never registered and did nothing, so registration is its own
+# story.
+# Host facts (Claude Code docs, read 2026-11-12, 2.1.322):
+# .claude/settings.json is the shared project file; there is no
+# per-hook trust step, but interactive sessions hold back settings
+# hooks until the workspace trust dialog is accepted. The install
+# prints that step.
+# Owner decisions (2026-11-12, "approve" to four recommendations):
+# (1) write .claude/settings.json; (2) the entry names this
+# checkout's adapter by absolute path, quoted, and says it is
+# machine-specific (portable entry: e11); (3) a second run with a new
+# command replaces weftwork's one entry, matched by that path; (4)
+# re-print as 2-space JSON, key order kept.
+# The entry's timeout is hookTimeoutSeconds (660) from
+# src/claude-hook.ts. Tests use temporary repositories and never this
+# repository's settings. The settings file is untrusted input: only a
+# regular file is read (BUG-007 class, e10).
 story_id: e07s03
 title: Install registers the Stop hook in the project's Claude Code settings
 status: todo
@@ -24,17 +27,19 @@ bcps: 5
 type: feat
 context: adapter
 risk: P1
+spec: e07s03-install-stop-hook.md
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Write src/claude-install.test.ts first, then
-      src/claude-install.ts: a pure function from the text of a
-      settings file (or none) and the declared command to the new
-      text. It adds one Stop hook entry that runs the adapter CLI. It
-      keeps every other key and hook. A second run changes nothing.
-      Settings that are not valid JSON, or whose hooks key has the
-      wrong shape, give an error value and no output text, and never
-      overwrite
+      RED, then GREEN. Write src/claude-install.test.ts for AC-01 to
+      AC-06 and record the failure. Then write src/claude-install.ts:
+      shellQuote, stopHookCommand, and installStopHook, a pure
+      function from the settings text (or null) to new text and a
+      changed flag. One weftwork Stop entry with the timeout from
+      hookTimeoutSeconds; every other key and hook kept in order; a
+      second run unchanged; a new command replaces the entry in place.
+      Bad JSON or a hooks key of the wrong shape gives an error value
+      and no text
     verify: >-
       node --test src/claude-install.test.ts && npm run typecheck
     risk: P1
@@ -46,13 +51,15 @@ tasks:
         - "e07 B3"
   - id: 2
     description: >-
-      RED, then GREEN. Add the install command as a thin shell over
-      the library: it reads the settings file in the repository's
-      .claude directory, writes it back only when the text changed,
-      and prints what it did and any step the owner must do by hand
-      (the trust step, if the host asks for one). Tests run it in a
-      temporary repository: no settings file, an existing file with
-      other hooks, a second run, and a broken file
+      RED, then GREEN. Write src/claude-install-cli.test.ts for AC-07
+      to AC-10 in temporary repositories (no settings file, a file
+      with other hooks run twice, a broken file and a symlink, a
+      directory with no .git) and record the failure. Then write
+      src/claude-install-cli.ts as a thin shell: lstat and read
+      .claude/settings.json in the current directory, write a
+      temporary file and rename it only when the text changed, and
+      print what it did with the path, trust, new-session and commit
+      notes. Exit 0 on success and 1 on any error
     verify: >-
       node --test src/claude-install.test.ts
       src/claude-install-cli.test.ts && npm run typecheck
@@ -65,13 +72,17 @@ tasks:
         - "e07 B3"
   - id: 3
     description: >-
-      verify-script: the owner runs the install in a scratch copy of
-      this repository, starts a real Claude Code session there with
-      a failing declared command, and sees the stop blocked with the
-      engine's reason. Write the steps in the story spec. A session
-      spends model tokens, so it is the owner's run, not CI's
+      Write e07s03-verify-script.md from the spec's Verification
+      Script: the owner installs in a scratch copy with a failing
+      command, starts a real Claude Code session, and sees the stop
+      blocked with the engine's reason (AC-11). A session spends
+      model tokens, so it is the owner's run, not CI's. Then run the
+      AGENTS.md Preflight line
     verify: >-
       test -f specs/epics/e07-host-adapters/e07s03-verify-script.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
     risk: P2
     status: todo
     allure:
