@@ -4,17 +4,17 @@ context: engine
 story_id: e06s01
 audited_at: "2026-11-12"
 mode: default (full checklist)
-scope: working tree on branch e06s01-gate-tracer, against main 4975ebb.
-  Story commits afcea3e (RED) and 5370002 (GREEN) plus the uncommitted
-  NUL-byte fix (GAP-e06s01-01), the cli.ts positive-conditional and
-  helper edits, and the new metadata on two artefacts.
+scope: branch e06s01-gate-tracer against main 4975ebb. Story commits
+  afcea3e (RED) and 5370002 (GREEN), then the NUL-byte fix
+  (GAP-e06s01-01) in 495f252 (RED) and b69ecf0 (GREEN).
 ---
 
 # Audit: e06s01 (run a declared command and answer with its verdict)
 
-Gate result: **FAIL, 1 item.** Provenance: a fix reference is missing its
-commit SHA. Clears when the fix is committed and this audit is re-run.
-No code defect was found.
+Gate result: **PASS** (re-run after the fix commits). The first run failed
+on one item: the fix reference lacked a commit SHA. The fix is now in
+495f252 (RED) and b69ecf0 (GREEN), cited in the evidence file. No code
+defect was found.
 
 ## Mechanical checks
 
@@ -45,11 +45,10 @@ No code defect was found.
 - ✓ New plan artefacts carry `type:` and `context:`. Fixed in this
   audit: `specs/security/epics/e06/THREAT_MODEL.md` and
   `specs/verifications/e06s01-verify.yaml` now have both.
-- ✗ **Implementation steps reference an ADR or commit SHA where a decision
-  was made.** The NUL-byte decision (try/catch around spawn, GAP-e06s01-01)
-  has no commit yet, so it has no SHA to cite. Fix: after the fix commit
-  exists, cite its SHA in `e06s01-verify.yaml` under `gaps`, and re-run
-  this audit.
+- ✓ Implementation steps reference a commit SHA where a decision was
+  made. The NUL-byte decision (try/catch around spawn, GAP-e06s01-01) is
+  cited with its commits, 495f252 (RED) and b69ecf0 (GREEN), in
+  `specs/verifications/e06s01-verify.yaml`. First run: ✗, no SHA yet.
 
 ### Law of Demeter
 
@@ -153,10 +152,10 @@ No code defect was found.
 
 ## Verdict
 
-`--gate` exit: 1 (one failing item, Provenance). Summary:
+`--gate` exit: 0. Every section passes. Summary:
 
 - PASS Supply Chain
-- FAIL Provenance (1 item: fix reference lacks a commit SHA)
+- PASS Provenance
 - PASS Law of Demeter
 - PASS CONVENTIONS.md Compliance
 - PASS Scope
@@ -168,5 +167,4 @@ No code defect was found.
 - PASS Code Style
 - PASS Red Flags
 
-Next: commit the fix (RED then GREEN, owner's go-ahead), cite its SHA,
-re-run this audit, then `commit-message`.
+Next: `commit-message`, then `release-branch`.

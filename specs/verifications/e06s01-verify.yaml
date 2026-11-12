@@ -104,4 +104,4 @@ phases:
           RED: 3 new tests failed (30 pass, 3 fail). GREEN: try/catch
           around spawn in src/gate.ts resolves not done with exit code
           null. Spec AC-04 and AC-06 got the NUL rows.
-        status: fixed, uncommitted until the owner gives the go-ahead
+        status: fixed in 495f252 (RED) and b69ecf0 (GREEN)
