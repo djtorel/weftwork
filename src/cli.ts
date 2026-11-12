@@ -8,10 +8,18 @@
 //
 // One exit code per state (src/states.ts): 0 done, 1 failed (not done, no stop
 // rule tripped, a retry is allowed), 2 input it cannot read, 3 blocked, 4
-// stalled, 5 exhausted, 6 killed. Only 0 means done. The JSON line holds the
-// "state", the verdict ("done", "exitCode", "reason", "command" and the
-// "fingerprint" of the tree taken before the run) and, for blocked, stalled
-// and exhausted, a "detail".
+// stalled, 5 exhausted, 6 killed, 7 overridden. Only 0 means done. The JSON
+// line holds the "state", the verdict ("done", "exitCode", "reason",
+// "command" and the "fingerprint" of the tree taken before the run) and, for
+// blocked, stalled, exhausted and overridden, a "detail".
+//
+// Overridden (e06s05) is a failed or stalled run that the owner let through
+// once, by hand-writing `<git dir>/weftwork/override.json` for that exact
+// command on that exact tree. "done" stays false. The engine says nothing about
+// a record unless it takes it, and authorship of the file is not proof (T4).
+// The fingerprint to copy is the one printed by a run that left the tree as it
+// found it. A run that ended "tree-changed" prints the tree it started on, and
+// the next run starts on a different one, so a record for it cannot match.
 //
 // SIGTERM and SIGINT end the run with exit 6 at any point after the CLI starts.
 // While the CLI reads stdin, it answers killed at once and nothing is logged,

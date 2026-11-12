@@ -91,7 +91,7 @@ epics:
     bcps: 17                # sliced 2026-11-11: 5 stories, 3 to 5 BCPs
     risk: P1
     depends_on: [e05]
-    capsule_dir: epics/e06-engine-core-done-gate
+    capsule_dir: epics/archive/e06-engine-core-done-gate
     release: "0.2.0"
     note: >-
       Candidate B1. Holds the evidence gate every later epic needs.

@@ -12,6 +12,7 @@ test('AC-e06s04-01 the table maps each state to its code', () => {
     stalled: 4,
     exhausted: 5,
     killed: 6,
+    overridden: 7,
   });
   assert.equal(badInputExitCode, 2);
 });
@@ -23,10 +24,11 @@ test('AC-e06s04-01 only done maps to 0', () => {
   assert.notEqual(badInputExitCode, 0);
 });
 
-test('AC-e06s04-01 the seven codes are all different', () => {
+// story: e06s05 (was "the seven codes"; overridden adds an eighth)
+test('AC-e06s05-01 the eight codes are all different', () => {
   const codes = [...Object.values(exitCodes), badInputExitCode];
-  assert.equal(codes.length, 7);
-  assert.equal(new Set(codes).size, 7);
+  assert.equal(codes.length, 8);
+  assert.equal(new Set(codes).size, 8);
 });
 
 test('AC-e06s04-02 the terminal states are the five, and failed is not one', () => {

@@ -16,8 +16,11 @@ import { appendFile, mkdir, open, readFile, type FileHandle } from 'node:fs/prom
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import type { Verdict } from './gate.ts';
-import { isInteger, isRecord } from './json.ts';
-import { terminalStates, type State } from './states.ts';
+import { isMissing, messageOf } from './errors.ts';
+import { isRecord } from './json.ts';
+import { toState, type StateEntry } from './ledger-state.ts';
+
+export { overrideCounts, type OverrideKind, type StateEntry } from './ledger-state.ts';
 
 const run = promisify(execFile);
 
@@ -35,18 +38,6 @@ export type AppendResult = { ok: true } | { ok: false; error: string };
 export type LedgerRead =
   | { ok: true; entries: LedgerEntry[]; skipped: number }
   | { ok: false; error: string };
-
-/** One terminal state, with the counters at the time (e06s04). `threshold` is
- * the number that tripped, or null; `detail` is a short text, or null. */
-export type StateEntry = {
-  at: string;
-  state: State;
-  command: string;
-  runs: number;
-  failStreak: number;
-  threshold: number | null;
-  detail: string | null;
-};
 
 export type LedgerTail =
   | {
@@ -68,10 +59,6 @@ export type Counts = {
   failStreak: number;
   fresh: boolean;
 };
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /**
  * `<absolute git dir>/weftwork/ledger.jsonl` for the working tree that holds
@@ -150,28 +137,6 @@ function toEntry(data: unknown): LedgerEntry | null {
   return { at, done, exitCode, reason, command, fingerprint };
 }
 
-
-
-const knownStates: readonly string[] = [...terminalStates, 'failed'];
-
-/** The state line in `data`, or null when a field is missing or wrong. */
-function toState(data: Record<string, unknown>): StateEntry | null {
-  const { at, state, command, runs, failStreak, threshold, detail } = data;
-  if (typeof at !== 'string' || typeof state !== 'string' || !knownStates.includes(state)) {
-    return null;
-  }
-  if (typeof command !== 'string' || !isInteger(runs) || !isInteger(failStreak)) {
-    return null;
-  }
-  if (threshold !== null && !isInteger(threshold)) {
-    return null;
-  }
-  if (detail !== null && typeof detail !== 'string') {
-    return null;
-  }
-  return { at, state: state as State, command, runs, failStreak, threshold, detail };
-}
-
 type Parsed = { entry: LedgerEntry } | { state: StateEntry } | null;
 
 /** A line with a string `state` key is a state line, anything else a run. */
@@ -207,10 +172,6 @@ function parseLines(text: string) {
     }
   }
   return { entries, states, skipped };
-}
-
-function isMissing(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error.code === 'ENOENT';
 }
 
 /**

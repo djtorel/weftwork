@@ -113,6 +113,20 @@ itself. The engine cannot tell who wrote a file.
   write, which is for e07 and e10.
 - Test: the reader must reject wildcards, empty fields and a missing
   reason, and a record for another command or tree must do nothing.
+- Decision (owner, 2026-11-12, plan-work e06s05): the owner writes
+  `<git dir>/weftwork/override.json` by hand, and the engine tells a hatch
+  is open only by that file existing and matching. It cannot tell who wrote
+  it. The engine takes the record by an atomic rename to
+  `override.used-<epoch ms>-<random>.json`, so a record is used once even with two
+  engines. The answer is `overridden` (exit 7), never `done`; only `failed`
+  and `stalled` runs can take a record, never `exhausted`, `blocked`,
+  `killed` or `done`; an overridden run still counts toward the ceiling.
+  The reader caps the file at 64 KiB, refuses a symlink or a non-regular
+  file (a FIFO is never opened) and rejects unknown keys. The engine says
+  nothing on stdout or stderr about a record that is bad or does not match,
+  so a refusal never names the hatch (R13 [S56]). Residual unchanged: a
+  forged record gives one run on one tree and a log line with a reason and
+  an author the writer chose.
 
 ### T5. Tree fingerprint and the git calls under it (e06s02) — Medium
 
