@@ -189,7 +189,67 @@ Feature: The adapter fails closed
     When the CLI is started on a path that does not exist
     Then its exit code is not 2
     And the CLI header names e07s04
+
+  # Added after review round 1 (2026-11-12). Section 3b says why.
+
+  # AC-e07s02-12
+  Scenario: The hook blocks at its own deadline
+    Given work the hook cannot abort (a git call that never returns)
+    When the hook has run for hookDeadlineMs (645 s, or less from
+      WEFTWORK_HOOK_DEADLINE_MS, never more)
+    Then it exits 2 and says it ran out of time
+    And a command still running is killed
+
+  # AC-e07s02-13
+  Scenario: A signal ends the hook in exit 2, even with work pending
+    Given work the hook cannot abort
+    When the hook gets SIGTERM, and then a second SIGTERM
+    Then it exits 2 within signalGraceMs (2 s) of the first
+
+  # AC-e07s02-14
+  Scenario: A fault outside the awaited chain blocks
+    When an error has no listener or a promise rejection is unhandled
+    Then the hook exits 2 and says "adapter fault"
+
+  # AC-e07s02-15
+  Scenario: The reason lines are accurate
+    Then the timeout line names the 600 s limit
+    And the no-ledger line says the passing run could not be recorded
+
+  # AC-e07s02-16
+  Scenario: A ledger that is a FIFO does not hang the hook (BUG-007)
+    Given .git/weftwork/ledger.jsonl is a FIFO
+    When the hook runs "true"
+    Then it exits 2 and says weftwork could not check, within seconds
 ```
+
+## 3b. Added after review round 1 (2026-11-12)
+
+The dual-blind review found that "the engine always answers before the host's
+timeout" was not guaranteed. Owner decisions (2026-11-12, "go" to the
+recommendations; "1" to the ledger fix):
+
+- **Whole-hook deadline.** The CLI arms a timer at start. After
+  `hookDeadlineMs` (the 660 s hook timeout less 15 s) it aborts the engine
+  and leaves with exit 2 ("ran out of time before it could check").
+  `WEFTWORK_HOOK_DEADLINE_MS` can only shorten it, for tests. The "60 s
+  margin" in the first version was really about 50 s and was unenforced: the
+  host's clock starts with the hook, the engine's starts at spawn.
+- **Signals.** The handlers use `on`, not `once`: with `once` a second SIGTERM
+  hit Node's default action and exited 143. After a signal, a 2 s grace timer
+  leaves with exit 2 if work that cannot be aborted is still running.
+- **Process-level faults.** `uncaughtException` and `unhandledRejection`
+  block with exit 2.
+- **BUG-007 (a separate fix).** A FIFO in place of the ledger hung the engine
+  in a thread pool call. `process.exit` cannot end such a process (measured),
+  so no timer can fix it: the ledger now opens with `O_NONBLOCK` and refuses
+  anything but a regular file. Review round 2 found the same class in
+  `tree.ts` `hashFile` (a file swapped for a FIFO after `lstat`) and it got
+  the same fix. See specs/bugs/BUG-007.
+- **Left to the owner (e06):** whether a signal-killed run counts toward the
+  failure ceiling (review finding B11, not verified), and whether the
+  engine's git calls should take the abort signal, so a stuck git does not
+  outlive the hook (T6; the hook still exits 2).
 
 ## Steps
 

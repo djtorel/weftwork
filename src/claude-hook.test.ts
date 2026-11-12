@@ -11,11 +11,14 @@ import {
   blockStop,
   engineTimeoutMs,
   hookAnswer,
+  hookDeadline,
+  hookDeadlineMs,
   hookRequest,
   hookTimeoutSeconds,
   hostBlockExitCode,
   parseHookInput,
   projectDir,
+  stdinDeadlineMs,
 } from './claude-hook.ts';
 import type { Reason } from './gate.ts';
 import { isRecord } from './json.ts';
@@ -214,4 +217,33 @@ test('AC-e07s02-02 no failed reason says the work is done', () => {
     const ours = out.stderr.replaceAll('npm test', '');
     assert.equal(ours.toLowerCase().replaceAll('not done', '').includes('done'), false, reason);
   }
+});
+
+test('AC-e07s02-12 the hook deadline sits below the host timeout and above engine plus stdin', () => {
+  assert.equal(hookTimeoutSeconds * 1000 - hookDeadlineMs, 15000);
+  assert.ok(hookDeadlineMs >= engineTimeoutMs + stdinDeadlineMs);
+});
+
+test('AC-e07s02-12 an unset or unusable deadline variable leaves the built-in deadline', () => {
+  const unusable = [undefined, '', '0', '-5', 'abc', '1.5', String(hookDeadlineMs), '9999999'];
+  for (const value of unusable) {
+    assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: value }), hookDeadlineMs, String(value));
+  }
+  assert.equal(hookDeadline({}), hookDeadlineMs);
+});
+
+test('AC-e07s02-12 a shorter deadline from the variable is used, and never a longer one', () => {
+  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: '1500' }), 1500);
+  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: String(hookDeadlineMs - 1) }), hookDeadlineMs - 1);
+});
+
+test('AC-e07s02-15 the timeout line names the limit', () => {
+  const out = hookAnswer(answer('failed', { reason: 'timeout' }));
+  assert.match(out.stderr, new RegExp(`${engineTimeoutMs / 1000} s`));
+});
+
+test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded', () => {
+  const out = hookAnswer(answer('failed', { reason: 'no-ledger' }));
+  assert.match(out.stderr, /could not be recorded/);
+  assert.match(out.stderr, /could not check/);
 });

@@ -9,6 +9,7 @@ import { PassThrough } from 'node:stream';
 import {
   blockStop,
   failClosed,
+  faultOutput,
   hostBlockExitCode,
   maxHookInputBytes,
   parseHookInput,
@@ -92,13 +93,26 @@ test('AC-e07s02-04 input that never ends is refused at the deadline and the stre
   assert.ok(Date.now() - started < 5000, 'the deadline, not the test timeout, ended it');
 });
 
-test('AC-e07s02-04 a stream that ends first leaves no timer to hold the process', async () => {
+test('AC-e07s02-04 a stream that ends first leaves no timer armed', async () => {
+  const timers = () => process.getActiveResourcesInfo().filter((name) => name === 'Timeout').length;
+  const before = timers();
   const stream = new PassThrough();
   stream.end('{}');
   await readHookInput(stream, 1024, longDeadlineMs);
-  // The process would not exit for 60 s if the deadline timer were still armed;
-  // node:test ends this file as soon as the event loop is empty.
-  assert.ok(true);
+  assert.equal(timers(), before);
+});
+
+test('AC-e07s02-04 a stream error after the result does not go uncaught', async () => {
+  const stream = new PassThrough();
+  stream.end('{}');
+  await readHookInput(stream, 1024, longDeadlineMs);
+  // An EventEmitter with no `error` listener throws on emit: that is exit 1.
+  assert.doesNotThrow(() => stream.emit('error', new Error('late')));
+});
+
+test('AC-e07s02-14 faultOutput blocks and says adapter fault', () => {
+  assert.deepEqual(faultOutput(new Error('boom')), blockStop('adapter fault: boom'));
+  assert.deepEqual(faultOutput('a plain string'), blockStop('adapter fault: a plain string'));
 });
 
 test('AC-e07s02-04 a stream error is refused with its message', async () => {
@@ -115,7 +129,8 @@ test('AC-e07s02-04 a stream closed before it ended is refused', async () => {
   stream.write('{"partial":');
   stream.destroy();
   const result = await pending;
-  assert.ok(!result.ok && /closed/.test(result.error));
+  assert.ok(!result.ok && /could not be read/.test(result.error));
+  assert.equal(stream.destroyed, true);
 });
 
 test('AC-e07s02-06 work that resolves passes through unchanged', async () => {
@@ -143,4 +158,13 @@ test('AC-e07s02-06 work that throws before it returns a promise becomes a block'
 test('AC-e07s02-06 a thrown value that is not an Error still blocks', async () => {
   const out = await failClosed(() => Promise.reject('a plain string'));
   assert.deepEqual(out, blockStop('adapter fault: a plain string'));
+});
+
+test('AC-e07s02-06 a thrown value that cannot be printed still blocks', async () => {
+  const unprintable = [Object.create(null), { toString: () => { throw new Error('no'); } }];
+  for (const value of unprintable) {
+    const out = await failClosed(() => Promise.reject(value));
+    assert.equal(out.exitCode, hostBlockExitCode);
+    assert.match(out.stderr, /adapter fault/);
+  }
 });
