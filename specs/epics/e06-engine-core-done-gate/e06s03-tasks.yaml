@@ -96,7 +96,7 @@ tasks:
       && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
     risk: P1
     security: medium
-    status: in_progress
+    status: done
     allure:
       severity: high
       categories:

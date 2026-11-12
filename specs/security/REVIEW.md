@@ -200,3 +200,96 @@ still left the group, which is the MEDIUM residual already recorded. The
 spawn call, the git calls and the kill are unchanged in what they do. No
 new finding, none at confidence 8 or above. Result for the release gate:
 REVIEW.md matches the branch diff at 92190e7.
+
+## Addendum for e06s03 at c59e330 (2026-11-12)
+
+branch: e06s03-counts-ledger, review of src/ledger.ts, src/gate.ts, src/cli.ts
+method: security-review 5-phase scan, read-only, plus two probes by hand
+re-review trigger met: threat model T3 (ledger writer and reader)
+
+### Executable surface
+
+1. `ledgerPath` in src/ledger.ts runs `git -c core.fsmonitor=false
+   rev-parse --absolute-git-dir` with `execFile` and an argument array. No
+   shell, and `cwd` is an option, never an argument.
+2. `appendEntry` creates `<git dir>/weftwork/` and appends one line.
+3. `readLedger` reads the file and parses each line.
+4. `record` in src/gate.ts calls 1 and 2 after the verdict is settled and
+   may turn a `passed` verdict into `no-ledger`.
+
+No new package, no new `spawn`, no network, no `eval` or dynamic import.
+
+### Scope and context
+
+- Languages: TypeScript on Node 26. No dependency file changed.
+- The ledger sits inside `.git`, which git never lists, so a write cannot
+  change the tree fingerprint (tested, AC-02).
+- The gate never reads the ledger (control C4). `grep readLedger
+  src/gate.ts` finds nothing, and AC-12 forges a done entry and shows the
+  verdict still comes from the run.
+
+### Assessment (phase 3)
+
+| Check | Result |
+|-------|--------|
+| Command injection (CWE-78) | None. Argument array, no shell, `core.fsmonitor=false`. |
+| Log injection (CWE-117, C3) | Held. Entries are `JSON.stringify`; a newline in a command is escaped (AC-04). A leading newline ends a torn line (AC-06). |
+| Fail open (CWE-754, T7) | Held. A `passed` verdict that cannot be logged is `done: false`, reason `no-ledger` (AC-11). A missing git working tree is treated as a failed append. `appendEntry` and `ledgerPath` never throw. |
+| Forged ledger (T3) | Held by design. A forged done does not change a verdict (AC-12). A stale done is not fresh (AC-13). Erasure is still possible and is accepted residual. |
+| Deserialization (CWE-502) | None. `JSON.parse` of plain data; fields are checked by type and unknown keys are dropped. |
+| Path traversal (CWE-22) | The path is built from git's own output plus two fixed names. No input joins it. |
+
+### Findings
+
+Confidence is 0 to 10. A HIGH finding at 8 or more blocks. There are none.
+
+### F1. `appendEntry` follows symlinks — LOW — CWE-59 — confidence 9
+
+src/ledger.ts, `appendEntry`. `mkdir` and `appendFile` follow a symlink at
+`.git/weftwork` or at `.git/weftwork/ledger.jsonl`. Probed by hand: with
+`.git/weftwork` a symlink to a directory elsewhere, the CLI wrote
+`ledger.jsonl` in that directory.
+
+- Exploit scenario: an agent that can write in `.git` points the ledger at a
+  file the user can write, and the next run appends one JSON line to it.
+- Why it is LOW: the agent already runs as the same user and can write that
+  file directly, so it gains nothing. The line is JSON, not a shell line.
+- Recommendation, not done: open the file with `O_NOFOLLOW` (Node
+  `fs.constants.O_NOFOLLOW`) and `lstat` the directory. Fix when e10 sets
+  the trust baseline. Accepted residual, added to threat model T3.
+
+### F2. The ledger takes the default file mode — LOW — CWE-276 — confidence 8 — FIXED
+
+src/ledger.ts, `appendEntry`. Probed by hand: the directory is 755 and the
+file 644 under a normal umask. The file holds each command string (T8), so
+another local user can read a command that holds a token.
+
+- Recommendation: pass `mode: 0o700` to `mkdir` and `mode: 0o600` to
+  `appendFile`. One line each, and it narrows the T8 exposure. Not applied
+  in the first pass. Applied after the owner's go-ahead (2026-11-12): AC-02
+  now checks that no group or other bit is set, and a mutation without the
+  modes fails it.
+
+### F3. The ledger has no size cap, and `readLedger` reads all of it — LOW — CWE-400 — confidence 8
+
+src/ledger.ts, `readLedger`. `readFile` holds the whole file. A very large
+ledger costs memory. Nothing in the gate path reads it today, so the gate is
+not affected. e06s04 will read it for the breaker.
+
+- Recommendation: e06s04 caps what it reads (for example the last 1 MiB),
+  and e09 adds rotation. Already in the spec's out-of-scope list.
+
+#### Not findings
+
+- A failed write to stderr in `note` could end the process with a non-zero
+  exit. That is not done, so it fails closed. Not reported.
+- Two writers at once can interleave a very long line. The reader skips it
+  and counts it in `skipped`. Documented in the spec.
+
+### Result for audit-code
+
+HIGH findings at confidence 8 or more: 0. MEDIUM: 0. LOW: 3 (F1 to F3), all
+documented, none blocking. F2 needs an owner decision: apply the two mode
+arguments now, or leave it.
+
+Diff scanned: no unaddressed HIGH findings.

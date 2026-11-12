@@ -85,6 +85,11 @@ run from the breaker (e06s04) and fake the counts.
   git-ignore choice are open for e06s03 plan-work. An ignored file the
   agent can still write is no stronger. Do not describe it as tamper
   proof.
+- Residual found at e06s03 review (2026-11-12): the writer follows a
+  symlink at `.git/weftwork` or at the ledger file (CWE-59), and the file
+  takes the default mode (F1, F2 in specs/security/REVIEW.md). F2 is fixed:
+  the directory is 0700 and the file 0600. F1 is LOW; the agent already has
+  the user's own write access. e10 owns the fix.
 - Log injection (CWE-117): write each entry as one JSON object per
   line with `JSON.stringify`, so a command with a newline cannot start
   a second fake entry. The reader skips a torn or bad line, reports

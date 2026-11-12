@@ -94,6 +94,8 @@ a ledger inside that repository's git dir, and `cleanupTempDirs` removes it.
   lines are not entries and are not counted as skipped (C3).
 - `JSON.stringify` escapes a newline in `command`, so a command cannot
   start a second entry.
+- The directory is created with mode 0700 and the file with mode 0600, so
+  no group or other bit is set (security review F2, AC-02).
 
 #### ADDED: `readLedger(path)` in `src/ledger.ts`
 - Returns `Promise<LedgerRead>`, where `LedgerRead` is
@@ -290,7 +292,7 @@ Scenario: AC-e06s03-15 the e06s01 and e06s02 scenarios still hold
    failures. GREEN: add `no-ledger` to `Reason` and the append to `runGate`;
    update the `cli.ts` comment
    → verify: `node --test src/gate.ledger.test.ts src/gate.test.ts && npm run typecheck && grep -q "'no-ledger'" src/gate.ts`
-3. Write `src/cli.ledger.test.ts` for AC-14: the real CLI, run twice in a
+3. Write `src/cli.ledger.test.ts` for AC-14 (ref: threat model C10): the real CLI, run twice in a
    temporary git repository
    → verify: `node --test src/cli.ledger.test.ts`
 4. Run the Preflight line from AGENTS.md and `security-review` on the diff
