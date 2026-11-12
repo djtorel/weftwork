@@ -1,0 +1,80 @@
+---
+story_id: e07s01
+type: verification
+context: adapter
+verified_at: "2026-11-12T18:55:00Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, scan, manual)"
+branch: e07s01-claude-stop-hook
+phases:
+  branch_check:
+    passed: true
+    note: "On e07s01-claude-stop-hook, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open, so gh pr checks does not apply. Local Preflight
+      below: 271 of 271 tests.
+  pre_uat_verify_validation:
+    passed: true
+    note: >-
+      Task 1 and 2 verify commands (node --test on both files, then
+      typecheck) and the task 3 grep were re-run here; all exit 0.
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 271 of 271"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh && bash
+      tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-12T18:50:00Z"
+    note: >-
+      Single run of the full Preflight on bd7e259. Output tail: tests
+      271, pass 271, fail 0.
+  security_scan:
+    passed: true
+    note: >-
+      Diff scan against main. No finding at confidence 8 or above. Three
+      candidates at confidence 6 (fail-open on a crash, no stdin cap, cwd
+      from the host) are recorded in specs/security/REVIEW.md and owned by
+      e07s02 and e07s04.
+  blind_spots:
+    passed: true
+    note: "0 HIGH, 32 MEDIUM, 7 LOW."
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      First run: one WARNING (the traceability matrix predated the e07s01
+      files). scripts/trace-stories.sh --json regenerated it. The second
+      run is clean.
+  adversarial:
+    passed: true
+    note: "scripts/verify-adversarial.sh: PASS."
+  manual:
+    status: confirmed_by_owner
+    steps:
+      - step: "2 failing command in a scratch repo"
+        observed: >-
+          exit 2, stdout empty, stderr "weftwork: not done (failed,
+          exit-nonzero): false" and a line asking to make it pass.
+        passed: true
+      - step: "3 passing command"
+        observed: "exit 0, stdout and stderr empty."
+        passed: true
+      - step: "extra: repeated failures on the same tree"
+        observed: >-
+          The third failed run answered exit 0 with systemMessage
+          "weftwork: not done (stalled): 3 failed runs in a row on the
+          same tree with the same failure". The stop is allowed.
+        passed: true
+  gaps:
+    closed: true
+    note: "No gap from UAT."
+  validation_gate:
+    tasks_passing: "3 of 3"
+    note: "Tasks are status done in e07s01-tasks.yaml (project value)."

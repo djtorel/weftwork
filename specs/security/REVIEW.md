@@ -456,3 +456,46 @@ No HIGH or MEDIUM finding at confidence 8 or above. The two items above are
 suppressed at confidence 6 and do not block the gate. The T4 residual
 (authorship of the record is not proof) is unchanged and stays documented in
 the threat model.
+
+## Addendum for e07s01 (2026-11-12, verify-work step 5)
+
+Scope: `git diff main...HEAD -- src` on e07s01-claude-stop-hook (4 files, 288
+lines added: src/claude-hook.ts, src/claude-hook-cli.ts and their tests). Read
+against threat model T1 (the declared command is the owner's) and the host
+contract for the Stop hook. Every new function was read in full. No process
+probe was run beyond the story's own tests and the UAT steps.
+
+### Findings at or above confidence 8
+
+None.
+
+### Below the reporting threshold (confidence 6, recorded)
+
+- **Fail-open on a crash.** The host treats any exit code other than 2 as a
+  non-blocking error. An uncaught throw from `runEngine`, or a stdin read
+  error, ends the CLI with exit 1 and the stop goes ahead. The CLI header
+  states it. e07s02 owns the fault list and e07s04 checks for it.
+- **Stdin has no size cap.** `readStdin` reads the whole input. The writer is
+  the host, not the agent, so it is not an agent-reachable path. e07s02 adds
+  the cap, as in src/cli.ts.
+- **The hook's `cwd` comes from the host's JSON.** The engine fingerprints and
+  runs in that directory. A host that sent a different directory would gate a
+  different tree. The host is trusted here.
+
+### Checked and clean
+
+- **Shell.** The new files have no `exec`, `spawn`, `shell:`, `eval` or file
+  access (grep of both files). The only process that starts is the engine's,
+  through `runEngine`.
+- **Command source.** The command is the one argument after `--` from the
+  owner's hook entry. The agent's text (`last_assistant_message`) is never
+  read. `parseHookInput` takes `cwd` and ignores every other field.
+- **Output.** No message says "done" except after "not" (test AC-e07s01-04).
+  The declared command's output goes to stderr, so stdout holds only the
+  host's JSON or nothing.
+
+### Result for verify-work
+
+No HIGH or MEDIUM finding at confidence 8 or above. The three items above are
+suppressed at confidence 6, do not block the gate, and are owned by e07s02
+and e07s04.
