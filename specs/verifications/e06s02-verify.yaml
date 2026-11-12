@@ -1,0 +1,123 @@
+---
+story_id: e06s02
+type: verification
+context: engine
+verified_at: "2026-11-12T01:51:11Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, step-by-step manual)"
+branch: e06s02-fail-closed-tree
+phases:
+  branch_check:
+    passed: true
+    note: "On the feature branch, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open yet, so gh pr checks does not apply. Local Preflight
+      run below.
+  pre_uat_verify_validation:
+    passed: true
+    note: "Tasks 1, 2, 3 and 4 verify commands re-run; all pass."
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 73 of 73"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-12T01:51:11Z"
+    note: "Single run. Output tail: tests 73, pass 73, fail 0."
+  blind_spots:
+    passed: true
+    note: "No HIGH findings."
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+  security_scan:
+    passed: true
+    note: >-
+      5-phase scan of src/tree.ts, src/gate.ts and src/cli.ts against the
+      e06 threat model, with two probes. No finding at confidence 8 or
+      above. One MEDIUM residual (setsid leaves the process group), see
+      gaps. Report in specs/security/REVIEW.md.
+  nfr_gate:
+    skipped: true
+    note: "P0 only."
+  adversarial_gate:
+    passed: true
+    note: "bash scripts/verify-adversarial.sh passed."
+  mutation_checks:
+    passed: true
+    note: >-
+      Scratch-copy mutations were each caught by the intended tests.
+      tree.ts: symlink target ignored, untracked files dropped, ignored
+      files included, executable bit ignored. gate.ts: no group kill after
+      exit, tree comparison skipped, command runs without a tree, no
+      process group, timeout not named. Vacuity test: non-zero exit counts
+      as passed, tree comparison skipped, every verdict done.
+  manual_uat:
+    status: confirmed
+    confirmed_by: owner
+    confirmed_at: "2026-11-11"
+    note: "Owner replied \"all pass\" to the six steps."
+    steps:
+      - step: "true in a scratch git repository"
+        expected: 'done true, reason passed, a 64 character fingerprint, exit 0'
+        actual: 'done true, reason passed, fingerprint 43194850..., exit 0'
+        passed: true
+      - step: "a command that appends to a tracked file"
+        expected: 'done false, reason tree-changed, exit 1'
+        actual: 'done false, exitCode 0, reason tree-changed, exit 1'
+        passed: true
+      - step: "sleep 30 with timeoutMs 300"
+        expected: 'reason timeout, back in under 2 seconds'
+        actual: 'reason timeout, returned in 407 ms'
+        passed: true
+      - step: "touch ran in a directory that is not a repository"
+        expected: 'reason no-tree, no file ran'
+        actual: 'reason no-tree, fingerprint null, ls finds no file ran'
+        passed: true
+      - step: "mutation check on a copy of src"
+        expected: 'the vacuity test fails when a non-zero exit counts as passed'
+        actual: 'exit1.sh and lies.sh failed in the copy (2 fail, 2 pass)'
+        passed: true
+      - step: "ls src/fixtures; npm test"
+        expected: "four scripts; tests pass"
+        actual: "edits.sh exit1.sh lies.sh pass.sh; 73 of 73 pass"
+        passed: true
+  okf_wiki_lint:
+    skipped: true
+    note: "specs/skills-wiki and specs/conventions-wiki do not exist."
+  gaps:
+    closed: true
+    count: 2
+    items:
+      - id: GAP-e06s02-01
+        found: "2026-11-12, security scan probe"
+        expected: >-
+          The second group kill stops a background process from writing
+          after the second fingerprint (spec requirement text).
+        actual: >-
+          Only processes still in the group. setsid sleep 20 & left the
+          group and was alive after the gate returned, with verdict passed.
+        fix: >-
+          Documented, not coded. Spec Requirements and Risks, and the threat
+          model T6 residual, now state the limit. Closing it needs a PID
+          namespace or a cgroup, owned by e09 and e10.
+        status: documented
+      - id: GAP-e06s02-02
+        found: "2026-11-12, develop-tdd"
+        expected: >-
+          The e06s01 test AC-07 shows command output stays off stdout.
+        actual: >-
+          The verdict now carries the command text, so echo noise put the
+          word on stdout through the command field.
+        fix: >-
+          The test runs echo no''ise. Recorded in the spec under the
+          e06s01 tests requirement.
+        status: fixed in 8be7f00 (test) and the spec

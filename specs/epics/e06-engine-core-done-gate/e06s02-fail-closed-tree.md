@@ -145,7 +145,9 @@ for exit code 0.
   `process.kill(-pid, 'SIGKILL')`. Node's own `timeout` option is not
   used: it signals only the shell, and a grandchild would survive. After
   the shell exits, send `SIGKILL` to the group once more, so a background
-  process cannot keep writing after the second fingerprint. A group that
+  process still in the group cannot keep writing after the second
+  fingerprint. A process that leaves the group (for example with `setsid`)
+  is out of reach; see Risks. A group that
   is already gone is not an error.
 - Never throws or rejects for an expected failure.
 
@@ -396,6 +398,12 @@ Scenario: AC-e06s02-14 the e06s01 scenarios still hold
   once the group is empty. The window is tiny, and a group that is gone
   gives `ESRCH`, which is ignored. Detect: AC-08 and AC-09 stay green and
   the test run never kills the test runner.
+- **A command can leave the process group.** A process that starts its own
+  session, for example `setsid sleep 20 &`, is not in the group, so neither
+  kill reaches it and it can edit the tree after the second fingerprint.
+  Probed by hand during verify-work: the child outlived the gate. Closing
+  it needs a PID namespace or a cgroup, which belongs to e09 and e10. The
+  gate is evidence against an honest command, not a sandbox.
 - **Ctrl-C no longer reaches the command.** A detached child is in its own
   session. e06s04 adds signal forwarding. Until then a user who hits
   Ctrl-C on the CLI leaves the command running until its own timeout.
