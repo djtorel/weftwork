@@ -6,9 +6,9 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { countsFor, ledgerPath, readLedger } from './ledger.ts';
+import { countsFor } from './ledger.ts';
 import { fingerprintTree } from './tree.ts';
-import { cleanupTempDirs, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTestRepo, readRepoLedger } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -24,7 +24,7 @@ function assertOneLine(stdout: string): void {
   assert.equal(stdout.split('\n').filter((line) => line !== '').length, 1);
 }
 
-test('AC-e06s03-14 the real CLI logs each run and leaves the tree alone', async () => {
+test('AC-e06s03-14 the real CLI logs each run, one line per run', async () => {
   const repo = makeTestRepo();
   const pass = runCli('{"command":"true"}', repo);
   const fail = runCli('{"command":"exit 7"}', repo);
@@ -32,14 +32,16 @@ test('AC-e06s03-14 the real CLI logs each run and leaves the tree alone', async 
   assert.equal(fail.status, 1);
   assertOneLine(pass.stdout);
   assertOneLine(fail.stdout);
-
-  const path = await ledgerPath(repo);
-  assert.notEqual(path, null);
-  const read = await readLedger(path as string);
-  assert.ok(read.ok);
+  const read = await readRepoLedger(repo);
   assert.equal(read.entries.length, 2);
   assert.equal(read.skipped, 0);
+});
 
+test('AC-e06s03-14 the counts read back and the tree is untouched', async () => {
+  const repo = makeTestRepo();
+  runCli('{"command":"true"}', repo);
+  runCli('{"command":"exit 7"}', repo);
+  const read = await readRepoLedger(repo);
   const tree = await fingerprintTree(repo);
   assert.ok(tree.ok);
   assert.deepEqual(countsFor(read.entries, 'true', tree.fingerprint), {
@@ -60,7 +62,6 @@ test('AC-e06s03-14 a ledger that cannot be written reads as no-ledger at the CLI
   const result = runCli('{"command":"true"}', repo);
   assert.equal(result.status, 1);
   assertOneLine(result.stdout);
-  const line = JSON.parse(result.stdout) as { reason: string; done: boolean };
-  assert.equal(line.reason, 'no-ledger');
-  assert.equal(line.done, false);
+  assert.match(result.stdout, /"reason":"no-ledger"/);
+  assert.match(result.stdout, /"done":false/);
 });

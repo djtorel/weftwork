@@ -7,9 +7,9 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runGate, type Verdict } from './gate.ts';
-import { appendEntry, countsFor, ledgerPath, readLedger } from './ledger.ts';
+import { appendEntry, countsFor, ledgerPath } from './ledger.ts';
 import { fingerprintTree } from './tree.ts';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo, readRepoLedger } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -27,11 +27,7 @@ async function stderrDuring(body: () => Promise<void>): Promise<string> {
 }
 
 async function entriesOf(repo: string) {
-  const path = await ledgerPath(repo);
-  assert.notEqual(path, null);
-  const read = await readLedger(path as string);
-  assert.ok(read.ok);
-  return read.entries;
+  return (await readRepoLedger(repo)).entries;
 }
 
 test('AC-e06s03-09 every verdict is logged, done or not', async () => {
