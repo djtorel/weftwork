@@ -1,3 +1,4 @@
+// story: e06s01
 // Tests for the CLI at the process boundary (e06s01, AC-06 to AC-08).
 // Each case starts the real CLI with the current Node binary.
 import { after, test } from 'node:test';

@@ -1,3 +1,4 @@
+// story: e06s01
 // Tests for the evidence gate library (e06s01, AC-01 to AC-04).
 // Only shell built-ins are used (true, false, exit, test), no sleeps.
 import { after, test } from 'node:test';

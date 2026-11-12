@@ -1,3 +1,4 @@
+// story: e06s01
 // The evidence gate: done means a declared command, run by the engine,
 // exited 0. The agent's own claim is never evidence (e06s01).
 import { spawn } from 'node:child_process';

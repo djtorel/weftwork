@@ -111,3 +111,14 @@ No findings at confidence 8 or above. No HIGH findings.
 Residual risks recorded in the threat model, not in this report:
 T1 (command choice), T3 and T4 (agent-writable ledger and override,
 e06s03 and e06s05), T8 (output and env pass-through, e10).
+
+## Addendum for e06s01 at b69ecf0 (2026-11-12)
+
+The scan above ran before the `failUnreadable` helper in src/cli.ts
+(part of b69ecf0). The re-check covers that change only. The helper
+prints a static error string, or a message from parseRequest, which
+has four fixed strings. The input-size message interpolates the cap
+constant, not input. No sink changed: spawn, the command, and the cwd
+are as reviewed. No new finding, none at confidence 8 or above.
+Result for the release gate: REVIEW.md matches the branch diff at
+b69ecf0.

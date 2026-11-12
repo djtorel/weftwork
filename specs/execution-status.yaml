@@ -29,7 +29,7 @@ development_status:
   e05s03: done
   e05s04: done
   e06: todo
-  e06s01: todo
+  e06s01: done
   e06s02: todo
   e06s03: todo
   e06s04: todo
@@ -311,20 +311,22 @@ stories:
     effort_hours: 0.0
     lead_time_minutes: 2
     bcp_per_hour: 0.0
+  e06s01:
+    effort_hours: 0.2189
+    lead_time_minutes: 31
+    bcp_per_hour: 13.7
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-11T03:10:00Z"
+  generated_at: "2026-11-12T00:30:00Z"
   rationale: >-
-    Computed FAIL on fix-bug-005-state-file-style (BUG-005). R1 FAIL: four
-    undone stories have no code tags (e03s08, e04s01, e04s02 and e04s03);
-    the matrix credits e03s08 with a tag only from a state.yaml note. The
-    refute check holds: the gap is real under the rule. R2 passes: no done
-    story lacks verify evidence. R4 CONCERNS: 2 of 19 stories tagged. Oracle
-    downgrade: 47 of 49 links (96 percent) come from file and task
-    heuristics. Blind spots: 0 HIGH. Completeness critic: 0 blockers. The
-    self-test of run-gate-trace-verify.sh cannot run in this repository: it
-    reads skills/gate-trace/SKILL.md, which is in the global install
-    (BUG-003 class). Standing owner waiver in state.yaml, 2026-11-10, until
-    the first story that ships product code.
-  heuristic_ratio: 0.96
+    Release of e06s01, the first story with product code. R1 fails by the
+    rule: undone stories e06s02 to e06s05 have no code tags, because their
+    code does not exist yet. e06s01 carries explicit tags in src/gate.ts,
+    src/cli.ts and their tests. The gate-trace skill itself was not run;
+    trace-stories.sh and run-gate-trace-verify.sh ran, with 0 dark stories,
+    0 orphan tags, 0 blind-spot HIGH findings and 0 critic blockers.
+    Oracle downgrade applied: 85 of 93 links (91 percent) come from file
+    and task heuristics. The standing waiver of 2026-11-10 ends with this
+    story. Owner waiver in state.yaml, 2026-11-11, for e06 only.
+  heuristic_ratio: 0.91
   downgrade_applied: true

@@ -1,3 +1,4 @@
+// story: e06s01
 // Thin shell over the gate library: JSON on stdin, one JSON line on
 // stdout, the exit code carries the verdict. Logic lives in gate.ts.
 //
