@@ -186,3 +186,17 @@ limit and not a defect:
 
 "diff scanned — no unaddressed HIGH findings": PASS for e06s02. The MEDIUM
 residual is documented above and in the threat model.
+
+## Addendum for e06s02 at 92190e7 (2026-11-12)
+
+The review above ran before the audit refactor (d05be85): runCommand split
+into runCommand and watchChild, runGate into runAndCompare and settle, two
+casts replaced by type checks, and kind in tree.ts typed as a union. The
+re-check ran the same four probes against the committed code. A hostile
+core.fsmonitor in the repository config did not run (control: plain git
+status runs it). A symlink target's content change left the fingerprint
+unchanged. A timeout ended the whole process group. The setsid command
+still left the group, which is the MEDIUM residual already recorded. The
+spawn call, the git calls and the kill are unchanged in what they do. No
+new finding, none at confidence 8 or above. Result for the release gate:
+REVIEW.md matches the branch diff at 92190e7.

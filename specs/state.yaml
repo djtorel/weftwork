@@ -1,17 +1,12 @@
 workflow_mode: solo-git
-active_flow: build_epic
+active_flow: null
 active_epic: e06
-active_story: e06s02
-phase: build
+active_story: null
+phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e06s02-fail-closed-tree
-epic_cycle:
-  step: 7
-  completed_steps: 0,1,2,3,4,5,6
-  audit_result: pass
-  threat_model: specs/security/epics/e06/THREAT_MODEL.md
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -395,30 +390,37 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: commit-message
-  next_story: e06s02
-  note: 'e06s02 is planned and approved by the owner (spec
-    e06s02-fail-closed-tree.md, 4 tasks) and kicked off on branch
-    e06s02-fail-closed-tree. develop-tdd is done: all 4 tasks pass (73 tests).
-    verify-work passed and the owner confirmed UAT
-    (specs/verifications/e06s02-verify.yaml). Audit passed
-    (specs/verifications/AUDIT-e06-e06s02.md). Next: commit-message and
-    release-branch. Do not repeat build-epic step 0: the e06 threat model is
-    specs/security/epics/e06/THREAT_MODEL.md. Controls C5, C6, C7 and C10 apply
-    to this story; run security-review on its diff because it adds the first git
-    calls and hashing code. Tag new src files with // story: e06s02. Waivers for
-    e06 are in waivers: gate-trace R1 (until e06 closes). e06s03 to e06s05 have
-    tasks files only; plan-work writes each spec when its turn comes (waived for
-    e06). Owner decisions still open: a measured coverage gate (the repo has no
-    coverage tool), the e06s05 questions (what an override answers, and how the
-    engine tells an owner-authored hatch from one the agent wrote), the e05
-    checkpoint item (engines.node >=26 lets setup-node pick a newer major), and
-    the deferred experiment task source and spend cap. main is protected: land
-    every branch through a PR (gh pr create, then gh pr merge --squash). Use
-    tools/assert-audit-story.sh for the audit gate, which needs active_story set
-    until the merge. Do not run scripts/sync-status-from-epics.sh. After the
-    last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml.'
+  next_skill: kickoff-branch
+  next_story: e06s03
+  note: 'e06s02 is released: fingerprintTree (src/tree.ts) and the named verdict reasons,
+    timeout and process-group kill (src/gate.ts) are on main. Next story is e06s03
+    (log every verdict in a plain-file counts ledger). In a fresh session, sync main,
+    then run kickoff-branch with git checkout -b (no worktree). Do not repeat build-epic
+    step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md. e06s03
+    has a tasks file only, so plan-work writes its spec first (waived for e06). Its
+    tasks file lists what plan-work must ask the owner: where the ledger file lives,
+    whether it is committed or ignored, and its line format. Carry threat model controls
+    C3 (one JSON object per line with JSON.stringify, so a command with a newline
+    cannot start a second entry) and C4 (the gate never reads done from the ledger)
+    into e06s03, and run security-review on its diff. The ledger is writable by the
+    agent, so a forged or erased entry is a residual risk (threat model T3); say so
+    in the spec. A verdict now holds reason, command and fingerprint, which the ledger
+    entry should record. Tests build temporary git repositories with src/test-helpers.ts
+    and never run a command in the real repository. Tag new src files with // story:
+    e06s03. Coverage is measurable with node --test --experimental-test-coverage (98.6
+    percent lines at e06s02); no coverage waiver is needed while it stays above 80
+    percent overall and 95 percent for the engine code. Waivers for e06 are in waivers:
+    gate-trace R1 (until e06 closes). Known limit recorded in the threat model: a
+    command that starts its own session (setsid) leaves the process group. e06s04
+    to e06s05 have tasks files only. Owner decisions still open: a CI step that reports
+    coverage, the e06s05 questions (what an override answers, and how the engine tells
+    an owner-authored hatch from one the agent wrote), the e05 checkpoint item (engines.node
+    >=26 lets setup-node pick a newer major), and the deferred experiment task source
+    and spend cap. main is protected: land every branch through a PR (gh pr create,
+    then gh pr merge --squash). Use tools/assert-audit-story.sh for the audit gate,
+    which needs active_story set until the merge. Do not run scripts/sync-status-from-epics.sh.
+    After the last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD
+    on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -443,9 +445,9 @@ metrics:
       total_seconds: 743.0
       avg_seconds: 46.4375
     release-branch:
-      calls: 20
-      total_seconds: 2808.0
-      avg_seconds: 140.4
+      calls: 21
+      total_seconds: 2859.0
+      avg_seconds: 136.14285714285714
     request-review:
       calls: 9
       total_seconds: 11503.0
