@@ -390,13 +390,18 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   next_story: e06s04
-  note: 'verify-work passed for e06s04 (2026-11-12): Preflight 196 of 196, the manual
-    steps confirmed by the owner, evidence in specs/verifications/e06s04-verify.yaml,
-    security scan done (F4 fixed in 4e03219, F5 residual owned by e08 or e09). Next:
-    audit-code, which must write Story: e06s04 in specs/AUDIT_LATEST.md. Earlier:
-    e06s04 is built, tasks 1 to 7 done, Preflight green (194 tests), on branch e06s04-terminal-states-breaker
+  note: 'audit-code passed for e06s04 (2026-11-12): five fixes (long functions split,
+    process.ts, shared json.ts, armKill arity and output argument, F4 test wait),
+    Preflight 196 of 196, the audit gate passes (specs/AUDIT_LATEST.md, full report
+    in specs/verifications/AUDIT-e06-e06s04.md). Next: commit-message for the working
+    tree, then request-review (independent second opinion), then release-branch. Earlier:
+    verify-work passed for e06s04 (2026-11-12): Preflight 196 of 196, the manual steps
+    confirmed by the owner, evidence in specs/verifications/e06s04-verify.yaml, security
+    scan done (F4 fixed in 4e03219, F5 residual owned by e08 or e09). Next: audit-code,
+    which must write Story: e06s04 in specs/AUDIT_LATEST.md. Earlier: e06s04 is built,
+    tasks 1 to 7 done, Preflight green (194 tests), on branch e06s04-terminal-states-breaker
     (made with git checkout -b, no worktree). Task 8 is open: it needs the security-review
     on the diff (signal handling, the capped tail reader, the order of checks that
     decides done) and its mutation checks passed (stall rule, ceiling and abort listener
@@ -454,9 +459,9 @@ metrics:
       total_seconds: 1624.0
       avg_seconds: 70.6086956521739
     audit-code:
-      calls: 17
-      total_seconds: 836.0
-      avg_seconds: 49.1764705882353
+      calls: 18
+      total_seconds: 945.0
+      avg_seconds: 52.5
     release-branch:
       calls: 22
       total_seconds: 2910.0
