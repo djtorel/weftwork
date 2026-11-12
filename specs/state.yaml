@@ -1,12 +1,16 @@
 workflow_mode: solo-git
-active_flow: null
+active_flow: build_epic
 active_epic: e06
-active_story: null
-phase: planning
+active_story: e06s02
+phase: build
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e06s02-fail-closed-tree
+epic_cycle:
+  step: 5
+  completed_steps: 0,1,2,3,4
+  threat_model: specs/security/epics/e06/THREAT_MODEL.md
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -390,27 +394,28 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: verify-work
   next_story: e06s02
-  note: 'e06s01 is released: the gate library and CLI (src/gate.ts, src/cli.ts) are
-    on main. Next story is e06s02 (fail closed, and name the tree each verdict ran
-    on). In a fresh session, sync main, then run kickoff-branch with git checkout
-    -b (no worktree). Do not repeat build-epic step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md.
-    e06s02 has a tasks file only, so plan-work writes its spec first (waived for e06).
-    Carry threat model controls C5, C6 and C7 into e06s02 and run security-review
-    on its diff. C3 and C4 belong to e06s03, C9 to e06s05. Confirm the git config
-    option names for C5 with ctx7 when e06s02 is planned. e06s02 adds the timeout;
-    until then a hanging command hangs the gate (threat model T6). Tag the new src
-    files with a story marker, for example // story: e06s02, as e06s01 did. Waivers
-    for e06 are in waivers: gate-trace R1 (until e06 closes). Owner decisions still
-    open: a measured coverage gate (the repo has no coverage tool), the e06s05 questions
-    (what an override answers, and how the engine tells an owner-authored hatch from
-    one the agent wrote), the e05 checkpoint item (engines.node >=26 lets setup-node
-    pick a newer major), and the deferred experiment task source and spend cap. main
-    is protected: land every branch through a PR (gh pr create, then gh pr merge --squash).
-    Use tools/assert-audit-story.sh for the audit gate. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD
-    on specs/state.yaml.'
+  note: 'e06s02 is planned and approved by the owner (spec
+    e06s02-fail-closed-tree.md, 4 tasks) and kicked off on branch
+    e06s02-fail-closed-tree. develop-tdd is done: all 4 tasks pass (73 tests).
+    Next: verify-work, audit-code, commit-message and release-branch. Do not
+    repeat build-epic step 0: the e06 threat model is
+    specs/security/epics/e06/THREAT_MODEL.md. Controls C5, C6, C7 and C10 apply
+    to this story; run security-review on its diff because it adds the first git
+    calls and hashing code. Tag new src files with // story: e06s02. Waivers for
+    e06 are in waivers: gate-trace R1 (until e06 closes). e06s03 to e06s05 have
+    tasks files only; plan-work writes each spec when its turn comes (waived for
+    e06). Owner decisions still open: a measured coverage gate (the repo has no
+    coverage tool), the e06s05 questions (what an override answers, and how the
+    engine tells an owner-authored hatch from one the agent wrote), the e05
+    checkpoint item (engines.node >=26 lets setup-node pick a newer major), and
+    the deferred experiment task source and spend cap. main is protected: land
+    every branch through a PR (gh pr create, then gh pr merge --squash). Use
+    tools/assert-audit-story.sh for the audit gate, which needs active_story set
+    until the merge. Do not run scripts/sync-status-from-epics.sh. After the
+    last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD on
+    specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -419,13 +424,13 @@ metrics:
       total_seconds: 239.0
       avg_seconds: 14.058823529411764
     plan-work:
-      calls: 20
-      total_seconds: 7243.0
-      avg_seconds: 362.15
+      calls: 21
+      total_seconds: 7699.0
+      avg_seconds: 366.6190476190476
     develop-tdd:
-      calls: 20
-      total_seconds: 9141.0
-      avg_seconds: 457.05
+      calls: 21
+      total_seconds: 9487.0
+      avg_seconds: 451.76190476190476
     verify-work:
       calls: 20
       total_seconds: 972.0
