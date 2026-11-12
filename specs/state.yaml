@@ -412,9 +412,9 @@ metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 19
-      total_seconds: 268.0
-      avg_seconds: 14.105263157894736
+      calls: 20
+      total_seconds: 281.0
+      avg_seconds: 14.05
     plan-work:
       calls: 23
       total_seconds: 9546.0
