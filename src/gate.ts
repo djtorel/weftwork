@@ -46,12 +46,17 @@ const notStarted: Verdict = { done: false, exitCode: null };
  */
 export function runGate(request: GateRequest): Promise<Verdict> {
   return new Promise((resolve) => {
-    const child = spawn(request.command, {
-      cwd: request.cwd,
-      shell: true,
-      stdio: ['ignore', 2, 2],
-    });
-    child.on('error', () => resolve(notStarted));
-    child.on('close', (code) => resolve({ done: code === 0, exitCode: code }));
+    try {
+      const child = spawn(request.command, {
+        cwd: request.cwd,
+        shell: true,
+        stdio: ['ignore', 2, 2],
+      });
+      child.on('error', () => resolve(notStarted));
+      child.on('close', (code) => resolve({ done: code === 0, exitCode: code }));
+    } catch {
+      // spawn throws at once for a NUL byte in the command or the cwd.
+      resolve(notStarted);
+    }
   });
 }

@@ -1,5 +1,7 @@
 # Threat model for epic e06 (Engine core and done gate, B1)
 
+type: threat-model
+context: engine
 date: 2026-11-11
 step: build-epic step 0 (security-review, threat-model mode)
 scope: specs/epics/e06-engine-core-done-gate/ (e06s01 to e06s05)

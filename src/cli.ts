@@ -30,18 +30,22 @@ function print(line: object): void {
   process.stdout.write(`${JSON.stringify(line)}\n`);
 }
 
+/** Unreadable input: one JSON line with the reason, exit 2. */
+function failUnreadable(error: string): void {
+  print({ done: false, error });
+  process.exitCode = 2;
+}
+
 const input = await readInput();
 if (input === null) {
-  print({ done: false, error: `input is over ${maxInputBytes} bytes` });
-  process.exitCode = 2;
+  failUnreadable(`input is over ${maxInputBytes} bytes`);
 } else {
   const parsed = parseRequest(input, process.cwd());
-  if (!parsed.ok) {
-    print({ done: false, error: parsed.error });
-    process.exitCode = 2;
-  } else {
+  if (parsed.ok) {
     const verdict = await runGate(parsed.request);
     print(verdict);
     process.exitCode = verdict.done ? 0 : 1;
+  } else {
+    failUnreadable(parsed.error);
   }
 }

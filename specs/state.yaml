@@ -8,8 +8,8 @@ vcs:
   kind: git
   branch: e06s01-gate-tracer
 epic_cycle:
-  step: 5
-  completed_steps: 0,1,2,3,4
+  step: 6
+  completed_steps: 0,1,2,3,4,5
   threat_model: specs/security/epics/e06/THREAT_MODEL.md
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
@@ -376,13 +376,14 @@ waivers:
   date: 2026-11-11
   scope: e06 only (e06s02 to e06s05 specs)
 handoff:
-  next_skill: verify-work
+  next_skill: audit-code
   next_story: e06s01
-  note: 'e06s01 is built on branch e06s01-gate-tracer: 3 tasks done, 30 tests pass,
-    RED commit then GREEN commit. The e06 threat model is in
-    specs/security/epics/e06/THREAT_MODEL.md and was not waived. Next: verify-
-    work, audit-code (use tools/assert-audit-story.sh), commit-message, release-
-    branch. Before the merge, reconcile e06s01 status in its tasks file,
+  note: 'e06s01 is built on branch e06s01-gate-tracer: 3 tasks done, 33 tests pass,
+    verify-work passed and the owner confirmed UAT (evidence in
+    specs/verifications/e06s01-verify.yaml). The e06 threat model is in
+    specs/security/epics/e06/THREAT_MODEL.md and was not waived. Next:
+    audit-code (use tools/assert-audit-story.sh), commit-message,
+    release-branch. Before the merge, reconcile e06s01 status in its tasks file,
     epic.yaml and execution-status.yaml, and write the handoff for e06s02
     (kickoff-branch from main with git checkout -b, no worktree). e06s02 to
     e06s05 have tasks files only; plan-work writes each spec when its turn comes
@@ -414,9 +415,9 @@ metrics:
       total_seconds: 9141.0
       avg_seconds: 457.05
     verify-work:
-      calls: 19
-      total_seconds: 879.0
-      avg_seconds: 46.26315789473684
+      calls: 20
+      total_seconds: 972.0
+      avg_seconds: 48.6
     audit-code:
       calls: 16
       total_seconds: 743.0

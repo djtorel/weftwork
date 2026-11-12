@@ -1,0 +1,107 @@
+---
+story_id: e06s01
+type: verification
+context: engine
+verified_at: "2026-11-12T00:01:07Z"
+verifier: verify-work
+risk: P1
+mode: "default; P1 depth (build, typecheck, tests, step-by-step manual)"
+branch: e06s01-gate-tracer
+phases:
+  branch_check:
+    passed: true
+    note: "On the feature branch, not main."
+  preflight_ci:
+    passed: true
+    note: >-
+      No PR is open yet, so gh pr checks does not apply.
+      Local Preflight run below.
+  pre_uat_verify_validation:
+    passed: true
+    note: "Tasks 1, 2 and 3 verify commands re-run; all pass."
+  mechanical:
+    typecheck: passed
+    lint: "passed (yamllint specs; no TypeScript linter in this repo)"
+    tests: "passed, 33 of 33"
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-12T00:01:07Z"
+    note: "Single run. Output tail: tests 33, pass 33, fail 0."
+  blind_spots:
+    passed: true
+    note: >-
+      No HIGH findings. MEDIUM double-tag warnings for older files
+      (from depends_on); none touch e06s01. Non-blocking.
+  completeness_critic:
+    passed: true
+    blockers: 0
+    warnings: 0
+    note: >-
+      First run warned that e06s01 was not in the traceability matrix
+      (zero-tag check skipped). After bash scripts/trace-stories.sh the
+      re-run gave BLOCKER=0 WARNING=0.
+  security_scan:
+    passed: true
+    note: >-
+      Read src/gate.ts and src/cli.ts against the e06 threat model
+      (specs/security/epics/e06/THREAT_MODEL.md). No HIGH findings. One
+      MEDIUM fail-closed gap (T7) found and fixed, see gaps.
+  nfr_gate:
+    skipped: true
+    note: "P0 only."
+  adversarial_gate:
+    passed: true
+    note: >-
+      bash scripts/verify-adversarial.sh passed before and after the
+      fix.
+  manual_uat:
+    status: confirmed
+    confirmed_by: owner
+    confirmed_at: "2026-11-12"
+    note: "Owner replied \"all pass\" to the five steps."
+    steps:
+      - step: "echo '{\"command\":\"true\"}' | node src/cli.ts"
+        expected: 'prints {"done":true,"exitCode":0}, exit 0'
+        actual: 'printed {"done":true,"exitCode":0}, exit 0'
+        passed: true
+      - step: "echo '{\"command\":\"exit 3\"}' | node src/cli.ts"
+        expected: 'prints {"done":false,"exitCode":3}, exit 1'
+        actual: 'printed {"done":false,"exitCode":3}, exit 1'
+        passed: true
+      - step: "echo '{\"command\":\"echo hi\"}' | node src/cli.ts 2>/dev/null"
+        expected: "prints only the JSON line, not hi"
+        actual: 'printed only {"done":true,"exitCode":0}'
+        passed: true
+      - step: "echo 'nope' | node src/cli.ts"
+        expected: 'a JSON line with "error", exit 2'
+        actual: 'printed {"done":false,"error":"input is not JSON"}, exit 2'
+        passed: true
+      - step: "ls src; npm test"
+        expected: "no smoke files; tests pass"
+        actual: "src holds cli, gate and their tests; 33 of 33 pass"
+        passed: true
+  okf_wiki_lint:
+    skipped: true
+    note: "specs/skills-wiki and specs/conventions-wiki do not exist."
+  gaps:
+    closed: true
+    count: 1
+    items:
+      - id: GAP-e06s01-01
+        found: "2026-11-12, security scan (threat model T7, C10)"
+        expected: >-
+          runGate never rejects, and the CLI always prints one JSON
+          line (spec AC-04, AC-06).
+        actual: >-
+          A NUL byte in command or cwd made spawn throw at once. runGate
+          rejected, and the CLI crashed with a stack trace and no JSON
+          line. Exit code was 1, so it failed closed by accident.
+        fix: >-
+          RED: 3 new tests failed (30 pass, 3 fail). GREEN: try/catch
+          around spawn in src/gate.ts resolves not done with exit code
+          null. Spec AC-04 and AC-06 got the NUL rows.
+        status: fixed, uncommitted until the owner gives the go-ahead
