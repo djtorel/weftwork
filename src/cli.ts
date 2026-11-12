@@ -8,7 +8,8 @@
 //
 // Exit 0: done. Exit 1: not done. Exit 2: input it cannot read.
 // e06s04 replaces these codes with one code per terminal state, so
-// callers must read the "done" field of the JSON line.
+// callers must read the JSON line: "done", the "reason" it names, the
+// "command" and the "fingerprint" of the tree taken before the run.
 import { parseRequest, runGate } from './gate.ts';
 
 const maxInputBytes = 1024 * 1024;
