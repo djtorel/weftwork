@@ -410,10 +410,13 @@ handoff:
   next_story: e07s02
   note: 'e07s01 (Claude Code Stop hook tracer) is released in its own PR; e07s02 is
     next, from main, in a fresh session. e07 (host adapters, B3) has four stories:
-    e07s02 fails closed on every fault of its own (3 BCPs), e07s03 installs and registers
-    the hook (5), e07s04 checks it is live (5). Only e07s02 has a story spec still
-    to write: its tasks file exists, its .md does not (waiver recorded for e07s02
-    to e07s04). Run plan-work for e07s02 first, then kickoff-branch, develop-tdd.
+    e07s02 fails closed on every fault of its own (5 BCPs, resized from 3 at plan-work), e07s03 installs and registers
+    the hook (5), e07s04 checks it is live (5). e07s02 is planned (spec
+    e07s02-fail-closed-faults.md, four tasks, owner decisions: engine timeout 600 s
+    and hook timeout 660 s as exported constants, faults Claude cannot fix still block
+    with an honest message, one story of 5 BCPs). e07s03 and e07s04 have no spec yet
+    (waiver recorded). Next: kickoff-branch e07s02 (branch e07s02-fail-closed-faults),
+    then develop-tdd.
     Owner decisions that bind the rest of e07 (2026-11-12): the declared command is
     an argument of the hook entry; blocked, stalled, exhausted, killed and overridden
     allow the stop with a systemMessage that says not done; failed blocks with exit
@@ -443,9 +446,9 @@ metrics:
       total_seconds: 325.0
       avg_seconds: 14.772727272727273
     plan-work:
-      calls: 25
-      total_seconds: 10806.0
-      avg_seconds: 432.24
+      calls: 26
+      total_seconds: 14511.0
+      avg_seconds: 558.1153846153846
     develop-tdd:
       calls: 25
       total_seconds: 10477.0

@@ -1,39 +1,57 @@
 ---
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
-# slice-tasks 2026-11-12. The adapter fails closed. Claude Code treats
-# only exit 2 as a block: a hook that throws, times out or prints
-# invalid JSON lets the action go ahead (R13 S25). So the adapter
-# must turn every fault of its own into exit 2. A Stop hook that
-# cannot start at all is not fixed by the host's onFailure option,
-# which has no effect on Stop; that residual is closed by the liveness
-# check in e07s04, not here.
-# Bad hook input has no run behind it, so the adapter answers exit 2
-# with a reason, as the engine CLI does for input it cannot read.
-# From e07s01 plan-work: the host kills a hook that runs past its
-# timeout, and that is a non-blocking error, so the stop goes ahead. The
-# adapter must give the engine a timeout under the hook's timeout, so
-# the engine's own "timeout" answer (exit 2) comes first. Confirm the
-# host's default command-hook timeout in the docs when planning.
+# slice-tasks 2026-11-12; plan-work 2026-11-12 (spec:
+# e07s02-fail-closed-faults.md). Claude Code treats only exit 2 as a
+# block: a hook that throws, times out or prints invalid JSON lets the
+# stop go ahead (R13 S25). So every fault of the adapter's own must end
+# in exit 2 with a reason. A Stop hook that cannot start at all is not
+# fixed here; the e07s04 liveness check closes that residual.
+# Host facts (hooks docs, read 2026-11-12): the default hook timeout is
+# 600 s, a timed-out hook is cancelled with its output discarded.
+# Owner decisions (2026-11-12, three questions, each the recommended
+# option): (1) engine timeout 600 s, hook entry timeout 660 s, both as
+# exported constants that e07s03 reads; (2) faults Claude cannot fix keep
+# exit 2 with an honest message; (3) one story, resized from 3 to 5 BCPs
+# (epic 18 to 20; WSJF not rescored).
+# Changed from the slice: four tasks, not two. Tests use temporary
+# directories and never this repository's ledger.
 story_id: e07s02
 title: The adapter fails closed on every fault of its own
 status: todo
-bcps: 3
+bcps: 5
 type: feat
 context: adapter
 risk: P1
+spec: e07s02-fail-closed-faults.md
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Write the fault tests first in
-      src/claude-hook.fault.test.ts: stdin that is not JSON, stdin
-      that is empty, stdin over the size limit, an engine that
-      throws, an engine that never answers (a timeout), a missing
-      declared command, and a cwd that is not a git repository. Each
-      must end in exit 2 with a reason on stderr, never exit 0 and
-      never exit 1. Then make src/claude-hook-cli.ts pass
+      RED, then GREEN. Add the AC-01 and AC-02 tests to
+      src/claude-hook.test.ts and record the failure. Then in
+      src/claude-hook.ts export engineTimeoutMs (600000) and
+      hookTimeoutSeconds (660), set timeoutMs in hookRequest, and make
+      the failed answer say the right thing for each reason with an
+      exhaustive switch over Reason. All stay exit 2
     verify: >-
-      node --test src/claude-hook.fault.test.ts
-      src/claude-hook-cli.test.ts && npm run typecheck
+      node --test src/claude-hook.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 2
+    description: >-
+      RED, then GREEN. Write src/claude-hook.fault.test.ts for AC-03 to
+      AC-06 using PassThrough streams (input over 1 MiB, empty input,
+      no end of input before the deadline, a stream error, work that
+      throws or rejects) and record the failure. Then add readHookInput
+      and failClosed to src/claude-hook.ts. Each fault ends in exit 2
+      with a reason, never exit 0 and never exit 1
+    verify: >-
+      node --test src/claude-hook.fault.test.ts src/claude-hook.test.ts
+      && npm run typecheck
     risk: P1
     status: todo
     allure:
@@ -41,18 +59,39 @@ tasks:
       categories:
         - "adapter"
         - "e07 B3"
-  - id: 2
+  - id: 3
     description: >-
-      Write the residual down where the owner will see it: in the
-      header of src/claude-hook-cli.ts, say that exit 1 and a crash
-      before the shell starts (a missing file, a Node that is too
-      old) allow the stop, and that e07s04 is the check for that. Add
-      a test that runs the CLI under a deliberately broken entry
-      path and asserts the exit code is not 2, so the gap is pinned
-      and not hidden
+      RED, then GREEN. Write src/claude-hook-cli.fault.test.ts for AC-03
+      to AC-05 and AC-07 to AC-10: the real CLI in temporary
+      directories (not a git tree, a command that cannot start, a bad
+      argument list with stdin left open, SIGTERM during "sleep 60"
+      with the sleep gone afterwards). Record the failure. Then wire
+      src/claude-hook-cli.ts through failClosed, readHookInput and a
+      SIGTERM and SIGINT abort controller passed to runEngine, exiting
+      2 on a signal
     verify: >-
       node --test src/claude-hook.fault.test.ts
-      && grep -q 'e07s04' src/claude-hook-cli.ts
+      src/claude-hook-cli.fault.test.ts src/claude-hook-cli.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 4
+    description: >-
+      Write the residual in the header of src/claude-hook-cli.ts: exit 1,
+      a crash before the code runs and SIGKILL allow the stop, and
+      e07s04 is the check. Add the AC-11 test that runs the CLI on a
+      path that does not exist and asserts the exit code is not 2. Then
+      run the AGENTS.md Preflight line
+    verify: >-
+      grep -q 'e07s04' src/claude-hook-cli.ts
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
     risk: P2
     status: todo
     allure:

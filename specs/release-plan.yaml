@@ -98,7 +98,7 @@ epics:
   - id: e07
     title: Host adapters (B3)
     wsjf: 4.2               # (8 + 5 + 8) / 5; estimate
-    bcps: 18                # sliced 2026-11-12: 4 stories, 3 to 5 BCPs
+    bcps: 20                # sliced 2026-11-12: 4 stories; e07s02 3 to 5
     risk: P2
     depends_on: [e06]
     capsule_dir: epics/e07-host-adapters

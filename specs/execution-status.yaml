@@ -78,7 +78,7 @@ epics:
     status: in_progress
     title: Host adapters (B3)
     wsjf: 4.2
-    total_bcps: 18
+    total_bcps: 20
   e08:
     status: todo
     title: State and handoff (B2)
