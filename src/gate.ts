@@ -1,8 +1,9 @@
 // story: e06s01
 // The evidence gate: done means a declared command, run by the engine,
 // exited 0 and left the working tree as it found it. The agent's own claim
-// is never evidence (e06s01, e06s02).
+// is never evidence (e06s01, e06s02). Every verdict is logged (e06s03).
 import { spawn, type ChildProcess } from 'node:child_process';
+import { appendEntry, ledgerPath } from './ledger.ts';
 import { fingerprintTree, type FingerprintResult } from './tree.ts';
 
 export type GateRequest = { command: string; cwd: string; timeoutMs?: number };
@@ -14,7 +15,8 @@ export type Reason =
   | 'signal'
   | 'timeout'
   | 'no-tree'
-  | 'tree-changed';
+  | 'tree-changed'
+  | 'no-ledger';
 
 /** `done` is true only with reason `passed`. `fingerprint` is the one taken
  * before the run, or null when the tree could not be fingerprinted. */
@@ -181,12 +183,38 @@ async function runAndCompare(request: GateRequest, before: string): Promise<Verd
  * Fingerprint the tree, run the command, and name the verdict. A tree that
  * cannot be fingerprinted is `no-tree` and the command does not run. A run
  * that exits 0 is `passed` only when the tree is the same afterwards.
- * Resolves, never rejects, for an expected failure.
  */
-export async function runGate(request: GateRequest): Promise<Verdict> {
+async function decide(request: GateRequest): Promise<Verdict> {
   const before = await fingerprintTree(request.cwd);
   if (before.ok) {
     return runAndCompare(request, before.fingerprint);
   }
   return verdictOf(request, { reason: 'no-tree', exitCode: null }, null);
+}
+
+function note(text: string): void {
+  process.stderr.write(`weftwork: ${text}\n`);
+}
+
+/**
+ * Log the verdict, whatever it is. A `passed` verdict that cannot be logged
+ * is `no-ledger` and not done; any other verdict is kept as it is. The
+ * ledger is only written here, never read: done comes from the run (C4).
+ */
+async function record(cwd: string, verdict: Verdict): Promise<Verdict> {
+  const path = await ledgerPath(cwd);
+  const result = path === null ? null : await appendEntry(path, verdict, new Date());
+  if (result?.ok) {
+    return verdict;
+  }
+  note(`ledger not written: ${result === null ? 'no git working tree' : result.error}`);
+  return verdict.reason === 'passed' ? { ...verdict, done: false, reason: 'no-ledger' } : verdict;
+}
+
+/**
+ * Decide the verdict and log it in the ledger (e06s03). Resolves, never
+ * rejects, for an expected failure.
+ */
+export async function runGate(request: GateRequest): Promise<Verdict> {
+  return record(request.cwd, await decide(request));
 }

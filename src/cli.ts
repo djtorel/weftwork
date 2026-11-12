@@ -10,6 +10,11 @@
 // e06s04 replaces these codes with one code per terminal state, so
 // callers must read the JSON line: "done", the "reason" it names, the
 // "command" and the "fingerprint" of the tree taken before the run.
+//
+// Every verdict is also logged in the git dir (e06s03, src/ledger.ts). The
+// ledger stores the command string, so a secret in a declared command is
+// stored on disk. Do not put secrets in a command. A passing run that
+// cannot be logged is not done, with the reason "no-ledger".
 import { parseRequest, runGate } from './gate.ts';
 
 const maxInputBytes = 1024 * 1024;
