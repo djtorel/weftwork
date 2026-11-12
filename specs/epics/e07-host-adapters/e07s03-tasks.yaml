@@ -22,7 +22,7 @@
 # regular file is read (BUG-007 class, e10).
 story_id: e07s03
 title: Install registers the Stop hook in the project's Claude Code settings
-status: todo
+status: in_progress
 bcps: 5
 type: feat
 context: adapter
@@ -43,7 +43,7 @@ tasks:
     verify: >-
       node --test src/claude-install.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: passing
     allure:
       severity: critical
       categories:
