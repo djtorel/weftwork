@@ -9,6 +9,10 @@
 // findings (R15 [S17]).
 import { failingRun, type LedgerEntry } from './ledger.ts';
 
+/** Start values, tunable and unmeasured (R15 [S17]; R10 measures them). */
+export const defaultStallAfter = 3;
+export const defaultMaxFailures = 5;
+
 /** A stop rule that tripped: which state, the threshold, and the count. */
 export type Trip = { state: 'stalled' | 'exhausted'; threshold: number; count: number };
 
@@ -31,4 +35,18 @@ export function checkStall(entries: LedgerEntry[], command: string, stallAfter: 
       entry.exitCode === first.exitCode,
   );
   return same ? { state: 'stalled', threshold: stallAfter, count: recent.length } : null;
+}
+
+/**
+ * `exhausted` when `command` has failed `maxFailures` runs in a row or more.
+ * A pass ends the count, as in `countsFor`. The engine checks this before a
+ * run too, and does not run at the ceiling, so a later pass cannot undo it.
+ */
+export function checkCeiling(
+  entries: LedgerEntry[],
+  command: string,
+  maxFailures: number,
+): Trip | null {
+  const count = failingRun(entries, command).length;
+  return count >= maxFailures ? { state: 'exhausted', threshold: maxFailures, count } : null;
 }

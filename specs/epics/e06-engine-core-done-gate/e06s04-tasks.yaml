@@ -103,7 +103,7 @@ tasks:
       node --test src/ceiling.test.ts src/breaker.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
