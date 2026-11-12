@@ -17,11 +17,12 @@ function blockStop(stderr: string): HookOutput {
 }
 
 async function readStdin(): Promise<string> {
-  const chunks: Buffer[] = [];
+  process.stdin.setEncoding('utf8');
+  let text = '';
   for await (const chunk of process.stdin) {
-    chunks.push(chunk as Buffer);
+    text += chunk;
   }
-  return Buffer.concat(chunks).toString('utf8');
+  return text;
 }
 
 async function run(args: string[]): Promise<HookOutput> {

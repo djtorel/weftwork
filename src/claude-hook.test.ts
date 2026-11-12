@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Answer } from './engine.ts';
 import { hookAnswer, parseHookInput } from './claude-hook.ts';
+import { isRecord } from './json.ts';
 import type { State } from './states.ts';
 
 function answer(state: State, extra: Partial<Answer> = {}): Answer {
@@ -23,11 +24,11 @@ function answer(state: State, extra: Partial<Answer> = {}): Answer {
 /** Parse stdout as one JSON object and return it. */
 function systemMessage(stdout: string): string {
   const parsed: unknown = JSON.parse(stdout);
-  assert.ok(typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed));
+  assert.ok(isRecord(parsed));
   assert.deepEqual(Object.keys(parsed), ['systemMessage']);
-  const message = (parsed as { systemMessage: unknown }).systemMessage;
-  assert.equal(typeof message, 'string');
-  return message as string;
+  const message = parsed.systemMessage;
+  assert.ok(typeof message === 'string');
+  return message;
 }
 
 test('AC-e07s01-01 a done run lets the agent stop', () => {
@@ -39,10 +40,11 @@ test('AC-e07s01-02 a failed run blocks the stop', () => {
   assert.equal(out.exitCode, 2);
   assert.equal(out.stdout, '');
   assert.match(out.stderr, /not done \(failed, exit-nonzero\): npm test/);
+  assert.match(out.stderr, /Make that command pass before you stop\./);
 });
 
 for (const state of ['blocked', 'stalled', 'exhausted', 'killed'] as const) {
-  test(`AC-e07s01-03 a ${state} run ends and the stop is allowed`, () => {
+  test(`AC-e07s01-03 a run that ends ${state} allows the stop`, () => {
     const out = hookAnswer(answer(state, { detail: 'the detail text' }));
     assert.equal(out.exitCode, 0);
     assert.equal(out.stderr, '');
@@ -66,6 +68,7 @@ test('AC-e07s01-04 an overridden run is allowed and never reads as done', () => 
   const message = systemMessage(out.stdout);
   assert.match(message, /overridden/);
   assert.match(message, /not done/);
+  assert.ok(message.includes('npm test'));
 });
 
 test('AC-e07s01-04 no state but done says the work is done', () => {

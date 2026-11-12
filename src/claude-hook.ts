@@ -33,19 +33,20 @@ function warn(message: string): HookOutput {
   return { exitCode: 0, stdout: JSON.stringify({ systemMessage: message }), stderr: '' };
 }
 
+/** The one answer that blocks the stop: Claude reads stderr as the reason to
+ * keep working. */
+function blockWith(answer: Answer): HookOutput {
+  const reason = `weftwork: not done (failed, ${answer.reason}): ${answer.command}\n`;
+  return { exitCode: 2, stdout: '', stderr: `${reason}Make that command pass before you stop.\n` };
+}
+
 /** Map an engine answer to the exit code and output the host reads. */
 export function hookAnswer(answer: Answer): HookOutput {
   switch (answer.state) {
     case 'done':
       return { exitCode: 0, stdout: '', stderr: '' };
     case 'failed':
-      return {
-        exitCode: 2,
-        stdout: '',
-        stderr:
-          `weftwork: not done (failed, ${answer.reason}): ${answer.command}\n` +
-          'Make that command pass before you stop.\n',
-      };
+      return blockWith(answer);
     case 'blocked':
     case 'stalled':
     case 'exhausted':
