@@ -1,7 +1,7 @@
 workflow_mode: solo-git
 active_flow: null
-active_epic: e06
-active_story: e06s05
+active_epic: e07
+active_story: e07s01
 phase: planning
 test_plan: lite
 vcs:
@@ -389,21 +389,37 @@ waivers:
     the release-branch questions, recommended option).
   date: 2026-11-11
   scope: e06s01 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e07s02
+    to e07s04
+  why: Those three stories get their specs when each is planned. Planning them now
+    would be paperwork, and e07s04 reads what e07s02 and e07s03 learn. e07s01 itself
+    is clear. The owner chose to waive it for e07, as for e02 to e06, on 2026-11-12
+    (answer to a plan-work question, recommended option).
+  date: 2026-11-12
+  scope: e07 only (e07s02 to e07s04 specs)
+- what: gate-trace FAIL (rule R1) for undone e07 stories with no code tags
+  why: R1 fails any undone story with 0 code tags. e07s02 to e07s04 have no code
+    until each ships, so none can carry a tag. The e06-only waiver ended when e06
+    closed. The owner chose to re-waive for e07 only on 2026-11-12 (answer to a
+    plan-work question, recommended option).
+  date: 2026-11-12
+  scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
+    carry a code tag
 handoff:
-  next_skill: slice-tasks
-  next_story: e07
-  note: 'e06 (engine core and done gate) is released on branch e06s05-one-shot-escape-hatch, not yet landed on main. Stories e06s01 to e06s05 are done. Capsule archived to specs/epics/archive/e06-engine-core-done-gate; epic and execution-status set to done. Gates: Preflight 251 of 251; line coverage 99.14 percent overall, override, engine and ledger 98 percent or more; audit-code PASS (G29 accepted); request-review round 2 at 100 percent for both reviewers; gate-trace verify OK; traceability regenerated; completeness critic clean; 0 HIGH blind spots. Next epic is e07 (host adapters, B3). It has no sliced stories yet (stories: []). Next skill: slice-tasks for e07, in a fresh session. Do not run kickoff-branch until e07 has stories. Residuals to carry: F5 (an agent can make the ledger unreadable to switch the stop rules off), owned by e08 or e09; setsid residual (T6); T4 authorship of override.json is not proof; read-then-rename gap recorded in specs/security/REVIEW.md. Open for the owner before e07: whether to rescore e07 WSJF, and whether the pi wrapper stays in scope. Ask the owner before each push, PR and merge. main is protected. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  next_skill: kickoff-branch
+  next_story: e07s01
+  note: 'e07 (host adapters, B3) is sliced and e07s01 is planned, on branch e07-host-adapters, not yet committed or pushed. Stories: e07s01 Stop hook tracer (5 BCPs), e07s02 fail closed (3), e07s03 install and register (5), e07s04 live check (5). Spec: specs/epics/e07-host-adapters/e07s01-claude-stop-hook.md. Owner decisions 2026-11-12: the declared command is an argument of the hook entry; blocked, stalled, exhausted, killed and overridden allow the stop with a systemMessage that says not done; failed blocks with exit 2. Waivers recorded for e07: missing specs for e07s02 to e07s04, and gate-trace R1. Next: commit the planning on e07-host-adapters and land it by PR (as for e06, PR 39), with the owner''s go-ahead for each push, PR and merge; then kickoff-branch e07s01-claude-stop-hook from main and develop-tdd. Carry to e07s02 and e07s03: a hook the host kills on timeout fails open, so the engine timeout must be under the hook timeout, and the entry sets an explicit timeout. Residuals to carry: F5 (an agent can make the ledger unreadable to switch the stop rules off), owned by e08 or e09; setsid residual (T6); T4 authorship of override.json is not proof; read-then-rename gap recorded in specs/security/REVIEW.md. main is protected. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
     survey-context:
-      calls: 20
-      total_seconds: 281.0
-      avg_seconds: 14.05
+      calls: 21
+      total_seconds: 307.0
+      avg_seconds: 14.619047619047619
     plan-work:
-      calls: 24
-      total_seconds: 9992.0
-      avg_seconds: 416.3333333333333
+      calls: 25
+      total_seconds: 10806.0
+      avg_seconds: 432.24
     develop-tdd:
       calls: 24
       total_seconds: 10400.0

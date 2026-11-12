@@ -1,0 +1,80 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-12; plan-work 2026-11-12 (spec:
+# e07s01-claude-stop-hook.md). Tracer bullet for B3: a Claude Code
+# Stop hook reads the host's JSON on stdin, calls runEngine, and answers
+# in the host's terms. Exit 2 blocks the stop (Claude Code hooks docs,
+# read 2026-11-12). The library holds the mapping and the CLI is a thin
+# shell (CONVENTIONS.md, TypeScript code style).
+# Owner decisions (2026-11-12, three questions, each the recommended
+# option): (1) the declared command is an argument of the hook entry;
+# (2) blocked, stalled, exhausted and killed allow the stop with a
+# systemMessage that says "not done"; (3) overridden allows the stop
+# with a systemMessage that says "overridden" and "not done".
+# Changed from the slice: the task 2 verify no longer pipes "false"
+# into the CLI in this repository. That would add a failure to the real
+# ledger on every run and trip its stop rules. The CLI tests use
+# temporary repositories instead.
+story_id: e07s01
+title: A Claude Code Stop hook calls the engine and blocks the stop
+status: todo
+bcps: 5
+type: feat
+context: adapter
+risk: P1
+spec: e07s01-claude-stop-hook.md
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/claude-hook.test.ts first (spec AC-01
+      to AC-05) and record the failure. Then write src/claude-hook.ts:
+      parseHookInput reads cwd from the Stop input; hookAnswer maps an
+      engine Answer to exit code, stdout and stderr with an exhaustive
+      switch over State. Only done is silent with exit 0; failed is exit
+      2 with the reason on stderr; blocked, stalled, exhausted, killed
+      and overridden are exit 0 with one systemMessage JSON object that
+      says "not done"
+    verify: >-
+      node --test src/claude-hook.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 2
+    description: >-
+      RED, then GREEN. Write src/claude-hook-cli.test.ts first (spec
+      AC-06 to AC-09): it starts the real CLI as a child process against
+      makeTestRepo() repositories, so no run touches this repository's
+      ledger. Record the failure. Then write src/claude-hook-cli.ts as a
+      thin shell: read stdin, take exactly one argument after -- as the
+      declared command, call runEngine with the hook's cwd, and print
+      and exit as hookAnswer says
+    verify: >-
+      node --test src/claude-hook.test.ts src/claude-hook-cli.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 3
+    description: >-
+      Update the AGENTS.md Architecture section to name the Claude Code
+      adapter files (spec AC-10). Then run the AGENTS.md Preflight line
+    verify: >-
+      grep -q 'claude-hook' AGENTS.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo
+    allure:
+      severity: minor
+      categories:
+        - "docs"
+        - "e07 B3"

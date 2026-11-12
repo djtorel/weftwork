@@ -2,6 +2,7 @@
 id: e07
 title: Host adapters (B3)
 wsjf: 4.2
+total_bcps: 18
 risk: P2
 status: todo
 depends_on:
@@ -10,6 +11,46 @@ done_when: >-
   A Claude Code command hook calls the engine, fails closed, is
   registered and trusted, and the engine can check that it is live; a
   pi TypeScript wrapper is added only if it stays small
-stories: []
+stories:
+  - id: e07s01
+    title: A Claude Code Stop hook calls the engine and blocks the stop
+    bcps: 5
+    status: todo
+    tasks: e07s01-tasks.yaml
+    delta: ADDED
+  - id: e07s02
+    title: The adapter fails closed on every fault of its own
+    bcps: 3
+    status: todo
+    tasks: e07s02-tasks.yaml
+    delta: ADDED
+  - id: e07s03
+    title: Install registers the Stop hook in the project's Claude Code settings
+    bcps: 5
+    status: todo
+    tasks: e07s03-tasks.yaml
+    delta: ADDED
+  - id: e07s04
+    title: Check that the hook is live, and fail loudly when it is not
+    bcps: 5
+    status: todo
+    tasks: e07s04-tasks.yaml
+    delta: ADDED
 # Candidate epic B3 in docs/research/SYNTHESIS.md [S5][S13].
 # Claude Code first. Raw WSJF is above e06, but it needs the engine.
+# Sliced 2026-11-12 (slice-tasks). Order e07s01 to e07s04, one story
+# at a time. e07s01 is the tracer: the host's JSON in, the engine
+# runs, exit 2 blocks the stop. Fail-closed (s02) comes before the
+# install (s03) so no unsafe hook is ever registered. The live check
+# (s04) comes last because it reads what s03 writes and what s01
+# logs, and it closes the one gap s02 cannot: a Stop hook that never
+# starts is not blocked by any host option (R13 S25).
+# Owner decisions (2026-11-12, recommendations accepted by running
+# slice-tasks without changing them): WSJF stays 4.2, and the pi
+# wrapper is left out of this slicing. The done_when allows it only if
+# it stays small; add it as a later story, after e07s04, if it does.
+# R1 of gate-trace needs a new owner decision before e07 is released:
+# the e06 waiver ended when e06 closed.
+# Out of scope here, each its own epic: the protected-paths list and
+# the per-host boundary report (e10), skills and the entry command
+# (e11), plain-file state and handoff (e08).
