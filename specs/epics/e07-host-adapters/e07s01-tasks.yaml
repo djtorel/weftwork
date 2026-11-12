@@ -28,7 +28,10 @@ tasks:
     description: >-
       RED, then GREEN. Write src/claude-hook.test.ts first (spec AC-01
       to AC-05) and record the failure. Then write src/claude-hook.ts:
-      parseHookInput reads cwd from the Stop input; hookAnswer maps an
+      parseHookInput checks that the Stop input is a JSON object and
+      reads nothing from it (round 1 review: cwd follows the agent's cd);
+      projectDir takes CLAUDE_PROJECT_DIR; hookRequest checks the one
+      command after --; hookAnswer maps an
       engine Answer to exit code, stdout and stderr with an exhaustive
       switch over State. Only done is silent with exit 0; failed is exit
       2 with the reason on stderr; blocked, stalled, exhausted, killed
@@ -50,7 +53,7 @@ tasks:
       makeTestRepo() repositories, so no run touches this repository's
       ledger. Record the failure. Then write src/claude-hook-cli.ts as a
       thin shell: read stdin, take exactly one argument after -- as the
-      declared command, call runEngine with the hook's cwd, and print
+      declared command, call runEngine in CLAUDE_PROJECT_DIR, and print
       and exit as hookAnswer says
     verify: >-
       node --test src/claude-hook.test.ts src/claude-hook-cli.test.ts

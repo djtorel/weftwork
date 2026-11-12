@@ -406,7 +406,7 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   next_story: e07s01
   note: 'e07 (host adapters, B3) is sliced and e07s01 is planned, on branch e07-host-adapters, not yet committed or pushed. Stories: e07s01 Stop hook tracer (5 BCPs), e07s02 fail closed (3), e07s03 install and register (5), e07s04 live check (5). Spec: specs/epics/e07-host-adapters/e07s01-claude-stop-hook.md. Owner decisions 2026-11-12: the declared command is an argument of the hook entry; blocked, stalled, exhausted, killed and overridden allow the stop with a systemMessage that says not done; failed blocks with exit 2. Waivers recorded for e07: missing specs for e07s02 to e07s04, and gate-trace R1. Next: commit the planning on e07-host-adapters and land it by PR (as for e06, PR 39), with the owner''s go-ahead for each push, PR and merge; then kickoff-branch e07s01-claude-stop-hook from main and develop-tdd. Carry to e07s02 and e07s03: a hook the host kills on timeout fails open, so the engine timeout must be under the hook timeout, and the entry sets an explicit timeout. Residuals to carry: F5 (an agent can make the ledger unreadable to switch the stop rules off), owned by e08 or e09; setsid residual (T6); T4 authorship of override.json is not proof; read-then-rename gap recorded in specs/security/REVIEW.md. main is protected. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:

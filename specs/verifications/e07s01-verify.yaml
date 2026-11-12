@@ -15,7 +15,7 @@ phases:
     passed: true
     note: >-
       No PR is open, so gh pr checks does not apply. Local Preflight
-      below: 271 of 271 tests.
+      below: 281 of 281 tests (after review rounds 1 and 2).
   pre_uat_verify_validation:
     passed: true
     note: >-
@@ -24,7 +24,7 @@ phases:
   mechanical:
     typecheck: passed
     lint: "passed (yamllint specs; no TypeScript linter in this repo)"
-    tests: "passed, 271 of 271"
+    tests: "passed, 281 of 281"
   terminal_verdict:
     command: >-
       yamllint specs && bash tools/validate-specs-yaml.sh && bash
@@ -32,15 +32,18 @@ phases:
     exit_code: 0
     captured_at: "2026-11-12T18:50:00Z"
     note: >-
-      Single run of the full Preflight on bd7e259. Output tail: tests
-      271, pass 271, fail 0.
+      Single run of the full Preflight after review round 2, on the
+      working tree on top of 4c40e3a. Output tail: tests 281, pass 281,
+      fail 0. This replaces the earlier run at bd7e259 (271 tests).
   security_scan:
     passed: true
     note: >-
-      Diff scan against main. No finding at confidence 8 or above. Three
-      candidates at confidence 6 (fail-open on a crash, no stdin cap, cwd
-      from the host) are recorded in specs/security/REVIEW.md and owned by
-      e07s02 and e07s04.
+      One finding at confidence 9, found by review round 1 and fixed: the
+      command ran in the Stop input's cwd, which follows the agent's cd.
+      It now runs in CLAUDE_PROJECT_DIR (AC-e07s01-11). Two items at
+      confidence 6 remain in specs/security/REVIEW.md and are owned by
+      e07s02 and e07s04. The first scan missed the finding; the revised
+      addendum says so.
   blind_spots:
     passed: true
     note: "0 HIGH, 32 MEDIUM, 7 LOW."
@@ -55,6 +58,19 @@ phases:
   adversarial:
     passed: true
     note: "scripts/verify-adversarial.sh: PASS."
+  audit_and_review:
+    passed: true
+    note: >-
+      audit-code: PASS (specs/AUDIT_LATEST.md). request-review round 1 of
+      5: Reviewer A 84.6 percent, Reviewer B 86.4 percent, one must-fix
+      each (the cd bypass), AND-gate FAIL. Fixed with the owner's choice
+      of CLAUDE_PROJECT_DIR. Round 2: Reviewer A 94.1 percent and
+      Reviewer B 96.2 percent, zero must-fix, AND-gate PASS. The round 2
+      should-fix items (security addendum wording, a stale spec risk
+      sentence, a test that passed with missing output) are fixed. Left
+      as consider by decision: a shared Result type, the hookAnswer
+      runtime default, the stall threshold in the stalled-run test, and
+      the e07s02 notes in the review addendum.
   manual:
     status: confirmed_by_owner
     steps:
