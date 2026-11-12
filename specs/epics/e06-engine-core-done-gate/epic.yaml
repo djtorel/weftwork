@@ -27,7 +27,7 @@ stories:
   - id: e06s03
     title: Log every verdict in a plain-file counts ledger
     bcps: 3
-    status: todo
+    status: done
     tasks: e06s03-tasks.yaml
     delta: ADDED
   - id: e06s04

@@ -14,7 +14,7 @@
 # controls C3, C4, C5 and C10 apply; tasks 1 and 2 are security: medium.
 story_id: e06s03
 title: Log every verdict in a plain-file counts ledger
-status: in_progress
+status: done
 bcps: 3
 type: feat
 context: engine
