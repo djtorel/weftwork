@@ -6,7 +6,13 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { ledgerPath, readLedger, type LedgerEntry } from './ledger.ts';
+import {
+  ledgerPath,
+  readLedger,
+  readLedgerTail,
+  type LedgerEntry,
+  type StateEntry,
+} from './ledger.ts';
 
 const tempDirs: string[] = [];
 
@@ -98,4 +104,14 @@ export async function waitForFile(path: string, limitMs: number): Promise<boolea
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   return true;
+}
+
+/** The state lines of the repository at `repo`, read back. Fails the test if
+ * the path cannot be found or the file cannot be read. */
+export async function readRepoStates(repo: string): Promise<StateEntry[]> {
+  const path = await ledgerPath(repo);
+  assert.notEqual(path, null);
+  const read = await readLedgerTail(path as string, 1024 * 1024);
+  assert.ok(read.ok);
+  return read.states;
 }
