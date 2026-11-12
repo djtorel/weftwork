@@ -1,0 +1,62 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-12. The adapter fails closed. Claude Code treats
+# only exit 2 as a block: a hook that throws, times out or prints
+# invalid JSON lets the action go ahead (R13 S25). So the adapter
+# must turn every fault of its own into exit 2. A Stop hook that
+# cannot start at all is not fixed by the host's onFailure option,
+# which has no effect on Stop; that residual is closed by the liveness
+# check in e07s04, not here.
+# Bad hook input has no run behind it, so the adapter answers exit 2
+# with a reason, as the engine CLI does for input it cannot read.
+# From e07s01 plan-work: the host kills a hook that runs past its
+# timeout, and that is a non-blocking error, so the stop goes ahead. The
+# adapter must give the engine a timeout under the hook's timeout, so
+# the engine's own "timeout" answer (exit 2) comes first. Confirm the
+# host's default command-hook timeout in the docs when planning.
+story_id: e07s02
+title: The adapter fails closed on every fault of its own
+status: todo
+bcps: 3
+type: feat
+context: adapter
+risk: P1
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write the fault tests first in
+      src/claude-hook.fault.test.ts: stdin that is not JSON, stdin
+      that is empty, stdin over the size limit, an engine that
+      throws, an engine that never answers (a timeout), a missing
+      declared command, and a cwd that is not a git repository. Each
+      must end in exit 2 with a reason on stderr, never exit 0 and
+      never exit 1. Then make src/claude-hook-cli.ts pass
+    verify: >-
+      node --test src/claude-hook.fault.test.ts
+      src/claude-hook-cli.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 2
+    description: >-
+      Write the residual down where the owner will see it: in the
+      header of src/claude-hook-cli.ts, say that exit 1 and a crash
+      before the shell starts (a missing file, a Node that is too
+      old) allow the stop, and that e07s04 is the check for that. Add
+      a test that runs the CLI under a deliberately broken entry
+      path and asserts the exit code is not 2, so the gap is pinned
+      and not hidden
+    verify: >-
+      node --test src/claude-hook.fault.test.ts
+      && grep -q 'e07s04' src/claude-hook-cli.ts
+    risk: P2
+    status: todo
+    allure:
+      severity: normal
+      categories:
+        - "adapter"
+        - "e07 B3"

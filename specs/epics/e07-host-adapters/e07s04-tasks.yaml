@@ -1,0 +1,82 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-12. The engine can check that the hook is live
+# and fails loudly when it is not (SYNTHESIS, "Engine and adapters").
+# This closes the residual from e07s02: a Stop hook that never starts
+# is not blocked by any host option, so it is found by a check.
+# Two layers, neither one spends model tokens:
+#   static: the settings file holds the Stop entry, it names an
+#     adapter file that exists, and the host's disableAllHooks switch
+#     is not on in the project's settings;
+#   evidence: the adapter writes one heartbeat line to the ledger in
+#     the git dir each time the host calls it, and the check reports
+#     the time of the last one. A registered hook with no heartbeat
+#     is reported as "not seen", not as live.
+# Managed settings can switch hooks off and sit outside the
+# repository; the check says what it could not read (e10 reports the
+# per-host boundary). Not a trial on a real host: no source
+# measured it, and a trial costs tokens, which the owner has not
+# capped (release-plan, B7).
+story_id: e07s04
+title: Check that the hook is live, and fail loudly when it is not
+status: todo
+bcps: 5
+type: feat
+context: adapter
+risk: P1
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/claude-live.test.ts first, then
+      src/claude-live.ts: a pure function from the settings text, the
+      list of files that exist and the heartbeat lines to a report
+      with one of three answers (live, registered but not seen, not
+      registered) and a reason. Cover: no settings file, no Stop
+      entry, a Stop entry for another command, a missing adapter
+      file, disableAllHooks on, a registration with no heartbeat, and
+      one with a recent heartbeat. Only "live" ever reads as live
+    verify: >-
+      node --test src/claude-live.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 2
+    description: >-
+      RED, then GREEN. The adapter CLI writes one heartbeat line to
+      the ledger each time the host calls it, before it runs the
+      engine, and a failure to write it does not change the answer
+      the host gets. Test through the real CLI in a temporary
+      repository that a call leaves exactly one heartbeat line and
+      that the ledger's existing readers still read the file
+    verify: >-
+      node --test src/claude-hook-cli.test.ts src/ledger.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 3
+    description: >-
+      RED, then GREEN. Add the check command as a thin shell over the
+      library. It prints the report and exits 0 only for live, and
+      for the other two answers it exits non-zero and says what the
+      owner must do next. Test the exit codes through the real CLI
+      in a temporary repository after an install, with and without a
+      prior hook call
+    verify: >-
+      node --test src/claude-live.test.ts src/claude-live-cli.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: critical
+      categories:
+        - "adapter"
+        - "e07 B3"
