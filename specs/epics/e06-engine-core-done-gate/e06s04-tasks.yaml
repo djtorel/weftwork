@@ -22,7 +22,7 @@
 # C8 and C10 apply; F3 (cap the ledger read) is task 2.
 story_id: e06s04
 title: Name the five terminal states and trip a no-progress breaker
-status: todo
+status: done
 bcps: 5
 type: feat
 context: engine
@@ -188,7 +188,7 @@ tasks:
       yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:

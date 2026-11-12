@@ -371,3 +371,12 @@ fails becomes `no-ledger`, so no false done. The loss is the loop bound.
 No HIGH finding. F4 (MEDIUM) is fixed and tested. One LOW residual remains
 (F5, confidence 8, owned by e08 or e09). The setsid residual (T6, MEDIUM) is
 unchanged.
+
+### Re-check of the refactor commits (2026-11-12, release-branch)
+
+Commits b561f3e and 058d659 moved the child-process control into
+src/process.ts and split the CLI input reader. Read against the scan above:
+killGroup, the timeout, the abort and the close-time kill are unchanged in
+what they do. The abort path still ends the whole group with SIGKILL, and the
+disarm still clears the timer and the abort listener. The stdin reader still
+stops on abort and on every read error. No new finding.

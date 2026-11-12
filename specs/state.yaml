@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e06
-active_story: e06s04
+active_story: null
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e06s04-terminal-states-breaker
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -390,55 +390,24 @@ waivers:
   date: 2026-11-11
   scope: e06s01 only
 handoff:
-  next_skill: commit-message
-  next_story: e06s04
-  note: 'audit-code passed for e06s04 (2026-11-12): five fixes (long functions split,
-    process.ts, shared json.ts, armKill arity and output argument, F4 test wait),
-    Preflight 196 of 196, the audit gate passes (specs/AUDIT_LATEST.md, full report
-    in specs/verifications/AUDIT-e06-e06s04.md). Next: commit-message for the working
-    tree, then request-review (independent second opinion), then release-branch. Earlier:
-    verify-work passed for e06s04 (2026-11-12): Preflight 196 of 196, the manual steps
-    confirmed by the owner, evidence in specs/verifications/e06s04-verify.yaml, security
-    scan done (F4 fixed in 4e03219, F5 residual owned by e08 or e09). Next: audit-code,
-    which must write Story: e06s04 in specs/AUDIT_LATEST.md. Earlier: e06s04 is built,
-    tasks 1 to 7 done, Preflight green (194 tests), on branch e06s04-terminal-states-breaker
-    (made with git checkout -b, no worktree). Task 8 is open: it needs the security-review
-    on the diff (signal handling, the capped tail reader, the order of checks that
-    decides done) and its mutation checks passed (stall rule, ceiling and abort listener
-    each made to do nothing failed a test; the abort one shows as cancelled by timeout).
-    Next: verify-work, then security-review, audit-code (write Story: e06s04 in specs/AUDIT_LATEST.md),
-    request-review, release-branch. The spec is specs/epics/e06-engine-core-done-gate/e06s04-terminal-states-breaker.md
-    and the eight tasks are in e06s04-tasks.yaml next to it. Run develop-tdd task
-    by task, RED first, and record each failure. Tag new src files with // story:
-    e06s04 and put a Story: e06s04 trailer on every commit. Owner decisions made at
-    plan-work (2026-11-12, each the recommended option): the stall key is command,
-    tree fingerprint, reason and exit code (the engine captures no output, and test
-    runners print timings that change every run); exit codes are 0 done, 1 failed
-    (not terminal, as today), 2 bad input, 3 blocked, 4 stalled, 5 exhausted, 6 killed;
-    exhausted is enforced before the run, so at the ceiling the engine does not run
-    the command and the owner restarts by deleting the ledger file; a signal kills
-    the process group with SIGKILL. New files are src/states.ts, src/breaker.ts and
-    src/engine.ts; src/ledger.ts, src/gate.ts and src/cli.ts change; isAlive moves
-    from gate.test.ts to src/test-helpers.ts. Do not repeat build-epic step 0: the
-    e06 threat model is specs/security/epics/e06/THREAT_MODEL.md, and the spec says
-    to run security-review on the diff (signal handling and the capped tail reader)
-    and to add that trigger to the threat model. The gate must never read the ledger
-    (C4): the task 5 verify greps for it. Tests build temporary git repositories with
-    src/test-helpers.ts (makeTestRepo, readRepoLedger) and never run a command in
-    the real repository. Coverage is measurable with node --test --experimental-test-coverage
-    (99.1 percent lines at e06s03, 111 tests); no coverage waiver is needed while
-    it stays above 80 percent overall and 95 percent for the engine code. Waivers
-    for e06 are in waivers: gate-trace R1 (until e06 closes) and the missing-spec
-    findings. e06s05 has a tasks file only; its questions are open (what an override
-    answers, how the engine tells an owner-authored hatch from one the agent wrote,
-    and how it meets exhausted). Other owner decisions still open: a CI step that
-    reports coverage, the e05 checkpoint item (engines.node >=26 lets setup-node pick
-    a newer major), and the deferred experiment task source and spend cap. main is
-    protected: land every branch through a PR (gh pr create, then gh pr merge --squash),
-    and ask the owner before each push, PR and merge. Use tools/assert-audit-story.sh
-    for the audit gate (active_story is set until the merge). Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD
-    on specs/state.yaml.'
+  next_skill: kickoff-branch
+  next_story: e06s05
+  note: 'e06s04 is released (its PR is the squash onto main, once the owner has approved
+    the push, PR and merge). Five terminal states, the stall rule, the ceiling, blocked
+    and killed are in src/states.ts, src/breaker.ts, src/engine.ts and src/process.ts.
+    Exit codes are 0 done, 1 failed, 2 bad input, 3 blocked, 4 stalled, 5 exhausted,
+    6 killed. Preflight 196 of 196; coverage 98.7 percent lines. Open for e06s05:
+    the one-shot owner-authored escape hatch. Its open questions are in specs/epics/e06-engine-core-done-gate/epic.yaml
+    and the threat model T4: what an override answers, how the engine tells an owner-authored
+    hatch from one the agent wrote, and how it meets exhausted (a ceiling must not
+    be overridden by the hatch unless the owner says so). e06s05 has a tasks file
+    only, so plan-work writes its spec first (waived for e06). Residual to carry:
+    F5 (an agent can make the ledger unreadable to switch the stop rules off), owned
+    by e08 or e09; setsid residual (T6). Start the next story in a fresh session:
+    sync main, then kickoff-branch with git checkout -b (no worktree). Do not run
+    scripts/sync-status-from-epics.sh. main is protected: land every branch through
+    a PR, and ask the owner before each push, PR and merge. After the last bp-timing.sh
+    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-11T14:08:32Z'
   skill_timings:
@@ -463,9 +432,9 @@ metrics:
       total_seconds: 945.0
       avg_seconds: 52.5
     release-branch:
-      calls: 22
-      total_seconds: 2910.0
-      avg_seconds: 132.27272727272728
+      calls: 23
+      total_seconds: 2944.0
+      avg_seconds: 128.0
     request-review:
       calls: 9
       total_seconds: 11503.0
