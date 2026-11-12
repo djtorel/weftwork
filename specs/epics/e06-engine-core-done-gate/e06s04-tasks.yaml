@@ -43,7 +43,7 @@ tasks:
     verify: >-
       node --test src/states.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
