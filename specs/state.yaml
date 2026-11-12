@@ -391,24 +391,34 @@ waivers:
   scope: e06s01 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e06s02
-  note: 'e06s01 is released: the gate library and CLI (src/gate.ts, src/cli.ts) are
-    on main. Next story is e06s02 (fail closed, and name the tree each verdict ran
-    on). In a fresh session, sync main, then run kickoff-branch with git checkout
-    -b (no worktree). Do not repeat build-epic step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md.
-    e06s02 has a tasks file only, so plan-work writes its spec first (waived for e06).
-    Carry threat model controls C5, C6 and C7 into e06s02 and run security-review
-    on its diff. C3 and C4 belong to e06s03, C9 to e06s05. Confirm the git config
-    option names for C5 with ctx7 when e06s02 is planned. e06s02 adds the timeout;
-    until then a hanging command hangs the gate (threat model T6). Tag the new src
-    files with a story marker, for example // story: e06s02, as e06s01 did. Waivers
-    for e06 are in waivers: gate-trace R1 (until e06 closes). Owner decisions still
-    open: a measured coverage gate (the repo has no coverage tool), the e06s05 questions
-    (what an override answers, and how the engine tells an owner-authored hatch from
-    one the agent wrote), the e05 checkpoint item (engines.node >=26 lets setup-node
-    pick a newer major), and the deferred experiment task source and spend cap. main
-    is protected: land every branch through a PR (gh pr create, then gh pr merge --squash).
-    Use tools/assert-audit-story.sh for the audit gate. Do not run scripts/sync-status-from-epics.sh.
+  next_story: e06s03
+  note: 'e06s02 is released: fingerprintTree (src/tree.ts) and the named verdict reasons,
+    timeout and process-group kill (src/gate.ts) are on main. Next story is e06s03
+    (log every verdict in a plain-file counts ledger). In a fresh session, sync main,
+    then run kickoff-branch with git checkout -b (no worktree). Do not repeat build-epic
+    step 0: the e06 threat model is specs/security/epics/e06/THREAT_MODEL.md. e06s03
+    has a tasks file only, so plan-work writes its spec first (waived for e06). Its
+    tasks file lists what plan-work must ask the owner: where the ledger file lives,
+    whether it is committed or ignored, and its line format. Carry threat model controls
+    C3 (one JSON object per line with JSON.stringify, so a command with a newline
+    cannot start a second entry) and C4 (the gate never reads done from the ledger)
+    into e06s03, and run security-review on its diff. The ledger is writable by the
+    agent, so a forged or erased entry is a residual risk (threat model T3); say so
+    in the spec. A verdict now holds reason, command and fingerprint, which the ledger
+    entry should record. Tests build temporary git repositories with src/test-helpers.ts
+    and never run a command in the real repository. Tag new src files with // story:
+    e06s03. Coverage is measurable with node --test --experimental-test-coverage (98.6
+    percent lines at e06s02); no coverage waiver is needed while it stays above 80
+    percent overall and 95 percent for the engine code. Waivers for e06 are in waivers:
+    gate-trace R1 (until e06 closes). Known limit recorded in the threat model: a
+    command that starts its own session (setsid) leaves the process group. e06s04
+    to e06s05 have tasks files only. Owner decisions still open: a CI step that reports
+    coverage, the e06s05 questions (what an override answers, and how the engine tells
+    an owner-authored hatch from one the agent wrote), the e05 checkpoint item (engines.node
+    >=26 lets setup-node pick a newer major), and the deferred experiment task source
+    and spend cap. main is protected: land every branch through a PR (gh pr create,
+    then gh pr merge --squash). Use tools/assert-audit-story.sh for the audit gate,
+    which needs active_story set until the merge. Do not run scripts/sync-status-from-epics.sh.
     After the last bp-timing.sh call, run tools/restore-yaml-style.py --base HEAD
     on specs/state.yaml.'
 metrics:
@@ -419,25 +429,25 @@ metrics:
       total_seconds: 239.0
       avg_seconds: 14.058823529411764
     plan-work:
-      calls: 20
-      total_seconds: 7243.0
-      avg_seconds: 362.15
+      calls: 21
+      total_seconds: 7699.0
+      avg_seconds: 366.6190476190476
     develop-tdd:
-      calls: 20
-      total_seconds: 9141.0
-      avg_seconds: 457.05
+      calls: 21
+      total_seconds: 9487.0
+      avg_seconds: 451.76190476190476
     verify-work:
-      calls: 20
-      total_seconds: 972.0
-      avg_seconds: 48.6
+      calls: 21
+      total_seconds: 1069.0
+      avg_seconds: 50.904761904761905
     audit-code:
       calls: 16
       total_seconds: 743.0
       avg_seconds: 46.4375
     release-branch:
-      calls: 20
-      total_seconds: 2808.0
-      avg_seconds: 140.4
+      calls: 21
+      total_seconds: 2859.0
+      avg_seconds: 136.14285714285714
     request-review:
       calls: 9
       total_seconds: 11503.0

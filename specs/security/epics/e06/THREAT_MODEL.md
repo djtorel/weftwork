@@ -145,6 +145,13 @@ CWE-400.
   the verdict line. When e06s04 captures output for the breaker, cap
   the captured size.
 
+- Residual (probed in e06s02 verify-work, 2026-11-12): a command that starts
+  its own session (for example `setsid`) leaves the process group, so the
+  group kill does not reach it, and it can edit the tree after the second
+  fingerprint. The gate is evidence against an honest command, not a
+  sandbox. Closing it needs a PID namespace or a cgroup, owned by e09 and
+  e10.
+
 ### T7. Fail-open on error (all stories) — High if wrong
 
 CWE-754. The worst bug is a path where an error reads as success. Every

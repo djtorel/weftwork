@@ -5,6 +5,16 @@
 # done (R15 [S1][S3][S19]; docs/research/SYNTHESIS.md, evidence gate).
 # Each gate is tried against a held-out failing case, because a gate
 # that cannot fail is vacuous (R13, R15).
+# plan-work 2026-11-11: spec written, six owner decisions approved. A cwd
+# outside a git repository is no-tree and the command is not run. The
+# fingerprint covers the whole working tree; git lists the files and the
+# engine hashes them (execFile with an argument array, core.fsmonitor
+# false, symlinks never followed). The timeout is an input key timeoutMs
+# (default 600000) and kills the process group. The verdict carries
+# reason, command and fingerprint. The e06s01 tests move to temporary git
+# repositories. Threat model controls C5, C6, C7 and C10 apply; tasks 1
+# and 2 are security: medium. This story may run large for 3 BCPs; if so,
+# split the timeout and group kill into their own story.
 story_id: e06s02
 title: Fail closed, and name the tree each verdict ran on
 status: todo
@@ -13,57 +23,91 @@ type: feat
 context: engine
 risk: P1
 depends_on: [e06s01]
+spec: e06s02-fail-closed-tree.md
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Write src/tree.test.ts first. Then write
-      src/tree.ts: a function that returns a fingerprint of the working
-      tree (tracked files, untracked files that are not ignored, and
-      their contents). The same tree gives the same fingerprint, an
-      edit or a new file changes it, and an ignored file does not
+      RED, then GREEN. Write src/test-helpers.ts (makes a temporary git
+      repository and removes it) and src/tree.test.ts first (spec AC-01 to
+      AC-05) and record the failure. Then write src/tree.ts:
+      fingerprintTree takes a directory and resolves to ok with a
+      SHA-256 fingerprint of the working tree (tracked files and
+      untracked files that are not ignored, with their contents and
+      executable bits), or to not ok. It lists files with git by
+      argument array and core.fsmonitor=false, keeps paths as bytes,
+      never follows a symlink and never opens a FIFO
     verify: >-
       node --test src/tree.test.ts && npm run typecheck
+      && ! grep -nE 'shell:|execSync|[^a-zA-Z]exec\(' src/tree.ts
     risk: P1
-    status: todo
+    security: medium
+    status: done
     allure:
       severity: critical
       categories:
         - "engine"
+        - "Security Review"
         - "e06 B1"
   - id: 2
     description: >-
-      The verdict carries the declared command and the tree
-      fingerprint taken before the run. A command that cannot start, a
-      command that passes its timeout (a default, set in the input), a
-      command killed by a signal, and a tree that changed while the
-      command ran all give a verdict that is not done, each with its
-      own reason. Test each case by name
+      RED, then GREEN. Move the e06s01 tests in src/gate.test.ts and
+      src/cli.test.ts to temporary git repositories, add spec AC-06 to
+      AC-12 (one test per reason, by name) and record the failures. Then
+      change src/gate.ts: the verdict carries reason, command and the
+      fingerprint taken before the run. A cwd with no tree is no-tree and
+      the command does not run. A command that cannot start, passes
+      timeoutMs (default 600000, an input key, 1 to 2147483647), is
+      killed by a signal, exits non-zero, or leaves a changed tree is not
+      done, each with its own reason. The command runs in its own process
+      group, and the group gets SIGKILL on timeout and again after the
+      shell exits. Update the src/cli.ts comment
     verify: >-
-      node --test src/gate.test.ts && npm run typecheck
-      && echo '{"command":"no-such-command-xyz"}' | node src/cli.ts
-      | grep -q '"done":false'
+      node --test src/gate.test.ts src/cli.test.ts && npm run typecheck
+      && (echo '{"command":"no-such-command-xyz"}' | node src/cli.ts
+      | grep -q '"reason":"exit-nonzero"')
+      && grep -q 'detached: true' src/gate.ts
     risk: P1
-    status: todo
+    security: medium
+    status: done
     allure:
       severity: critical
       categories:
         - "engine"
+        - "Security Review"
         - "e06 B1"
   - id: 3
     description: >-
-      Anti-vacuity. Add src/fixtures/ with one passing script and the
-      held-out failing cases: a script that exits 1, a script that
-      prints "all tests passed" and exits 1, and a script that exits 0
-      after it edited a file. The gate must accept the first and reject
-      every other one. Fixtures are plain files; their names do not end
-      in .test.ts
+      Anti-vacuity (spec AC-13). Add src/fixtures/ with one passing script
+      and the held-out failing cases: a script that exits 1, a script
+      that prints "all tests passed" and exits 1, and a script that exits
+      0 after it edited a tracked file. The gate must accept the first and
+      reject every other one. Fixtures are plain files; their names do
+      not end in .test.ts. Then run the mutation check by hand (spec
+      Verification Script, step 5) and record that the test fails against
+      a gate that accepts a non-zero exit
     verify: >-
       node --test src/gate.vacuity.test.ts
       && ls src/fixtures | grep -q .
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: critical
       categories:
         - "engine"
+        - "e06 B1"
+  - id: 4
+    description: >-
+      Make AGENTS.md true again if it changed, and run the AGENTS.md
+      Preflight line itself (spec AC-14). Update the src/ line of the
+      Architecture section only if it no longer names the files
+    verify: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: done
+    allure:
+      severity: minor
+      categories:
+        - "docs"
         - "e06 B1"

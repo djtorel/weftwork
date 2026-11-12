@@ -122,3 +122,81 @@ constant, not input. No sink changed: spawn, the command, and the cwd
 are as reviewed. No new finding, none at confidence 8 or above.
 Result for the release gate: REVIEW.md matches the branch diff at
 b69ecf0.
+
+# Security review for branch e06s02-fail-closed-tree (e06s02, fail closed and the tree fingerprint)
+
+review_date: 2026-11-12
+branch: e06s02-fail-closed-tree
+base: main (1fb4c2d)
+scope: src/tree.ts, src/gate.ts, src/cli.ts (product code); the test files,
+  test helper and fixtures are excluded from production risk (rule 12)
+method: security-review 5-phase scan, read-only, confidence cutoff 8, with
+  two behaviour probes run on the code
+threat model: specs/security/epics/e06/THREAT_MODEL.md (T5, T6, T7; C5, C6,
+  C7, C10)
+
+## Scope resolution and context
+
+- TypeScript on Node 26, no dependency change, no new package. New sinks:
+  `git` run with an argument array (tree.ts), file reads and `lstat` on
+  paths that git lists (tree.ts), and `process.kill(-pid, 'SIGKILL')`
+  (gate.ts).
+- Inputs that reach them: the declared `cwd` and `command` from stdin, the
+  file names and config of the repository under test, and `timeoutMs`.
+
+## Vulnerability assessment (phase 3)
+
+| Surface | Result |
+|---------|--------|
+| Git config that runs a program (CWE-78) | Probed. A repository with `core.fsmonitor` set to a script: plain `git status` runs the script (control); `fingerprintTree` does not. Mitigated by `-c core.fsmonitor=false`. |
+| Shell string in tree.ts (CWE-78) | None. `execFile` with an argument array; the task verify greps for `shell:`, `execSync` and `exec(`. |
+| Symlink followed out of the tree (CWE-59) | Not followed. Each entry gets `lstat`; a link is hashed as its target string. Tested with a link to a file outside the repository. |
+| FIFO or socket opened (CWE-400) | Never opened; kind `other`. Tested with a FIFO, 5 s limit. |
+| Path handling | Paths stay as bytes; names with a newline, a leading `-` or invalid UTF-8 are tested. No path is passed to git as an argument. |
+| Kill of the wrong process (CWE-283) | `-pid` of a child the engine spawned with `detached: true`. A reused group id after the group is empty is possible in theory and tiny; `ESRCH` is ignored. |
+| `timeoutMs` overflow | Bounded to 1 to 2147483647, tested at the edges. |
+| Fail-open (CWE-754) | Every path to `done: true` needs `passed`: exit 0 and an equal tree. Errors give `no-tree`, `not-started`, `signal` or `timeout`. Tested by name. |
+| Information exposure (CWE-200) | The verdict echoes `command` on stdout. The host already holds that string. Threat model T8 covers it. |
+| Resource use | Unbounded hashing of a very large tree and a 256 MiB listing cap. DOS is excluded (rules 1 and 4); e09 owns a cap. |
+| Test files | Excluded, rule 12. |
+
+## Findings
+
+No finding at confidence 8 or above that is a vulnerability in the diff. No
+HIGH finding.
+
+One MEDIUM residual, confidence 9 that it exists, reported as a documented
+limit and not a defect:
+
+- **src/gate.ts, runCommand: the process-group kill does not reach a process
+  that leaves the group.** Probe: `setsid sleep 20 & echo $! > pidfile;
+  sleep 0.5` returned `passed`, and the `sleep` was still alive after the
+  gate (its session id equalled its pid). A command that does this can edit
+  the tree after the second fingerprint, and the verdict stays `passed`.
+  - Exploit scenario: the declared command starts a daemon that rewrites a
+    tracked file after the gate has returned.
+  - Why it is not HIGH: the command comes from the owner's plan (threat
+    model C1), the gate is evidence against an honest command and not a
+    sandbox, and closing it needs a PID namespace or a cgroup, which is out
+    of scope for e06.
+  - Recorded in the e06s02 spec (Risks) and the threat model (T6 residual).
+    Owned by e09 and e10.
+
+## Result for audit-code
+
+"diff scanned — no unaddressed HIGH findings": PASS for e06s02. The MEDIUM
+residual is documented above and in the threat model.
+
+## Addendum for e06s02 at 92190e7 (2026-11-12)
+
+The review above ran before the audit refactor (d05be85): runCommand split
+into runCommand and watchChild, runGate into runAndCompare and settle, two
+casts replaced by type checks, and kind in tree.ts typed as a union. The
+re-check ran the same four probes against the committed code. A hostile
+core.fsmonitor in the repository config did not run (control: plain git
+status runs it). A symlink target's content change left the fingerprint
+unchanged. A timeout ended the whole process group. The setsid command
+still left the group, which is the MEDIUM residual already recorded. The
+spawn call, the git calls and the kill are unchanged in what they do. No
+new finding, none at confidence 8 or above. Result for the release gate:
+REVIEW.md matches the branch diff at 92190e7.
