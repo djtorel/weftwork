@@ -2,7 +2,7 @@
 // Shared by the test files: temporary directories and temporary git
 // repositories, so no test runs a command in the real repository.
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
@@ -60,4 +60,42 @@ export async function readRepoLedger(
   const read = await readLedger(path as string);
   assert.ok(read.ok);
   return read;
+}
+
+/** True while the process lives. A zombie that has not been reaped is gone. */
+export function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+  } catch {
+    return false;
+  }
+  try {
+    return !/\) Z /.test(readFileSync(`/proc/${pid}/stat`, 'utf8'));
+  } catch {
+    return true;
+  }
+}
+
+/** Poll until `pid` is gone, for at most `limitMs`. */
+export async function waitUntilGone(pid: number, limitMs: number): Promise<boolean> {
+  const deadline = Date.now() + limitMs;
+  while (isAlive(pid)) {
+    if (Date.now() > deadline) {
+      return false;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return true;
+}
+
+/** Poll until a file exists and is not empty, for at most `limitMs`. */
+export async function waitForFile(path: string, limitMs: number): Promise<boolean> {
+  const deadline = Date.now() + limitMs;
+  while (!(existsSync(path) && readFileSync(path, 'utf8').trim() !== '')) {
+    if (Date.now() > deadline) {
+      return false;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return true;
 }

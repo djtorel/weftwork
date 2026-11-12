@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import type { Verdict } from './gate.ts';
 import { defaultTimeoutMs, parseRequest, runGate } from './gate.ts';
 import { fingerprintTree } from './tree.ts';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo, waitUntilGone } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -23,30 +23,6 @@ function assertVerdict(verdict: Verdict, expected: Expected): void {
   assert.equal(verdict.exitCode, expected.exitCode);
   assert.equal(verdict.reason, expected.reason);
   assert.equal(verdict.command, expected.command);
-}
-
-function isAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-  } catch {
-    return false;
-  }
-  try {
-    return !/\) Z /.test(readFileSync(`/proc/${pid}/stat`, 'utf8'));
-  } catch {
-    return true;
-  }
-}
-
-async function waitUntilGone(pid: number, limitMs: number): Promise<boolean> {
-  const deadline = Date.now() + limitMs;
-  while (isAlive(pid)) {
-    if (Date.now() > deadline) {
-      return false;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  return true;
 }
 
 test('AC-e06s01-01 exit code 0 is done', async () => {

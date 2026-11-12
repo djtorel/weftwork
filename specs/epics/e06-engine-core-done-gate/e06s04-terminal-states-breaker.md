@@ -155,7 +155,7 @@ existing test keeps passing unchanged, except that `gate.test.ts` imports
 - Both are pure and count only entries for the exact command string.
 
 #### ADDED: input keys in `parseRequest` (`src/gate.ts`)
-- `blocked`: a string of 1 to 1000 characters after trimming. `stallAfter`:
+- `blocked`: a string of 1 to 1000 characters that is not only spaces. `stallAfter`:
   an integer from 2 to 1000. `maxFailures`: an integer from 1 to 1000. Each
   is optional. A bad value is an input error (exit 2), like a bad
   `timeoutMs`. `GateRequest` gains the three optional fields; `runGate`

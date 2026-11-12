@@ -126,7 +126,7 @@ tasks:
       && ! grep -nE 'readLedger|countsFor' src/gate.ts
     risk: P1
     security: medium
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
