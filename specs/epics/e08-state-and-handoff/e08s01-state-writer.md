@@ -376,6 +376,12 @@ whether to handle them.
   It errs toward a refused or misplaced write, not a write outside the
   repository through the file name, which `follow: false` covers. The git-dir
   and path hardening is e10's, as for the ledger.
+- **A file inside a nested repository or a submodule can be edited.**
+  Only a `.git` path segment is refused (any case), so a file in another
+  repository under the root is in reach (review round 4, B4). Refusing it
+  needs a `git rev-parse` per parent folder. Deferred to e10 with the
+  other path hardening (the parent swap above, git's HFS-ignorable
+  spellings of `.git`, and the size cap read to end of file).
 - **A crash between the temp file and the rename** leaves a `.tmp` file
   beside the state file, never a torn state file. No fsync: a power loss can
   lose the write (same as the install).
