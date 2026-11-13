@@ -161,6 +161,9 @@ test('what the writer refuses: an error that names the problem, and no text', ()
     ['a !!binary value elsewhere (review 3, A4)', 'd: !!binary aGVsbG8=\nk: old\n', ['k'], 'new', /mappings, sequences and scalars/],
     ['a key that reads as null (review 4, A3, B5)', 'null: x\n', ['null'], 'y', /does not read back as written/],
     ['a key in another number notation (review 4, A3)', '1.0: old\n', ['1.0'], 'new', /does not read back as written/],
+    ['two keys that read as the same key, "1" and 1.0 (review 5, A1)', '"1": b\n1.0: a\n', ['1'], 'a', /more than one key/],
+    ['two keys that read as the same key, "true" and true (review 5, A1)', '"true": b\ntrue: a\n', ['true'], 'a', /more than one key/],
+    ['two keys that read as the same key, "" and null (review 5, A1)', '"": b\nnull: a\n', [''], 'a', /more than one key/],
     ['a specific first reason is kept (review 3, A5)', 'a: &x >-\r\n  x\r\nb: *x\r\n', ['a'], 'z', /could not be set.*CRLF/],
   ];
   for (const [label, text, path, value, message] of cases) {
