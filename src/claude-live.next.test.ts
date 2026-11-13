@@ -46,3 +46,13 @@ test('a record from before the last settings change is not live (review round 5,
 test('a record from after the last settings change is live (review round 5, B-1)', () => {
   assert.equal(liveReport(input({ project: changedAt('2026-11-12T11:57:00.000Z') })).answer, 'live');
 });
+
+test('a change to the local or user settings after the last call counts too (review round 5, B-1)', () => {
+  const after = new Date('2026-11-12T11:59:00.000Z');
+  for (const change of [
+    { local: { name: '.claude/settings.local.json', read: { ok: true, text: '{}', changedAt: after } } },
+    { user: { name: '/home/u/.claude/settings.json', read: { ok: true, text: '{}', changedAt: after } } },
+  ] as const) {
+    assert.equal(liveReport(input(change)).answer, 'not-seen', JSON.stringify(change));
+  }
+});
