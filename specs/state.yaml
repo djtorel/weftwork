@@ -6,7 +6,7 @@ phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e08-state-and-handoff
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -406,11 +406,12 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: plan-work
+  next_skill: kickoff-branch
   next_story: e08s01
   next_epic: e08
-  note: 'e08 (B2, state and handoff) is sliced on branch e08-state-and-handoff,
-    not yet committed or pushed. Stories in capsule specs/epics/e08-state-and-handoff:
+  note: 'e08 (B2, state and handoff) is sliced and landed on main by PR #54.
+    Next: kickoff-branch for e08s01 from main with git checkout -b (not a
+    worktree), then plan-work. Stories in capsule specs/epics/e08-state-and-handoff:
     e08s01 format-preserving state writer (5 BCPs, the tracer), e08s02 documented
     field set (4), e08s03 engine-written handoff (5), e08s04 resume check (5).
     Each tasks file opens with its open choices and a recommendation; put them to
@@ -420,7 +421,7 @@ handoff:
     residual F5 (an unreadable ledger turns the stop rules off, specs/security/REVIEW.md)
     belongs to e09, which is the recommendation. e08 needs no waivers yet; plan-work
     asks about the missing-specs and gate-trace R1 waivers as it did for e07.
-    Start plan-work in a fresh session on this branch. Pushes, PRs and merges need
+    Start in a fresh session. Pushes, PRs and merges need
     an explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh. After
     the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.
     Deferred to e10: the symlinked git-dir directory, the torn or briefly empty
