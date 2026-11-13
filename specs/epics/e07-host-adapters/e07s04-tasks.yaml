@@ -56,7 +56,7 @@ tasks:
       node --test src/last-call.test.ts src/claude-hook-cli.test.ts
       src/ledger.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:

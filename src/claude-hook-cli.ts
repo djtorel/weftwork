@@ -1,4 +1,4 @@
-// story: e07s01, e07s02
+// story: e07s01, e07s02, e07s04
 // Thin shell for the Claude Code Stop hook: the host's JSON on stdin, the
 // declared command as the one argument after `--`, the host's answer on
 // stdout and stderr and in the exit code. Logic lives in claude-hook.ts.
@@ -24,6 +24,10 @@
 // SIGINT are handled: SIGHUP and SIGQUIT take Node's default action. SIGKILL
 // cannot be caught either. Nothing in this file can close that gap; the live
 // check in e07s04 is the detector.
+//
+// Each call that gets past the arguments writes the call record
+// (last-call.ts) before it reads the input, so the live check can tell a hook
+// that runs from one that is only registered. A failed write changes nothing.
 import { writeSync } from 'node:fs';
 import {
   blockStop,
@@ -41,6 +45,7 @@ import {
   type HookOutput,
 } from './claude-hook.ts';
 import { runEngine } from './engine.ts';
+import { lastCallPath, writeLastCall } from './last-call.ts';
 
 const controller = new AbortController();
 
@@ -102,6 +107,15 @@ async function refusedInput(): Promise<HookOutput | null> {
   return input.ok ? null : blockStop(`unreadable hook input: ${input.error}`);
 }
 
+/** Record that the host called this hook, for the live check. Both calls never
+ * throw, and the result is ignored: the record must not change the answer. */
+async function recordCall(dir: string, command: string): Promise<void> {
+  const path = await lastCallPath(dir);
+  if (path !== null) {
+    await writeLastCall(path, { at: new Date().toISOString(), cliPath: import.meta.filename, command });
+  }
+}
+
 async function run(args: string[]): Promise<HookOutput> {
   const dir = projectDir(process.env);
   if (!dir.ok) {
@@ -111,6 +125,7 @@ async function run(args: string[]): Promise<HookOutput> {
   if (!request.ok) {
     return blockStop(request.error);
   }
+  await recordCall(dir.dir, request.request.command);
   const refused = await refusedInput();
   if (refused !== null) {
     return refused;
