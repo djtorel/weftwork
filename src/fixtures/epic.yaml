@@ -1,0 +1,61 @@
+---
+id: e08
+title: State and handoff (B2)
+wsjf: 3.8
+risk: P2
+status: in_progress
+depends_on:
+  - e06
+done_when: >-
+  Workflow state is plain files written only by the engine through a
+  format-preserving writer, and the handoff note is checked at resume
+total_bcps: 19
+stories:
+  - id: e08s01
+    title: A caller sets one field of a state file and nothing else changes
+    bcps: 5
+    status: in_progress
+    tasks: e08s01-tasks.yaml
+    delta: ADDED
+  - id: e08s02
+    title: The engine changes only the documented state fields
+    bcps: 4
+    status: todo
+    tasks: e08s02-tasks.yaml
+    delta: ADDED
+  - id: e08s03
+    title: The engine writes the handoff note for a session with no memory
+    bcps: 5
+    status: todo
+    tasks: e08s03-tasks.yaml
+    delta: ADDED
+  - id: e08s04
+    title: The engine checks the handoff against the repository at resume
+    bcps: 5
+    status: todo
+    tasks: e08s04-tasks.yaml
+    delta: ADDED
+# Candidate epic B2 in docs/research/SYNTHESIS.md [S12][S13][S2].
+# Sliced 2026-11-13 (slice-tasks). Order e08s01 to e08s04, one story
+# at a time. e08s01 is the tracer: one field of a real state file
+# changes on disk and nothing else does (the format-preserving writer
+# that BUG-001, BUG-004 and BUG-005 asked for). e08s02 limits what the
+# engine will change. e08s03 writes the handoff block. e08s04 checks
+# it against the repository, which is the second half of done_when.
+# Each story lists its own open choices, with a recommendation, at the
+# top of its tasks file; plan-work puts them to the owner.
+# WSJF stays 3.8. The release plan sized this epic at 5 and the slices
+# add up to 19 BCPs, as e07 did (4.2 stayed at 20). Rescore with
+# change-request if the owner wants it.
+# Owner decisions needed before e08s01 starts: none that block it. The
+# "yaml" package is a recommendation that plan-work confirms.
+# Out of scope here: calling the resume check from a host. The entry
+# command (e11) or a SessionStart hook does that, and the hook is a
+# later story only if the owner asks. Also out: the global scripts that
+# still rewrite specs/state.yaml (bp-timing.sh, record-cycle-time.sh);
+# tools/restore-yaml-style.py stays for them.
+# Residual F5 (specs/security/REVIEW.md): an unreadable ledger turns the
+# stop rules off. It is listed as "e08 or e09". It is not sliced here,
+# because it is about the ledger and the stop rules (e06, e09
+# ceilings), not the state file. Recommendation: e09 owns it, and the
+# owner decides there whether an unreadable ledger answers exhausted.

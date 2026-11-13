@@ -172,22 +172,30 @@ Feature: Set one field of a state file
     Examples:
       | file                         | path               |
       | state.yaml                   | handoff.next_skill |
-      | execution-status.yaml        | e08s01             |
+      | execution-status.yaml        | development_status.e08s01 |
+      | epic.yaml                    | done_when          |
 
   # AC-e08s01-03
   Scenario Outline: One field changes and nothing else does
-    Given the fixture state.yaml, which holds the leading ---, comments,
-      folded scalars (>-) and quoted scalars that wrap over lines
+    Given the fixture <file>: state.yaml is in the PyYAML style with long
+      quoted scalars that wrap over lines; execution-status.yaml has the
+      leading ---; epic.yaml has the leading ---, comments and a folded
+      scalar (>-)
     When setField sets <path> to <value>
     Then only the lines of that value differ from the fixture
     And parsing the new text gives <value> at <path>
     And every other field has its old value
+    And the leading ---, the comments and the other folded scalars stay
     Examples:
-      | path               | value                 |
-      | active_story       | "e08s01"              |
-      | handoff.next_skill | "develop-tdd"         |
-      | vcs.branch         | "e08s01-state-writer" |
-      | active_story       | null                  |
+      | file                  | path                      | value          |
+      | state.yaml            | active_story              | "e08s02"       |
+      | state.yaml            | handoff.next_skill        | "verify-work"  |
+      | state.yaml            | vcs.branch                | "main"         |
+      | state.yaml            | active_story              | null           |
+      | state.yaml            | handoff.note              | "Short note."  |
+      | execution-status.yaml | development_status.e08s01 | "done"         |
+      | epic.yaml             | wsjf                      | 4.2            |
+      | epic.yaml             | done_when                 | a short string |
 
   # AC-e08s01-04
   Scenario Outline: A string that would read as another type is quoted
@@ -201,6 +209,7 @@ Feature: Set one field of a state file
       | "123"                 | "123"                   |
       | "null"                | "null"                  |
       | "needs: quotes # yes" | "needs: quotes # yes"   |
+      | ""                    | ""                      |
 
   # AC-e08s01-05
   Scenario Outline: What the writer refuses
@@ -216,6 +225,8 @@ Feature: Set one field of a state file
       | a path whose last value is a mapping                   |
       | a path that goes through a sequence                    |
       | an empty path                                          |
+      | a flow mapping on the path                             |
+      | an alias as the last value                             |
       | a value that is not a string, finite number, boolean or null |
 
   # AC-e08s01-06
@@ -264,7 +275,8 @@ Feature: Set one field of a state file
    src/claude-settings-file.test.ts src/claude-install-cli.test.ts
    src/claude-live.test.ts src/claude-live-cli.test.ts && npm run typecheck`
 2. RED then GREEN: add `yaml` 2.9.1 as an exact runtime dependency; copy
-   the fixtures to `src/fixtures/`; write `src/state-file.test.ts` for
+   `specs/state.yaml`, `specs/execution-status.yaml` and the e08
+   `epic.yaml` to `src/fixtures/`; write `src/state-file.test.ts` for
    AC-02 to AC-06 and record the failure; then write `setField` in
    `src/state-file.ts` → verify: `node --test src/state-file.test.ts && npm
    run typecheck`

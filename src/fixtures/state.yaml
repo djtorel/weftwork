@@ -1,0 +1,500 @@
+workflow_mode: solo-git
+active_flow: null
+active_epic: e08
+active_story: e08s01
+phase: planning
+test_plan: lite
+vcs:
+  kind: git
+  branch: e08s01-state-writer
+waivers:
+- what: security-review threat model for e01 (build-epic step 0)
+  why: No product code. The only executable surface is check-brief.sh, which runs
+    verify strings from this repo. Briefs read one outside path, ../pi-flow-legacy,
+    which the owner named for R14.
+  date: 2026-11-07
+  scope: e01 only
+- what: plan-consistency-check MED findings (status ledger) for e01s01, e01s02, e01s04
+  why: The checker wants failing/passing task statuses. CONVENTIONS.md line 52 sets
+    todo, in_progress, done. The owner chose to keep the project convention. Whether
+    to adopt the ledger is a question for R2.
+  date: 2026-11-08
+  scope: e01 only
+- what: gate-trace FAIL (rule R1) for e01s03
+  why: R1 fails any undone story with 0 code tags. All 14 undone stories have none,
+    because the project has no code, so the gate cannot pass until code exists. The
+    owner chose to waive it for e01. Oracle links are 96 percent heuristic; completeness-critic
+    had 0 blockers; one MEDIUM blind spot (double-tag in e01s03-tasks.yaml, from depends_on)
+    was left as is.
+  date: 2026-11-08
+  scope: e01 only
+- what: security-review threat model for e02 (build-epic step 0)
+  why: No product code. e02 writes research briefs only; the executable surface is
+    check-brief.sh, as in e01. Briefs read web pages, GitHub metadata and the local
+    .pi/gsd copy, read only. The owner chose to waive it.
+  date: 2026-11-08
+  scope: e02 only
+- what: gate-trace FAIL (rule R1) for e02s02
+  why: R1 fails any undone story with 0 code tags. All 13 undone stories have none,
+    because the project has no code. e02s02's matrix links are specs/state.yaml (high,
+    explicit tag) and its tasks file (low). The owner chose to waive it for e02, as
+    for e01.
+  date: 2026-11-08
+  scope: e02 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) and MED
+    status-ledger findings for e02s01, e02s02, e02s04
+  why: e02s01 and e02s02 are released, so specs written now would be paperwork. e02s04
+    gets its spec when it is planned. The owner chose to keep the project status values
+    todo, in_progress, done (CONVENTIONS.md), as for e01. Findings for e02s03 itself
+    are clear.
+  date: 2026-11-08
+  scope: e02 only
+- what: CONVENTIONS.md rule that gh is used only for PRs and clones (audit-code item)
+    for e02s04
+  why: The R5 research read host docs and release metadata with gh api. The brief's
+    Method says so. The owner accepted the deviation and chose not to re-read the
+    sources by raw URL. From now on use raw URLs, web fetch or gh repo clone.
+  date: 2026-11-08
+  scope: e02s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e03s02
+    to e03s08
+  why: Those seven stories get their specs when each is planned. Planning them now
+    would be paperwork. e03s01 itself is clear. The owner chose to waive it for e03,
+    as for e02.
+  date: 2026-11-08
+  scope: e03 only
+- what: gate-trace FAIL (rule R1) for e03s01
+  why: R1 fails any undone story with 0 code tags. All 9 undone stories have none,
+    because the project has no code. The oracle heuristic ratio is 94 percent; completeness-critic
+    had 0 blockers; the blind-spot check had 0 HIGH findings. The owner chose to waive
+    it for e03, as for e01 and e02.
+  date: 2026-11-08
+  scope: e03 only
+- what: security-review threat model for e03 (build-epic step 0)
+  why: No product code. e03 writes research briefs only; the executable surface is
+    check-brief.sh and the task verify strings, as in e01 and e02. Briefs read web
+    pages, arXiv abstracts and public repository files, read only. The owner chose
+    to waive it.
+  date: 2026-11-08
+  scope: e03 only
+- what: CONVENTIONS.md rule of no direct GitHub REST API calls (audit-code item) for
+    e03s01
+  why: The R6 research session called api.github.com with curl for commit ids and
+    dates. The brief's Method says so. Every id and date was re-confirmed with git
+    ls-remote, raw URLs at the cited commits and public Atom feeds. The owner accepted
+    the deviation. From now on use raw URLs, web fetch, git ls-remote, Atom feeds
+    or gh repo clone.
+  date: 2026-11-08
+  scope: e03s01 only
+- what: request-review dual-blind AND-gate for e03s02 (rounds 3 to 5)
+  why: Round 1 failed (reviewer A 73.5, reviewer B 80.4) and round 2 failed (A 86.7,
+    B 94.8). Each round found real errors in the brief (a wrong claim about which
+    reviewers run the declared command, and papers the first searches missed) and
+    every finding was checked against its source and fixed. The owner chose to stop
+    after round 2 and release. The round-2 fixes (commit 6aafdab) were not re-reviewed.
+  date: 2026-11-08
+  scope: e03s02 only
+- what: request-review dual-blind AND-gate for e03s03 (rounds 4 to 5)
+  why: Round 1 failed (reviewer A 71.7, reviewer B 78.1; six must-fix between them).
+    Round 2 failed (A 88.2, B 93.1) and round 3 failed (A 93.8, B 82.9), with zero
+    must-fix in both rounds; the shortfall was should-fix wording and papers the searches
+    missed. Each round found real defects in the brief (a wrong H3 verdict, claims
+    stretched past their sources, missed papers) and every finding was checked against
+    its source and fixed. New papers kept turning up each round. The owner chose to
+    stop after round 3 and release. The round 3 fixes (sources S46 to S51 and wording
+    changes) were not re-reviewed.
+  date: 2026-11-09
+  scope: e03s03 only
+- what: CONVENTIONS.md rule of no direct GitHub REST API calls, one request to the
+    api.github.com root during e03s04 R9 research
+  why: One curl to https://api.github.com was sent while checking the network and
+    its output was discarded. Nothing in the brief depends on the response, and the
+    Method section of docs/research/R9-model-routing.md discloses it. The request
+    cannot be undone. The owner accepted the deviation on 2026-11-09 and asked for
+    the waiver to be recorded. Going forward, use raw URLs, web fetch, git ls-remote
+    or gh repo clone.
+  date: 2026-11-09
+  scope: e03s04 only
+- what: CONVENTIONS.md rule that every source has a publication date, for 12 vendor
+    doc and repository pages in the R9 brief (S42 to S50, S52 to S54)
+  why: These pages show no publication date. The server Last-Modified header for the
+    Claude Code pages is the fetch-day cache or deploy time (2026-11-09), not a publication
+    date. Each source line records the version or commit read, or the header value.
+    A real date cannot be found, so the brief marks them as undated. check-brief.sh
+    passes with a warning. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s04 only (docs/research/R9-model-routing.md sources S42 to S50, S52 to
+    S54, and S69 added 2026-11-09)
+- what: request-review AND-gate for e03s04 (rounds 1 to 5)
+  why: Every round failed both reviewers (round 1 A 82.0 and B 87.5; round 2 74.0
+    and 73.3; round 3 81.7 and 79.1; round 4 90.2 and 87.5; round 5 85.7 and 84.6).
+    The five-round cap was reached. Each round's must-fix items were fixed, and the
+    round-5 must-fix items were fixed after the cap. The should-fix wording items
+    from round 5 were not fixed and are accepted as a waiver. The owner chose this
+    option on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s04 only (docs/research/R9-model-routing.md wording only; no change to
+    verify commands)
+- what: regression test for the cycle-time marker, previously not run by CI or Preflight
+  why: Resolved 2026-11-09. The owner chose CI, not Preflight, so the Preflight command
+    in CLAUDE.md and CONVENTIONS is unchanged. The test now runs as a CI step, and
+    CONVENTIONS documents it.
+  date: 2026-11-09
+  scope: tools/test-record-cycle-time.sh only
+- what: gate-trace FAIL (rule R1) for e03s05 to e04s03, CONCERNS (rule R2) for e01s02
+    and e01s04, CONCERNS (rule R4) and oracle downgrade (95 percent heuristic links),
+    for the e03s04 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04
+    were released before verify evidence was written for them. R4 for coverage, 2
+    of 19 stories are tagged. oracle downgrade on 41 of 43 links come from file and
+    task heuristics. The owner approved this waiver on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s04 release only (stories e03s05 to e03s08 and e04s01 to e04s03 for R1;
+    e01s02 and e01s04 for R2)
+- what: CONVENTIONS.md rule that every source has a publication date, for 4 vendor
+    doc pages in the R11 brief (S26 to S29, Claude Code sandboxing, permissions and
+    security, and Codex agent-approvals-security)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version read. A real date cannot be found, so the brief
+    marks them as undated. check-brief.sh passes with a warning. R5 cited the same
+    pages as undated. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s05 only (docs/research/R11-security-permissions.md sources S26 to S29)
+- what: request-review AND-gate for e03s05 (rounds 1 to 2)
+  why: Round 1 failed (reviewer A 80.0 and B 86.96; three must-fix between them).
+    Round 2 failed (A 88.5 with two must-fix, B 90.0 with none). Each round found
+    real errors in the brief (a paper cited for something it does not show, a deny
+    rule presented as enforcement, results from a paper's appendix left out, and papers
+    the searches missed) and every finding was checked against its source and fixed.
+    The round 2 must-fix items were errors I introduced in the round 1 fixes. The
+    owner chose on 2026-11-10 to commit and waive. The round 2 fixes were not re-reviewed.
+  date: 2026-11-10
+  scope: e03s05 only (docs/research/R11-security-permissions.md wording and evidence;
+    no change to verify commands)
+- what: gate-trace FAIL (rule R1) for e03s06 to e04s03, CONCERNS (rule R2) for e01s02
+    and e01s04, CONCERNS (rule R4) and oracle downgrade (96 percent heuristic links),
+    for the e03s05 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one. R2 for missing verify evidence, e01s02 and e01s04
+    were released before verify evidence was written for them. R4 for coverage, 1
+    of 19 stories is tagged. Oracle downgrade, 43 of 45 links come from file and task
+    heuristics. The owner approved this waiver on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s05 release only (stories e03s06 to e03s08 and e04s01 to e04s03 for R1;
+    e01s02 and e01s04 for R2)
+- what: CONVENTIONS.md rule that every source has a publication date, for 3 vendor
+    doc pages in the R12 brief (S22 Claude Code docs, S25 Codex docs, S43 Claude platform
+    context-windows page)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the version or fetch date. A real date cannot be found, so the brief
+    marks them as undated. check-brief.sh passes with a warning. R5, R9 and R11 cited
+    the same kind of pages as undated. The owner approved this exception on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s06 only (docs/research/R12-context-memory.md sources S22, S25, S43)
+- what: CONVENTIONS.md rule that released briefs are not changed, for the R8 brief
+    (e03s03)
+  why: Review of R12 showed that R8 said the README and wiki checker was not shown
+    to read AI configuration files; the full text shows it was run on 612 of them.
+    R8 lines for H3 and source S33, and a to-do line that listed S33, were corrected
+    on this branch (four lines). The owner approved the correction on 2026-11-09.
+  date: 2026-11-09
+  scope: e03s06 only (docs/research/R8-code-quality-conventions.md, the S33 claim)
+- what: request-review dual-blind AND-gate for e03s06 (rounds 1 to 5)
+  why: Every round failed at least one reviewer (round 1 A 76 and B 72; round 2 83.9
+    and 79.4; round 3 84.4 and 80.0; round 4 87.2 and 84.2; round 5 A 94.1 and B 92.3,
+    with no must-fix in round 5). The five-round cap was reached. Each round found
+    real errors in the brief (a wrong claim about which checker read AI configuration
+    files, a missed head-to-head handoff study, an inverted detail of one paper, stale
+    counts) and every finding was checked against its source and fixed; new papers
+    kept turning up each round. After round 5 the brief was corrected for the findings
+    both reviewers agreed on (the HSC-Bench full-history arm and task mix, the Resilient
+    Write layers, the S3 hybrid result, the DreamBench-SWE and MemoryTax qualifiers)
+    and S71 to S73 were added; those changes were not re-reviewed. The owner chose
+    on 2026-11-09 to stop and release.
+  date: 2026-11-09
+  scope: e03s06 only (docs/research/R12-context-memory.md wording and evidence; no
+    change to verify commands)
+- what: gate-trace FAIL (rule R1) for e03s07 to e04s03, CONCERNS (rule R2) for e01s02,
+    e01s04 and e02s01, CONCERNS (rule R4) and oracle downgrade (96 percent heuristic
+    links), for the e03s06 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one (five are undone, namely e03s07, e03s08, e04s01,
+    e04s02 and e04s03). R2 for missing verify evidence; e01s02, e01s04 and e02s01
+    were released before verify evidence files were written for them. R4 for coverage,
+    1 of 19 stories is tagged. Oracle downgrade, 45 of 47 links come from file and
+    task heuristics. Blind-spot check 0 HIGH; completeness critic 0 blockers. The
+    owner replied "do what you recommend" to the agent's gate-trace question on 2026-11-09
+    and approved the wording on the same day.
+  date: 2026-11-09
+  scope: e03s06 release only (stories e03s07 to e04s03 for R1; e01s02, e01s04 and
+    e02s01 for R2)
+- what: plan-consistency-check MED finding (status ledger) for e03s06, and the same
+    finding for e03s07 tasks
+  why: The checker wants failing and passing task statuses. CONVENTIONS.md sets todo,
+    in_progress and done. e03s07 tasks start at todo, as for e01 and e02. The CRITICAL
+    and HIGH findings for e03s08 (no story spec) are covered by the e03 waiver above.
+    The owner acknowledged the finding on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s07 plan only
+- what: CONVENTIONS.md rule that every source has a publication date, for 5 vendor
+    doc pages in the R13 brief (S25 to S29, Claude Code hooks and permissions, Codex
+    hooks, pi extensions and opencode plugins and permissions)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version, commit or tag read. A real date cannot be
+    found, so the brief marks them as undated. check-brief.sh passes with a warning.
+    R5, R9, R11 and R12 cited the same kind of pages as undated. The owner approved
+    this exception on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s07 only (docs/research/R13-enforcement-design.md sources S25 to S29)
+- what: request-review dual-blind AND-gate for e03s07 (rounds 1 to 2)
+  why: Round 1 failed (reviewer A 95.3 with two must-fix, B 95.1 with four; four distinct).
+    Round 2 failed (A 91.6 with two must-fix, B 95.8 with two). Each round found real
+    errors in the brief (a figure said to be absent from a page that held it, a pi
+    behaviour said to be undocumented that the docs describe, a Windows exception
+    to a hook rule, a ratio the paper does not give, a false claim that no remedy
+    had been tested) and every finding was checked against its source and fixed. New
+    papers kept turning up. The agreed cap of two rounds was reached. The fixes from
+    both rounds were not re-reviewed. The owner chose on 2026-11-10 to waive the gate
+    and release.
+  date: 2026-11-10
+  scope: e03s07 only (docs/research/R13-enforcement-design.md wording and evidence;
+    no change to verify commands)
+- what: CONVENTIONS.md rule that every source has a publication date, for 2 further
+    sources in the R13 brief (S56 NeurIPS workshop poster, S59 Claude Code monitoring-usage
+    docs page)
+  why: Neither shows a publication date, and none could be found. S56 has no arXiv
+    id and its OpenReview metadata was not readable; S59 is a vendor doc page. Each
+    source line records what was read. check-brief.sh passes with a warning (7 undated
+    sources in all, with S25 to S29). The owner extended the undated exception to
+    these two on 2026-11-10.
+  date: 2026-11-10
+  scope: e03s07 only (docs/research/R13-enforcement-design.md sources S56 and S59)
+- what: gate-trace FAIL (rule R1) for e03s08 to e04s03, CONCERNS (rule R2) for e01s02,
+    e01s04 and e02s01, CONCERNS (rule R4) and oracle downgrade (96 percent heuristic
+    links), for the e03s07 release
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one (four are undone, namely e03s08, e04s01, e04s02
+    and e04s03). R2 for missing verify evidence; e01s02, e01s04 and e02s01 were released
+    before verify evidence files were written for them. R4 for coverage, 1 of 19 stories
+    is tagged. Oracle downgrade, 47 of 49 links come from file and task heuristics.
+    Blind-spot check 0 HIGH; completeness critic 0 blockers. The owner approved this
+    waiver on 2026-11-10 when approving the release plan, before the verdict was computed;
+    the computed verdict matches the earlier waivers.
+  date: 2026-11-10
+  scope: e03s07 release only (stories e03s08 to e04s03 for R1; e01s02, e01s04 and
+    e02s01 for R2)
+- what: gate-trace FAIL (rule R1) for undone stories with no code tags, CONCERNS (rule
+    R4) and oracle downgrade (96 percent heuristic links), standing waiver
+  why: R1 fails any undone story with no code tags. The project has no product code,
+    so no undone story can have one; the rule cannot pass until a story ships code.
+    The same FAIL has been waived in seven ledger entries, one release at a time,
+    which is the pattern R13 flags as a retirement candidate. R2 no longer applies
+    (verify evidence was backfilled for e01s02, e01s04 and e02s01 on 2026-11-10).
+    R4 for coverage, 2 of 19 stories are tagged. Oracle downgrade, 47 of 49 links
+    come from file and task heuristics. Blind-spot check 0 HIGH; completeness critic
+    0 blockers. The owner approved this standing waiver on 2026-11-10 ("do what you
+    recommend"). It replaces the one-release waivers from the BUG-005 fix on.
+  date: 2026-11-10
+  scope: every release until the first story that ships product code; revisit at the
+    e04 checkpoint, and drop it as soon as an undone story could carry a code tag
+- what: CONVENTIONS.md rule that every source has a publication date, for 5 vendor
+    doc pages in the R15 brief (S18 to S21 Claude Code cli-reference, hooks and goal
+    pages and the Codex config-reference, and S23 the pi docs settings and usage pages)
+  why: These pages show no publication date, and none could be found. Each source
+    line records the installed version, commit or tag read. A real date cannot be
+    found, so the brief marks them as undated. check-brief.sh passes with a warning.
+    R5, R9, R11, R12 and R13 cited the same kind of pages as undated. The owner approved
+    this exception on 2026-11-10 ("do your recommendations").
+  date: 2026-11-10
+  scope: e03s08 only (docs/research/R15-run-termination.md sources S18 to S21 and
+    S23)
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e04s02
+    and e04s03
+  why: Those two stories get their specs when each is planned. Planning them now would
+    be paperwork, and e04s02 needs the e04s03 verdicts first. The e04s01 findings
+    cleared when its spec was written. The owner chose to waive it for e04, as for
+    e03, on 2026-11-10 (answer to a plan-work question, recommended option).
+  date: 2026-11-10
+  scope: e04 only (e04s02 and e04s03 specs)
+- what: CONVENTIONS.md rule that gh is used only for PRs and repo clones (audit- code
+    item) for e04s01
+  why: One read-only gh run list --branch main --limit 3 call checked CI on the merge
+    commit b4382d6; all three runs succeeded. Nothing in the diff depends on it and
+    the call cannot be undone. The owner accepted the deviation on 2026-11-10 ("do
+    what you recommend"). From now on read CI through the pull request.
+  date: 2026-11-10
+  scope: e04s01 only
+- what: security-review threat model for e04 (build-epic step 0)
+  why: No product code. e04 writes the R10 and R16 briefs and the synthesis only;
+    the executable surface is check-brief.sh, the task verify strings and one stdlib
+    python power calculation in the R10 brief, which reads no file or network. Briefs
+    read arXiv pages and docs, read only. The owner chose to waive it on 2026-11-10
+    ("do what you recommend"), as for e01 to e03.
+  date: 2026-11-10
+  scope: e04 only
+- what: CONVENTIONS.md rule that every source has a publication date, for 1 vendor
+    doc page in the R16 brief (S2, Claude Code skills documentation)
+  why: The page shows no publication date, and none could be found. The source line
+    records the installed version read (2.1.321). A real date cannot be found, so
+    the brief marks it as undated. check-brief.sh passes with a warning. R5, R9, R11,
+    R12, R13 and R15 cited the same kind of page as undated. The owner approved this
+    exception on 2026-11-11 ("approve s2").
+  date: 2026-11-11
+  scope: e04s03 only (docs/research/R16-evidence-refresh.md source S2)
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e05s02,
+    e05s03 and e05s04
+  why: Those three stories get their specs when each is planned. Planning them now
+    would be paperwork. e05s01 itself is clear. The owner chose to waive it for e05,
+    as for e02, e03 and e04, on 2026-11-11 (answer to a plan-work question, recommended
+    option).
+  date: 2026-11-11
+  scope: e05 only (e05s02 to e05s04 specs)
+- what: plan-consistency-check MED finding (status ledger) for e05s01
+  why: The checker wants failing/passing task statuses. CONVENTIONS.md sets todo,
+    in_progress, done. The owner accepted it on 2026-11-11 ("yes to both"), as for
+    e01 and e03s06.
+  date: 2026-11-11
+  scope: e05 only
+- what: audit-code checklist rule that gh is used only for PRs and clones, for e05s04
+    (gh api to set and read branch protection on main)
+  why: Branch protection has no setting outside the REST API and the web UI. The owner
+    allowed gh api for this story on 2026-11-11 ("do your recommendations"). Calls
+    are limited to repos/{owner}/{repo}/branches/main/protection. Setting it still
+    needs the owner's go-ahead at the time it runs.
+  date: 2026-11-11
+  scope: e05s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e06s02
+    to e06s05
+  why: Those four stories get their specs when each is planned. Planning them now
+    would be paperwork. e06s01 itself is clear. The owner chose to waive it for e06,
+    as for e02 to e05, on 2026-11-11 ("approve" to the plan-work recommendations).
+  date: 2026-11-11
+  scope: e06 only (e06s02 to e06s05 specs)
+- what: gate-trace FAIL (rule R1) for e06s01 and the later e06 stories
+  why: R1 fails any undone story with 0 code tags. e06s02 to e06s05 are undone and
+    have no code yet, so none can carry a tag. e06s01 is the first story with product
+    code, so the standing waiver of 2026-11-10 ends with it. e06s01 itself now carries
+    explicit tags in src/gate.ts, src/cli.ts and their tests. The owner chose to re-waive
+    for e06 only on 2026-11-11 (answer to the release-branch questions, recommended
+    option).
+  date: 2026-11-11
+  scope: e06 only; drop it when e06 closes, or as soon as every undone e06 story could
+    carry a code tag
+- what: release-branch coverage gate (overall 80 percent, business logic 95 percent)
+    for e06s01
+  why: The repo has no coverage tool and CONVENTIONS.md sets no threshold, so the
+    gate cannot be measured. All 33 tests pass. A measured gate needs a tool decision,
+    which is left for a later story. The owner waived it on 2026-11-11 (answer to
+    the release-branch questions, recommended option).
+  date: 2026-11-11
+  scope: e06s01 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e07s02
+    to e07s04
+  why: Those three stories get their specs when each is planned. Planning them now
+    would be paperwork, and e07s04 reads what e07s02 and e07s03 learn. e07s01 itself
+    is clear. The owner chose to waive it for e07, as for e02 to e06, on 2026-11-12
+    (answer to a plan-work question, recommended option).
+  date: 2026-11-12
+  scope: e07 only (e07s02 to e07s04 specs)
+- what: gate-trace FAIL (rule R1) for undone e07 stories with no code tags
+  why: R1 fails any undone story with 0 code tags. e07s02 to e07s04 have no code until
+    each ships, so none can carry a tag. The e06-only waiver ended when e06 closed.
+    The owner chose to re-waive for e07 only on 2026-11-12 (answer to a plan-work
+    question, recommended option).
+  date: 2026-11-12
+  scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
+    carry a code tag
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e08s02
+    to e08s04
+  why: Those three stories get their specs when each is planned. Planning them now
+    would be paperwork, and e08s03 and e08s04 read what e08s01 and e08s02 learn. e08s01
+    itself is clear. The owner chose to waive it for e08, as for e02 to e07, on 2026-11-13
+    (answer to a plan-work question, recommended option).
+  date: 2026-11-13
+  scope: e08 only (e08s02 to e08s04 specs)
+- what: gate-trace FAIL (rule R1) for undone e08 stories with no code tags
+  why: R1 fails any undone story with 0 code tags. e08s02 to e08s04 have no code until
+    each ships, so none can carry a tag. The e07-only waiver ended when e07 closed.
+    The owner chose to re-waive for e08 only on 2026-11-13 (answer to a plan-work
+    question, recommended option).
+  date: 2026-11-13
+  scope: e08 only; drop it when e08 closes, or as soon as every undone e08 story could
+    carry a code tag
+- what: plan-consistency-check MED finding (status ledger) for e08s01
+  why: The checker wants failing/passing task statuses. CONVENTIONS.md sets todo,
+    in_progress, done. The owner accepted it on 2026-11-13 (answer to a plan-work
+    question, recommended option), as for e01, e03s06 and e05s01.
+  date: 2026-11-13
+  scope: e08 only
+handoff:
+  next_skill: develop-tdd
+  next_story: e08s01
+  next_epic: e08
+  note: 'e08s01 is planned on branch e08s01-state-writer (made with git checkout -b,
+    not a worktree). Spec: specs/epics/e08-state-and-handoff/e08s01-state-writer.md;
+    tasks: e08s01-tasks.yaml, four tasks. Next: develop-tdd, task 1 first (move the
+    regular-file read and atomic write to src/regular-file.ts, no behaviour change),
+    then RED for setField. Owner decisions 2026-11-13: yaml 2.9.1 on its CST layer
+    (Parser, CST.setScalarValue, CST.stringify), not the Document API, which rewrote
+    495 lines of state.yaml in the spike; no folding of long values (e08s03 decides);
+    share the file helpers; e08-only waivers for missing specs, gate-trace R1 and
+    the MED status-ledger finding; residual F5 belongs to e09. setScalarValue checks
+    no types (the string "true" became a boolean in the spike), so the writer parses
+    every edit and quotes on a type change. Pushes, PRs and merges need an explicit
+    go-ahead each. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
+    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml. Deferred
+    to e10: the symlinked git-dir directory, the torn or briefly empty record (temp
+    file and rename), size caps checked by fstat then read to EOF, the parent-directory
+    swap between realpath and rename. Deferred: CLAUDE_PROJECT_DIR in the record,
+    resolved adapter paths. Declined: a staleness limit, sharing one git rev-parse.
+    The pi wrapper for e07 was left out; add it as a later story only if the owner
+    asks.'
+metrics:
+  story_start: '2026-11-12T21:27:08Z'
+  skill_timings:
+    survey-context:
+      calls: 27
+      total_seconds: 425.0
+      avg_seconds: 15.74074074074074
+    plan-work:
+      calls: 29
+      total_seconds: 15745.0
+      avg_seconds: 542.9310344827586
+    develop-tdd:
+      calls: 28
+      total_seconds: 11672.0
+      avg_seconds: 416.85714285714283
+      _start: '2026-11-13T15:40:54Z'
+    verify-work:
+      calls: 28
+      total_seconds: 3667.0
+      avg_seconds: 130.96428571428572
+    audit-code:
+      calls: 21
+      total_seconds: 1860.0
+      avg_seconds: 88.57142857142857
+    release-branch:
+      calls: 28
+      total_seconds: 3680.0
+      avg_seconds: 131.42857142857142
+    request-review:
+      calls: 11
+      total_seconds: 14230.0
+      avg_seconds: 1293.6363636363637
+    kickoff-branch:
+      calls: 1
+      total_seconds: 26.0
+      avg_seconds: 26.0
+    respond-review:
+      calls: 6
+      total_seconds: 931.0
+      avg_seconds: 155.16666666666666
+    commit-message:
+      calls: 5
+      total_seconds: 46.0
+      avg_seconds: 9.2
+    change-request:
+      calls: 1
+      total_seconds: 70.0
+      avg_seconds: 70.0
