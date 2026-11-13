@@ -15,9 +15,9 @@ import { realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { CST, Parser, parseAllDocuments, parseDocument, type Document, type Scalar } from 'yaml';
-import { messageOf } from './errors.ts';
+import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
-import { readRegularFile, writeAtomic, type Failure } from './regular-file.ts';
+import { readRegularFile, writeAtomic } from './regular-file.ts';
 
 /** The most writeStateField reads. A state file is a few tens of KiB. */
 export const maxStateBytes = 1024 * 1024;
@@ -46,11 +46,26 @@ function parseOne(text: string): Parsed {
   if (doc === undefined) return { ok: false, error: 'the text must be exactly one YAML document' };
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: `the text is not valid YAML: ${first.message}` };
+  let data: unknown;
   try {
-    return { ok: true, doc, data: doc.toJS(), warnings: doc.warnings.length };
+    data = doc.toJS();
   } catch (error) {
     return { ok: false, error: `the text cannot be read as data: ${messageOf(error)}` };
   }
+  if (!isPlainData(data)) {
+    return { ok: false, error: 'the file holds data other than mappings, sequences and scalars (a %YAML 1.1 directive or a tag such as !!binary)' };
+  }
+  return { ok: true, doc, data, warnings: doc.warnings.length };
+}
+
+/** True when `data` is only plain objects, arrays, strings, numbers, booleans
+ * and null. A %YAML 1.1 directive or a tag such as !!binary gives Dates, bytes,
+ * Maps or Sets, which the data check cannot copy or compare, so every edit
+ * would fail with the wrong reason (review round 3, A4). */
+function isPlainData(data: unknown): boolean {
+  if (Array.isArray(data)) return data.every(isPlainData);
+  if (typeof data !== 'object' || data === null) return true;
+  return Object.getPrototypeOf(data) === Object.prototype && Object.values(data).every(isPlainData);
 }
 
 /** The scalar token at `path` in the one document of `tokens`. Each key must
@@ -159,16 +174,23 @@ function holdsData(text: string, want: Reading): boolean {
 function firstEditThatHolds(text: string, path: readonly string[], value: FieldValue, want: Reading): SetField {
   const styles: (Scalar.Type | undefined)[] = typeof value === 'string' ? [undefined, 'QUOTE_DOUBLE'] : ['PLAIN'];
   let reason = '';
-  let written = false;
+  let anyStyleWrote = false;
   for (const type of styles) {
     const result = editScalar(text, path, value, type);
     if (!result.ok) reason = result.error;
     else if (holdsData(result.text, want)) return result;
-    else written = true;
+    else anyStyleWrote = true;
   }
-  if (!written && reason !== '') return { ok: false, error: reason };
-  return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data` };
+  if (!anyStyleWrote && reason !== '') return { ok: false, error: reason };
+  const also = reason === '' ? '' : `; another style failed: ${reason}`;
+  return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data${also}` };
 }
+
+/** The characters PyYAML's reader accepts, less NEL, which YAML 1.1 reads as a
+ * line break. yaml writes the others (DEL, C1 controls, U+FFFE, U+FFFF) raw in
+ * every style, and PyYAML then refuses the whole file (review round 3, A1, B1);
+ * with the u flag a lone surrogate falls outside too (B5). */
+const notPyYamlPrintable = /[^\t\n\r\x20-\x7E\xA0-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
 
 /** Why `value` cannot be written at `path` at all, or null. setScalarValue
  * writes NEL, LS and PS unescaped, and YAML 1.1 reads them as line breaks, so
@@ -176,8 +198,10 @@ function firstEditThatHolds(text: string, path: readonly string[], value: FieldV
 function refusalForValue(path: readonly string[], value: unknown): string | null {
   if (path.length === 0) return 'the key path is empty';
   if (!isFieldValue(value)) return 'the value must be a string, a finite number, a boolean or null';
-  if (typeof value === 'string' && /[\u0085\u2028\u2029]/.test(value)) {
-    return 'the value holds NEL, LS or PS, which YAML 1.1 reads as a line break';
+  if (typeof value !== 'string') return null;
+  if (/[\u0085\u2028\u2029]/.test(value)) return 'the value holds NEL, LS or PS, which YAML 1.1 reads as a line break';
+  if (notPyYamlPrintable.test(value)) {
+    return 'the value holds a character PyYAML cannot read (a control character, U+FFFE, U+FFFF or a lone surrogate)';
   }
   return null;
 }
@@ -191,13 +215,13 @@ function refusalForValue(path: readonly string[], value: unknown): string | null
 export function setField(text: string, path: readonly string[], value: FieldValue): SetField {
   const refusal = refusalForValue(path, value);
   if (refusal !== null) return { ok: false, error: refusal };
-  const field = value === 0 ? 0 : value; // -0 is written as 0, so it must be checked as 0 (review 2, A8)
+  const normalised = value === 0 ? 0 : value; // -0 is written as 0, so it must be checked as 0 (review 2, A8)
   const parsed = parseOne(text);
   if (!parsed.ok) return parsed;
   const found = findScalar([...new Parser().parse(text)], path);
   if (!found.ok) return found;
-  if (isDeepStrictEqual(parsed.doc.getIn(path), field)) return { ok: true, text };
-  return firstEditThatHolds(text, path, field, expectedReading(parsed, path, field));
+  if (isDeepStrictEqual(parsed.doc.getIn(path), normalised)) return { ok: true, text };
+  return firstEditThatHolds(text, path, normalised, expectedReading(parsed, path, normalised));
 }
 
 /** The real path `file` names, when it lies inside `root` and outside `.git`:

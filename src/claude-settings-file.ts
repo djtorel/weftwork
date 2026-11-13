@@ -11,8 +11,8 @@
 import { lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { installStopHook, type Action } from './claude-install.ts';
-import { isMissing } from './errors.ts';
-import { readRegularFile, writeAtomic, type Failure, type ReadRegular, type RegularFile } from './regular-file.ts';
+import { isMissing, type Failure } from './errors.ts';
+import { readRegularFile, writeAtomic, type ReadRegular, type RegularFile } from './regular-file.ts';
 
 /** The most readSettings reads. A real settings file is a few KiB; the live
  * check follows symlinks, so the file may be any file the agent links. */

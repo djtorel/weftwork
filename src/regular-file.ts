@@ -20,9 +20,8 @@ import {
 } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
-import { isMissing, messageOf } from './errors.ts';
+import { isMissing, messageOf, type Failure } from './errors.ts';
 
-export type Failure = { ok: false; error: string };
 export type RegularFile = { text: string; mode: number; mtime: Date };
 export type ReadRegular = { ok: true; file: RegularFile | null } | Failure;
 type Opened = { ok: true; fd: number | null } | Failure;
@@ -54,11 +53,25 @@ export function readRegularFile(path: string, options: { follow: boolean; maxByt
     if (stat.size > options.maxBytes) {
       return { ok: false, error: `${path} is larger than ${options.maxBytes} bytes` };
     }
-    return { ok: true, file: { text: readFileSync(fd, 'utf8'), mode: stat.mode & 0o777, mtime: stat.mtime } };
+    const text = strictUtf8(readFileSync(fd));
+    if (text === null) return { ok: false, error: `${path} is not valid UTF-8` };
+    return { ok: true, file: { text, mode: stat.mode & 0o777, mtime: stat.mtime } };
   } catch (error) {
     return { ok: false, error: `${path} could not be read: ${messageOf(error)}` };
   } finally {
     closeQuietly(fd);
+  }
+}
+
+/** `bytes` as UTF-8 text, or null when they are not valid UTF-8. A lossy
+ * decode would turn each bad byte into U+FFFD, and a later write would put
+ * those on disk in place of bytes the caller never touched (review round 3,
+ * A2, B2). A leading BOM is kept as text, as readFileSync kept it. */
+function strictUtf8(bytes: Buffer): string | null {
+  try {
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    return null;
   }
 }
 
