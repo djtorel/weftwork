@@ -76,7 +76,7 @@ tasks:
       node --test src/handoff.test.ts src/handoff-cli.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
