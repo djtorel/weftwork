@@ -406,20 +406,19 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   next_story: e07s04
-  note: 'verify-work done 2026-11-12 on branch e07s04-live-check (not pushed), head
-    92e1fe3 before this commit. Owner ran the verify script in a real Claude Code
-    session: all steps passed (step 7 answer not noted). Security review: no HIGH;
-    F1 (hard link at last-call.json) and F2 (control characters in the reason) and
-    the symlinked-settings observation were fixed with RED and GREEN commits; all
-    gates re-run green, 423 of 423 tests; evidence in specs/verifications/e07s04-verify.yaml.
-    Next: audit-code, which must write a Story: e07s04 line in specs/AUDIT_LATEST.md;
-    run the audit gate through tools/assert-audit-story.sh (BUG-006). The owner gave
-    a standing go-ahead to commit on this branch; pushes, PRs and merges still need
-    an explicit go-ahead each. Carry: gate-trace R1 needs an owner decision before
-    e07 is released; for e10: ledger.jsonl is appended to through a hard link, and
-    a symlinked .git/weftwork directory. Do not run scripts/sync-status-from-epics.sh.
+  note: 'audit-code PASS 2026-11-12 on branch e07s04-live-check (not pushed): six
+    items fixed in two commits (function length, a 5-argument test helper, three generic
+    names, the duplicated command-hook test now in parseStopHook, the untested age
+    units). AUDIT_LATEST.md names e07s04 and tools/assert-audit-story.sh passes; Preflight
+    green, 424 of 424 tests. Every change is already committed with the Story: e07s04
+    trailer, so commit-message has nothing to draft; the owner decides whether to
+    skip it. Then request-review (dual-blind, as for e07s03), then release-branch.
+    The owner gave a standing go-ahead to commit on this branch; pushes, PRs and merges
+    still need an explicit go-ahead each. Carry: gate-trace R1 needs an owner decision
+    before e07 is released; for e10: ledger.jsonl is appended to through a hard link,
+    and a symlinked .git/weftwork directory. Do not run scripts/sync-status-from-epics.sh.
     After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on
     specs/state.yaml.'
 metrics:
@@ -442,9 +441,9 @@ metrics:
       total_seconds: 3667.0
       avg_seconds: 130.96428571428572
     audit-code:
-      calls: 20
-      total_seconds: 1679.0
-      avg_seconds: 83.95
+      calls: 21
+      total_seconds: 1860.0
+      avg_seconds: 88.57142857142857
     release-branch:
       calls: 27
       total_seconds: 3220.0
