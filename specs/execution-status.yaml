@@ -39,8 +39,8 @@ development_status:
   e07s02: done
   e07s03: done
   e07s04: done
-  e08: todo
-  e08s01: todo
+  e08: in_progress
+  e08s01: in_progress
   e08s02: todo
   e08s03: todo
   e08s04: todo
@@ -84,7 +84,7 @@ epics:
     wsjf: 4.2
     total_bcps: 20
   e08:
-    status: todo
+    status: in_progress
     title: State and handoff (B2)
     wsjf: 3.8
     total_bcps: 19

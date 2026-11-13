@@ -1,51 +1,49 @@
 ---
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
-# slice-tasks 2026-11-13. Tracer bullet for B2: a caller names one
+# slice-tasks 2026-11-13; plan-work 2026-11-13 (spec:
+# e08s01-state-writer.md). Tracer bullet for B2: a caller names one
 # field of a state file, the engine changes that field on disk, and
 # nothing else in the file changes. This is the format-preserving
 # writer of R12 and R13, and the answer to BUG-001, BUG-004 and
 # BUG-005 (tools rewrote specs/state.yaml and specs/execution-status.yaml
 # in another style, three times).
-# Open for plan-work (recommendation first): use the "yaml" package
-# (eemeli/yaml, version 2.9.1 on 2026-11-13) and its Document API, not
-# a hand-written editor. This repo has no runtime dependency yet, and
-# CLAUDE.md says to prefer a maintained library. plan-work reads its
-# docs with ctx7 before the RED test. If task 1 shows that the library
-# cannot keep the fixtures byte-for-byte, stop and ask the owner:
-# the fallback is a line editor that handles scalar keys only.
+# Owner decisions at plan-work (all four recommendations taken):
+#   1. yaml 2.9.1 and its CST layer (Parser, CST.setScalarValue,
+#      CST.stringify), not the Document API: the spike showed
+#      parseDocument().toString() rewrites 495 lines of state.yaml,
+#      and the CST round trip keeps every byte of four spec files.
+#   2. No folding of long values in this story; e08s03 decides.
+#   3. Move the regular-file read and the atomic write out of
+#      src/claude-settings-file.ts into src/regular-file.ts and share
+#      them.
+#   4. Missing-spec and gate-trace R1 waivers for e08 only, as for e07.
 # Prior art in this repo: tools/restore-yaml-style.py puts old text back
 # after another tool rewrote a file. This story makes the rewrite not
 # happen. It does not replace that tool: the global scripts
 # (bp-timing.sh, record-cycle-time.sh) still write the same files.
 story_id: e08s01
 title: A caller sets one field of a state file and nothing else changes
-status: todo
+status: in_progress
 bcps: 5
 type: feat
 context: engine
 risk: P1
+spec: e08s01-state-writer.md
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Add the "yaml" package as a runtime dependency,
-      pinned to one exact version with no caret (the repo pins its dev
-      dependencies the same way). Write src/state-file.test.ts first and
-      record the failure. Fixtures are copies of specs/state.yaml and
-      specs/execution-status.yaml in src/fixtures/, which hold the
-      constructs the global scripts lost: the leading ---, comments,
-      folded scalars (>-) and long quoted scalars that wrap over lines.
-      Cases: setting no field gives back the same bytes; setting one
-      scalar changes only the lines of that key; setting a nested key
-      (handoff.next_skill) leaves the sibling keys and the comments as
-      they were; a value that needs quotes is quoted; text that is not
-      valid YAML, or a path that is not a mapping, is a returned error
-      and no text. One more case reads the live specs/state.yaml and
-      checks the no-change round trip, so a future construct the writer
-      garbles fails here first. Then write src/state-file.ts: a pure
-      function from text, a key path and a value to new text or an
-      error. Errors are values (CONVENTIONS.md, TypeScript code style).
+      Refactor, no behaviour change (AC-e08s01-01). Move openIfExists,
+      closeQuietly, removeQuietly and writeAtomic from
+      src/claude-settings-file.ts to src/regular-file.ts. Export
+      readRegularFile(path, { follow, maxBytes }) and writeAtomic(path,
+      text, mode); name the temp file after the target's base name.
+      claude-settings-file.ts keeps readSettings and every name it
+      exports today. Move the helper tests that belong to the new
+      module with it
     verify: >-
-      node --test src/state-file.test.ts && npm run typecheck
+      node --test src/claude-settings-file.test.ts
+      src/claude-install-cli.test.ts src/claude-live.test.ts
+      src/claude-live-cli.test.ts && npm run typecheck
     risk: P1
     status: todo
     allure:
@@ -55,19 +53,33 @@ tasks:
         - "e08 B2"
   - id: 2
     description: >-
-      RED, then GREEN. Write src/state-cli.test.ts first. It starts the
-      real CLI as a child process in makeTestRepo() repositories, so no
-      run touches this repository's specs/state.yaml. Then write
-      src/state-cli.ts as a thin shell: JSON on stdin with the file, the
-      key path and the value; one JSON line on stdout; exit 0 when the
-      file was written, 1 when the engine refused (unreadable file,
-      invalid YAML, path not found), 2 for input it cannot read. The
-      library, not the shell, holds the rules: the file must be a
-      regular file inside the repository root after resolving symlinks,
-      and the write is a temporary file in the same directory, then a
-      rename, with the old file mode kept, so a crash never leaves a
-      half-written state file. A file that cannot be parsed is never
-      overwritten.
+      RED, then GREEN (AC-e08s01-02 to 06). Add yaml 2.9.1 as a runtime
+      dependency, exact version, no caret. Copy specs/state.yaml and
+      specs/execution-status.yaml to src/fixtures/. Write
+      src/state-file.test.ts first and record the failure. Then write
+      setField(text, path, value) in src/state-file.ts: a pure function
+      on the CST layer that checks each edit by parsing the result,
+      quotes a string that changed type, and returns errors as values
+    verify: >-
+      node --test src/state-file.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 3
+    description: >-
+      RED, then GREEN (AC-e08s01-07, 08). Write src/state-cli.test.ts
+      first; it starts the real CLI in makeTestRepo() repositories, so
+      no run touches this repository's specs/state.yaml. Then add
+      writeStateField(root, file, path, value) to src/state-file.ts
+      (inside the root after realpath, no symlink, regular file, 1 MiB
+      cap, write through writeAtomic with the old mode, only when the
+      text changed), export repositoryRoot from src/tree.ts, and write
+      src/state-cli.ts as a thin shell: JSON on stdin, one JSON line on
+      stdout, exit 0 written or unchanged, 1 refused, 2 bad input
     verify: >-
       node --test src/state-file.test.ts src/state-cli.test.ts
       && npm run typecheck
@@ -78,10 +90,11 @@ tasks:
       categories:
         - "engine"
         - "e08 B2"
-  - id: 3
+  - id: 4
     description: >-
-      Update the AGENTS.md Architecture section to name the state-file
-      library and its CLI. Then run the AGENTS.md Preflight line
+      Name regular-file.ts, state-file.ts and state-cli.ts in the
+      AGENTS.md Architecture section. Then run the AGENTS.md Preflight
+      line
     verify: >-
       grep -q 'state-file' AGENTS.md
       && yamllint specs && bash tools/validate-specs-yaml.sh
