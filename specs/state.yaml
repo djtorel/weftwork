@@ -428,7 +428,7 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   next_story: e08s01
   next_epic: e08
   note: 'e08s01 is built on branch e08s01-state-writer (made with git checkout -b,
@@ -439,7 +439,8 @@ handoff:
     src/state-file.ts (setField, writeStateField), src/state-cli.ts, fixtures in src/fixtures/,
     yaml 2.9.1 as the first runtime dependency. verify-work passed 2026-11-13 at
     7492272 (486 tests, owner UAT, security review F1 LOW fixed; evidence in
-    specs/verifications/e08s01-verify.yaml). Next: audit-code, request-review,
+    specs/verifications/e08s01-verify.yaml). audit-code PASS 2026-11-13 at 5d8a0e1
+    (seven items fixed; specs/verifications/AUDIT-e08-e08s01.md). Next: request-review,
     then release-branch. Nothing is pushed. Owner decisions 2026-11-13: yaml 2.9.1 on its CST layer
     (Parser, CST.setScalarValue, CST.stringify), not the Document API, which rewrote
     495 lines of state.yaml in the spike; no folding of long values (e08s03 decides);
@@ -475,9 +476,9 @@ metrics:
       total_seconds: 4975.0
       avg_seconds: 171.55172413793105
     audit-code:
-      calls: 21
-      total_seconds: 1860.0
-      avg_seconds: 88.57142857142857
+      calls: 22
+      total_seconds: 1993.0
+      avg_seconds: 90.5909090909091
     release-branch:
       calls: 28
       total_seconds: 3680.0

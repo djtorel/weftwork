@@ -1,9 +1,9 @@
 # Audit (latest)
 
-Story: e07s04
-Branch: e07s04-live-check
-Full report: specs/verifications/AUDIT-e07-e07s04.md
+Story: e08s01
+Branch: e08s01-state-writer
+Full report: specs/verifications/AUDIT-e08-e08s01.md
 Mode: default (full checklist)
-Result: PASS (six items fixed in the audit; see the full report)
+Result: PASS (seven items fixed in the audit; see the full report)
 
 VERDICT: PASS
