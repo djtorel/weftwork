@@ -10,6 +10,7 @@
 // cannot read (not JSON, the wrong shape, not in a git repository).
 import { isRecord } from './json.ts';
 import { messageOf } from './errors.ts';
+import { strictUtf8 } from './regular-file.ts';
 import { isFieldValue, writeStateField, type FieldValue } from './state-file.ts';
 import { repositoryRoot } from './tree.ts';
 
@@ -17,8 +18,8 @@ const maxInputBytes = 1024 * 1024;
 
 type Request = { file: string; path: string[]; value: FieldValue };
 
-/** All of stdin as text, or null when it is larger than maxInputBytes. */
-async function readStdin(): Promise<string | null> {
+/** All of stdin, or null when it is larger than maxInputBytes. */
+async function readStdin(): Promise<Buffer | null> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of process.stdin) {
@@ -28,7 +29,7 @@ async function readStdin(): Promise<string | null> {
     if (size > maxInputBytes) return null;
     chunks.push(buffer);
   }
-  return Buffer.concat(chunks).toString('utf8');
+  return Buffer.concat(chunks);
 }
 
 /** The request in `text`, or why it cannot be read. */
@@ -55,8 +56,11 @@ function printAnswer(result: object, exitCode: number): void {
 }
 
 async function main(): Promise<void> {
-  const text = await readStdin();
-  if (text === null) return printAnswer({ ok: false, error: `stdin is larger than ${maxInputBytes} bytes` }, 2);
+  const bytes = await readStdin();
+  if (bytes === null) return printAnswer({ ok: false, error: `stdin is larger than ${maxInputBytes} bytes` }, 2);
+  // Strict, as the file read is: a lossy decode would write U+FFFD to disk (review 4, B2).
+  const text = strictUtf8(bytes);
+  if (text === null) return printAnswer({ ok: false, error: 'stdin is not valid UTF-8' }, 2);
   const request = parseFieldRequest(text);
   if (typeof request === 'string') return printAnswer({ ok: false, error: request }, 2);
   let root: string;

@@ -149,15 +149,20 @@ function unsharedCopy(data: unknown): unknown {
 
 /** The reading the edited text must give: `old` with the field at `path` set
  * to `value`, on an unshared copy of its data, so an alias of the edited value
- * or of a mapping above it shows up as a change (review A1, B1). */
-function expectedReading(old: Reading, path: readonly string[], value: FieldValue): Reading {
+ * or of a mapping above it shows up as a change (review A1, B1). The path is
+ * found by key text in the syntax tree but by key value in the data, so a key
+ * that YAML reads as something else (`null:`, `~:`, `1.0:`) is refused here
+ * with that reason (review 4, A3, B5). */
+function expectedReading(old: Reading, path: readonly string[], value: FieldValue): ({ ok: true } & Reading) | Failure {
   const copy = unsharedCopy(old.data);
   let node: unknown = copy;
-  for (const key of path.slice(0, -1)) node = isRecord(node) ? node[key] : undefined;
+  for (const key of path.slice(0, -1)) node = isRecord(node) && Object.hasOwn(node, key) ? node[key] : undefined;
   const last = path[path.length - 1];
-  if (!isRecord(node) || last === undefined || !Object.hasOwn(node, last)) return { data: undefined, warnings: 0 };
+  if (!isRecord(node) || last === undefined || !Object.hasOwn(node, last)) {
+    return { ok: false, error: `${path.join('.')} does not read back as written: YAML reads a key on the path as another value` };
+  }
   node[last] = value;
-  return { data: copy, warnings: old.warnings };
+  return { ok: true, data: copy, warnings: old.warnings };
 }
 
 /** True when `text` reads as `want`, with no more warnings than the old text
@@ -220,8 +225,12 @@ export function setField(text: string, path: readonly string[], value: FieldValu
   if (!parsed.ok) return parsed;
   const found = findScalar([...new Parser().parse(text)], path);
   if (!found.ok) return found;
-  if (isDeepStrictEqual(parsed.doc.getIn(path), normalised)) return { ok: true, text };
-  return firstEditThatHolds(text, path, normalised, expectedReading(parsed, path, normalised));
+  const want = expectedReading(parsed, path, normalised);
+  if (!want.ok) return want;
+  // Unchanged is decided on the data, not on doc.getIn, which cannot find a
+  // key that YAML reads as a number or a boolean (review 4, B1).
+  if (isDeepStrictEqual(want.data, parsed.data)) return { ok: true, text };
+  return firstEditThatHolds(text, path, normalised, want);
 }
 
 /** The real path `file` names, when it lies inside `root` and outside `.git`:
@@ -239,7 +248,8 @@ function insideRoot(root: string, file: string): { ok: true; path: string } | Fa
       return { ok: false, error: `${file} is outside the repository root ${realRoot}` };
     }
     const path = join(parent, basename(target));
-    if (relative(realRoot, path).split(sep).includes('.git')) {
+    // A case-insensitive disk (macOS by default) reads .GIT as .git (review 4, A2).
+    if (relative(realRoot, path).split(sep).some((segment) => segment.toLowerCase() === '.git')) {
       return { ok: false, error: `${file} is inside .git, which the engine does not edit` };
     }
     return { ok: true, path };

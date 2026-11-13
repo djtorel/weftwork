@@ -67,7 +67,7 @@ export function readRegularFile(path: string, options: { follow: boolean; maxByt
  * decode would turn each bad byte into U+FFFD, and a later write would put
  * those on disk in place of bytes the caller never touched (review round 3,
  * A2, B2). A leading BOM is kept as text, as readFileSync kept it. */
-function strictUtf8(bytes: Buffer): string | null {
+export function strictUtf8(bytes: Buffer): string | null {
   try {
     return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
   } catch {

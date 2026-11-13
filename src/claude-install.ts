@@ -8,9 +8,8 @@
 // edit it. Text of the wrong shape is refused, never repaired or overwritten.
 import { isDeepStrictEqual } from 'node:util';
 import { hookTimeoutSeconds } from './claude-hook.ts';
-import { messageOf } from './errors.ts';
+import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
-import type { Failure } from './errors.ts';
 
 /** What the install did. `reformatted`: the entry was right, only the spacing changed. */
 export type Action = 'added' | 'replaced' | 'reformatted' | 'unchanged';
