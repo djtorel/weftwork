@@ -428,14 +428,17 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   next_story: e08s01
   next_epic: e08
-  note: 'e08s01 is planned on branch e08s01-state-writer (made with git checkout -b,
+  note: 'e08s01 is built on branch e08s01-state-writer (made with git checkout -b,
     not a worktree). Spec: specs/epics/e08-state-and-handoff/e08s01-state-writer.md;
-    tasks: e08s01-tasks.yaml, four tasks. Next: develop-tdd, task 1 first (move the
-    regular-file read and atomic write to src/regular-file.ts, no behaviour change),
-    then RED for setField. Owner decisions 2026-11-13: yaml 2.9.1 on its CST layer
+    all four tasks in e08s01-tasks.yaml are done, each with a test-only RED commit
+    checked by scripts/verify-tdd-red-commit.sh (TDD_ENFORCE_RED=1) and a GREEN commit.
+    Preflight green, 485 of 485 tests. New: src/regular-file.ts (shared with the install),
+    src/state-file.ts (setField, writeStateField), src/state-cli.ts, fixtures in src/fixtures/,
+    yaml 2.9.1 as the first runtime dependency. Next: verify-work, then audit-code,
+    request-review, security-review and release-branch. Nothing is pushed. Owner decisions 2026-11-13: yaml 2.9.1 on its CST layer
     (Parser, CST.setScalarValue, CST.stringify), not the Document API, which rewrote
     495 lines of state.yaml in the spike; no folding of long values (e08s03 decides);
     share the file helpers; e08-only waivers for missing specs, gate-trace R1 and
@@ -462,10 +465,9 @@ metrics:
       total_seconds: 15745.0
       avg_seconds: 542.9310344827586
     develop-tdd:
-      calls: 28
-      total_seconds: 11672.0
-      avg_seconds: 416.85714285714283
-      _start: '2026-11-13T15:40:54Z'
+      calls: 29
+      total_seconds: 12066.0
+      avg_seconds: 416.0689655172414
     verify-work:
       calls: 28
       total_seconds: 3667.0
