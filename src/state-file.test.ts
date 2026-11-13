@@ -65,6 +65,17 @@ test('setting a field to the value it holds gives back the same bytes', () => {
   }
 });
 
+// AC-e08s01-02, review 4 (B1): a key YAML 1.2 reads as a number or a boolean
+test('a field under a non-string key that holds the value gives back the same bytes', () => {
+  const cases: [string, string[], FieldValue][] = [
+    ['1: 1.0\n', ['1'], 1],
+    ['1: yes\n', ['1'], 'yes'],
+    ['true: 0x10\n', ['true'], 16],
+    ['a:\n  1: 2.50\n', ['a', '1'], 2.5],
+  ];
+  for (const [text, path, value] of cases) assert.equal(set(text, path, value), text, JSON.stringify(text));
+});
+
 // AC-e08s01-03
 test('one field changes, only its lines differ, and every other field keeps its value', () => {
   const cases: [string, string[], FieldValue, string[]][] = [
@@ -148,6 +159,8 @@ test('what the writer refuses: an error that names the problem, and no text', ()
     ['a C0 control (review 3)', "a: 'x'\n", ['a'], 'a\u0001b', /character PyYAML cannot read/],
     ['a %YAML 1.1 file with a date (review 3, A4)', '%YAML 1.1\n---\nd: 2001-12-14\nk: old\n', ['k'], 'new', /mappings, sequences and scalars/],
     ['a !!binary value elsewhere (review 3, A4)', 'd: !!binary aGVsbG8=\nk: old\n', ['k'], 'new', /mappings, sequences and scalars/],
+    ['a key that reads as null (review 4, A3, B5)', 'null: x\n', ['null'], 'y', /does not read back as written/],
+    ['a key in another number notation (review 4, A3)', '1.0: old\n', ['1.0'], 'new', /does not read back as written/],
     ['a specific first reason is kept (review 3, A5)', 'a: &x >-\r\n  x\r\nb: *x\r\n', ['a'], 'z', /could not be set.*CRLF/],
   ];
   for (const [label, text, path, value, message] of cases) {
@@ -215,6 +228,7 @@ test('anchors, fitting tags, CRLF and same-line comments are kept', () => {
     ['a: 1\n', ['a'], 1e21, 'a: 1.0e+21\n'],
     ['a: 1\n', ['a'], 1e-7, 'a: 1.0e-7\n'],
     ['a: 1\n', ['a'], -0, 'a: 0\n'],
+    ['1: a\nb: 2\n', ['1'], 'c', '1: c\nb: 2\n'],
   ];
   for (const [text, path, value, expected] of cases) assert.equal(set(text, path, value), expected, JSON.stringify(text));
 });

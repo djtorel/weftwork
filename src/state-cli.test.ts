@@ -21,7 +21,7 @@ type Run = { status: number | null; result: { ok: boolean; action?: string; file
 
 /** Run the state CLI in `cwd` with `input` on stdin. Its stdout must be one
  * JSON line. */
-function runCli(cwd: string, input: string): Run {
+function runCli(cwd: string, input: string | Buffer): Run {
   const out = spawnSync('node', [stateCli], { cwd, input, encoding: 'utf8', timeout: 20000 });
   const lines = out.stdout.split('\n').filter((line) => line !== '');
   assert.equal(lines.length, 1, `stdout: ${out.stdout} stderr: ${out.stderr}`);
@@ -34,7 +34,7 @@ const request = (file: string, path: unknown, value: unknown): string => JSON.st
 function snapshot(dir: string): string[][] {
   return readdirSync(dir).map((name) => {
     const path = join(dir, name);
-    return [name, statSync(path).isFile() ? readFileSync(path, 'utf8') : 'not a file'];
+    return [name, statSync(path).isFile() ? readFileSync(path).toString('hex') : 'not a file'];
   });
 }
 
@@ -119,6 +119,16 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       return '.git/state.yaml';
     }, ['a'], /inside \.git/],
     ['the repository root itself (review B9)', () => '.', ['a'], /names the repository root/],
+    ['a symlinked folder that leads into .git (review 4, A1)', (repo) => {
+      writeFileSync(join(repo, '.git', 'state.yaml'), 'a: 1\n');
+      symlinkSync('.git', join(repo, 'g'));
+      return 'g/state.yaml';
+    }, ['a'], /inside \.git/],
+    ['a .GIT folder, which a case-insensitive disk reads as .git (review 4, A2)', (repo) => {
+      mkdirSync(join(repo, '.GIT'));
+      writeFileSync(join(repo, '.GIT', 'state.yaml'), 'a: 1\n');
+      return '.GIT/state.yaml';
+    }, ['a'], /inside \.git/],
     ['invalid UTF-8 in another field (review 3, A2, B2)', (_repo, specs) => {
       writeFileSync(join(specs, 'latin1.yaml'), Buffer.from('a: 1\n# caf\xe9\nb: 2\n', 'latin1'));
       return 'specs/latin1.yaml';
@@ -138,14 +148,14 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
     const file = arrange(repo, specs);
     const before = snapshot(specs);
     const target = isAbsolute(file) ? file : join(repo, file);
-    const targetBefore = existsSync(target) && statSync(target).isFile() ? readFileSync(target, 'utf8') : null;
+    const targetBefore = existsSync(target) && statSync(target).isFile() ? readFileSync(target).toString('hex') : null;
     const run = runCli(repo, request(file, path, 'x'));
     assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
     assert.equal(run.result.ok, false, label);
     assert.match(run.result.error ?? '', message, label);
     const after = snapshot(specs);
     assert.deepEqual(after, before, label);
-    if (targetBefore !== null) assert.equal(readFileSync(target, 'utf8'), targetBefore, `${label}: the target changed`);
+    if (targetBefore !== null) assert.equal(readFileSync(target).toString('hex'), targetBefore, `${label}: the target changed`);
   }
 });
 
@@ -174,13 +184,16 @@ test('the CLI refuses to edit the .git file of a worktree', () => {
 
 test('the CLI answers exit 2 for input it cannot read', () => {
   const { repo } = repoWithState();
-  const cases: [string, string, string][] = [
+  const cases: [string, string, string | Buffer][] = [
     ['stdin that is not JSON', repo, '{"file":'],
     ['a path that is not a list of strings', repo, request('specs/state.yaml', 'handoff.next_skill', 'x')],
     ['a path with a number in it', repo, request('specs/state.yaml', ['handoff', 1], 'x')],
     ['a value that is an object', repo, request('specs/state.yaml', ['active_story'], { a: 1 })],
     ['no file', repo, JSON.stringify({ path: ['active_story'], value: 'x' })],
     ['an empty path (review A6, B5)', repo, request('specs/state.yaml', [], 'x')],
+    ['stdin that is not valid UTF-8 (review 4, B2)', repo, Buffer.concat([
+      Buffer.from('{"file":"specs/state.yaml","path":["active_story"],"value":"b'), Buffer.from([0xff]), Buffer.from('"}'),
+    ])],
     ['a value that is not finite (review B5)', repo, '{"file":"specs/state.yaml","path":["active_story"],"value":1e999}'],
     ['stdin over 1 MiB', repo, request('specs/state.yaml', ['active_story'], 'x'.repeat(1024 * 1024))],
     ['a working directory that is not in a git repository', makeTempDir(), request('state.yaml', ['a'], 'x')],
