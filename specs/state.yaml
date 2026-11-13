@@ -406,28 +406,27 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: release-branch
-  next_story: e07s04
-  note: 'request-review done 2026-11-12 on branch e07s04-live-check (not
-    pushed). The review cap ran out at 5 of 5 without a dual pass (round 5:
-    A 71.4, B 83.3, no must-fix; one must-fix in round 4, fixed). The owner
-    chose option A: fix the round-5 items and release; those fixes were not
-    re-reviewed. Preflight green, 466 of 466 tests; tools/assert-audit-story.sh
-    passes. Round history and deferrals are in specs/security/REVIEW.md
-    (e07s04 addenda) and the audit addendum in
-    specs/verifications/AUDIT-e07-e07s04.md. commit-message found nothing to
-    commit. PR body must name each gate: verify-work PASS (owner manual run on
-    3d7efed, before the review changes; the script step 5 text now says
-    "for ''true''"), security review PASS, audit PASS (addendum), review cap
-    exhausted and waived by the owner, gate-trace R1 needs an owner decision
-    before e07 is released. Deferred to e10: symlinked .git/weftwork, torn or
-    briefly empty record (temp file and rename), size caps checked by fstat
-    then read to EOF. Deferred: CLAUDE_PROJECT_DIR in the record, resolved
-    adapter paths. Declined: a staleness limit, sharing one git rev-parse.
-    Pushes, PRs and merges need an explicit go-ahead each. No bigpowers
-    provenance marker in the PR body. Do not run
-    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
-    tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  next_skill: slice-tasks
+  next_story: null
+  next_epic: e08
+  note: 'release-branch is ready for e07s04 on 2026-11-12, branch e07s04-live-check.
+    Landing (push, PR, merge) waits for the owner''s go-ahead. Gates: Preflight green, 466 of 466 tests;
+    full coverage 99.24 lines, 96.06 branches; audit gate PASS for story and release;
+    gate-trace verify OK (critic 0 blockers); security review at c68a19c PASS (no
+    HIGH at confidence 8 or more; M1, the symlinked .git/weftwork directory, deferred
+    to e10). Review cap ran out at 5 of 5 without a dual pass; the owner waived it
+    and chose to release. The PR body names each gate and the waiver, and carries
+    no bigpowers provenance marker (project flow rule). e07s04 is done in its tasks
+    file, epic.yaml and execution-status.yaml; the e07 capsule stays in epics/ because
+    gate-trace R1 for e07 still needs an owner decision (the e07 waiver ends at e07
+    release). Next in execution order: e08 (B2, state and handoff); e08 has only its
+    epic.yaml, so start in a fresh session with slice-tasks. Pushes, PRs and merges
+    need an explicit go-ahead each. After a merge: sync main, delete the local and
+    remote branch, and check CI on the merge commit (scripts/wait-for-ci.sh). Do not
+    run scripts/sync-status-from-epics.sh. Deferred to e10: the symlinked git-dir
+    directory, the torn or briefly empty record (temp file and rename), size caps
+    checked by fstat then read to EOF. Deferred: CLAUDE_PROJECT_DIR in the record,
+    resolved adapter paths. Declined: a staleness limit, sharing one git rev-parse.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -452,9 +451,9 @@ metrics:
       total_seconds: 1860.0
       avg_seconds: 88.57142857142857
     release-branch:
-      calls: 27
-      total_seconds: 3220.0
-      avg_seconds: 119.25925925925925
+      calls: 28
+      total_seconds: 3680.0
+      avg_seconds: 131.42857142857142
     request-review:
       calls: 11
       total_seconds: 14230.0
