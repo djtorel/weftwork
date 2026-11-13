@@ -1,0 +1,86 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-13. The engine owns a small documented field set
+# and refuses everything else (R12: "keep the field set small and
+# documented"). The writer of e08s01 can change any key; this story
+# limits what the engine lets a caller change, so the file keeps a
+# shape a session with no memory can read.
+# Open for plan-work (recommendation first):
+#   1. The engine owns these keys of specs/state.yaml: active_flow,
+#      active_epic, active_story, phase and vcs.branch. The handoff
+#      block belongs to e08s03. Everything else (workflow_mode,
+#      test_plan, vcs.kind, waivers, metrics) is owned by the owner or
+#      by the global scripts. The engine refuses to set it and keeps it
+#      byte-for-byte.
+#   2. Values are checked for type only (text or null, one line, 200
+#      characters at most). The id patterns (e08, e08s01) are
+#      bigpowers naming, not an engine rule, so the engine does not
+#      check them.
+#   3. "Written only by the engine" means one exported write function,
+#      which the CLIs call. No test greps for other writers. The single
+#      writer half of H24 rests on design precedent, not on a measured
+#      fault (R12), so no gate is added until a fault is seen.
+story_id: e08s02
+title: The engine changes only the documented state fields
+status: todo
+bcps: 4
+type: feat
+context: engine
+risk: P1
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/state-fields.test.ts first and record
+      the failure. Cases: each documented field is accepted with a valid
+      value; a key outside the table, a wrong type, a value with a
+      newline and a value over 200 characters are refused with a
+      returned error that names the key, and the text comes back
+      unchanged; the table and docs/STATE.md agree, so the test fails
+      when a field is in one and not the other. Then write
+      src/state-fields.ts (the table and the check) and docs/STATE.md
+      (one short table: key, type, who writes it)
+    verify: >-
+      node --test src/state-fields.test.ts src/state-file.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 2
+    description: >-
+      RED, then GREEN. Extend src/state-cli.test.ts first, then
+      src/state-cli.ts: "set" now goes through the field table, and a
+      new "get" reads the documented fields of the file and prints them
+      as one JSON line. A host reads state through the engine, not by
+      parsing the YAML itself. Exit codes as in e08s01. A test sets
+      every documented field in one repository and checks that
+      waivers and metrics came out byte-identical
+    verify: >-
+      node --test src/state-fields.test.ts src/state-file.test.ts
+      src/state-cli.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 3
+    description: >-
+      Update the AGENTS.md Architecture section to name the field table
+      and docs/STATE.md. Then run the AGENTS.md Preflight line
+    verify: >-
+      grep -q 'state-fields' AGENTS.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo
+    allure:
+      severity: minor
+      categories:
+        - "docs"
+        - "e08 B2"

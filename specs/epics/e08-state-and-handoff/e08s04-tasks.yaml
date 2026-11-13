@@ -1,0 +1,95 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-13. The engine checks the handoff against the
+# repository at resume, before the agent acts on it (R12: stored state
+# goes stale; GSD resume checks uncommitted_files against git status).
+# This closes the epic's done_when: the handoff note is checked at
+# resume. The check follows the shape of the live check in
+# src/claude-live.ts: a pure report function over facts, a thin CLI,
+# and an exit code that is 0 only when the answer is good.
+# Open for plan-work (recommendation first):
+#   1. Answers: ready, stale, unverifiable (an old-style handoff with
+#      no branch to check) and missing (no handoff block). Only ready
+#      exits 0. A stale answer lists every reason, not only the first.
+#   2. Stale means one of: the current branch is not the handoff
+#      branch; a named file does not exist; a path is uncommitted now
+#      that the handoff did not list as uncommitted (the state file
+#      itself is left out). A path that was uncommitted at write time
+#      and is clean now is only a note.
+#   3. The check never writes. GSD deletes its handoff after a good
+#      resume. Here a failed or interrupted resume must not lose the
+#      note, and the next handoff overwrites the block anyway.
+#   4. No commit hash is compared (see e08s03, decision 3).
+#   5. Calling the check is not in this story. The entry command (e11)
+#      or a SessionStart hook that re-injects the note after compaction
+#      (R12 implications) calls the CLI. Add a story for that hook only
+#      if the owner asks, as for the pi wrapper in e07.
+story_id: e08s04
+title: The engine checks the handoff against the repository at resume
+status: todo
+bcps: 5
+type: feat
+context: engine
+risk: P1
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/resume.test.ts first and record the
+      failure. The report function takes the handoff block and the
+      facts (branch, paths now uncommitted, which named files exist)
+      and returns an answer, the reasons and notes. Cases: ready; wrong
+      branch; a missing named file; an unexpected uncommitted path;
+      two faults at once give two reasons; a path uncommitted then and
+      clean now is a note and not a fault; a handoff with no branch is
+      unverifiable; no handoff block is missing. Then write
+      src/resume.ts
+    verify: >-
+      node --test src/resume.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 2
+    description: >-
+      RED, then GREEN. Write src/resume-cli.test.ts first. It starts
+      the real CLI in makeTestRepo() repositories. The cases build the
+      handoff with the e08s03 "handoff write" command, then change the
+      repository: switch branch, delete a named file, add an untracked
+      file, leave it alone. It checks each answer, the exit code and
+      that the state file was not touched. Then write src/resume-cli.ts
+      as a thin shell: "handoff check", run in the repository root,
+      reads the state file, gathers the facts, prints the report as one
+      JSON line and a short text on stderr that names the next step.
+      A state file that cannot be read or parsed is a failure with its
+      own exit code, never ready
+    verify: >-
+      node --test src/resume.test.ts src/resume-cli.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 3
+    description: >-
+      Update the AGENTS.md Architecture section and the AGENTS.md
+      Commands table so the resume check resolves in this repository
+      (CONVENTIONS.md: every command in AGENTS.md must resolve). Then
+      run the AGENTS.md Preflight line
+    verify: >-
+      grep -q 'resume' AGENTS.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo
+    allure:
+      severity: minor
+      categories:
+        - "docs"
+        - "e08 B2"
