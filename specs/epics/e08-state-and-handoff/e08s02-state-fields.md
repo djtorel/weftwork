@@ -48,12 +48,15 @@ Owner decisions (2026-11-13, plan-work; all four recommendations taken):
 
 - **`src/state-file.ts`** (e08s01). Purpose: set one scalar field of a YAML
   file and keep every other byte (CST edit, re-parse check, refusals).
-  Callers: `src/state-cli.ts` (`writeStateField`, `isFieldValue`) and
-  `src/state-file.test.ts`. Contracts: `setField(text, path, value)` returns
-  the new text or a failure and never adds a key; `writeStateField(root,
-  file, path, value)` writes atomically under the root, answers `written` or
-  `unchanged`, and returns every failure as a value. This story calls it and
-  does not change it.
+  Callers before this story: `src/state-cli.ts` (`writeStateField`,
+  `isFieldValue`) and `src/state-file.test.ts`. After it:
+  `src/state-fields.ts` (`writeStateField`, and `insideRoot` and
+  `parseOne`, now exported for the read); `isFieldValue` is private.
+  Contracts: `setField(text, path, value)` returns the new text or a
+  failure and never adds a key; `writeStateField(root, file, path, value)`
+  writes atomically under the root, answers `written` or `unchanged`, and
+  returns every failure as a value. This story calls it, exports
+  `insideRoot` and `parseOne`, and changes no behaviour.
 - **`src/state-cli.ts`** (e08s01). Purpose: the thin JSON shell over the
   writer. Callers: none in `src/`; `src/state-cli.test.ts` runs it as a
   process. Contract: one JSON object on stdin, one JSON line on stdout, exit

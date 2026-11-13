@@ -24,8 +24,8 @@ type Parsed = ({ ok: true; doc: Document } & Reading) | Failure;
 type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | Failure;
 
 /** True for a value the writer can put in a scalar: a string, a finite number,
- * a boolean or null. The CLI checks its input with the same rule. */
-export function isFieldValue(value: unknown): value is FieldValue {
+ * a boolean or null. setField refuses any other value with this rule. */
+function isFieldValue(value: unknown): value is FieldValue {
   if (typeof value === 'number') return Number.isFinite(value);
   return value === null || typeof value === 'string' || typeof value === 'boolean';
 }

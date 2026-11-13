@@ -126,6 +126,9 @@ for (const [name, text, key] of [
   ['a missing key', fixture.replace(/^phase: planning\n/m, ''), 'phase'],
   ['a value that is not text', fixture.replace(/^phase: planning$/m, 'phase: 3'), 'phase'],
   ['a mapping in place of text', fixture.replace(/^active_flow: null$/m, 'active_flow:\n  a: b'), 'active_flow'],
+  ['vcs as text, not a mapping', fixture.replace(/^vcs:\n  kind: git\n  branch: [^\n]*\n/m, 'vcs: git\n'), 'vcs.branch'],
+  ['vcs with no value', fixture.replace(/^vcs:\n  kind: git\n  branch: [^\n]*\n/m, 'vcs:\n'), 'vcs.branch'],
+  ['vcs with no branch', fixture.replace(/^  branch: [^\n]*\n/m, ''), 'vcs.branch'],
 ] as const) {
   test(`readStateFields refuses ${name} and names the key`, () => {
     const result = readStateFields(repoWithState(text));

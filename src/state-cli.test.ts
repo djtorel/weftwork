@@ -11,7 +11,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parse } from 'yaml';
 import { setField } from './state-file.ts';
+import { stateFields } from './state-fields.ts';
 import { cleanupTempDirs, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -35,6 +37,14 @@ function runCli(cwd: string, input: string | Buffer): Run {
 
 const set = (key: unknown, value: unknown): string => JSON.stringify({ op: 'set', key, value });
 const get = JSON.stringify({ op: 'get' });
+
+/** The documented fields of the fixture, read with the yaml package, so the
+ * test holds no story id. */
+const fixtureFields = Object.fromEntries(stateFields.map((key) => {
+  let node: unknown = parse(fixture);
+  for (const part of key.split('.')) node = (node as Record<string, unknown>)[part];
+  return [key, node];
+}));
 
 test('set writes one documented field, keeps the mode and leaves no temp file', () => {
   const { repo, specs, state } = makeStateRepo(fixture);
@@ -71,16 +81,7 @@ test('get prints the documented fields and no other key', () => {
   for (const cwd of [repo, specs]) {
     const run = runCli(cwd, get);
     assert.equal(run.status, 0, JSON.stringify(run.result));
-    assert.deepEqual(run.result, {
-      ok: true,
-      fields: {
-        active_flow: null,
-        active_epic: 'e08',
-        active_story: 'e08s01',
-        phase: 'planning',
-        'vcs.branch': 'e08s01-state-writer',
-      },
-    });
+    assert.deepEqual(run.result, { ok: true, fields: fixtureFields });
   }
 });
 
