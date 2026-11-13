@@ -188,7 +188,7 @@ Feature: Set one field of a state file
     And the leading ---, the comments and the other folded scalars stay
     Examples:
       | file                  | path                      | value          |
-      | state.yaml            | active_story              | "e08s02"       |
+      | state.yaml            | active_story              | "next-story"   |
       | state.yaml            | handoff.next_skill        | "verify-work"  |
       | state.yaml            | vcs.branch                | "main"         |
       | state.yaml            | active_story              | null           |

@@ -68,7 +68,7 @@ test('setting a field to the value it holds gives back the same bytes', () => {
 // AC-e08s01-03
 test('one field changes, only its lines differ, and every other field keeps its value', () => {
   const cases: [string, string[], FieldValue, string[]][] = [
-    ['state.yaml', ['active_story'], 'e08s02', ['active_story: e08s02']],
+    ['state.yaml', ['active_story'], 'next-story', ['active_story: next-story']],
     ['state.yaml', ['handoff', 'next_skill'], 'verify-work', ['  next_skill: verify-work']],
     ['state.yaml', ['vcs', 'branch'], 'main', ['  branch: main']],
     ['state.yaml', ['active_story'], null, ['active_story: null']],
