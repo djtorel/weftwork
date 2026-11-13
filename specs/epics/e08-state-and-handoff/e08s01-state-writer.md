@@ -321,7 +321,7 @@ regular-file read; the owner chose to share it.
   (owner decision, 2026-11-13, plan-work). e09 decides whether an unreadable
   ledger answers exhausted.
 
-## 5a. Known limits (review round 1, items A8 and B4)
+## 5a. Known limits (review rounds 1 and 2)
 
 These change only the edited value's own text, so the byte-span check
 allows them. e08s03, which writes the multi-line handoff note, decides
@@ -336,6 +336,13 @@ whether to handle them.
 - yaml's YAML 1.1 schema reads a few strings as numbers that PyYAML
   reads as strings (`e01`), so such a value written as a plain string is
   double-quoted. That only adds quotes.
+- A string is written plain only when it is printable ASCII with no
+  space at either end and is not `=` or `<<`; anything else is
+  double-quoted. A value holding NEL, LS or PS is refused (review 2).
+- The writer does not repair text it does not change. When a field
+  already holds the value under YAML 1.2, the file is left as it is, even
+  if PyYAML reads that text as another type (`a: yes` and the string
+  `yes`). Review round 2, items A7 and B5.
 
 ## 6. Risks
 
