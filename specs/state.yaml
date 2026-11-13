@@ -2,7 +2,7 @@ workflow_mode: solo-git
 active_flow: null
 active_epic: e08
 active_story: e08s02
-phase: initiate
+phase: verify
 test_plan: lite
 vcs:
   kind: git
@@ -428,7 +428,7 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   next_story: e08s02
   next_epic: e08
   note: 'e08s01 (format-preserving state writer) is released by PR from branch e08s01-state-writer.
@@ -466,10 +466,9 @@ metrics:
       total_seconds: 15926.0
       avg_seconds: 530.8666666666667
     develop-tdd:
-      calls: 29
-      total_seconds: 12066.0
-      avg_seconds: 416.0689655172414
-      _start: '2026-11-13T19:50:16Z'
+      calls: 30
+      total_seconds: 12345.0
+      avg_seconds: 411.5
     verify-work:
       calls: 29
       total_seconds: 4975.0
