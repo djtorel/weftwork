@@ -30,6 +30,14 @@ function runCli(cwd: string, input: string): Run {
 
 const request = (file: string, path: unknown, value: unknown): string => JSON.stringify({ file, path, value });
 
+/** Each entry of `dir` with its text, or 'not a file', to compare before and after a run. */
+function snapshot(dir: string): string[][] {
+  return readdirSync(dir).map((name) => {
+    const path = join(dir, name);
+    return [name, statSync(path).isFile() ? readFileSync(path, 'utf8') : 'not a file'];
+  });
+}
+
 /** A temporary repository with the state fixture at specs/state.yaml, mode 0640. */
 function repoWithState(): { repo: string; specs: string; state: string } {
   const repo = makeTestRepo();
@@ -106,16 +114,20 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       return 'specs/bomb.yaml';
     }, ['k'], /alias/i],
     ['a missing file', () => 'specs/none.yaml', ['active_story'], /does not exist/],
+    ['a state file over 1 MiB', (_repo, specs) => {
+      writeFileSync(join(specs, 'big.yaml'), `a: ${'x'.repeat(1024 * 1024)}\n`);
+      return 'specs/big.yaml';
+    }, ['a'], /larger than 1048576 bytes/],
   ];
   for (const [label, arrange, path, message] of cases) {
     const { repo, specs } = repoWithState();
     const file = arrange(repo, specs);
-    const before = readdirSync(specs).map((name) => [name, statSync(join(specs, name)).isFile() ? readFileSync(join(specs, name), 'utf8') : 'not a file']);
+    const before = snapshot(specs);
     const run = runCli(repo, request(file, path, 'x'));
     assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
     assert.equal(run.result.ok, false, label);
     assert.match(run.result.error ?? '', message, label);
-    const after = readdirSync(specs).map((name) => [name, statSync(join(specs, name)).isFile() ? readFileSync(join(specs, name), 'utf8') : 'not a file']);
+    const after = snapshot(specs);
     assert.deepEqual(after, before, label);
   }
 });
@@ -128,6 +140,7 @@ test('the CLI answers exit 2 for input it cannot read', () => {
     ['a path with a number in it', repo, request('specs/state.yaml', ['handoff', 1], 'x')],
     ['a value that is an object', repo, request('specs/state.yaml', ['active_story'], { a: 1 })],
     ['no file', repo, JSON.stringify({ path: ['active_story'], value: 'x' })],
+    ['stdin over 1 MiB', repo, request('specs/state.yaml', ['active_story'], 'x'.repeat(1024 * 1024))],
     ['a working directory that is not in a git repository', makeTempDir(), request('state.yaml', ['a'], 'x')],
   ];
   for (const [label, cwd, input] of cases) {
