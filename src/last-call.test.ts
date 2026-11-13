@@ -5,7 +5,7 @@
 // not hang (BUG-007) and a symlink must not send the truncate to another file.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { linkSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { lastCallPath, readLastCall, writeLastCall } from './last-call.ts';
 import { cleanupTempDirs, inChild, makeFifo, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -71,6 +71,17 @@ test('a symlink is refused and the file it points to is not touched', async () =
   assert.equal((await writeLastCall(path, call)).ok, false);
   assert.equal(readFileSync(target, 'utf8'), 'keep me\n');
   assert.equal((await readLastCall(path)).ok, false);
+});
+
+test('a hard link is refused and the file it shares is not touched (security F1)', async () => {
+  const dir = makeTempDir();
+  const victim = join(dir, 'source.ts');
+  writeFileSync(victim, 'keep me\n');
+  const path = join(dir, 'last-call.json');
+  linkSync(victim, path);
+  const write = await writeLastCall(path, call);
+  assert.equal(write.ok, false);
+  assert.equal(readFileSync(victim, 'utf8'), 'keep me\n');
 });
 
 test('a directory in place of the file is an error, never a throw', async () => {
