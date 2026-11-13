@@ -25,6 +25,7 @@ function nextSteps(path: string): string {
     '- Start a new Claude Code session. A session that is already running may not',
     '  see the hook.',
     '- Commit .claude/settings.json to share the hook with the team.',
+    '- If you move this checkout, run the install again and delete the old entry by hand.',
     '',
   ].join('\n');
 }

@@ -52,8 +52,10 @@ recommendations):
    yet, so the path works only on this machine. The install says so. A
    portable entry waits for the entry command (e11).
 3. **A second run with a different command replaces weftwork's entry.**
-   There is at most one. An entry is weftwork's when its command
-   contains the adapter's absolute path.
+   There is at most one. An entry is weftwork's when it is a command
+   hook whose command starts with `node '<adapter path>' -- ` (changed
+   after review round 1, 2026-11-12: a match on the path anywhere in
+   the command deleted owner hooks that only mentioned it).
 4. **The file is re-printed as JSON with 2-space indents.** Key order is
    kept (JSON.parse keeps the insertion order of string keys). The first
    install can change the spacing of an existing file; after that a
@@ -88,7 +90,8 @@ an existing module and change no existing code.
 #### ADDED: the settings edit, in `src/claude-install.ts`
 
 - `installStopHook(text, cliPath, command)` takes the file's text, or
-  `null` when there is no file, and returns `{ ok: true, text, changed }`
+  `null` when there is no file, and returns `{ ok: true, text, changed,
+  action }`
   or `{ ok: false, error }`. It is pure.
 - The result has exactly one weftwork entry under `hooks.Stop`:
   `{ "type": "command", "command": <stopHookCommand>, "timeout":
@@ -120,8 +123,8 @@ an existing module and change no existing code.
 - When `changed`, it makes `.claude` if needed, writes a temporary file
   in `.claude` and renames it over `settings.json`, so a crash never
   leaves half a file. When not changed, it writes nothing.
-- It prints what it did (`added`, `replaced` or `unchanged` with the
-  path), then three notes: the entry names this machine's weftwork path;
+- It prints what it did (`added`, `replaced`, `reformatted` or
+  `unchanged` with the path), then three notes: the entry names this machine's weftwork path;
   if Claude Code shows the workspace trust dialog, accept it, or the hook
   does not run; start a new Claude Code session; commit
   `.claude/settings.json` to share the hook.
@@ -260,6 +263,16 @@ No new packages. Node built-ins only (`node:fs`, `node:path`). `[OK]`
 
 ## 6. Risks
 
+- **A hand-written entry in another form is not matched.** The install
+  matches the exact text it writes. An entry the owner wrote by hand
+  (double quotes, other spacing around `--`) gets a second, weftwork
+  entry beside it, so two Stop hooks run. Better a duplicate than a
+  deleted hook. `reformatted` is the action when weftwork's entry was
+  already right and only the spacing of the file changed.
+- **The file is re-printed through JSON.** Numbers that do not survive
+  a round trip change (`1.50` becomes `1.5`, an integer past 2^53 loses
+  digits). Unlikely in a settings file; comments and a BOM make it
+  invalid JSON, which the install refuses.
 - **The path is machine-specific.** A teammate who pulls the committed
   file gets an entry that points at a path they do not have. Node fails
   to start, which is exit 1, so the stop goes ahead (the e07s02

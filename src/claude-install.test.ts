@@ -24,6 +24,11 @@ function installed(text: string | null, command = 'npm test') {
   return { ...result, value: JSON.parse(result.text) as unknown };
 }
 
+/** The entry the install writes for `command`. */
+function entry(command: string) {
+  return { type: 'command', command: stopHookCommand(cli, command), timeout: hookTimeoutSeconds };
+}
+
 /** The Stop groups of a parsed settings value. */
 function stopGroups(value: unknown): unknown[] {
   assert.ok(isRecord(value) && isRecord(value.hooks));
@@ -91,11 +96,12 @@ test('AC-e07s03-03 a second run changes nothing', () => {
   assert.equal(second.text, first.text);
 });
 
-test('AC-e07s03-03 a file with the entry but other spacing is re-printed', () => {
+test('AC-e07s03-03 a file with the entry but other spacing is reformatted', () => {
   const first = installed(null);
   const result = installStopHook(JSON.stringify(JSON.parse(first.text)), cli, 'npm test');
   assert.ok(result.ok);
   assert.equal(result.changed, true);
+  assert.equal(result.action, 'reformatted');
   assert.equal(result.text, first.text);
 });
 
@@ -116,18 +122,30 @@ test('AC-e07s03-04 a new command replaces the entry in place', () => {
   assert.doesNotMatch(second.text, /npm test/);
 });
 
-test('AC-e07s03-04 duplicate weftwork entries collapse to one, an emptied group goes', () => {
-  const entry = { type: 'command', command: stopHookCommand(cli, 'old'), timeout: 5 };
-  const text = JSON.stringify({
-    hooks: { Stop: [{ hooks: [entry] }, { hooks: [entry, { type: 'command', command: 'keep' }] }] },
-  });
-  const { value } = installed(text, 'new');
-  const groups = stopGroups(value);
-  const all = JSON.stringify(groups);
-  assert.equal(all.split(shellQuote(cli)).length - 1, 1);
-  assert.match(all, /keep/);
-  assert.doesNotMatch(all, /old/);
-  assert.equal(groups.length, 2);
+test('AC-e07s03-04 a group that holds only a duplicate entry is removed', () => {
+  const keep = { hooks: [{ type: 'command', command: 'keep' }] };
+  const dup = { hooks: [entry('old')] };
+  const { value } = installed(JSON.stringify({ hooks: { Stop: [dup, keep, dup] } }), 'new');
+  assert.deepEqual(stopGroups(value), [{ hooks: [entry('new')] }, keep]);
+});
+
+test('AC-e07s03-04 the entry is replaced in its place, between other hooks', () => {
+  const x = { type: 'command', command: 'x' };
+  const y = { type: 'command', command: 'y' };
+  const z = { hooks: [{ type: 'command', command: 'z' }] };
+  const before = { hooks: { Stop: [{ hooks: [x, { ...entry('old'), timeout: 5 }, y] }, z] } };
+  const { value, action } = installed(JSON.stringify(before), 'new');
+  assert.deepEqual(stopGroups(value), [{ hooks: [x, entry('new'), y] }, z]);
+  assert.equal(action, 'replaced');
+});
+
+test('AC-e07s03-04 an owner hook that only mentions the adapter path is kept', () => {
+  const mention = [
+    { type: 'command', command: `timeout 30 ${stopHookCommand(cli, 'lint')} || notify-send fail` },
+    { type: 'command', command: `cat ${shellQuote(cli)} > /dev/null; ./my-own-check.sh` },
+  ];
+  const { value } = installed(JSON.stringify({ hooks: { Stop: [{ hooks: mention }] } }));
+  assert.deepEqual(stopGroups(value), [{ hooks: mention }, { hooks: [entry('npm test')] }]);
 });
 
 test('AC-e07s03-04 an entry from another checkout is not replaced', () => {
@@ -143,15 +161,9 @@ test('AC-e07s03-04 an entry from another checkout is not replaced', () => {
 
 test('AC-e07s03-05 bad settings are refused, with no text', () => {
   const bad = [
-    'not json',
-    '',
-    '[]',
-    '"x"',
-    'null',
-    '{"hooks":"x"}',
-    '{"hooks":[]}',
-    '{"hooks":{"Stop":{}}}',
-    '{"hooks":{"Stop":["x"]}}',
+    'not json', '', '[]', '"x"', 'null',
+    '{"hooks":"x"}', '{"hooks":[]}', '{"hooks":null}',
+    '{"hooks":{"Stop":{}}}', '{"hooks":{"Stop":null}}', '{"hooks":{"Stop":["x"]}}',
     '{"hooks":{"Stop":[{"hooks":"x"}]}}',
   ];
   for (const text of bad) {

@@ -8,6 +8,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -107,6 +108,17 @@ test('AC-e07s03-08 an existing file keeps its other hooks and a second run chang
   assert.equal(statSync(settingsPath(repo)).mtimeMs, old.getTime());
 });
 
+test('AC-e07s03-08 an existing file keeps its mode, whatever the umask', () => {
+  const repo = makeTestRepo();
+  mkdirSync(join(repo, '.claude'));
+  writeFileSync(settingsPath(repo), '{}\n');
+  chmodSync(settingsPath(repo), 0o664);
+  const script = 'umask 077; exec node "$0" "$@"';
+  const run = spawnSync('sh', ['-c', script, installCli, '--', 'npm test'], { cwd: repo, encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(statSync(settingsPath(repo)).mode & 0o777, 0o664);
+});
+
 test('AC-e07s03-08 a new command replaces the entry and says so', () => {
   const repo = makeTestRepo();
   assert.equal(install(repo, '--', 'npm test').status, 0);
@@ -163,6 +175,23 @@ test('AC-e07s03-09 a .claude directory that is a symlink is refused', () => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /\.claude/);
   assert.equal(existsSync(join(elsewhere, 'settings.json')), false);
+});
+
+test('AC-e07s03-09 a .claude that is a regular file is refused', () => {
+  const repo = makeTestRepo();
+  writeFileSync(join(repo, '.claude'), 'x');
+  const run = install(repo, '--', 'npm test');
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /\.claude/);
+  assert.equal(readFileSync(join(repo, '.claude'), 'utf8'), 'x');
+});
+
+test('AC-e07s03-10 a worktree, whose .git is a file, takes the hook', () => {
+  const dir = makeTempDir();
+  writeFileSync(join(dir, '.git'), 'gitdir: /elsewhere\n');
+  const run = install(dir, '--', 'npm test');
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^added/);
 });
 
 test('AC-e07s03-09 a settings file that is a FIFO is refused at once', () => {

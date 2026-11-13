@@ -7,6 +7,7 @@
 // The settings file is untrusted input: it may be anything, and the agent can
 // edit it. Text of the wrong shape is refused, never repaired or overwritten.
 import {
+  chmodSync,
   closeSync,
   constants,
   fstatSync,
@@ -18,29 +19,38 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { dirname, join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { hookTimeoutSeconds } from './claude-hook.ts';
 import { isMissing, messageOf } from './errors.ts';
 import { isRecord } from './json.ts';
 
-export type InstallResult =
-  | { ok: true; text: string; changed: boolean; action: 'added' | 'replaced' | 'unchanged' }
-  | { ok: false; error: string };
+/** What the install did. `reformatted`: the entry was right, only the spacing changed. */
+export type Action = 'added' | 'replaced' | 'reformatted' | 'unchanged';
 
-export type InstallInProject =
-  | { ok: true; action: 'added' | 'replaced' | 'unchanged'; path: string }
-  | { ok: false; error: string };
+type Failure = { ok: false; error: string };
+
+export type InstallResult =
+  | { ok: true; text: string; changed: boolean; action: Action }
+  | Failure;
+
+export type InstallInProject = { ok: true; action: Action; path: string } | Failure;
 
 /** One group of a Stop list: an object with a `hooks` list. */
 type Group = Record<string, unknown> & { hooks: unknown[] };
 
-type Parsed =
-  | { ok: true; settings: Record<string, unknown>; hooks: Record<string, unknown> }
-  | { ok: false; error: string };
+type Settings = { settings: Record<string, unknown>; hooks: Record<string, unknown> };
 
-type StopList = { ok: true; groups: Group[] } | { ok: false; error: string };
+type Parsed = ({ ok: true } & Settings) | Failure;
+
+type StopList = { ok: true; groups: Group[] } | Failure;
 
 type HookEdit = { hooks: unknown[]; placed: boolean; touched: boolean };
+
+type Opened = { ok: true; fd: number | null } | Failure;
+
+type Read = { ok: true; file: { text: string; mode: number } | null } | Failure;
 
 /** What the edit writes: the adapter path that marks weftwork's own entries,
  * and the entry that replaces them. */
@@ -51,18 +61,24 @@ export function shellQuote(text: string): string {
   return `'${text.replaceAll("'", `'\\''`)}'`;
 }
 
-/** The command of the hook entry: node runs the adapter, and `command` is the
- * one argument after `--`, as claude-hook-cli.ts reads it. */
-export function stopHookCommand(cliPath: string, command: string): string {
-  return `node ${shellQuote(cliPath)} -- ${shellQuote(command)}`;
+/** The start of every command this install writes: node runs the adapter, and
+ * what follows `--` is the one argument claude-hook-cli.ts reads. */
+function stopHookPrefix(cliPath: string): string {
+  return `node ${shellQuote(cliPath)} -- `;
 }
 
-/** True when `hook` is a weftwork entry: a command that runs this checkout's
- * adapter. The match is the whole quoted path, so an entry from another
- * checkout, or a path that only starts the same, is not ours. */
+/** The command of the hook entry: the prefix, then the declared command. */
+export function stopHookCommand(cliPath: string, command: string): string {
+  return stopHookPrefix(cliPath) + shellQuote(command);
+}
+
+/** True when `hook` is a weftwork entry: a command hook that starts with the
+ * text this install writes. An owner hook that only mentions the adapter's
+ * path, an entry from another checkout, or a hand-written entry in another
+ * form is not ours. */
 function isOurs(hook: unknown, cliPath: string): boolean {
-  return isRecord(hook) && typeof hook.command === 'string'
-    && hook.command.includes(shellQuote(cliPath));
+  return isRecord(hook) && hook.type === 'command' && typeof hook.command === 'string'
+    && hook.command.startsWith(stopHookPrefix(cliPath));
 }
 
 function isGroup(value: unknown): value is Group {
@@ -82,9 +98,9 @@ function groupsOf(stop: unknown[]): Group[] | null {
 }
 
 /** The Stop groups of `hooks`, or an error when the list or a group has the
- * wrong shape. A missing `Stop` reads as an empty list. */
+ * wrong shape. A missing `Stop` reads as an empty list; `null` is refused. */
 function stopListOf(hooks: Record<string, unknown>): StopList {
-  const stop = hooks.Stop ?? [];
+  const stop = hooks.Stop === undefined ? [] : hooks.Stop;
   if (!Array.isArray(stop)) {
     return { ok: false, error: '"hooks.Stop" in the settings is not a list' };
   }
@@ -97,7 +113,7 @@ function stopListOf(hooks: Record<string, unknown>): StopList {
 
 /** Read the settings text as an object. `text` is null when there is no file,
  * which reads as an empty object. Refuses text that is not a JSON object, and
- * a `hooks` key that is not an object. */
+ * a `hooks` key that is not an object (`null` included). */
 function parseSettings(text: string | null): Parsed {
   let value: unknown = {};
   try {
@@ -108,7 +124,7 @@ function parseSettings(text: string | null): Parsed {
   if (!isRecord(value)) {
     return { ok: false, error: 'the settings are not a JSON object' };
   }
-  const hooks = value.hooks ?? {};
+  const hooks = value.hooks === undefined ? {} : value.hooks;
   if (!isRecord(hooks)) {
     return { ok: false, error: '"hooks" in the settings is not an object' };
   }
@@ -148,14 +164,18 @@ function editStopGroups(groups: Group[], install: Install): unknown[] {
   return edited;
 }
 
-/** True when a group in the list already holds a weftwork entry. */
-function hasOurs(groups: Group[], cliPath: string): boolean {
-  return groups.some((group) => group.hooks.some((hook) => isOurs(hook, cliPath)));
+/** What the install did, from the groups as they were. `reformatted` is the
+ * one weftwork entry already equal to the new one, with the text changed. */
+function actionOf(changed: boolean, groups: Group[], install: Install): Action {
+  if (!changed) return 'unchanged';
+  const ours = groups.flatMap((group) => group.hooks.filter((hook) => isOurs(hook, install.cliPath)));
+  if (ours.length === 0) return 'added';
+  return ours.length === 1 && isDeepStrictEqual(ours[0], install.entry) ? 'reformatted' : 'replaced';
 }
 
 /** The settings as text, with `stop` as the Stop list. Two-space JSON and a
  * final newline, the same form on every run. */
-function renderSettings(parsed: { settings: Record<string, unknown>; hooks: Record<string, unknown> }, stop: unknown[]): string {
+function renderSettings(parsed: Settings, stop: unknown[]): string {
   return `${JSON.stringify({ ...parsed.settings, hooks: { ...parsed.hooks, Stop: stop } }, null, 2)}\n`;
 }
 
@@ -176,39 +196,37 @@ export function installStopHook(text: string | null, cliPath: string, command: s
     return stop;
   }
   const entry = { type: 'command', command: stopHookCommand(cliPath, command), timeout: hookTimeoutSeconds };
-  const out = renderSettings(parsed, editStopGroups(stop.groups, { cliPath, entry }));
+  const install = { cliPath, entry };
+  const out = renderSettings(parsed, editStopGroups(stop.groups, install));
   const changed = out !== text;
-  const action = changed ? (hasOurs(stop.groups, cliPath) ? 'replaced' : 'added') : 'unchanged';
-  return { ok: true, text: out, changed, action };
+  return { ok: true, text: out, changed, action: actionOf(changed, stop.groups, install) };
 }
 
 /** Open the settings file without blocking and without following a symlink.
- * Returns null when there is no file. The agent can replace the file, and
+ * `fd` is null when there is no file. The agent can replace the file, and
  * opening a FIFO blocks (BUG-007). */
-function openIfExists(path: string): number | null {
+function openIfExists(path: string): Opened {
   try {
-    return openSync(path, constants.O_RDONLY | constants.O_NONBLOCK | constants.O_NOFOLLOW);
+    return { ok: true, fd: openSync(path, constants.O_RDONLY | constants.O_NONBLOCK | constants.O_NOFOLLOW) };
   } catch (error) {
-    if (isMissing(error)) {
-      return null;
-    }
-    throw new Error(`${path} cannot be opened as a regular file: ${messageOf(error)}`);
+    if (isMissing(error)) return { ok: true, fd: null };
+    return { ok: false, error: `${path} cannot be opened as a regular file: ${messageOf(error)}` };
   }
 }
 
-/** Read the settings file, or null when there is none. Only a regular file is
- * read. Returns the file's mode too, so a rewrite keeps it. */
-function readSettings(path: string): { text: string; mode: number } | null {
-  const fd = openIfExists(path);
-  if (fd === null) {
-    return null;
-  }
+/** Read the settings file. `file` is null when there is none. Only a regular
+ * file is read. The file's mode comes back too, so a rewrite keeps it. */
+function readSettings(path: string): Read {
+  const opened = openIfExists(path);
+  if (!opened.ok) return opened;
+  const fd = opened.fd;
+  if (fd === null) return { ok: true, file: null };
   try {
     const stat = fstatSync(fd);
-    if (!stat.isFile()) {
-      throw new Error(`${path} is not a regular file`);
-    }
-    return { text: readFileSync(fd, 'utf8'), mode: stat.mode & 0o777 };
+    if (!stat.isFile()) return { ok: false, error: `${path} is not a regular file` };
+    return { ok: true, file: { text: readFileSync(fd, 'utf8'), mode: stat.mode & 0o777 } };
+  } catch (error) {
+    return { ok: false, error: `${path} could not be read: ${messageOf(error)}` };
   } finally {
     closeSync(fd);
   }
@@ -245,43 +263,37 @@ function refusalFor(dir: string, claudeDir: string): string | null {
   return null;
 }
 
-/** Write `text` to `path` through a temporary file in the same directory and a
- * rename, so a crash never leaves half a file. */
-function writeAtomic(claudeDir: string, path: string, text: string, mode: number): void {
-  mkdirSync(claudeDir, { recursive: true });
-  const temp = join(claudeDir, `settings.json.${process.pid}.tmp`);
+/** Write `text` to `path` through a random-named temp file and a rename, so a
+ * crashed process never leaves half a file (no fsync: a power loss can), and a
+ * leftover file is never this run's to delete. `mode` is set with chmod, as the
+ * umask would strip it at creation; with no `mode` (a new file) it decides. */
+function writeAtomic(path: string, text: string, mode: number | undefined): Failure | null {
+  const temp = join(dirname(path), `settings.json.${randomBytes(6).toString('hex')}.tmp`);
   try {
-    writeFileSync(temp, text, { flag: 'wx', mode });
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(temp, text, { flag: 'wx' });
+    if (mode !== undefined) chmodSync(temp, mode);
     renameSync(temp, path);
+    return null;
+  } catch (error) {
+    return { ok: false, error: `${path} could not be written: ${messageOf(error)}` };
   } finally {
     rmSync(temp, { force: true });
   }
-}
-
-/** A refusal of the install, with the reason. */
-function refuseInstall(error: string): InstallInProject {
-  return { ok: false, error };
 }
 
 /** Register the Stop hook in `dir`'s .claude/settings.json. `dir` must be the
  * root of a git repository. Writes only when the text changes. Returns an
  * error value, and writes nothing, for anything it will not edit. */
 export function installInProject(dir: string, cliPath: string, command: string): InstallInProject {
-  try {
-    const claudeDir = join(dir, '.claude');
-    const path = join(claudeDir, 'settings.json');
-    const refusal = refusalFor(dir, claudeDir);
-    if (refusal !== null) return refuseInstall(refusal);
-    const existing = readSettings(path);
-    const result = installStopHook(existing?.text ?? null, cliPath, command);
-    if (!result.ok) {
-      return refuseInstall(`${path}: ${result.error}`);
-    }
-    if (result.changed) {
-      writeAtomic(claudeDir, path, result.text, existing?.mode ?? 0o644);
-    }
-    return { ok: true, action: result.action, path };
-  } catch (error) {
-    return refuseInstall(messageOf(error));
-  }
+  const claudeDir = join(dir, '.claude');
+  const path = join(claudeDir, 'settings.json');
+  const refusal = refusalFor(dir, claudeDir);
+  if (refusal !== null) return { ok: false, error: refusal };
+  const read = readSettings(path);
+  if (!read.ok) return read;
+  const result = installStopHook(read.file?.text ?? null, cliPath, command);
+  if (!result.ok) return { ok: false, error: `${path}: ${result.error}` };
+  const failed = result.changed ? writeAtomic(path, result.text, read.file?.mode) : null;
+  return failed ?? { ok: true, action: result.action, path };
 }
