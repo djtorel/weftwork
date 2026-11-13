@@ -5,40 +5,8 @@
 // live; everything the check cannot see makes it say less, never more.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stopHookCommand } from './claude-install.ts';
-import { liveReport, type LiveInput, type SettingsSource } from './claude-live.ts';
-import type { LastCall } from './last-call.ts';
-
-const cli = '/opt/weft work/src/claude-hook-cli.ts';
-const now = new Date('2026-11-12T12:00:00.000Z');
-const call: LastCall = { at: '2026-11-12T11:58:00.000Z', cliPath: cli, command: 'npm test' };
-
-/** Settings text with one Stop group holding `hooks`, plus `extra` keys. */
-function settings(hooks: unknown[], extra: Record<string, unknown> = {}): string {
-  return JSON.stringify({ ...extra, hooks: { Stop: [{ hooks: hooks }] } });
-}
-
-/** weftwork's entry for `command` and the adapter at `path`. */
-function entry(command = 'npm test', path = cli) {
-  return { type: 'command', command: stopHookCommand(path, command), timeout: 660 };
-}
-
-function source(name: string, text: string | null): SettingsSource {
-  return { name, read: { ok: true, text } };
-}
-
-/** A live setup; each test changes one part. */
-function input(change: Partial<LiveInput> = {}): LiveInput {
-  return {
-    local: source('.claude/settings.local.json', null),
-    project: source('.claude/settings.json', settings([entry()])),
-    user: source('/home/u/.claude/settings.json', null),
-    exists: (path) => path === cli,
-    lastCall: { ok: true, call },
-    now,
-    ...change,
-  };
-}
+import { liveReport, type LiveInput } from './claude-live.ts';
+import { call, entry, input, settings, source } from './claude-live-test-helpers.ts';
 
 test('AC-e07s04-05 the same adapter and command were called: live, with the time', () => {
   const report = liveReport(input());
@@ -189,15 +157,6 @@ test('the age of the last call is printed in the largest whole unit', () => {
   }
 });
 
-test('an entry changed by hand so it may not block is not live (review B-F1)', () => {
-  const changed = [{ ...entry(), async: true }, { ...entry(), if: 'Bash(git *)' }, { ...entry(), timeout: 1 }];
-  for (const hook of changed) {
-    const report = liveReport(input({ project: source('.claude/settings.json', settings([hook])) }));
-    assert.equal(report.answer, 'not-seen', JSON.stringify(hook));
-    assert.match(report.reason, /install again/);
-  }
-});
-
 test('the live reason names the command that ran (review B-F5)', () => {
   assert.match(liveReport(input()).reason, /'npm test'/);
 });
@@ -276,35 +235,6 @@ test('a record at now is 0 s ago; one second later is in the future (review roun
   const at = (iso: string) => liveReport(input({ lastCall: { ok: true, call: { ...call, at: iso } } })).reason;
   assert.match(at('2026-11-12T12:00:00.000Z'), /\(0 s ago\)/);
   assert.match(at('2026-11-12T12:00:01.000Z'), /\(in the future\)/);
-});
-
-/** One Stop group per file, so a copy can sit in local or user settings. */
-const local = (hooks: unknown[]) => source('.claude/settings.local.json', settings(hooks));
-const user = (hooks: unknown[]) => source('/home/u/.claude/settings.json', settings(hooks));
-
-test('a changed copy of the handler in another file is not live, the file named (review round 3, A1, B-1)', () => {
-  const cases: [Partial<LiveInput>, RegExp][] = [
-    [{ local: local([{ ...entry(), async: true }]) }, /settings\.local\.json/],
-    [{ user: user([{ ...entry(), timeout: 1 }]) }, /\/home\/u/],
-    [{ project: source('.claude/settings.json', settings([entry(), { ...entry(), if: 'x' }])) }, /\.claude\/settings\.json/],
-  ];
-  for (const [change, file] of cases) {
-    const report = liveReport(input(change));
-    assert.equal(report.answer, 'not-seen', JSON.stringify(change));
-    assert.match(report.reason, /remove the copy or run the install again/);
-    assert.match(report.reason, file);
-  }
-});
-
-test('an exact copy, or a changed entry for another command, leaves the hook live (review round 3)', () => {
-  assert.equal(liveReport(input({ local: local([entry()]) })).answer, 'live');
-  assert.equal(liveReport(input({ user: user([{ ...entry('npm run other'), async: true }]) })).answer, 'live');
-});
-
-test('a Stop list in local settings that is not a list: cannot tell (review round 3)', () => {
-  const report = liveReport(input({ local: source('.claude/settings.local.json', '{"hooks":{"Stop":{}}}') }));
-  assert.equal(report.answer, 'not-seen');
-  assert.match(report.reason, /settings\.local\.json/);
 });
 
 test('one entry: no many-hooks note, and its notes are its own (review round 3, A3, B-5)', () => {
