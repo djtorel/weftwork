@@ -128,9 +128,22 @@ function seen(present: Entry[], lastCall: LastCallRead, now: Date): Omit<LiveRep
   return { answer: 'not-seen', reason: `the last call, at ${when}, ran another command or adapter` };
 }
 
+/** The reason with every control character written as `\uXXXX`. The record,
+ * the settings and the error texts are the agent's to write, and escape codes
+ * printed raw could draw a fake answer line on the owner's screen (security
+ * review F2). */
+function shown(text: string): string {
+  return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
 /** Whether the hook is live. Only a record of the same adapter and command as
  * an entry in the settings now is `live`. */
 export function liveReport(input: LiveInput): LiveReport {
+  const report = decide(input);
+  return { ...report, reason: shown(report.reason) };
+}
+
+function decide(input: LiveInput): LiveReport {
   const found = registered(input.project);
   if (!found.ok) {
     return { answer: 'not-registered', reason: found.reason, notes: standingNotes };
