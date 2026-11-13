@@ -106,6 +106,18 @@ its tests and the install CLI tests run through the real file system.
 - **Reason for Depth:** two writers must keep the same BUG-007 and
   crash-safety rules; a copy would drift.
 
+#### MODIFIED: the shared read refuses invalid UTF-8 (review round 3)
+
+- **Before:** `readSettings` decoded with `readFileSync(fd, 'utf8')`, which
+  turns each invalid byte into U+FFFD. The install would then write those
+  replacement characters back, changing bytes it never meant to touch.
+- **After:** `readRegularFile` decodes strictly and returns
+  `{ ok: false, error: '<path> is not valid UTF-8' }`. A leading BOM is kept
+  as text, as before. This applies to the settings read of the Stop-hook
+  install and the live check too: a `settings.json` with invalid UTF-8 is now
+  refused instead of silently rewritten. The owner approved this on
+  2026-11-13 (review round 3, A2 and B2).
+
 #### ADDED: the field writer, `src/state-file.ts`
 
 - `setField(text, path, value)` is a pure function. `path` is a non-empty
@@ -321,7 +333,7 @@ regular-file read; the owner chose to share it.
   (owner decision, 2026-11-13, plan-work). e09 decides whether an unreadable
   ledger answers exhausted.
 
-## 5a. Known limits (review rounds 1 and 2)
+## 5a. Known limits (review rounds 1 to 3)
 
 These change only the edited value's own text, so the byte-span check
 allows them. e08s03, which writes the multi-line handoff note, decides
@@ -338,7 +350,13 @@ whether to handle them.
   double-quoted. That only adds quotes.
 - A string is written plain only when it is printable ASCII with no
   space at either end and is not `=` or `<<`; anything else is
-  double-quoted. A value holding NEL, LS or PS is refused (review 2).
+  double-quoted. A value holding NEL, LS or PS, or any character outside
+  PyYAML's printable set (control characters other than tab, LF and CR,
+  DEL, C1 controls, U+FFFE, U+FFFF, a lone surrogate), is refused (review
+  rounds 2 and 3).
+- A file whose data holds anything other than mappings, sequences and
+  scalars (a `%YAML 1.1` directive with dates, or a tag such as
+  `!!binary`) is refused with that reason (review round 3).
 - The writer does not repair text it does not change. When a field
   already holds the value under YAML 1.2, the file is left as it is, even
   if PyYAML reads that text as another type (`a: yes` and the string
