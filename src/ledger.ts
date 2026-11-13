@@ -87,7 +87,7 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
  * at once, and a FIFO, a device or a directory is refused. override.ts does the
  * same for override.json.
  */
-async function openRegular(path: string, flags: number, mode?: number): Promise<FileHandle> {
+export async function openRegular(path: string, flags: number, mode?: number): Promise<FileHandle> {
   const handle = await open(path, flags | constants.O_NONBLOCK, mode);
   try {
     if (!(await handle.stat()).isFile()) {
