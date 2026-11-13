@@ -22,24 +22,28 @@ function dataOf(text: string, path?: string[], value?: FieldValue): unknown {
 }
 
 /** The lines that differ between `before` and `after`, once the lines they
- * share at the start and at the end are taken away. */
-function changedLines(before: string, after: string): { removed: string[]; added: string[] } {
+ * share at the start and at the end are taken away, and the last shared line
+ * before them. */
+function changedLines(before: string, after: string): { removed: string[]; added: string[]; above: string } {
   const a = before.split('\n');
   const b = after.split('\n');
   let start = 0;
   while (start < a.length && start < b.length && a[start] === b[start]) start++;
   let end = 0;
   while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
-  return { removed: a.slice(start, a.length - end), added: b.slice(start, b.length - end) };
+  return { removed: a.slice(start, a.length - end), added: b.slice(start, b.length - end), above: a[start - 1] ?? '' };
 }
 
-/** True when `lines` are the lines of one key's value: the key line, then only
- * lines indented deeper than the key. */
-function isOneValue(lines: string[], key: string): boolean {
-  const first = lines[0] ?? '';
-  const indent = first.length - first.trimStart().length;
-  if (!first.trimStart().startsWith(`${key}:`)) return false;
-  return lines.slice(1).every((line) => line.length - line.trimStart().length > indent);
+/** True when `lines` lie inside one key's value: they start with the key line,
+ * or the key line is just above them (a block scalar whose header stayed), and
+ * every other line is indented deeper than the key. */
+function isOneValue(lines: string[], key: string, above: string): boolean {
+  const startsAtKey = (lines[0] ?? '').trimStart().startsWith(`${key}:`);
+  const keyLine = startsAtKey ? (lines[0] as string) : above;
+  if (!keyLine.trimStart().startsWith(`${key}:`)) return false;
+  const indent = keyLine.length - keyLine.trimStart().length;
+  const rest = startsAtKey ? lines.slice(1) : lines;
+  return rest.every((line) => line.length - line.trimStart().length > indent);
 }
 
 function set(text: string, path: string[], value: FieldValue): string {
@@ -78,9 +82,10 @@ test('one field changes, only its lines differ, and every other field keeps its 
     const after = set(before, path, value);
     const label = `${name} ${path.join('.')}`;
     const key = path[path.length - 1] as string;
-    const { removed, added } = changedLines(before, after);
-    assert.ok(isOneValue(removed, key), `${label}: removed ${JSON.stringify(removed)}`);
-    assert.ok(isOneValue(added, key), `${label}: added ${JSON.stringify(added)}`);
+    const { removed, added, above } = changedLines(before, after);
+    assert.ok(removed.length > 0 || added.length > 0, `${label}: nothing changed`);
+    assert.ok(isOneValue(removed, key, above), `${label}: removed ${JSON.stringify(removed)}`);
+    assert.ok(isOneValue(added, key, above), `${label}: added ${JSON.stringify(added)}`);
     if (expected.length > 0) assert.deepEqual(added, expected, label);
     assert.deepEqual(dataOf(after), dataOf(before, path, value), label);
   }
