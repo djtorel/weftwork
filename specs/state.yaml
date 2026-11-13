@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: null
-active_epic: null
+active_epic: e08
 active_story: null
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e08-state-and-handoff
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -406,29 +406,35 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: slice-tasks
-  next_story: null
+  next_skill: plan-work
+  next_story: e08s01
   next_epic: e08
-  note: 'e07 is closed on 2026-11-13: all four stories are done and landed (PR
-    #52 was the last), the capsule is archived in epics/archive/e07-host-adapters,
-    and the e07 status is reconciled in epic.yaml, execution-status.yaml and
-    release-plan.yaml. The R1 gate-trace waiver for e07 needs no renewal: no e07
-    story is undone. Next in execution order: e08 (B2, state and handoff). e08
-    has only its epic.yaml, so start in a fresh session with slice-tasks, on a
-    new branch made with git checkout -b. Pushes, PRs and merges need an explicit
-    go-ahead each. Do not run scripts/sync-status-from-epics.sh. Deferred to e10:
-    the symlinked git-dir directory, the torn or briefly empty record (temp file
-    and rename), size caps checked by fstat then read to EOF. Deferred:
-    CLAUDE_PROJECT_DIR in the record, resolved adapter paths. Declined: a
-    staleness limit, sharing one git rev-parse. The pi wrapper for e07 was left
+  note: 'e08 (B2, state and handoff) is sliced on branch e08-state-and-handoff,
+    not yet committed or pushed. Stories in capsule specs/epics/e08-state-and-handoff:
+    e08s01 format-preserving state writer (5 BCPs, the tracer), e08s02 documented
+    field set (4), e08s03 engine-written handoff (5), e08s04 resume check (5).
+    Each tasks file opens with its open choices and a recommendation; put them to
+    the owner at plan-work. First: confirm the yaml package (version 2.9.1 on
+    2026-11-13) with ctx7 before the RED test of e08s01. If it cannot keep the
+    fixtures byte-for-byte, stop and ask the owner. Open for the owner: whether
+    residual F5 (an unreadable ledger turns the stop rules off, specs/security/REVIEW.md)
+    belongs to e09, which is the recommendation. e08 needs no waivers yet; plan-work
+    asks about the missing-specs and gate-trace R1 waivers as it did for e07.
+    Start plan-work in a fresh session on this branch. Pushes, PRs and merges need
+    an explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh. After
+    the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.
+    Deferred to e10: the symlinked git-dir directory, the torn or briefly empty
+    record (temp file and rename), size caps checked by fstat then read to EOF.
+    Deferred: CLAUDE_PROJECT_DIR in the record, resolved adapter paths. Declined:
+    a staleness limit, sharing one git rev-parse. The pi wrapper for e07 was left
     out; add it as a later story only if the owner asks.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 25
-      total_seconds: 380.0
-      avg_seconds: 15.2
+      calls: 26
+      total_seconds: 412.0
+      avg_seconds: 15.846153846153847
     plan-work:
       calls: 28
       total_seconds: 15284.0
