@@ -743,3 +743,118 @@ c62d51a to fd4c438). Re-read against the final diff, `git diff main...HEAD -- sr
 
 Verdict is unchanged: PASS. No HIGH finding at confidence 8 or more.
 
+
+# Security review for branch e07s04-live-check (e07s04, check that the hook is live)
+
+review_date: 2026-11-12
+branch: e07s04-live-check
+base: main (28c371f)
+scope: git diff 28c371f..HEAD -- src (focus: the call record the Stop hook
+now writes on every call, the settings and record reads of the live check,
+the shared entry parser, and the file I/O moved out of claude-install.ts)
+method: security-review 5-phase scan, reviewed inline; each finding below
+was reproduced in a scratch repository
+
+## Executable surface
+
+1. `src/claude-hook-cli.ts` now writes `<git dir>/weftwork/last-call.json`
+   on every call, before it reads the host's input. The hook runs as the
+   owner, outside any agent sandbox, and the agent can write the git dir (T3).
+2. `src/claude-live-cli.ts` runs in the owner's shell. It reads
+   `.claude/settings.local.json`, `.claude/settings.json`, the user settings
+   (`$CLAUDE_CONFIG_DIR` or `~/.claude`) and the call record, and prints a
+   report. It writes nothing.
+3. `src/claude-settings-file.ts` is the e07s03 code, moved unchanged.
+
+## Context research
+
+- The record is opened with `O_NOFOLLOW | O_NONBLOCK`, then `fstat` must say
+  regular file before the truncate (BUG-007 class). Its directory is 0700 and
+  the file 0600, since it holds the declared command (T8).
+- `parseStopHookCommand` uses `^node '((?:[^']|'\\'')*)' -- '(...)'$`. The two
+  alternatives start with different characters, so matching is linear (no
+  ReDoS). The install and the check share it.
+- The check's output is advisory; its exit code is the machine answer.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Symlink at last-call.json | Refused (`O_NOFOLLOW`, ELOOP); the target is unchanged (test). |
+| FIFO or directory at last-call.json | Refused at once for write and read (tests, child with timeout). |
+| Hard link at last-call.json | **Not refused: F1.** |
+| Untrusted text printed by the check | **Printed raw: F2.** |
+| Size of the record read | Capped at 64 KiB by `fstat` before the read. |
+| A failed record write changes the hook's answer | No: the result is ignored and both calls never throw (CLI tests). |
+| Shell injection | None new. The entry text is only parsed, never run, by the check. |
+| Secrets in the diff | None. The record stores the command, as the ledger does (T8). |
+| Outbound requests | None. |
+
+## Findings (confidence 8 or more)
+
+### F1. A hard link at last-call.json makes the hook overwrite the linked file — MEDIUM — CWE-59 — confidence 8
+
+- `src/last-call.ts` `writeLastCall`: `O_NOFOLLOW` stops a symlink, but a
+  hard link is a regular file, so `fstat` passes and `truncate(0)` empties
+  the file it shares an inode with.
+- Reproduced: `ln victim.ts .git/weftwork/last-call.json`, then one
+  `writeLastCall`: `victim.ts` now holds the record JSON.
+- Exploit scenario: the agent links the record to a tracked file; the next
+  stop overwrites that file with the record. The content is not the
+  agent's choice, and an agent that can make the link can already write the
+  file, so no new capability. But the module's own contract ("never send the
+  truncate to another file") is broken, and the hook runs outside the
+  agent's sandbox.
+- Fix: after `fstat`, refuse when `nlink !== 1`, before the truncate. Same
+  class, not in this diff: `ledger.jsonl` is appended to through a hard link
+  too (append only, never truncated). Note for e10.
+
+### F2. The check prints text the agent controls, escape codes included — LOW — CWE-150 — confidence 8
+
+- `src/claude-live.ts`: the record's `at` field, adapter paths from the
+  settings and error texts are put into the reason unescaped.
+- Reproduced: a record with `at` = `T\u001b[2K\rweftwork live check: live`
+  makes the terminal show a `live` line under a `registered, not seen`
+  answer. The exit code stays 1.
+- No new capability: the agent can forge a matching record and get a real
+  `live` (T3, already in the notes). But the report should not be spoofable
+  on screen.
+- Fix: print untrusted strings with control characters escaped (for
+  example through `JSON.stringify`).
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- **A symlinked user settings file reads as "cannot tell" (functional, not a
+  vulnerability).** `readSettings` uses `O_NOFOLLOW`, which is right for the
+  install's write but refuses `~/.claude/settings.json` when a dotfile
+  manager links it. Reproduced: ELOOP, answer `registered, not seen`. It
+  fails toward "not live", never toward "live". The check only reads, so it
+  can follow symlinks safely while keeping `O_NONBLOCK` and the regular-file
+  check.
+- **A symlinked `.git/weftwork` directory (confidence about 4).** `O_NOFOLLOW`
+  covers the last path part only, so the record can land in another
+  directory, where only a file named `last-call.json` can be touched. The
+  ledger has the same property (F1 of e07s02).
+
+## Verdict
+
+PASS for the security gate. No HIGH finding at confidence 8 or more. F1
+(MEDIUM) and F2 (LOW) do not block, and both fixes are small.
+
+## Addendum: fixes on the same branch (verify-work gaps loop, 2026-11-12)
+
+The owner chose to fix both findings and the observation before audit-code.
+Each fix has a test-only commit that failed first, then the fix:
+
+- F1 fixed (a125fed, f3dd06f): `writeLastCall` refuses a file with more than
+  one hard link before the truncate. A test links the record to a file and
+  checks that the file is unchanged.
+- F2 fixed (b548a4e, 02ae710): `liveReport` writes every control character in
+  the reason as `\uXXXX`. A test forges a record with escape codes.
+- The symlink observation fixed (97c06c5 and the next commit): `readSettings`
+  takes a `follow` option. The install still refuses a symlink; the check
+  follows one, and the target must still be a regular file (FIFO refused).
+- Still open, for e10: `ledger.jsonl` is appended to through a hard link
+  (append only), and a symlinked `.git/weftwork` directory.
+
+Verdict is unchanged: PASS.
