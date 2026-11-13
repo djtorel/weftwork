@@ -1,0 +1,107 @@
+---
+# verify-work 2026-11-13. Mechanical gates and the owner's manual run pass.
+# The security review's one finding (F1, LOW) was fixed on the branch in
+# the gaps loop; every gate was re-run on the final code.
+story_id: e08s01
+verified_at: "2026-11-13T15:54:10Z"
+verifier: verify-work
+risk: P1
+branch: e08s01-state-writer
+head: 7492272
+phases:
+  smoke:
+    passed: null
+    note: "N/A. CLI library with no server process."
+  build:
+    passed: null
+    note: "No build step. Node runs .ts directly (CLAUDE.md)."
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+    exit_code: 0
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  tests:
+    passed: true
+    command: "npm test"
+    tests: 486
+    pass: 486
+    fail: 0
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-13T15:54:10Z"
+    note: >-
+      Single run at 7492272, 486 of 486 tests. Earlier runs, before the
+      gaps fixes: d8aa880 at 15:50:16Z (485 tests) and 692b492 at
+      15:53:19Z (486 tests), both exit 0.
+  task_verifies:
+    passed: true
+    note: "All four verify: commands in e08s01-tasks.yaml exit 0."
+  security_review:
+    passed: true
+    report: specs/security/REVIEW.md (section e08s01-state-writer)
+    high_findings_at_8_or_more: 0
+    fixed_in_gaps_loop:
+      - "F1 LOW: an alias bomb made setField throw (516fcf3, 692b492)"
+  blind_spots:
+    passed: true
+    high: 0
+    medium: 43
+    low: 11
+    note: >-
+      The new MEDIUM entries are double-tags in the e08 tasks files and
+      research docs, which name other e08 stories. A false tag on
+      src/state-file.test.ts, from a test value, was removed (7492272).
+  completeness_critic:
+    passed: true
+    blocker: 0
+    warning: 0
+    note: >-
+      The first run warned that e08s01 was missing from the matrix;
+      scripts/trace-stories.sh --json rebuilt it.
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    exit_code: 0
+  manual:
+    status: passed
+    verified_by: owner, 2026-11-13, scratch clone at /tmp/weftwork-e08s01
+    head_at_run: 7492272
+    steps:
+      - step: "2. Set handoff.next_skill in state.yaml"
+        expected: "action written, exit=0"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "3. git diff of state.yaml"
+        expected: "1 insertion, 1 deletion: the next_skill line only"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "4. Set status in epic.yaml (---, comments, >-)"
+        expected: "only the status line differs; yamllint exit 0"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "5. Same value again"
+        expected: "action unchanged, exit=0"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "6. The string true into active_story"
+        expected: 'active_story: "true", exit=0'
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "7. Missing key, and a path outside the root"
+        expected: "exit=1 each, nothing else changed (2 files, 3 and 3)"
+        actual: "Owner reported all steps passed"
+        passed: true
+    note: >-
+      The agent dry-ran the same steps at 7492272 before handing them over;
+      the outputs matched the pass lines given to the owner.
+  gaps:
+    closed: true
+    note: >-
+      Two gaps, both fixed and re-verified: security review F1 and the
+      false double-tag from a test value.
