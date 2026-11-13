@@ -91,6 +91,15 @@ test('a directory in place of the file is an error, never a throw', async () => 
   assert.equal((await readLastCall(path)).ok, false);
 });
 
+test('an error names the call record, not the ledger (review A-F1)', async () => {
+  const path = freshPath();
+  mkdirSync(path, { recursive: true });
+  const read = await readLastCall(path);
+  assert.ok(!read.ok);
+  assert.match(read.error, /last-call\.json/);
+  assert.doesNotMatch(read.error, /ledger/);
+});
+
 test('a FIFO in place of the file returns at once for a write and a read (BUG-007)', () => {
   const fifo = JSON.stringify(makeFifo());
   const out = inChild(

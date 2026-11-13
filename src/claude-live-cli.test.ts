@@ -101,6 +101,19 @@ test('AC-e07s04-08 a symlinked user settings file is read, as Claude Code reads 
   assert.match(run([checkCli], { cwd: repo, env }).stdout, /disableAllHooks is true/);
 });
 
+test('an empty CLAUDE_CONFIG_DIR is unset, so HOME holds the user settings (review A-F7)', () => {
+  const repo = makeTestRepo();
+  const env = cleanEnv('');
+  const home = env.HOME ?? '';
+  mkdirSync(join(home, '.claude'));
+  writeFileSync(join(home, '.claude', 'settings.json'), '{"disableAllHooks": true}\n');
+  run([installCli, '--', 'true'], { cwd: repo, env });
+  callHook(repo, env, 'true');
+  const out = run([checkCli], { cwd: repo, env });
+  assert.equal(out.status, 1);
+  assert.ok(out.stdout.includes(join(home, '.claude', 'settings.json')), out.stdout);
+});
+
 test('AC-e07s04-08 a changed entry is not seen until the host calls it again', () => {
   const repo = makeTestRepo();
   const env = cleanEnv();
