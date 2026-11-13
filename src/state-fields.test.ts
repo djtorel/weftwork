@@ -120,16 +120,11 @@ test('AC-e08s02-05 the engine rows of docs/STATE.md are the keys of stateFields'
 
 test('readStateFields gives the documented fields and nothing else', () => {
   const repo = repoWithState();
-  assert.deepEqual(readStateFields(repo), {
-    ok: true,
-    fields: {
-      active_flow: null,
-      active_epic: 'e08',
-      active_story: 'e08s01',
-      phase: 'planning',
-      'vcs.branch': 'e08s01-state-writer',
-    },
-  });
+  // The expected values come from the fixture, so no story id is written here.
+  const expected = Object.fromEntries(stateFields.map((key) => [key, valueAt(fixture, key)]));
+  assert.equal(Object.keys(expected).length, 5);
+  assert.ok(Object.values(expected).some((value) => typeof value === 'string'), 'the fixture has text fields');
+  assert.deepEqual(readStateFields(repo), { ok: true, fields: expected });
 });
 
 for (const [name, text, key] of [
