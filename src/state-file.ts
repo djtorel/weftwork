@@ -4,56 +4,53 @@
 // which dropped the leading ---, the comments and the folded scalars (BUG-001,
 // BUG-004, BUG-005). This writer edits the concrete syntax tree of the yaml
 // package instead: CST.stringify joins the source text back in order, so only
-// the edited value's text changes.
+// the edited value's text changes, and a check after the edit proves it.
 //
 // CST.setScalarValue checks no types: the string "true" written plain would
 // read back as a boolean. So every edit is parsed again and accepted only when
-// the data equals the old data with that one field set.
+// the data equals the old data with that one field set and no new warning
+// appears. A plain string must also read as the same string under YAML 1.1,
+// because this repository's tools read state files with PyYAML.
 import { realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { CST, Parser, parseAllDocuments, type Document, type Scalar } from 'yaml';
+import { CST, Parser, parseAllDocuments, parseDocument, type Document, type Scalar } from 'yaml';
 import { messageOf } from './errors.ts';
-import { readRegularFile, writeAtomic } from './regular-file.ts';
+import { isRecord } from './json.ts';
+import { readRegularFile, writeAtomic, type Failure } from './regular-file.ts';
 
 /** The most writeStateField reads. A state file is a few tens of KiB. */
 export const maxStateBytes = 1024 * 1024;
 
 export type FieldValue = string | number | boolean | null;
-export type SetField = { ok: true; text: string } | { ok: false; error: string };
-export type WriteField = { ok: true; action: 'written' | 'unchanged'; file: string } | { ok: false; error: string };
-type Parsed = { ok: true; doc: Document; data: unknown } | { ok: false; error: string };
-type Data = { ok: true; data: unknown } | { ok: false; error: string };
-type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | { ok: false; error: string };
+export type SetField = { ok: true; text: string } | Failure;
+export type WriteField = { ok: true; action: 'written' | 'unchanged'; file: string } | Failure;
+type Reading = { data: unknown; warnings: number };
+type Parsed = ({ ok: true; doc: Document } & Reading) | Failure;
+type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | Failure;
 
-function isFieldValue(value: unknown): value is FieldValue {
+/** True for a value the writer can put in a scalar: a string, a finite number,
+ * a boolean or null. The CLI checks its input with the same rule. */
+export function isFieldValue(value: unknown): value is FieldValue {
   if (typeof value === 'number') return Number.isFinite(value);
   return value === null || typeof value === 'string' || typeof value === 'boolean';
 }
 
-/** The data of `doc`. yaml refuses to expand too many aliases by throwing from
- * toJS (a billion-laughs guard); that is a refusal here, not a crash (security
+/** Parse `text` as exactly one YAML document with no errors, with its data and
+ * warning count. yaml refuses to expand too many aliases by throwing from toJS
+ * (a billion-laughs guard); that is a refusal here, not a crash (security
  * review F1). */
-function toData(doc: Document): Data {
-  try {
-    return { ok: true, data: doc.toJS() };
-  } catch (error) {
-    return { ok: false, error: `the text cannot be read as data: ${messageOf(error)}` };
-  }
-}
-
-/** Parse `text` as exactly one YAML document with no errors, and its data. */
 function parseOne(text: string): Parsed {
   const docs = parseAllDocuments(text);
-  if (!Array.isArray(docs) || docs.length !== 1) {
-    return { ok: false, error: 'the text must be exactly one YAML document' };
-  }
-  const doc = docs[0];
+  const doc = Array.isArray(docs) && docs.length === 1 ? docs[0] : undefined;
   if (doc === undefined) return { ok: false, error: 'the text must be exactly one YAML document' };
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: `the text is not valid YAML: ${first.message}` };
-  const data = toData(doc);
-  return data.ok ? { ok: true, doc, data: data.data } : data;
+  try {
+    return { ok: true, doc, data: doc.toJS(), warnings: doc.warnings.length };
+  } catch (error) {
+    return { ok: false, error: `the text cannot be read as data: ${messageOf(error)}` };
+  }
 }
 
 /** The scalar token at `path` in the one document of `tokens`. Each key must
@@ -67,6 +64,7 @@ function findScalar(tokens: CST.Token[], path: readonly string[]): Found {
     if (item === undefined) return { ok: false, error: `there is no key ${path.slice(0, index + 1).join('.')}` };
     node = item.value;
   }
+  if (node === undefined) return { ok: false, error: `${path.join('.')} has no value to replace` };
   if (!CST.isScalar(node)) return { ok: false, error: `${path.join('.')} is not a scalar` };
   return { ok: true, token: node };
 }
@@ -76,32 +74,82 @@ function sourceOf(value: FieldValue): string {
   return value === null ? 'null' : String(value);
 }
 
+/** False when `token` is a plain scalar holding the string `value` that a YAML
+ * 1.1 reader (PyYAML) would take as another type, such as `yes`, `on` or
+ * `1_000` (review B2). yaml's own 1.1 schema reads a few more strings as
+ * numbers than PyYAML does (`e01`), which can only add quotes, never drop
+ * them. */
+function readsTheSameInYaml11(token: CST.FlowScalar | CST.BlockScalar, value: FieldValue): boolean {
+  if (typeof value !== 'string' || token.type !== 'scalar') return true;
+  const doc = parseDocument(CST.stringify(token).trim(), { version: '1.1' });
+  try {
+    return doc.errors.length === 0 && doc.toJS() === value;
+  } catch {
+    return false;
+  }
+}
+
 /** Set `path` to `value` in a fresh tree of `text` and return the new text.
- * `type` undefined keeps the scalar's old style. */
+ * `type` undefined keeps the scalar's old style. The new text must be the old
+ * text with only the value token's span replaced, which proves that no byte
+ * outside the value changed (review A4). */
 function editScalar(text: string, path: readonly string[], value: FieldValue, type?: Scalar.Type): SetField {
   const tokens = [...new Parser().parse(text)];
   const found = findScalar(tokens, path);
   if (!found.ok) return found;
+  const { offset } = found.token;
+  const oldLength = CST.stringify(found.token).length;
   CST.setScalarValue(found.token, sourceOf(value), type === undefined ? { afterKey: true } : { afterKey: true, type });
-  return { ok: true, text: tokens.map((token) => CST.stringify(token)).join('') };
+  if (!readsTheSameInYaml11(found.token, value)) return { ok: false, error: `${path.join('.')}: YAML 1.1 reads it as another type` };
+  const edited = text.slice(0, offset) + CST.stringify(found.token) + text.slice(offset + oldLength);
+  const joined = tokens.map((token) => CST.stringify(token)).join('');
+  if (joined !== edited) return { ok: false, error: `${path.join('.')}: the edit changed text outside its value` };
+  return { ok: true, text: edited };
 }
 
-/** True when `text` is one valid document whose data is `expected`. */
-function holdsData(text: string, expected: unknown): boolean {
-  const parsed = parseOne(text);
-  return parsed.ok && isDeepStrictEqual(parsed.data, expected);
+/** The reading the edited text must give: `old` with the field at `path` set
+ * to `value`, on a plain copy of its data. A copy of the yaml Document would
+ * share an anchored node with its aliases and set them too, which hides an
+ * alias change from the check (review A1, B1). */
+function expectedReading(old: Reading, path: readonly string[], value: FieldValue): Reading {
+  const copy: unknown = structuredClone(old.data);
+  let node: unknown = copy;
+  for (const key of path.slice(0, -1)) node = isRecord(node) ? node[key] : undefined;
+  const last = path[path.length - 1];
+  if (!isRecord(node) || last === undefined || !Object.hasOwn(node, last)) return { data: undefined, warnings: 0 };
+  node[last] = value;
+  return { data: copy, warnings: old.warnings };
 }
 
-/** The first edit of `text` whose parsed data is `want`. A string tries the
- * scalar's old style first, then double quotes, because setScalarValue does
- * not check what a plain scalar will read back as. */
-function firstEditThatHolds(text: string, path: readonly string[], value: FieldValue, want: unknown): SetField {
+/** True when `text` reads as `want`, with no more warnings than the old text
+ * had: a tag that no longer fits its value only warns (review A2, B3). */
+function holdsData(text: string, want: Reading): boolean {
+  const read = parseOne(text);
+  return read.ok && read.warnings <= want.warnings && isDeepStrictEqual(read.data, want.data);
+}
+
+/** The first edit of `text` that holds `want`. A string tries the scalar's old
+ * style first, then double quotes, because setScalarValue does not check what
+ * a plain scalar will read back as. */
+function firstEditThatHolds(text: string, path: readonly string[], value: FieldValue, want: Reading): SetField {
   const styles: (Scalar.Type | undefined)[] = typeof value === 'string' ? [undefined, 'QUOTE_DOUBLE'] : ['PLAIN'];
   for (const type of styles) {
     const result = editScalar(text, path, value, type);
     if (result.ok && holdsData(result.text, want)) return result;
   }
   return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data` };
+}
+
+/** Why `value` cannot be written at `path` at all, or null. setScalarValue
+ * writes LF inside a multi-line value, which would mix line endings in a CRLF
+ * file (review A3, B4). */
+function refusalForValue(text: string, path: readonly string[], value: unknown): string | null {
+  if (path.length === 0) return 'the key path is empty';
+  if (!isFieldValue(value)) return 'the value must be a string, a finite number, a boolean or null';
+  if (typeof value === 'string' && value.includes('\n') && text.includes('\r\n')) {
+    return 'a multi-line value cannot be written to a file with CRLF line endings';
+  }
+  return null;
 }
 
 /** Set the scalar at `path` in the YAML `text` to `value`, and keep every
@@ -111,34 +159,31 @@ function firstEditThatHolds(text: string, path: readonly string[], value: FieldV
  * hold exactly the old data with that one field set is an error, and no text
  * comes back. */
 export function setField(text: string, path: readonly string[], value: FieldValue): SetField {
-  if (path.length === 0) return { ok: false, error: 'the key path is empty' };
-  if (!isFieldValue(value)) {
-    return { ok: false, error: 'the value must be a string, a finite number, a boolean or null' };
-  }
+  const refusal = refusalForValue(text, path, value);
+  if (refusal !== null) return { ok: false, error: refusal };
   const parsed = parseOne(text);
   if (!parsed.ok) return parsed;
   const found = findScalar([...new Parser().parse(text)], path);
   if (!found.ok) return found;
   if (isDeepStrictEqual(parsed.doc.getIn(path), value)) return { ok: true, text };
-  const expected = parsed.doc.clone();
-  expected.setIn(path, value);
-  const want = toData(expected);
-  return want.ok ? firstEditThatHolds(text, path, value, want.data) : want;
+  return firstEditThatHolds(text, path, value, expectedReading(parsed, path, value));
 }
 
-/** The real path `file` names, when it lies inside `root`: `file` is resolved
- * against `root`, and its directory after resolving symlinks must be `root` or
- * below it. The file name itself is not resolved: readRegularFile refuses a
- * symlink there. */
-function insideRoot(root: string, file: string): { ok: true; path: string } | { ok: false; error: string } {
+/** The real path `file` names, when it lies inside `root` and outside `.git`:
+ * `file` is resolved against `root`, and its directory after resolving
+ * symlinks must be `root` or below it. The file name itself is not resolved:
+ * readRegularFile refuses a symlink there. */
+function insideRoot(root: string, file: string): { ok: true; path: string } | Failure {
   try {
     const realRoot = realpathSync(root);
     const target = resolve(realRoot, file);
+    if (target === realRoot) return { ok: false, error: `${file} names the repository root, not a file` };
     const parent = realpathSync(dirname(target));
     const rel = relative(realRoot, parent);
     if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
       return { ok: false, error: `${file} is outside the repository root ${realRoot}` };
     }
+    if (rel.split(sep)[0] === '.git') return { ok: false, error: `${file} is inside .git, which the engine does not edit` };
     return { ok: true, path: join(parent, basename(target)) };
   } catch (error) {
     return { ok: false, error: `${file} cannot be resolved: ${messageOf(error)}` };
@@ -147,9 +192,10 @@ function insideRoot(root: string, file: string): { ok: true; path: string } | { 
 
 /** Set the scalar at `path` in the state file `file` (named from `root`) to
  * `value`, keeping every other byte. The file must be a regular file inside
- * the repository root, not a symlink, of at most maxStateBytes. It is written
- * through a temp file and a rename with its old mode, and only when the text
- * changes. A file that cannot be read, parsed or checked is never written. */
+ * the repository root and outside `.git`, not a symlink, of at most
+ * maxStateBytes. It is written through a temp file and a rename with its old
+ * mode, and only when the text changes. A file that cannot be read, parsed or
+ * checked is never written. */
 export function writeStateField(root: string, file: string, path: readonly string[], value: FieldValue): WriteField {
   const inside = insideRoot(root, file);
   if (!inside.ok) return inside;

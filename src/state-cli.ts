@@ -10,7 +10,7 @@
 // cannot read (not JSON, the wrong shape, not in a git repository).
 import { isRecord } from './json.ts';
 import { messageOf } from './errors.ts';
-import { writeStateField, type FieldValue } from './state-file.ts';
+import { isFieldValue, writeStateField, type FieldValue } from './state-file.ts';
 import { repositoryRoot } from './tree.ts';
 
 const maxInputBytes = 1024 * 1024;
@@ -31,10 +31,6 @@ async function readStdin(): Promise<string | null> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-function isValue(value: unknown): value is FieldValue {
-  return value === null || ['string', 'number', 'boolean'].includes(typeof value);
-}
-
 /** The request in `text`, or why it cannot be read. */
 function parseFieldRequest(text: string): Request | string {
   let data: unknown;
@@ -46,10 +42,10 @@ function parseFieldRequest(text: string): Request | string {
   if (!isRecord(data)) return 'stdin must be a JSON object';
   const { file, path, value } = data;
   if (typeof file !== 'string' || file === '') return '"file" must be a non-empty string';
-  if (!Array.isArray(path) || !path.every((key): key is string => typeof key === 'string')) {
-    return '"path" must be a list of strings';
+  if (!Array.isArray(path) || path.length === 0 || !path.every((key): key is string => typeof key === 'string')) {
+    return '"path" must be a non-empty list of strings';
   }
-  if (!('value' in data) || !isValue(value)) return '"value" must be a string, a number, a boolean or null';
+  if (!('value' in data) || !isFieldValue(value)) return '"value" must be a string, a finite number, a boolean or null';
   return { file, path, value };
 }
 

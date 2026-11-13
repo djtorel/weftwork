@@ -184,9 +184,9 @@ test('a string that YAML 1.1 reads as another type is quoted', () => {
 test('anchors, fitting tags, CRLF and same-line comments are kept', () => {
   const cases: [string, string[], FieldValue, string][] = [
     ['a: &x old\nb: 2\n', ['a'], 'new', 'a: &x new\nb: 2\n'],
-    ['a: !!str x\nb: 2\n', ['a'], 'y', 'a: !!str y\nb: 2\n'],
-    ['a: x\r\nb: 1\r\n', ['a'], 'y', 'a: y\r\nb: 1\r\n'],
-    ['a: x # keep\nb: 1\n', ['a'], 'y', 'a: y # keep\nb: 1\n'],
+    ['a: !!str x\nb: 2\n', ['a'], 'z', 'a: !!str z\nb: 2\n'],
+    ['a: x\r\nb: 1\r\n', ['a'], 'z', 'a: z\r\nb: 1\r\n'],
+    ['a: x # keep\nb: 1\n', ['a'], 'z', 'a: z # keep\nb: 1\n'],
   ];
   for (const [text, path, value, expected] of cases) assert.equal(set(text, path, value), expected, JSON.stringify(text));
 });

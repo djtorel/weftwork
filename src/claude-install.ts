@@ -10,11 +10,12 @@ import { isDeepStrictEqual } from 'node:util';
 import { hookTimeoutSeconds } from './claude-hook.ts';
 import { messageOf } from './errors.ts';
 import { isRecord } from './json.ts';
+import type { Failure } from './regular-file.ts';
 
 /** What the install did. `reformatted`: the entry was right, only the spacing changed. */
 export type Action = 'added' | 'replaced' | 'reformatted' | 'unchanged';
 
-export type Failure = { ok: false; error: string };
+export type { Failure };
 export type InstallResult = { ok: true; text: string; changed: boolean; action: Action } | Failure;
 
 /** One group of a Stop list: an object with a `hooks` list. */
