@@ -114,6 +114,11 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       return 'specs/bomb.yaml';
     }, ['k'], /alias/i],
     ['a missing file', () => 'specs/none.yaml', ['active_story'], /does not exist/],
+    ['a file under .git (review B9)', (repo) => {
+      writeFileSync(join(repo, '.git', 'state.yaml'), 'a: 1\n');
+      return '.git/state.yaml';
+    }, ['a'], /inside \.git/],
+    ['the repository root itself (review B9)', () => '.', ['a'], /names the repository root/],
     ['a state file over 1 MiB', (_repo, specs) => {
       writeFileSync(join(specs, 'big.yaml'), `a: ${'x'.repeat(1024 * 1024)}\n`);
       return 'specs/big.yaml';
@@ -140,6 +145,8 @@ test('the CLI answers exit 2 for input it cannot read', () => {
     ['a path with a number in it', repo, request('specs/state.yaml', ['handoff', 1], 'x')],
     ['a value that is an object', repo, request('specs/state.yaml', ['active_story'], { a: 1 })],
     ['no file', repo, JSON.stringify({ path: ['active_story'], value: 'x' })],
+    ['an empty path (review A6, B5)', repo, request('specs/state.yaml', [], 'x')],
+    ['a value that is not finite (review B5)', repo, '{"file":"specs/state.yaml","path":["active_story"],"value":1e999}'],
     ['stdin over 1 MiB', repo, request('specs/state.yaml', ['active_story'], 'x'.repeat(1024 * 1024))],
     ['a working directory that is not in a git repository', makeTempDir(), request('state.yaml', ['a'], 'x')],
   ];

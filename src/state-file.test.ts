@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseDocument } from 'yaml';
+import { CST, Parser, parseDocument } from 'yaml';
 import { setField, type FieldValue } from './state-file.ts';
 
 const fixture = (name: string): string => readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8');
@@ -110,7 +110,7 @@ test('a string that would read as another type is quoted', () => {
   for (const value of ['true', '123', 'null', 'needs: quotes # yes', '']) {
     const after = set(before, ['active_story'], value);
     const { added } = changedLines(before, after);
-    assert.equal(added.length, 1, JSON.stringify(value));
+    assert.deepEqual(added, [`active_story: ${JSON.stringify(value)}`], JSON.stringify(value));
     assert.equal(parseDocument(after).get('active_story'), value, JSON.stringify(value));
     assert.deepEqual(dataWithField(after), dataWithField(before, ['active_story'], value));
   }
@@ -130,6 +130,11 @@ test('what the writer refuses: an error that names the problem, and no text', ()
     ['an empty path', state, [], 'x', /empty/],
     ['a value that is not finite', state, ['active_story'], Number.NaN, /value/],
     ['a value that is an object', state, ['active_story'], { a: 1 }, /value/],
+    ['an anchored value that an alias reads (review A1, B1)', 'a: &x old\nb: *x\n', ['a'], 'new', /could not be set/],
+    ['a tag that cannot hold the value (review A2, B3)', 'a: !!bool true\n', ['a'], 'x', /could not be set/],
+    ['an int tag and a string (review B3)', 'a: !!int 3\n', ['a'], 'x', /could not be set/],
+    ['a multi-line value in a CRLF file (review A3, B4)', 'a: x\r\nb: 1\r\n', ['a'], 'p\nq', /CRLF/],
+    ['a key with no value (review A7)', 'a:\nb: 1\n', ['a'], 'y', /a has no value to replace/],
   ];
   for (const [label, text, path, value, message] of cases) {
     const result = setField(text, path, value as FieldValue);
@@ -159,7 +164,64 @@ test("this repository's own specs/state.yaml round-trips", () => {
   const held = parseDocument(text).getIn(['handoff', 'next_skill']) as string;
   assert.equal(set(text, ['handoff', 'next_skill'], held), text);
   const after = set(text, ['handoff', 'next_skill'], `${held}-x`);
-  const { removed, added } = changedLines(text, after);
-  assert.equal(removed.length, 1);
-  assert.deepEqual(added, [`  next_skill: ${held}-x`]);
+  const { removed, added, above } = changedLines(text, after);
+  assert.ok(isOneValue(removed, 'next_skill', above), JSON.stringify(removed));
+  assert.ok(isOneValue(added, 'next_skill', above), JSON.stringify(added));
+  assert.deepEqual(dataWithField(after), dataWithField(text, ['handoff', 'next_skill'], `${held}-x`));
+});
+
+// AC-e08s01-04, review B2: this repository's tools read state files with
+// PyYAML, which is YAML 1.1, where these strings are booleans or numbers.
+test('a string that YAML 1.1 reads as another type is quoted', () => {
+  for (const value of ['yes', 'no', 'on', 'off', 'Y', '1_000']) {
+    const after = set('a: x\n', ['a'], value);
+    assert.equal(after, `a: ${JSON.stringify(value)}\n`, value);
+    assert.equal(parseDocument(after, { version: '1.1' }).get('a'), value, value);
+  }
+});
+
+// AC-e08s01-03: constructs next to the edited value that must keep working
+test('anchors, fitting tags, CRLF and same-line comments are kept', () => {
+  const cases: [string, string[], FieldValue, string][] = [
+    ['a: &x old\nb: 2\n', ['a'], 'new', 'a: &x new\nb: 2\n'],
+    ['a: !!str x\nb: 2\n', ['a'], 'y', 'a: !!str y\nb: 2\n'],
+    ['a: x\r\nb: 1\r\n', ['a'], 'y', 'a: y\r\nb: 1\r\n'],
+    ['a: x # keep\nb: 1\n', ['a'], 'y', 'a: y # keep\nb: 1\n'],
+  ];
+  for (const [text, path, value, expected] of cases) assert.equal(set(text, path, value), expected, JSON.stringify(text));
+});
+
+/** Every block-mapping scalar of `text` with its key path, offset and source. */
+function scalarsOf(text: string): { path: string[]; start: number; length: number }[] {
+  const found: { path: string[]; start: number; length: number }[] = [];
+  const walk = (node: CST.Token | undefined, path: string[]): void => {
+    if (node?.type !== 'block-map') return;
+    for (const item of node.items) {
+      const key = CST.isScalar(item.key) ? CST.resolveAsScalar(item.key)?.value : undefined;
+      if (key === undefined) continue;
+      if (CST.isScalar(item.value)) {
+        found.push({ path: [...path, key], start: item.value.offset, length: CST.stringify(item.value).length });
+      } else walk(item.value, [...path, key]);
+    }
+  };
+  for (const token of new Parser().parse(text)) if (token.type === 'document') walk(token.value, []);
+  return found;
+}
+
+// AC-e08s01-03, review A4: only the bytes of the edited value's token change
+test('for every scalar of every fixture, an edit changes no byte outside its value', () => {
+  for (const name of ['state.yaml', 'execution-status.yaml', 'epic.yaml']) {
+    const text = fixture(name);
+    const scalars = scalarsOf(text);
+    assert.ok(scalars.length > 5, name);
+    for (const { path, start, length } of scalars) {
+      const result = setField(text, path, 'edited value');
+      if (!result.ok) continue;
+      const tail = text.length - start - length;
+      const label = `${name} ${path.join('.')}`;
+      assert.equal(result.text.slice(0, start), text.slice(0, start), label);
+      assert.equal(result.text.slice(result.text.length - tail), text.slice(start + length), label);
+      assert.equal(parseDocument(result.text).getIn(path), 'edited value', label);
+    }
+  }
 });
