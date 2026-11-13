@@ -6,7 +6,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
@@ -80,6 +80,21 @@ test('AC-e07s04-08 CLAUDE_CONFIG_DIR, not HOME, holds the user settings', () => 
   const out = run(checkCli, [], repo, env);
   assert.equal(out.status, 1);
   assert.ok(out.stdout.includes(join(config, 'settings.json')), out.stdout);
+});
+
+test('AC-e07s04-08 a symlinked user settings file is read, as Claude Code reads it', () => {
+  const repo = makeTestRepo();
+  const config = makeTempDir();
+  const real = join(makeTempDir(), 'dotfiles-settings.json');
+  writeFileSync(real, '{}\n');
+  symlinkSync(real, join(config, 'settings.json'));
+  const env = cleanEnv(config);
+  run(installCli, ['--', 'true'], repo, env);
+  callHook(repo, env, 'true');
+  const out = run(checkCli, [], repo, env);
+  assert.equal(out.status, 0, out.stdout);
+  writeFileSync(real, '{"disableAllHooks": true}\n');
+  assert.match(run(checkCli, [], repo, env).stdout, /disableAllHooks is true/);
 });
 
 test('AC-e07s04-08 a changed entry is not seen until the host calls it again', () => {
