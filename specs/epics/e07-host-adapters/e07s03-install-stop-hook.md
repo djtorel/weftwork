@@ -104,9 +104,11 @@ an existing module and change no existing code.
 - The output is `JSON.stringify(value, null, 2)` plus a newline.
   `changed` is false when that equals the input text.
 - Errors, with no output text: text that is not JSON; a top-level value
-  that is not an object; `hooks` that is not an object; `hooks.Stop`
-  that is not an array; a Stop group that is not an object or whose
-  `hooks` is not an array; a blank command.
+  that is not an object; `hooks` that is not an object (`null` too);
+  `hooks.Stop` that is not an array (`null` too); a Stop group that is
+  not an object or whose `hooks` is not an array; a blank command. A
+  file that is empty or only blank reads as no settings (round 2, after
+  review: `touch` leaves such a file).
 - **Reason for Depth:** the edit has nine cases to test, and the CLI may
   hold no logic (CONVENTIONS.md).
 

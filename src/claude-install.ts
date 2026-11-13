@@ -30,26 +30,16 @@ import { isRecord } from './json.ts';
 export type Action = 'added' | 'replaced' | 'reformatted' | 'unchanged';
 
 type Failure = { ok: false; error: string };
-
-export type InstallResult =
-  | { ok: true; text: string; changed: boolean; action: Action }
-  | Failure;
-
+export type InstallResult = { ok: true; text: string; changed: boolean; action: Action } | Failure;
 export type InstallInProject = { ok: true; action: Action; path: string } | Failure;
 
 /** One group of a Stop list: an object with a `hooks` list. */
 type Group = Record<string, unknown> & { hooks: unknown[] };
-
 type Settings = { settings: Record<string, unknown>; hooks: Record<string, unknown> };
-
 type Parsed = ({ ok: true } & Settings) | Failure;
-
 type StopList = { ok: true; groups: Group[] } | Failure;
-
 type HookEdit = { hooks: unknown[]; placed: boolean; touched: boolean };
-
 type Opened = { ok: true; fd: number | null } | Failure;
-
 type Read = { ok: true; file: { text: string; mode: number } | null } | Failure;
 
 /** What the edit writes: the adapter path that marks weftwork's own entries,
@@ -112,12 +102,12 @@ function stopListOf(hooks: Record<string, unknown>): StopList {
 }
 
 /** Read the settings text as an object. `text` is null when there is no file,
- * which reads as an empty object. Refuses text that is not a JSON object, and
- * a `hooks` key that is not an object (`null` included). */
+ * and an empty or blank file reads the same: no settings yet. Refuses text that
+ * is not a JSON object, and a `hooks` key that is not an object (`null` too). */
 function parseSettings(text: string | null): Parsed {
   let value: unknown = {};
   try {
-    value = text === null ? {} : JSON.parse(text);
+    value = text === null || text.trim() === '' ? {} : JSON.parse(text);
   } catch (error) {
     return { ok: false, error: `the settings are not valid JSON: ${messageOf(error)}` };
   }
@@ -263,6 +253,15 @@ function refusalFor(dir: string, claudeDir: string): string | null {
   return null;
 }
 
+/** Remove a leftover temp file. Failing to remove it is not a fault of the install. */
+function removeQuietly(path: string): void {
+  try {
+    rmSync(path, { force: true });
+  } catch {
+    // The file is ours and harmless; the write's own result is what matters.
+  }
+}
+
 /** Write `text` to `path` through a random-named temp file and a rename, so a
  * crashed process never leaves half a file (no fsync: a power loss can), and a
  * leftover file is never this run's to delete. `mode` is set with chmod, as the
@@ -278,7 +277,7 @@ function writeAtomic(path: string, text: string, mode: number | undefined): Fail
   } catch (error) {
     return { ok: false, error: `${path} could not be written: ${messageOf(error)}` };
   } finally {
-    rmSync(temp, { force: true });
+    removeQuietly(temp);
   }
 }
 

@@ -139,6 +139,26 @@ test('AC-e07s03-04 the entry is replaced in its place, between other hooks', () 
   assert.equal(action, 'replaced');
 });
 
+test('AC-e07s03-04 two identical entries collapse to one and read as replaced', () => {
+  const dup = { hooks: [entry('npm test')] };
+  const { value, action } = installed(JSON.stringify({ hooks: { Stop: [dup, dup] } }));
+  assert.deepEqual(stopGroups(value), [dup]);
+  assert.equal(action, 'replaced');
+});
+
+test('AC-e07s03-04 a hook of another type is kept even when its command matches', () => {
+  const prompt = { type: 'prompt', command: stopHookCommand(cli, 'x') };
+  const { value } = installed(JSON.stringify({ hooks: { Stop: [{ hooks: [prompt] }] } }));
+  assert.deepEqual(stopGroups(value), [{ hooks: [prompt] }, { hooks: [entry('npm test')] }]);
+});
+
+test('AC-e07s03-02 extra keys on a group survive, touched or not', () => {
+  const other = { matcher: 'x', note: 1, hooks: [{ type: 'command', command: 'a' }] };
+  const mine = { matcher: '*', note: 2, hooks: [entry('old'), { type: 'command', command: 'b' }] };
+  const { value } = installed(JSON.stringify({ hooks: { Stop: [other, mine] } }), 'new');
+  assert.deepEqual(stopGroups(value), [other, { ...mine, hooks: [entry('new'), mine.hooks[1]] }]);
+});
+
 test('AC-e07s03-04 an owner hook that only mentions the adapter path is kept', () => {
   const mention = [
     { type: 'command', command: `timeout 30 ${stopHookCommand(cli, 'lint')} || notify-send fail` },
@@ -161,7 +181,7 @@ test('AC-e07s03-04 an entry from another checkout is not replaced', () => {
 
 test('AC-e07s03-05 bad settings are refused, with no text', () => {
   const bad = [
-    'not json', '', '[]', '"x"', 'null',
+    'not json', '[]', '"x"', 'null',
     '{"hooks":"x"}', '{"hooks":[]}', '{"hooks":null}',
     '{"hooks":{"Stop":{}}}', '{"hooks":{"Stop":null}}', '{"hooks":{"Stop":["x"]}}',
     '{"hooks":{"Stop":[{"hooks":"x"}]}}',
@@ -171,6 +191,14 @@ test('AC-e07s03-05 bad settings are refused, with no text', () => {
     assert.equal(result.ok, false, text);
     assert.match(result.ok ? '' : result.error, /./, text);
     assert.equal('text' in result, false, text);
+  }
+});
+
+test('AC-e07s03-05 an empty or blank settings file reads as no settings', () => {
+  for (const text of ['', '  \n']) {
+    const { value, action } = installed(text);
+    assert.deepEqual(stopGroups(value), [{ hooks: [entry('npm test')] }]);
+    assert.equal(action, 'added');
   }
 });
 
