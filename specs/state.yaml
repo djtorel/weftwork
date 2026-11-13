@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: null
 active_epic: e08
-active_story: null
-phase: planning
+active_story: e08s02
+phase: initiate
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e08s02-state-fields
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -428,7 +428,7 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e08s02
   next_epic: e08
   note: 'e08s01 (format-preserving state writer) is released by PR from branch e08s01-state-writer.
@@ -437,37 +437,39 @@ handoff:
     the engine may change. Its tasks file opens with three open choices and a recommendation
     each (the owned keys: active_flow, active_epic, active_story, phase, vcs.branch;
     type-only value checks; one exported write function); put them to the owner at
-    plan-work. Build on e08s01: src/state-file.ts setField and writeStateField (CST edit,
-    re-parse check, refusals for anything PyYAML cannot read back, .git paths, invalid
-    UTF-8, 1 MiB caps) and the thin CLI src/state-cli.ts; known limits are in the e08s01
-    spec section 5a, and e10 owns its section 6 risks (parent swap race, nested repositories
-    and submodules, a git dir in the work tree under another name, HFS-ignorable .git
-    spellings, fstat-then-read-to-EOF size caps). e08 waivers in this file stay until
-    e08 closes (missing specs for e08s02 to e08s04, gate-trace R1, the MED status-ledger
-    finding). Residual F5 belongs to e09 (owner decision 2026-11-13). The e08s01 review
-    took all five rounds; briefs that list settled decisions and say over-quoting is
-    acceptable kept findings to real defects. Start in a fresh session. Pushes, PRs and
-    merges need an explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml. specs/metrics/cycle-times.md has no e07s04 row (found at the e08s01
-    release); ask the owner whether to backfill it. Deferred: CLAUDE_PROJECT_DIR in the
-    record, resolved adapter paths. Declined: a staleness limit, sharing one git rev-parse.
-    The pi wrapper for e07 was left out; add it as a later story only if the owner asks.'
+    plan-work. Build on e08s01: src/state-file.ts setField and writeStateField (CST
+    edit, re-parse check, refusals for anything PyYAML cannot read back, .git paths,
+    invalid UTF-8, 1 MiB caps) and the thin CLI src/state-cli.ts; known limits are
+    in the e08s01 spec section 5a, and e10 owns its section 6 risks (parent swap race,
+    nested repositories and submodules, a git dir in the work tree under another name,
+    HFS-ignorable .git spellings, fstat-then-read-to-EOF size caps). e08 waivers in
+    this file stay until e08 closes (missing specs for e08s02 to e08s04, gate-trace
+    R1, the MED status-ledger finding). Residual F5 belongs to e09 (owner decision
+    2026-11-13). The e08s01 review took all five rounds; briefs that list settled
+    decisions and say over-quoting is acceptable kept findings to real defects. Start
+    in a fresh session. Pushes, PRs and merges need an explicit go-ahead each. Do
+    not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
+    tools/restore-yaml-style.py --base HEAD on specs/state.yaml. specs/metrics/cycle-times.md
+    has no e07s04 row (found at the e08s01 release); ask the owner whether to backfill
+    it. Deferred: CLAUDE_PROJECT_DIR in the record, resolved adapter paths. Declined:
+    a staleness limit, sharing one git rev-parse. The pi wrapper for e07 was left
+    out; add it as a later story only if the owner asks.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 27
-      total_seconds: 425.0
-      avg_seconds: 15.74074074074074
+      calls: 28
+      total_seconds: 439.0
+      avg_seconds: 15.678571428571429
     plan-work:
-      calls: 29
-      total_seconds: 15745.0
-      avg_seconds: 542.9310344827586
+      calls: 30
+      total_seconds: 15926.0
+      avg_seconds: 530.8666666666667
     develop-tdd:
       calls: 29
       total_seconds: 12066.0
       avg_seconds: 416.0689655172414
+      _start: '2026-11-13T19:50:16Z'
     verify-work:
       calls: 29
       total_seconds: 4975.0
