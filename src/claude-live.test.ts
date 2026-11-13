@@ -249,3 +249,30 @@ test('local or user settings that are JSON but not an object: cannot tell (revie
     assert.match(report.reason, /cannot tell whether hooks are on/);
   }
 });
+
+test('control and direction characters are escaped, plain text is not (review round 2, A-F1, A-F4, B-1)', () => {
+  const escaped = [0x00, 0x0a, 0x1f, 0x7f, 0x85, 0x9b, 0x9f, 0x200e, 0x200f, 0x2028, 0x2029, 0x202a, 0x202e, 0x2066, 0x2069];
+  const kept = [0x20, 0x7e, 0xa0, 0xe9, 0x2027, 0x202f, 0x2065, 0x206a];
+  const reasonFor = (code: number) => {
+    const at = `T${String.fromCharCode(code)}Z`;
+    return liveReport(input({ lastCall: { ok: true, call: { ...call, at, command: 'other' } } })).reason;
+  };
+  for (const code of escaped) {
+    assert.ok(reasonFor(code).includes(`\\u${code.toString(16).padStart(4, '0')}`), code.toString(16));
+  }
+  for (const code of kept) {
+    assert.ok(reasonFor(code).includes(`T${String.fromCharCode(code)}Z`), code.toString(16));
+  }
+});
+
+test('changing one report\'s notes does not change the next report (review round 2, B-2)', () => {
+  const broken = { project: source('.claude/settings.json', '{"hooks":') };
+  liveReport(input(broken)).notes.push('changed');
+  assert.ok(!liveReport(input(broken)).notes.includes('changed'));
+});
+
+test('a record at now is 0 s ago; one second later is in the future (review round 2, A-F2)', () => {
+  const at = (iso: string) => liveReport(input({ lastCall: { ok: true, call: { ...call, at: iso } } })).reason;
+  assert.match(at('2026-11-12T12:00:00.000Z'), /\(0 s ago\)/);
+  assert.match(at('2026-11-12T12:00:01.000Z'), /\(in the future\)/);
+});
