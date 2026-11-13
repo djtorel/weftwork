@@ -1,4 +1,4 @@
-// story: e07s03
+// story: e07s03, e07s04
 // The settings edit that registers the Stop hook in Claude Code's
 // .claude/settings.json. installStopHook is pure: the file's text in, the new
 // text out. claude-settings-file.ts does the reading and the atomic write; the
@@ -43,16 +43,32 @@ export function stopHookCommand(cliPath: string, command: string): string {
   return stopHookPrefix(cliPath) + shellQuote(command);
 }
 
-/** What shellQuote writes: one single-quoted argument and nothing after it. */
-const quotedArgument = /^'(?:[^']|'\\'')*'$/;
+/** `node '<adapter>' -- '<command>'` exactly as stopHookCommand writes it: each
+ * quoted part is plain text or `'\''`, so a quote inside never ends it early. */
+const stopHookText = /^node '((?:[^']|'\\'')*)' -- '((?:[^']|'\\'')*)'$/;
 
-/** True when `hook` is a weftwork entry: a command hook that is exactly the
- * prefix and one quoted argument. An owner hook that mentions the path or adds
- * shell text after it, or an entry from another checkout, is not ours. */
+/** Undo shellQuote for the text between the outer quotes. */
+function unquote(inner: string): string {
+  return inner.replaceAll("'\\''", "'");
+}
+
+/** The adapter path and the declared command of a weftwork entry's command text,
+ * or null when `text` is not exactly what stopHookCommand writes. The install
+ * and the live check both decide what an entry is here, so they cannot drift.
+ * An owner hook that mentions the path or adds shell text after it is not ours. */
+export function parseStopHookCommand(text: string): { cliPath: string; command: string } | null {
+  const match = stopHookText.exec(text);
+  if (match === null) {
+    return null;
+  }
+  return { cliPath: unquote(match[1] ?? ''), command: unquote(match[2] ?? '') };
+}
+
+/** True when `hook` is a weftwork entry for the adapter at `cliPath`: a command
+ * hook whose command text parses. An entry from another checkout is not ours. */
 function isOurs(hook: unknown, cliPath: string): boolean {
-  const prefix = stopHookPrefix(cliPath);
   return isRecord(hook) && hook.type === 'command' && typeof hook.command === 'string'
-    && hook.command.startsWith(prefix) && quotedArgument.test(hook.command.slice(prefix.length));
+    && parseStopHookCommand(hook.command)?.cliPath === cliPath;
 }
 
 function isGroup(value: unknown): value is Group {
