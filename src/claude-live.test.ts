@@ -1,0 +1,252 @@
+// story: e07s04
+// The live check (e07s04 AC-02 to AC-05): from the three settings files, which
+// adapter files exist and the call record, one of three answers. Only a record
+// of the same adapter and command as an entry in the settings now reads as
+// live; everything the check cannot see makes it say less, never more.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { liveReport, type LiveInput } from './claude-live.ts';
+import { call, entry, input, settings, source } from './claude-live-test-helpers.ts';
+
+test('AC-e07s04-05 the same adapter and command were called: live, with the time', () => {
+  const report = liveReport(input());
+  assert.equal(report.answer, 'live');
+  assert.match(report.reason, /2026-11-12T11:58:00\.000Z/);
+  assert.match(report.reason, /2 min ago/);
+});
+
+test('AC-e07s04-05 two weftwork entries: a note says two Stop hooks run', () => {
+  const project = source('.claude/settings.json', settings([entry(), entry('npm run check')]));
+  const report = liveReport(input({ project }));
+  assert.equal(report.answer, 'live');
+  assert.ok(report.notes.some((note) => /2 weftwork Stop hooks/.test(note)), report.notes.join('\n'));
+});
+
+test('AC-e07s04-05 the notes name what the check cannot see', () => {
+  const notes = liveReport(input()).notes.join('\n');
+  assert.match(notes, /managed settings/i);
+  assert.match(notes, /--settings/);
+  assert.match(notes, /CLAUDE_PROJECT_DIR/);
+  assert.match(notes, /GIT_DIR/);
+  assert.match(notes, /evidence, not proof/);
+  assert.match(notes, /subdirectory/);
+  assert.match(notes, /CLAUDE_CONFIG_DIR/);
+  assert.match(notes, /symlink/);
+});
+
+test('AC-e07s04-02 no project settings file: not registered', () => {
+  const report = liveReport(input({ project: source('.claude/settings.json', null) }));
+  assert.equal(report.answer, 'not-registered');
+  assert.match(report.reason, /no weftwork Stop hook/);
+});
+
+test('AC-e07s04-02 project settings that are not JSON or cannot be read: not registered', () => {
+  for (const project of [
+    source('.claude/settings.json', '{"hooks":'),
+    { name: '.claude/settings.json', read: { ok: false, error: 'is not a regular file' } } as const,
+  ]) {
+    const report = liveReport(input({ project }));
+    assert.equal(report.answer, 'not-registered');
+    assert.match(report.reason, /\.claude\/settings\.json/);
+  }
+});
+
+test('AC-e07s04-02 only another command\'s hook: not registered, and it is counted', () => {
+  const other = { type: 'command', command: 'npm run lint' };
+  const report = liveReport(input({ project: source('.claude/settings.json', settings([other])) }));
+  assert.equal(report.answer, 'not-registered');
+  assert.match(report.reason, /1 other Stop hook/);
+});
+
+test('AC-e07s04-02 a weftwork entry whose adapter does not exist: not registered, path named', () => {
+  const gone = '/home/teammate/weftwork/src/claude-hook-cli.ts';
+  const project = source('.claude/settings.json', settings([entry('npm test', gone)]));
+  const report = liveReport(input({ project }));
+  assert.equal(report.answer, 'not-registered');
+  assert.ok(report.reason.includes(gone), report.reason);
+  assert.match(report.reason, /install again/);
+});
+
+const on = { disableAllHooks: true };
+const off = { disableAllHooks: false };
+
+/** AC-e07s04-03: a settings change, the answer, and the file the reason names. */
+const precedenceCases: [Partial<LiveInput>, string, RegExp | null][] = [
+  [{ project: source('.claude/settings.json', settings([entry()], on)) }, 'not-seen', /settings\.json/],
+  [{ user: source('/home/u/.claude/settings.json', JSON.stringify(on)) }, 'not-seen', /\/home\/u/],
+  [
+    {
+      user: source('/home/u/.claude/settings.json', JSON.stringify(on)),
+      project: source('.claude/settings.json', settings([entry()], off)),
+    },
+    'live',
+    null,
+  ],
+  [
+    {
+      project: source('.claude/settings.json', settings([entry()], off)),
+      local: source('.claude/settings.local.json', JSON.stringify(on)),
+    },
+    'not-seen',
+    /settings\.local\.json/,
+  ],
+];
+
+test('AC-e07s04-03 disableAllHooks follows precedence: local, then project, then user', () => {
+  for (const [change, answer, names] of precedenceCases) {
+    const report = liveReport(input(change));
+    assert.equal(report.answer, answer, JSON.stringify(change));
+    if (names !== null) {
+      assert.match(report.reason, /disableAllHooks/);
+      assert.match(report.reason, names);
+    }
+  }
+});
+
+test('AC-e07s04-04 no call record: registered, not seen', () => {
+  const report = liveReport(input({ lastCall: { ok: true, call: null } }));
+  assert.equal(report.answer, 'not-seen');
+  assert.match(report.reason, /no call/);
+});
+
+test('AC-e07s04-04 a call record that cannot be read: not seen', () => {
+  const report = liveReport(input({ lastCall: { ok: false, error: 'is not a call record' } }));
+  assert.equal(report.answer, 'not-seen');
+  assert.match(report.reason, /is not a call record/);
+});
+
+test('AC-e07s04-04 a record for another command or another adapter: not seen', () => {
+  for (const other of [{ ...call, command: 'npm run old' }, { ...call, cliPath: '/elsewhere/claude-hook-cli.ts' }]) {
+    const report = liveReport(input({ lastCall: { ok: true, call: other } }));
+    assert.equal(report.answer, 'not-seen', JSON.stringify(other));
+    assert.match(report.reason, /another command or adapter/);
+  }
+});
+
+test('AC-e07s04-04 local or user settings that cannot be read: not seen', () => {
+  for (const change of [
+    { user: { name: '/home/u/.claude/settings.json', read: { ok: false, error: 'HOME is not set' } } as const },
+    { local: source('.claude/settings.local.json', 'not json') },
+  ]) {
+    const report = liveReport(input(change));
+    assert.equal(report.answer, 'not-seen', JSON.stringify(change));
+    assert.match(report.reason, /cannot tell whether hooks are on/);
+  }
+});
+
+test('control characters the agent wrote are escaped in the reason (security F2)', () => {
+  const control = /[\u0000-\u001f\u007f-\u009f]/;
+  const forged = { ...call, at: 'T\u001b[2K\rweftwork live check: live', command: 'other' };
+  const unseen = liveReport(input({ lastCall: { ok: true, call: forged } }));
+  assert.equal(unseen.answer, 'not-seen');
+  assert.doesNotMatch(unseen.reason, control);
+  assert.match(unseen.reason, /\\u001b/);
+  const gone = '/tmp/x\u001b[2K\r/claude-hook-cli.ts';
+  const project = source('.claude/settings.json', settings([entry('npm test', gone)]));
+  assert.doesNotMatch(liveReport(input({ project })).reason, control);
+});
+
+test('the age of the last call is printed in the largest whole unit', () => {
+  const ages: [string, RegExp][] = [
+    ['2026-11-12T11:59:30.000Z', /\(30 s ago\)/],
+    ['2026-11-12T09:00:00.000Z', /\(3 h ago\)/],
+    ['2026-11-10T11:00:00.000Z', /\(2 d ago\)/],
+    ['not a time', /\(age unknown\)/],
+  ];
+  for (const [at, age] of ages) {
+    const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at } } }));
+    assert.match(report.reason, age, at);
+  }
+});
+
+test('the live reason names the command that ran (review B-F5)', () => {
+  assert.match(liveReport(input()).reason, /'npm test'/);
+});
+
+test('a record dated after now says so, not a negative age (review F4/F6)', () => {
+  const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at: '2026-11-12T12:01:30.000Z' } } }));
+  assert.match(report.reason, /\(in the future\)/);
+});
+
+test('the notes say a hand-run hook also leaves a record (review A-F8)', () => {
+  assert.ok(liveReport(input()).notes.some((note) => /by hand/.test(note)));
+});
+
+/** Two weftwork entries: one whose adapter exists, one whose adapter is gone. */
+const gone = '/gone/src/claude-hook-cli.ts';
+const twoEntries = source('.claude/settings.json', settings([entry('npm test'), entry('npm run x', gone)]));
+
+test('a record of the entry whose adapter is gone is not live (review B-F2)', () => {
+  const lastCall = { ok: true, call: { ...call, cliPath: gone, command: 'npm run x' } } as const;
+  assert.equal(liveReport(input({ project: twoEntries, lastCall })).answer, 'not-seen');
+});
+
+test('one entry with its adapter present is enough to be registered (review B-F2)', () => {
+  assert.equal(liveReport(input({ project: twoEntries })).answer, 'live');
+});
+
+test('a disableAllHooks that is not true or false: cannot tell (review B-F2)', () => {
+  const project = source('.claude/settings.json', settings([entry()], { disableAllHooks: 'true' }));
+  const report = liveReport(input({ project }));
+  assert.equal(report.answer, 'not-seen');
+  assert.match(report.reason, /cannot tell whether hooks are on/);
+});
+
+test('a false in local settings wins over a true in project and user (review A-F5)', () => {
+  const report = liveReport(input({
+    local: source('.claude/settings.local.json', JSON.stringify({ disableAllHooks: false })),
+    project: source('.claude/settings.json', settings([entry()], { disableAllHooks: true })),
+    user: source('/home/u/.claude/settings.json', JSON.stringify({ disableAllHooks: true })),
+  }));
+  assert.equal(report.answer, 'live');
+});
+
+test('local or user settings that are JSON but not an object: cannot tell (review A-F5)', () => {
+  for (const change of [
+    { local: source('.claude/settings.local.json', '[]') },
+    { user: source('/home/u/.claude/settings.json', '"text"') },
+  ]) {
+    const report = liveReport(input(change));
+    assert.equal(report.answer, 'not-seen', JSON.stringify(change));
+    assert.match(report.reason, /cannot tell whether hooks are on/);
+  }
+});
+
+test('control and direction characters are escaped, plain text is not (review round 2, A-F1, A-F4, B-1)', () => {
+  const escaped = [0x00, 0x0a, 0x1f, 0x7f, 0x85, 0x9b, 0x9f, 0x061c, 0x200e, 0x200f, 0x2028, 0x2029, 0x202a, 0x202e, 0x2066, 0x2069];
+  const kept = [0x20, 0x7e, 0xa0, 0xe9, 0x061b, 0x2027, 0x202f, 0x2065, 0x206a];
+  const reasonFor = (code: number) => {
+    const at = `T${String.fromCharCode(code)}Z`;
+    return liveReport(input({ lastCall: { ok: true, call: { ...call, at, command: 'other' } } })).reason;
+  };
+  for (const code of escaped) {
+    assert.ok(reasonFor(code).includes(`\\u${code.toString(16).padStart(4, '0')}`), code.toString(16));
+  }
+  for (const code of kept) {
+    assert.ok(reasonFor(code).includes(`T${String.fromCharCode(code)}Z`), code.toString(16));
+  }
+});
+
+test('changing one report\'s notes does not change the next report (review round 2, B-2)', () => {
+  const broken = { project: source('.claude/settings.json', '{"hooks":') };
+  liveReport(input(broken)).notes.push('changed');
+  assert.ok(!liveReport(input(broken)).notes.includes('changed'));
+});
+
+test('a record at now is 0 s ago; one second later is in the future (review round 2, A-F2)', () => {
+  const at = (iso: string) => liveReport(input({ lastCall: { ok: true, call: { ...call, at: iso } } })).reason;
+  assert.match(at('2026-11-12T12:00:00.000Z'), /\(0 s ago\)/);
+  assert.match(at('2026-11-12T12:00:01.000Z'), /\(in the future\)/);
+});
+
+test('one entry: no many-hooks note, and its notes are its own (review round 3, A3, B-5)', () => {
+  const first = liveReport(input());
+  assert.ok(!first.notes.some((note) => /weftwork Stop hooks are registered/.test(note)));
+  first.notes.push('changed');
+  assert.ok(!liveReport(input()).notes.includes('changed'));
+});
+
+test('exactly 60 s reads as 1 min (review round 3, B-5)', () => {
+  const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at: '2026-11-12T11:59:00.000Z' } } }));
+  assert.match(report.reason, /\(1 min ago\)/);
+});

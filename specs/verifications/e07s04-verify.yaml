@@ -1,0 +1,102 @@
+---
+# verify-work 2026-11-12. Mechanical gates and the owner's manual run pass.
+# The security review's two findings and one observation were fixed on
+# the branch in the gaps loop; every gate was re-run on the final code.
+story_id: e07s04
+verified_at: "2026-11-13T02:45:21Z"
+verifier: verify-work
+risk: P1
+branch: e07s04-live-check
+head: 92e1fe3
+phases:
+  smoke:
+    passed: null
+    note: "N/A. CLI library with no server process."
+  build:
+    passed: null
+    note: "No build step. Node runs .ts directly (CLAUDE.md)."
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+    exit_code: 0
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  tests:
+    passed: true
+    command: "npm test"
+    tests: 423
+    pass: 423
+    fail: 0
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-13T02:45:21Z"
+    note: >-
+      Single run at 92e1fe3, 423 of 423 tests. The first run, before the
+      gaps fixes, was also exit 0 with 420 tests (2026-11-13T02:36:09Z).
+  task_verifies:
+    passed: true
+    note: "All five verify: commands in e07s04-tasks.yaml exit 0."
+  security_review:
+    passed: true
+    report: specs/security/REVIEW.md (section e07s04 and its addendum)
+    high_findings_at_8_or_more: 0
+    fixed_in_gaps_loop:
+      - "F1 MEDIUM: hard link at last-call.json (a125fed, f3dd06f)"
+      - "F2 LOW: control characters in the printed reason (b548a4e, 02ae710)"
+      - >-
+        Observation: symlinked user settings read as cannot tell
+        (97c06c5, 92e1fe3)
+  blind_spots:
+    passed: true
+    high: 0
+    medium: 38
+    low: 10
+    note: "37 MEDIUM is the standing list; the new one is a double-tag."
+  completeness_critic:
+    passed: true
+    blocker: 0
+    warning: 0
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    exit_code: 0
+  manual:
+    status: passed
+    script: specs/epics/e07-host-adapters/e07s04-verify-script.md
+    verified_by: owner, 2026-11-12, real Claude Code session
+    head_at_run: 3d7efed
+    steps:
+      - step: "2. Check before any install"
+        expected: "not registered, exit=1"
+        actual: "Owner reported all steps passed; no detail given"
+        passed: true
+      - step: "3. Install with true, then check"
+        expected: "added, then registered, not seen, exit=1"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "5. Check after one reply in a real session"
+        expected: "live with the time of step 4, exit=0"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "6. disableAllHooks true in settings.local.json, then removed"
+        expected: "registered, not seen naming the file, then live"
+        actual: "Owner reported all steps passed"
+        passed: true
+      - step: "7. Does an open session see a changed hook"
+        expected: "A recorded fact, either answer passes"
+        actual: "Passed; the owner did not note which answer it gave"
+        passed: true
+    note: >-
+      The run was on 3d7efed, before the gaps fixes. The fixes change
+      only a hard-linked record, control characters in the reason and a
+      symlinked settings file, none of which the script exercised, so the
+      run was not repeated. Whether a running session picks up a changed
+      hook is still not recorded.
+  gaps:
+    closed: true
+    note: "Three gaps from the security review, all fixed and re-verified."

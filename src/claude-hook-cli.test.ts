@@ -1,4 +1,4 @@
-// story: e07s01
+// story: e07s01, e07s04
 // The real Claude Code hook CLI, started as a child process against
 // temporary git repositories (e07s01 AC-06 to AC-09, AC-11, AC-12). No case
 // touches this repository's own ledger: a `false` run there would trip its
@@ -6,10 +6,11 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isRecord } from './json.ts';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { lastCallPath, readLastCall } from './last-call.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo, readRepoLedger } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -142,4 +143,50 @@ test('AC-e07s01-12 a blank command blocks the stop and never answers done', () =
     assert.equal(out.status, 2, JSON.stringify(command));
     assert.equal(out.stdout, '');
   }
+});
+
+/** The record path of `repo`, which must have a git dir. */
+async function recordPath(repo: string): Promise<string> {
+  const path = await lastCallPath(repo);
+  assert.notEqual(path, null);
+  return path as string;
+}
+
+test('AC-e07s04-06 a call leaves a record of the adapter, the command and the time', async () => {
+  const repo = makeTestRepo();
+  const before = Date.now();
+  assert.equal(runHook(stopInput(repo), ['--', 'true'], repo).status, 0);
+  const read = await readLastCall(await recordPath(repo));
+  assert.ok(read.ok && read.call !== null, 'a record was written');
+  assert.equal(read.call.cliPath, cliPath);
+  assert.equal(read.call.command, 'true');
+  const at = Date.parse(read.call.at);
+  assert.ok(at >= before - 1000 && at <= Date.now(), read.call.at);
+  assert.equal((await readRepoLedger(repo)).entries.length, 1);
+});
+
+test('AC-e07s04-06 a record that cannot be written changes neither the answer nor the ledger', async () => {
+  const repo = makeTestRepo();
+  const path = await recordPath(repo);
+  mkdirSync(path, { recursive: true });
+  assert.equal(runHook(stopInput(repo), ['--', 'true'], repo).status, 0);
+  const failed = runHook(stopInput(repo), ['--', 'false'], repo);
+  assert.equal(failed.status, 2);
+  assert.match(failed.stderr, /not done \(failed/);
+  assert.equal((await readRepoLedger(repo)).entries.length, 2);
+  assert.ok(statSync(path).isDirectory());
+});
+
+test('AC-e07s04-07 a call refused for bad arguments writes no record', async () => {
+  const repo = makeTestRepo();
+  assert.equal(runHook(stopInput(repo), [], repo).status, 2);
+  assert.equal(existsSync(await recordPath(repo)), false);
+});
+
+test('the record is written before the input is read, so bad input still leaves one (review B-F3)', async () => {
+  const repo = makeTestRepo();
+  assert.equal(runHook('not json', ['--', 'true'], repo).status, 2);
+  const read = await readLastCall(await recordPath(repo));
+  assert.ok(read.ok && read.call !== null, 'a record was written');
+  assert.equal(read.call.command, 'true');
 });

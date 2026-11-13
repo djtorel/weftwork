@@ -743,3 +743,312 @@ c62d51a to fd4c438). Re-read against the final diff, `git diff main...HEAD -- sr
 
 Verdict is unchanged: PASS. No HIGH finding at confidence 8 or more.
 
+
+# Security review for branch e07s04-live-check (e07s04, check that the hook is live)
+
+review_date: 2026-11-12
+branch: e07s04-live-check
+base: main (28c371f)
+scope: git diff 28c371f..HEAD -- src (focus: the call record the Stop hook
+now writes on every call, the settings and record reads of the live check,
+the shared entry parser, and the file I/O moved out of claude-install.ts)
+method: security-review 5-phase scan, reviewed inline; each finding below
+was reproduced in a scratch repository
+
+## Executable surface
+
+1. `src/claude-hook-cli.ts` now writes `<git dir>/weftwork/last-call.json`
+   on every call, before it reads the host's input. The hook runs as the
+   owner, outside any agent sandbox, and the agent can write the git dir (T3).
+2. `src/claude-live-cli.ts` runs in the owner's shell. It reads
+   `.claude/settings.local.json`, `.claude/settings.json`, the user settings
+   (`$CLAUDE_CONFIG_DIR` or `~/.claude`) and the call record, and prints a
+   report. It writes nothing.
+3. `src/claude-settings-file.ts` is the e07s03 code, moved unchanged.
+
+## Context research
+
+- The record is opened with `O_NOFOLLOW | O_NONBLOCK`, then `fstat` must say
+  regular file before the truncate (BUG-007 class). Its directory is 0700 and
+  the file 0600, since it holds the declared command (T8).
+- `parseStopHookCommand` uses `^node '((?:[^']|'\\'')*)' -- '(...)'$`. The two
+  alternatives start with different characters, so matching is linear (no
+  ReDoS). The install and the check share it.
+- The check's output is advisory; its exit code is the machine answer.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Symlink at last-call.json | Refused (`O_NOFOLLOW`, ELOOP); the target is unchanged (test). |
+| FIFO or directory at last-call.json | Refused at once for write and read (tests, child with timeout). |
+| Hard link at last-call.json | **Not refused: F1.** |
+| Untrusted text printed by the check | **Printed raw: F2.** |
+| Size of the record read | Capped at 64 KiB by `fstat` before the read. |
+| A failed record write changes the hook's answer | No: the result is ignored and both calls never throw (CLI tests). |
+| Shell injection | None new. The entry text is only parsed, never run, by the check. |
+| Secrets in the diff | None. The record stores the command, as the ledger does (T8). |
+| Outbound requests | None. |
+
+## Findings (confidence 8 or more)
+
+### F1. A hard link at last-call.json makes the hook overwrite the linked file — MEDIUM — CWE-59 — confidence 8
+
+- `src/last-call.ts` `writeLastCall`: `O_NOFOLLOW` stops a symlink, but a
+  hard link is a regular file, so `fstat` passes and `truncate(0)` empties
+  the file it shares an inode with.
+- Reproduced: `ln victim.ts .git/weftwork/last-call.json`, then one
+  `writeLastCall`: `victim.ts` now holds the record JSON.
+- Exploit scenario: the agent links the record to a tracked file; the next
+  stop overwrites that file with the record. The content is not the
+  agent's choice, and an agent that can make the link can already write the
+  file, so no new capability. But the module's own contract ("never send the
+  truncate to another file") is broken, and the hook runs outside the
+  agent's sandbox.
+- Fix: after `fstat`, refuse when `nlink !== 1`, before the truncate. Same
+  class, not in this diff: `ledger.jsonl` is appended to through a hard link
+  too (append only, never truncated). Note for e10.
+
+### F2. The check prints text the agent controls, escape codes included — LOW — CWE-150 — confidence 8
+
+- `src/claude-live.ts`: the record's `at` field, adapter paths from the
+  settings and error texts are put into the reason unescaped.
+- Reproduced: a record with `at` = `T\u001b[2K\rweftwork live check: live`
+  makes the terminal show a `live` line under a `registered, not seen`
+  answer. The exit code stays 1.
+- No new capability: the agent can forge a matching record and get a real
+  `live` (T3, already in the notes). But the report should not be spoofable
+  on screen.
+- Fix: print untrusted strings with control characters escaped (for
+  example through `JSON.stringify`).
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- **A symlinked user settings file reads as "cannot tell" (functional, not a
+  vulnerability).** `readSettings` uses `O_NOFOLLOW`, which is right for the
+  install's write but refuses `~/.claude/settings.json` when a dotfile
+  manager links it. Reproduced: ELOOP, answer `registered, not seen`. It
+  fails toward "not live", never toward "live". The check only reads, so it
+  can follow symlinks safely while keeping `O_NONBLOCK` and the regular-file
+  check.
+- **A symlinked `.git/weftwork` directory (confidence about 4).** `O_NOFOLLOW`
+  covers the last path part only, so the record can land in another
+  directory, where only a file named `last-call.json` can be touched. The
+  ledger has the same property (F1 of e07s02).
+
+## Verdict
+
+PASS for the security gate. No HIGH finding at confidence 8 or more. F1
+(MEDIUM) and F2 (LOW) do not block, and both fixes are small.
+
+## Addendum: fixes on the same branch (verify-work gaps loop, 2026-11-12)
+
+The owner chose to fix both findings and the observation before audit-code.
+Each fix has a test-only commit that failed first, then the fix:
+
+- F1 fixed (a125fed, f3dd06f): `writeLastCall` refuses a file with more than
+  one hard link before the truncate. A test links the record to a file and
+  checks that the file is unchanged.
+- F2 fixed (b548a4e, 02ae710): `liveReport` writes every control character in
+  the reason as `\uXXXX`. A test forges a record with escape codes.
+- The symlink observation fixed (97c06c5 and the next commit): `readSettings`
+  takes a `follow` option. The install still refuses a symlink; the check
+  follows one, and the target must still be a regular file (FIFO refused).
+- Still open, for e10: `ledger.jsonl` is appended to through a hard link
+  (append only), and a symlinked `.git/weftwork` directory.
+
+Verdict is unchanged: PASS.
+
+## Addendum: request-review round 1 (2026-11-12)
+
+Two reviewers found no must-fix; the owner approved fixing the rest on the
+branch. Security-relevant changes:
+
+- The live check counts an entry only when it is exactly what the install
+  writes. An `async`, `if` or short-`timeout` entry runs but cannot block a
+  stop, and before the fix the check called it `live` (B-F1).
+- `readSettings` refuses a file past 1 MiB before reading it, now that the
+  check follows symlinks (B-F10).
+- The call record ignores a failed `close`, so a failed write cannot become a
+  block (A-F3, B-F9).
+- Deferred to e10, and written into the spec's risks: a symlinked
+  `.git/weftwork` directory (A-F9, B-F4, also true of the ledger) and a torn
+  record from concurrent writes (A-F2, errs toward "not live").
+
+Verdict is unchanged: PASS.
+
+## Addendum: request-review round 2 (2026-11-12)
+
+Reviewer A 85.7, Reviewer B 100, no must-fix. Applied: the reason escapes the
+Unicode direction marks and overrides and the line and paragraph separators,
+with a boundary test over the whole escape range (A-F1, A-F4, B-1); the notes
+are copied (B-2); the future-age boundary is tested (A-F2); the header and
+recordCall comments are corrected (A-F6, A-F7).
+
+- Declined, A-F3 (a staleness limit on `live`): the owner decided at
+  plan-work that the record's age is printed, not judged. The age is in the
+  reason.
+- Still deferred to e10, A-F5 and B-3: the record is truncated, then written,
+  so it is briefly empty. Same family as the torn record; a temp file and a
+  rename would fix both, together with the git-dir symlink.
+
+Verdict is unchanged: PASS.
+
+## Addendum: request-review round 3 (2026-11-12)
+
+Reviewer A 50, Reviewer B 88.9, no must-fix. Applied:
+
+- A changed copy of the handler (same adapter and command) in the local,
+  project or user Stop list now stops a `live` answer. Claude Code runs a
+  handler defined in more than one settings file once, so an `async`, `if` or
+  short-`timeout` copy may be the one that runs, and it cannot block a stop
+  (A1, B-1; both reproduced it with `liveReport`).
+- The reason escapes every `\p{Cc}` and `\p{Bidi_Control}` character, U+061C
+  included (A5, B-2).
+- A record's `at` must be a parseable time of at most 40 characters, so a
+  padded or missing time is not a record (A4, B-3).
+- `readSettings` ignores a failed close (B-7).
+- The note list says the record does not name the project folder (B-9).
+
+Deferred: storing `CLAUDE_PROJECT_DIR` in the record (B-9), and reading at most
+cap + 1 bytes instead of trusting `fstat` (B-6, e10).
+
+Verdict is unchanged: PASS.
+
+## Addendum: request-review round 4 (2026-11-12)
+
+Reviewer A 80, Reviewer B 75, one must-fix. Applied:
+
+- Must-fix B-1, a defect from the round-3 change: an as-installed entry in the
+  user or local file could stand in for a changed project entry, so the check
+  said `live` while the project's own entry could not block. Now only project
+  entries can be usable; a copy can only rule one out.
+- Tests for the adapter half of the copy rule (A-1) and the start anchor of
+  the entry parser, with an install test that keeps an owner hook that runs the
+  entry after its own shell text (B-2).
+- The reason names only the files of changed copies of the project's handler
+  (A-5) and says "cannot tell whether a changed copy of the entry exists" for
+  an unreadable copy list (A-3, B-5); identical entries are counted once
+  (A-2, B-3); `copiesIn` has its own type (A-4, B-6); two notes added (B-8,
+  B-4).
+
+Deferred: comparing resolved adapter paths (B-4, fails toward "not live").
+Declined: sharing one `git rev-parse` between the record and the engine (B-7).
+
+Verdict is unchanged: PASS.
+
+## Addendum: request-review round 5 and the review cap (2026-11-12)
+
+Reviewer A 71.4, Reviewer B 83.3, no must-fix. The review cap (5 rounds) is
+used up without a dual pass; the owner chose to fix the round-5 items and go
+to release (option A). These fixes were not re-reviewed:
+
+- Each answer carries its next step, so the CLI no longer tells the owner to
+  run the install for a copy the install cannot edit, or to start a session
+  when the settings are broken (A-F1, A-F2, B-3).
+- A record older than the newest change to any of the three settings files is
+  not live, so a call made under an entry that has since changed (for example
+  an `async` entry fixed by hand) no longer reads as live (B-1). This was the
+  last path to a wrong `live` the reviewers found.
+- The ledger ignores close errors on the hook path too (B-6), with tests for
+  the record's field types and size boundaries (A-F4, B-5), the CLI's adapter
+  check (A-F5) and `userSettingsPath` in the library (B-4).
+
+Each fix has a test that failed first or a mutant it kills. Verdict is
+unchanged: PASS.
+
+# Security review for branch e07s04-live-check, current head (e07s04, release-branch step 2a)
+
+review_date: 2026-11-12
+branch: e07s04-live-check
+head: c3d8708
+base: main (28c371f)
+scope: git diff 28c371f..HEAD -- src (17 files, including the round 1 to 5
+  changes). Focus: the entry rule (claude-install.ts, claude-live.ts), the
+  call record (last-call.ts, claude-hook-cli.ts), the settings reads
+  (claude-settings-file.ts), the close-error handling (ledger.ts), and the CLI
+  files (claude-live-cli.ts, claude-install-cli.ts).
+method: security-review 5-phase scan, reviewed inline against the final code;
+  earlier e07s04 findings re-checked in the code.
+
+## Executable surface
+
+1. `src/claude-hook-cli.ts` writes `<git dir>/weftwork/last-call.json` before it
+   reads the host's stdin. It runs as the owner, outside the agent's sandbox.
+2. `src/claude-live-cli.ts` reads three settings files and the record, prints
+   a report, and writes nothing.
+3. `src/claude-install-cli.ts` writes `.claude/settings.json` (unchanged in
+   this story apart from the file split).
+
+## Context research
+
+- No shell is involved in any new path. `git` runs through `execFile`, as
+  the ledger already does, with `core.fsmonitor=false`.
+- Every text the reason prints that the agent can write is escaped: the call
+  record's time and command, the settings paths and error texts. The escape
+  set is `\p{Cc}`, `\p{Bidi_Control}` and U+2028/2029, with the `u` flag.
+- The notes are fixed text plus a count of distinct handlers.
+- The record is 0600 in a 0700 directory, since it holds the declared command
+  (T8). Its read is capped at 64 KiB and its time at 40 characters.
+- Untrusted settings are parsed with `JSON.parse` and read back through
+  `parseStopHook`. No object is merged or spread from them into a result.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Command or shell injection | None new. The check never runs the entry; the hook runs the owner's declared command as before. |
+| Secrets in the diff | None (grep for key and token shapes, private keys). |
+| Escape codes or bidi overrides in printed text | Escaped in the reason (verified in `claude-live.ts`, boundary test). |
+| Symlink at the record file | Refused on write and read (`O_NOFOLLOW`). |
+| Hard link at the record file | Refused on write (`nlink !== 1`, before the truncate). |
+| FIFO, device or directory at the record file | Refused without blocking (`O_NONBLOCK` and the regular-file check). |
+| Symlinked settings file, read by the live check | Followed, as Claude Code reads it; the target must be a regular file. The install still refuses symlinks. |
+| Settings or record larger than the cap | Refused (1 MiB and 64 KiB), checked with `fstat` (see below). |
+| Failed record write changing the hook's answer | No: the result is ignored and close errors are swallowed (`ignoreCloseError`). |
+| Hook hanging on the record write | No: the write is non-blocking and bounded by the hook's deadline. |
+| Outbound requests | None. |
+
+## Findings (confidence 8 or more)
+
+None. No HIGH finding at confidence 8 or more.
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- **M1, symlinked `<git dir>/weftwork` directory (MEDIUM, confidence about 7).**
+  `mkdir` with `recursive` accepts an existing symlink to a directory, and
+  `O_NOFOLLOW` guards only the last path component. An agent that can write
+  the git dir can therefore make the hook, which runs as the owner, create or
+  truncate `last-call.json` (fixed name, 0600) and append to `ledger.jsonl` in
+  a directory it names. The ledger has the same property (e06s03). This is
+  the round 1 finding A-F9 / B-F4, and it stays deferred to e10, which owns
+  the git-dir paths. It does not reach HIGH: the file name and the contents
+  are fixed, and the directory must already be writable by the owner.
+- **L1, race at the record file (LOW, confidence about 4).** The file is
+  created by `O_CREAT`, and the single-link check runs after the open. A
+  hard link added in that window could see the truncate. Narrow; the same
+  e10 work (temp file and rename) removes it.
+- **Size caps are checked with `fstat`, then read to end of file.** A file
+  that grows between the two is read past the cap. Narrow; deferred to e10.
+
+## Earlier e07s04 findings, re-checked against this head
+
+- **F1, hard link at the record file (MEDIUM): still fixed.** `nlink !== 1`
+  at `src/last-call.ts:48`, with a test that the linked file is unchanged.
+- **F2, control characters in the printed reason (LOW): still fixed, and
+  widened.** `unsafeCharacters` at `src/claude-live.ts:206` covers every `Cc`
+  and `Bidi_Control` character (which includes U+061C, U+200E/F, U+202A-E and
+  U+2066-9) and U+2028/2029. Boundary tests cover both sides.
+- **Symlinked settings file read by the live check (observation): still
+  fixed.** The live check follows the link (`follow` flag at
+  `src/claude-settings-file.ts:41`, used at `src/claude-live-cli.ts:42`); a
+  FIFO or directory behind a link is still refused after the non-blocking
+  open. The install keeps refusing symlinks.
+- **Symlinked `.git/weftwork` directory (round 1 A-F9 / B-F4): still open**,
+  recorded as M1 above and deferred to e10 as the owner decided.
+
+## Verdict
+
+PASS for the security gate. No HIGH finding at confidence 8 or more. M1 is
+MEDIUM at confidence about 7, the same class as the ledger, and deferred to
+e10 as already decided. The three earlier findings are still fixed.

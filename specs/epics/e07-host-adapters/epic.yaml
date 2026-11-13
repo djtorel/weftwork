@@ -33,7 +33,7 @@ stories:
   - id: e07s04
     title: Check that the hook is live, and fail loudly when it is not
     bcps: 5
-    status: todo
+    status: done
     tasks: e07s04-tasks.yaml
     delta: ADDED
 # Candidate epic B3 in docs/research/SYNTHESIS.md [S5][S13].

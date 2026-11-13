@@ -1,4 +1,4 @@
-// story: e06s03, e07s02
+// story: e06s03, e07s02, e07s04
 // e07s02 (BUG-007): the ledger opens without blocking and only as a regular file.
 // e06s04 adds state lines (one per terminal state), the capped tail reader
 // the stop rules use (security review F3) and failingRun.
@@ -78,6 +78,11 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
   }
 }
 
+/** A failed close must not reach a caller that promises never to throw: on the
+ * hook path a rejection would turn into a block (review A-F3, B-F9; round 5,
+ * B-6). The file's own result is what the caller gets. */
+export function ignoreCloseError(): void {}
+
 /**
  * Open the ledger without blocking, and only if it is a regular file. The agent
  * can replace the file (T3), and opening a FIFO blocks until the other end is
@@ -87,15 +92,15 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
  * at once, and a FIFO, a device or a directory is refused. override.ts does the
  * same for override.json.
  */
-async function openRegular(path: string, flags: number, mode?: number): Promise<FileHandle> {
+export async function openRegular(path: string, flags: number, mode?: number): Promise<FileHandle> {
   const handle = await open(path, flags | constants.O_NONBLOCK, mode);
   try {
     if (!(await handle.stat()).isFile()) {
-      throw new Error('the ledger is not a regular file');
+      throw new Error(`${path} is not a regular file`);
     }
     return handle;
   } catch (error) {
-    await handle.close();
+    await handle.close().catch(ignoreCloseError);
     throw error;
   }
 }
@@ -117,7 +122,7 @@ async function writeLine(path: string, line: object): Promise<AppendResult> {
   } catch (error) {
     return { ok: false, error: messageOf(error) };
   } finally {
-    await handle?.close();
+    await handle?.close().catch(ignoreCloseError);
   }
 }
 

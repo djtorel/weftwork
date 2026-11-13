@@ -6,7 +6,7 @@ phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e07s04-live-check
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -406,61 +406,54 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: plan-work
-  next_story: e07s04
-  note: 'e07s03 (the install registers the Stop hook) is done and released by PR.
-    Start e07s04 in a fresh session. e07s04 has a tasks file (e07s04-tasks.yaml) but
-    NO story spec yet, so plan-work comes first, not kickoff-branch: it writes the
-    spec beside the tasks file, then kickoff-branch from main. Carry to e07s04: (1)
-    The install writes node ''<adapter>'' -- ''<command>'' with timeout 660. The live
-    check must recognise the same entry, so share the match in src/claude-install.ts
-    (isOurs: a command hook, exactly that prefix, then one quoted argument) instead
-    of copying it. That file is 299 of 300 lines, so split its file-I/O half into
-    its own module first. (2) The live check must say that in a worktree session the
-    gate checks the main checkout, and that GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE
-    in the hook environment would move the fingerprint (also a note for e10); a SIGKILL
-    or a crash before the handlers exist is fail-open and only e07s04 can see it.
-    (3) Not known: whether a running Claude Code session sees a hook added later (the
-    docs are silent; step 6 of the e07s03 verify script was not run), so the check
-    must not call a hook live for a session it has not seen call it. A hand-written
-    entry in another form gets a second weftwork entry, so the check should say when
-    two Stop hooks run. Open residuals, owned elsewhere: settings size cap and the
-    read-then-write race (e10); a stuck git process outlives the hook (engine git
-    calls take no abort signal; an e06 story); signal-killed runs and the failure
-    ceiling (e06 decision, unverified); F5, an agent can make the ledger unreadable
-    to switch stop rules off (e08 or e09); the setsid residual (T6); T4, authorship
-    of override.json is not proof. The gate-trace R1 waiver covers e07 only; drop
-    it when e07 closes. main is protected: land by PR, with the owner''s explicit
-    go-ahead for each push, PR and merge. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml.'
+  next_skill: slice-tasks
+  next_story: null
+  next_epic: e08
+  note: 'release-branch is ready for e07s04 on 2026-11-12, branch e07s04-live-check.
+    Landing (push, PR, merge) waits for the owner''s go-ahead. Gates: Preflight green, 466 of 466 tests;
+    full coverage 99.24 lines, 96.06 branches; audit gate PASS for story and release;
+    gate-trace verify OK (critic 0 blockers); security review at c68a19c PASS (no
+    HIGH at confidence 8 or more; M1, the symlinked .git/weftwork directory, deferred
+    to e10). Review cap ran out at 5 of 5 without a dual pass; the owner waived it
+    and chose to release. The PR body names each gate and the waiver, and carries
+    no bigpowers provenance marker (project flow rule). e07s04 is done in its tasks
+    file, epic.yaml and execution-status.yaml; the e07 capsule stays in epics/ because
+    gate-trace R1 for e07 still needs an owner decision (the e07 waiver ends at e07
+    release). Next in execution order: e08 (B2, state and handoff); e08 has only its
+    epic.yaml, so start in a fresh session with slice-tasks. Pushes, PRs and merges
+    need an explicit go-ahead each. After a merge: sync main, delete the local and
+    remote branch, and check CI on the merge commit (scripts/wait-for-ci.sh). Do not
+    run scripts/sync-status-from-epics.sh. Deferred to e10: the symlinked git-dir
+    directory, the torn or briefly empty record (temp file and rename), size caps
+    checked by fstat then read to EOF. Deferred: CLAUDE_PROJECT_DIR in the record,
+    resolved adapter paths. Declined: a staleness limit, sharing one git rev-parse.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 23
-      total_seconds: 334.0
-      avg_seconds: 14.521739130434783
+      calls: 24
+      total_seconds: 356.0
+      avg_seconds: 14.833333333333334
     plan-work:
-      calls: 27
-      total_seconds: 15013.0
-      avg_seconds: 556.0370370370371
+      calls: 28
+      total_seconds: 15284.0
+      avg_seconds: 545.8571428571429
     develop-tdd:
-      calls: 27
-      total_seconds: 11117.0
-      avg_seconds: 411.74074074074076
+      calls: 28
+      total_seconds: 11672.0
+      avg_seconds: 416.85714285714283
     verify-work:
-      calls: 27
-      total_seconds: 3044.0
-      avg_seconds: 112.74074074074075
+      calls: 28
+      total_seconds: 3667.0
+      avg_seconds: 130.96428571428572
     audit-code:
-      calls: 20
-      total_seconds: 1679.0
-      avg_seconds: 83.95
+      calls: 21
+      total_seconds: 1860.0
+      avg_seconds: 88.57142857142857
     release-branch:
-      calls: 27
-      total_seconds: 3220.0
-      avg_seconds: 119.25925925925925
+      calls: 28
+      total_seconds: 3680.0
+      avg_seconds: 131.42857142857142
     request-review:
       calls: 11
       total_seconds: 14230.0
@@ -470,9 +463,9 @@ metrics:
       total_seconds: 26.0
       avg_seconds: 26.0
     respond-review:
-      calls: 1
-      total_seconds: 131.0
-      avg_seconds: 131.0
+      calls: 6
+      total_seconds: 931.0
+      avg_seconds: 155.16666666666666
     commit-message:
       calls: 5
       total_seconds: 46.0

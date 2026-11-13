@@ -1,82 +1,120 @@
 ---
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
-# slice-tasks 2026-11-12. The engine can check that the hook is live
-# and fails loudly when it is not (SYNTHESIS, "Engine and adapters").
-# This closes the residual from e07s02: a Stop hook that never starts
-# is not blocked by any host option, so it is found by a check.
-# Two layers, neither one spends model tokens:
-#   static: the settings file holds the Stop entry, it names an
-#     adapter file that exists, and the host's disableAllHooks switch
-#     is not on in the project's settings;
-#   evidence: the adapter writes one heartbeat line to the ledger in
-#     the git dir each time the host calls it, and the check reports
-#     the time of the last one. A registered hook with no heartbeat
-#     is reported as "not seen", not as live.
-# Managed settings can switch hooks off and sit outside the
-# repository; the check says what it could not read (e10 reports the
-# per-host boundary). Not a trial on a real host: no source
-# measured it, and a trial costs tokens, which the owner has not
-# capped (release-plan, B7).
+# slice-tasks 2026-11-12; plan-work 2026-11-12 (spec:
+# e07s04-live-check.md). The check says whether the Stop hook is live
+# and fails loudly when it is not. It closes the e07s02 residual: a
+# Stop hook that never starts is not blocked by any host option.
+# Owner decisions at plan-work (all three recommendations taken):
+#   1. The adapter records each call in its own file,
+#      <git dir>/weftwork/last-call.json, not as a ledger line.
+#   2. Live means the last call used the same adapter path and
+#      command as an entry in the settings now. Age is printed only.
+#   3. The check reads local, project and user settings and applies
+#      precedence for disableAllHooks. Managed settings and the
+#      --settings flag are named as not read.
+# No model tokens are spent except in the owner's run (task 5).
 story_id: e07s04
 title: Check that the hook is live, and fail loudly when it is not
-status: todo
+status: done
 bcps: 5
 type: feat
 context: adapter
 risk: P1
+spec: e07s04-live-check.md
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Write src/claude-live.test.ts first, then
-      src/claude-live.ts: a pure function from the settings text, the
-      list of files that exist and the heartbeat lines to a report
-      with one of three answers (live, registered but not seen, not
-      registered) and a reason. Cover: no settings file, no Stop
-      entry, a Stop entry for another command, a missing adapter
-      file, disableAllHooks on, a registration with no heartbeat, and
-      one with a recent heartbeat. Only "live" ever reads as live
+      Refactor, no behaviour change, then RED, then GREEN for the
+      parser. Move the file I/O of src/claude-install.ts (readSettings,
+      isGitRoot, writeAtomic, installInProject and their helpers) to
+      src/claude-settings-file.ts and point claude-install-cli.ts at
+      it. Add parseStopHookCommand to claude-install.ts, test it first
+      (AC-e07s04-01), and route isOurs through it. Export
+      parseSettings and stopListOf for the check
     verify: >-
-      node --test src/claude-live.test.ts && npm run typecheck
+      node --test src/claude-install.test.ts
+      src/claude-install-cli.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
-      severity: critical
+      severity: high
       categories:
         - "adapter"
         - "e07 B3"
+        - "refactor"
   - id: 2
     description: >-
-      RED, then GREEN. The adapter CLI writes one heartbeat line to
-      the ledger each time the host calls it, before it runs the
-      engine, and a failure to write it does not change the answer
-      the host gets. Test through the real CLI in a temporary
-      repository that a call leaves exactly one heartbeat line and
-      that the ledger's existing readers still read the file
+      RED, then GREEN. Write src/last-call.test.ts, then
+      src/last-call.ts (lastCallPath, writeLastCall, readLastCall;
+      regular files only, 0700 dir, 0600 file, never throws). Then
+      test through the real adapter CLI in a temporary repository
+      (AC-e07s04-06, AC-e07s04-07): one call leaves a record with the
+      adapter's path and the command; a record that cannot be written
+      changes neither the exit code nor the ledger; bad arguments
+      write no record. Then add the one call to claude-hook-cli.ts
     verify: >-
-      node --test src/claude-hook-cli.test.ts src/ledger.test.ts
-      && npm run typecheck
+      node --test src/last-call.test.ts src/claude-hook-cli.test.ts
+      src/ledger.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
-      severity: critical
+      severity: high
       categories:
         - "adapter"
         - "e07 B3"
   - id: 3
     description: >-
-      RED, then GREEN. Add the check command as a thin shell over the
-      library. It prints the report and exits 0 only for live, and
-      for the other two answers it exits non-zero and says what the
-      owner must do next. Test the exit codes through the real CLI
-      in a temporary repository after an install, with and without a
-      prior hook call
+      RED, then GREEN. Write src/claude-live.test.ts first, then
+      src/claude-live.ts: liveReport, a pure function from the three
+      settings read results, an adapter-exists predicate, the call
+      record and now, to one of live, not-seen, not-registered with a
+      reason and notes. Cover AC-e07s04-02 to AC-e07s04-05, including
+      disableAllHooks precedence. Only a matching record reads as live
+    verify: >-
+      node --test src/claude-live.test.ts && npm run typecheck
+    risk: P1
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "adapter"
+        - "e07 B3"
+  - id: 4
+    description: >-
+      RED, then GREEN. Write src/claude-live-cli.test.ts, then
+      src/claude-live-cli.ts as a thin shell over liveReport. Test
+      through the real CLI in a temporary repository with HOME and
+      CLAUDE_CONFIG_DIR set to temporary directories (AC-e07s04-08,
+      AC-e07s04-09): not registered, then registered but not seen
+      after the install, then live after one adapter call, then not
+      seen with disableAllHooks in settings.local.json. Exit 0 only
+      for live
     verify: >-
       node --test src/claude-live.test.ts src/claude-live-cli.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
-      severity: critical
+      severity: high
       categories:
         - "adapter"
         - "e07 B3"
+  - id: 5
+    description: >-
+      Write specs/epics/e07-host-adapters/e07s04-verify-script.md from
+      the spec's Verification Script, then run Preflight. The owner
+      runs the script in a real Claude Code session (AC-e07s04-10);
+      it spends model tokens, so CI does not
+    verify: >-
+      test -f specs/epics/e07-host-adapters/e07s04-verify-script.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck
+      && npm test
+    risk: P1
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "adapter"
+        - "e07 B3"
+        - "UAT"
