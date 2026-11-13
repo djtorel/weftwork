@@ -62,6 +62,8 @@ const standingNotes = [
     'before it reads as not seen.',
   'Running the hook by hand with CLAUDE_PROJECT_DIR set also writes a matching ' +
     'record, so live means the hook was called, not that Claude Code called it.',
+  'The record does not name the project folder: a session started in a ' +
+    'subdirectory that has its own copy of the same entry also leaves it.',
 ];
 
 /** The weftwork entries in one file's Stop list, and how many other Stop hooks
