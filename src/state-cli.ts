@@ -22,6 +22,7 @@ async function readStdin(): Promise<string | null> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of process.stdin) {
+    // No encoding is set on stdin, so every chunk is a Buffer; the iterator is typed any.
     const buffer = chunk as Buffer;
     size += buffer.length;
     if (size > maxInputBytes) return null;
@@ -35,7 +36,7 @@ function isValue(value: unknown): value is FieldValue {
 }
 
 /** The request in `text`, or why it cannot be read. */
-function parseRequest(text: string): Request | string {
+function parseFieldRequest(text: string): Request | string {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -45,31 +46,31 @@ function parseRequest(text: string): Request | string {
   if (!isRecord(data)) return 'stdin must be a JSON object';
   const { file, path, value } = data;
   if (typeof file !== 'string' || file === '') return '"file" must be a non-empty string';
-  if (!Array.isArray(path) || !path.every((key) => typeof key === 'string')) {
+  if (!Array.isArray(path) || !path.every((key): key is string => typeof key === 'string')) {
     return '"path" must be a list of strings';
   }
   if (!('value' in data) || !isValue(value)) return '"value" must be a string, a number, a boolean or null';
-  return { file, path: path as string[], value };
+  return { file, path, value };
 }
 
-function answer(result: object, exitCode: number): void {
+function printAnswer(result: object, exitCode: number): void {
   process.stdout.write(`${JSON.stringify(result)}\n`);
   process.exitCode = exitCode;
 }
 
 async function main(): Promise<void> {
   const text = await readStdin();
-  if (text === null) return answer({ ok: false, error: `stdin is larger than ${maxInputBytes} bytes` }, 2);
-  const request = parseRequest(text);
-  if (typeof request === 'string') return answer({ ok: false, error: request }, 2);
+  if (text === null) return printAnswer({ ok: false, error: `stdin is larger than ${maxInputBytes} bytes` }, 2);
+  const request = parseFieldRequest(text);
+  if (typeof request === 'string') return printAnswer({ ok: false, error: request }, 2);
   let root: string;
   try {
     root = (await repositoryRoot(process.cwd())).toString();
   } catch (error) {
-    return answer({ ok: false, error: `${process.cwd()} is not in a git repository: ${messageOf(error)}` }, 2);
+    return printAnswer({ ok: false, error: `${process.cwd()} is not in a git repository: ${messageOf(error)}` }, 2);
   }
   const result = writeStateField(root, request.file, request.path, request.value);
-  answer(result, result.ok ? 0 : 1);
+  printAnswer(result, result.ok ? 0 : 1);
 }
 
 await main();

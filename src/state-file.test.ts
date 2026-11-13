@@ -15,7 +15,7 @@ const fixture = (name: string): string => readFileSync(join(import.meta.dirname,
 const liveState = join(import.meta.dirname, '..', 'specs', 'state.yaml');
 
 /** The data of `text`, with `path` set to `value` when one is given. */
-function dataOf(text: string, path?: string[], value?: FieldValue): unknown {
+function dataWithField(text: string, path?: string[], value?: FieldValue): unknown {
   const doc = parseDocument(text);
   if (path !== undefined) doc.setIn(path, value);
   return doc.toJS();
@@ -87,7 +87,7 @@ test('one field changes, only its lines differ, and every other field keeps its 
     assert.ok(isOneValue(removed, key, above), `${label}: removed ${JSON.stringify(removed)}`);
     assert.ok(isOneValue(added, key, above), `${label}: added ${JSON.stringify(added)}`);
     if (expected.length > 0) assert.deepEqual(added, expected, label);
-    assert.deepEqual(dataOf(after), dataOf(before, path, value), label);
+    assert.deepEqual(dataWithField(after), dataWithField(before, path, value), label);
   }
 });
 
@@ -112,7 +112,7 @@ test('a string that would read as another type is quoted', () => {
     const { added } = changedLines(before, after);
     assert.equal(added.length, 1, JSON.stringify(value));
     assert.equal(parseDocument(after).get('active_story'), value, JSON.stringify(value));
-    assert.deepEqual(dataOf(after), dataOf(before, ['active_story'], value));
+    assert.deepEqual(dataWithField(after), dataWithField(before, ['active_story'], value));
   }
 });
 

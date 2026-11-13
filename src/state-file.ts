@@ -34,7 +34,7 @@ function isFieldValue(value: unknown): value is FieldValue {
 /** The data of `doc`. yaml refuses to expand too many aliases by throwing from
  * toJS (a billion-laughs guard); that is a refusal here, not a crash (security
  * review F1). */
-function dataOf(doc: Document): Data {
+function toData(doc: Document): Data {
   try {
     return { ok: true, data: doc.toJS() };
   } catch (error) {
@@ -48,10 +48,11 @@ function parseOne(text: string): Parsed {
   if (!Array.isArray(docs) || docs.length !== 1) {
     return { ok: false, error: 'the text must be exactly one YAML document' };
   }
-  const doc = docs[0] as Document;
+  const doc = docs[0];
+  if (doc === undefined) return { ok: false, error: 'the text must be exactly one YAML document' };
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: `the text is not valid YAML: ${first.message}` };
-  const data = dataOf(doc);
+  const data = toData(doc);
   return data.ok ? { ok: true, doc, data: data.data } : data;
 }
 
@@ -77,7 +78,7 @@ function sourceOf(value: FieldValue): string {
 
 /** Set `path` to `value` in a fresh tree of `text` and return the new text.
  * `type` undefined keeps the scalar's old style. */
-function edit(text: string, path: readonly string[], value: FieldValue, type?: Scalar.Type): SetField {
+function editScalar(text: string, path: readonly string[], value: FieldValue, type?: Scalar.Type): SetField {
   const tokens = [...new Parser().parse(text)];
   const found = findScalar(tokens, path);
   if (!found.ok) return found;
@@ -86,9 +87,21 @@ function edit(text: string, path: readonly string[], value: FieldValue, type?: S
 }
 
 /** True when `text` is one valid document whose data is `expected`. */
-function holds(text: string, expected: unknown): boolean {
+function holdsData(text: string, expected: unknown): boolean {
   const parsed = parseOne(text);
   return parsed.ok && isDeepStrictEqual(parsed.data, expected);
+}
+
+/** The first edit of `text` whose parsed data is `want`. A string tries the
+ * scalar's old style first, then double quotes, because setScalarValue does
+ * not check what a plain scalar will read back as. */
+function firstEditThatHolds(text: string, path: readonly string[], value: FieldValue, want: unknown): SetField {
+  const styles: (Scalar.Type | undefined)[] = typeof value === 'string' ? [undefined, 'QUOTE_DOUBLE'] : ['PLAIN'];
+  for (const type of styles) {
+    const result = editScalar(text, path, value, type);
+    if (result.ok && holdsData(result.text, want)) return result;
+  }
+  return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data` };
 }
 
 /** Set the scalar at `path` in the YAML `text` to `value`, and keep every
@@ -109,14 +122,8 @@ export function setField(text: string, path: readonly string[], value: FieldValu
   if (isDeepStrictEqual(parsed.doc.getIn(path), value)) return { ok: true, text };
   const expected = parsed.doc.clone();
   expected.setIn(path, value);
-  const want = dataOf(expected);
-  if (!want.ok) return want;
-  const styles: (Scalar.Type | undefined)[] = typeof value === 'string' ? [undefined, 'QUOTE_DOUBLE'] : ['PLAIN'];
-  for (const type of styles) {
-    const result = edit(text, path, value, type);
-    if (result.ok && holds(result.text, want.data)) return result;
-  }
-  return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data` };
+  const want = toData(expected);
+  return want.ok ? firstEditThatHolds(text, path, value, want.data) : want;
 }
 
 /** The real path `file` names, when it lies inside `root`: `file` is resolved
