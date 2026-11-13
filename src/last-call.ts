@@ -33,13 +33,18 @@ export async function lastCallPath(cwd: string): Promise<string | null> {
 }
 
 /** Replace the record with `call`. Truncates only after the open has proved
- * the path is a regular file and not a symlink. Never throws. */
+ * the path is a regular file with one link, not a symlink. Never throws. */
 export async function writeLastCall(path: string, call: LastCall): Promise<LastCallWrite> {
   let handle: FileHandle | undefined;
   try {
     await mkdir(dirname(path), { recursive: true, mode: 0o700 });
     const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_NOFOLLOW;
     handle = await openRegular(path, flags, 0o600);
+    // A hard link is a regular file too: the truncate would empty the file it
+    // shares an inode with (security review F1).
+    if ((await handle.stat()).nlink !== 1) {
+      throw new Error('the record has more than one hard link');
+    }
     await handle.truncate(0);
     await handle.write(`${JSON.stringify(call)}\n`, 0);
     return { ok: true };
