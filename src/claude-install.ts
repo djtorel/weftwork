@@ -42,8 +42,7 @@ type HookEdit = { hooks: unknown[]; placed: boolean; touched: boolean };
 type Opened = { ok: true; fd: number | null } | Failure;
 type Read = { ok: true; file: { text: string; mode: number } | null } | Failure;
 
-/** What the edit writes: the adapter path that marks weftwork's own entries,
- * and the entry that replaces them. */
+/** What the edit writes: the adapter path that marks weftwork's entries, and the entry. */
 type Install = { cliPath: string; entry: object };
 
 /** Wrap `text` in single quotes for a POSIX shell: each `'` becomes `'\''`. */
@@ -62,13 +61,16 @@ export function stopHookCommand(cliPath: string, command: string): string {
   return stopHookPrefix(cliPath) + shellQuote(command);
 }
 
-/** True when `hook` is a weftwork entry: a command hook that starts with the
- * text this install writes. An owner hook that only mentions the adapter's
- * path, an entry from another checkout, or a hand-written entry in another
- * form is not ours. */
+/** What shellQuote writes: one single-quoted argument and nothing after it. */
+const quotedArgument = /^'(?:[^']|'\\'')*'$/;
+
+/** True when `hook` is a weftwork entry: a command hook that is exactly the
+ * prefix and one quoted argument. An owner hook that mentions the path or adds
+ * shell text after it, or an entry from another checkout, is not ours. */
 function isOurs(hook: unknown, cliPath: string): boolean {
+  const prefix = stopHookPrefix(cliPath);
   return isRecord(hook) && hook.type === 'command' && typeof hook.command === 'string'
-    && hook.command.startsWith(stopHookPrefix(cliPath));
+    && hook.command.startsWith(prefix) && quotedArgument.test(hook.command.slice(prefix.length));
 }
 
 function isGroup(value: unknown): value is Group {
@@ -101,9 +103,9 @@ function stopListOf(hooks: Record<string, unknown>): StopList {
   return { ok: true, groups };
 }
 
-/** Read the settings text as an object. `text` is null when there is no file,
- * and an empty or blank file reads the same: no settings yet. Refuses text that
- * is not a JSON object, and a `hooks` key that is not an object (`null` too). */
+/** Read the settings text as an object. A null, empty or blank `text` is no
+ * settings yet. Refuses text that is not a JSON object, and a `hooks` key that
+ * is not an object (`null` too). */
 function parseSettings(text: string | null): Parsed {
   let value: unknown = {};
   try {
@@ -135,9 +137,8 @@ function editHooks(hooks: unknown[], install: Install, placed: boolean): HookEdi
   return { hooks: kept, placed: inserted, touched };
 }
 
-/** The groups after the edit. A group that loses its last hook is dropped; a
- * group that was never touched stays as it was. The entry goes in a new group
- * when no group held a weftwork entry. */
+/** The groups after the edit. A group that loses its last hook is dropped; an
+ * untouched group stays. The entry gets a new group if none held a weftwork one. */
 function editStopGroups(groups: Group[], install: Install): unknown[] {
   let placed = false;
   const edited: unknown[] = [];
@@ -170,9 +171,8 @@ function renderSettings(parsed: Settings, stop: unknown[]): string {
 }
 
 /** The settings text with one weftwork Stop entry for `command`. `text` is the
- * file's text, or null when there is no file. A weftwork entry that exists is
- * replaced in place, and any more of them are removed, so there is at most
- * one. Every other key and hook stays, in order. */
+ * file's text, or null when there is no file. An existing weftwork entry is
+ * replaced in place and any more are removed. Every other key and hook stays. */
 export function installStopHook(text: string | null, cliPath: string, command: string): InstallResult {
   if (command.trim() === '') {
     return { ok: false, error: 'the declared command is blank' };
@@ -263,10 +263,10 @@ function removeQuietly(path: string): void {
 }
 
 /** Write `text` to `path` through a random-named temp file and a rename, so a
- * crashed process never leaves half a file (no fsync: a power loss can). The
- * name is random enough that a collision is not a case worth code. The temp
- * file is created with `mode`, so it is never wider than the file it replaces,
- * and chmod undoes the umask; with no `mode` (a new file) the umask decides. */
+ * crashed process never leaves half a file (no fsync: a power loss can). A name
+ * collision is not worth code. The temp file is created with `mode`, so it is
+ * never wider than the file it replaces; chmod undoes the umask. No `mode` (a
+ * new file): the umask decides. */
 function writeAtomic(path: string, text: string, mode: number | undefined): Failure | null {
   const temp = join(dirname(path), `settings.json.${randomBytes(6).toString('hex')}.tmp`);
   try {

@@ -165,6 +165,21 @@ test('AC-e07s03-02 extra keys on a group survive, touched or not', () => {
   assert.deepEqual(stopGroups(value), [other, { ...mine, hooks: [entry('new'), mine.hooks[1]] }]);
 });
 
+test('AC-e07s03-04 an owner hook that runs the adapter and then more is kept', () => {
+  const owner = { type: 'command', command: `${stopHookCommand(cli, 'x')} && echo owner` };
+  const { value, action } = installed(JSON.stringify({ hooks: { Stop: [{ hooks: [owner] }] } }));
+  assert.deepEqual(stopGroups(value), [{ hooks: [owner] }, { hooks: [entry('npm test')] }]);
+  assert.equal(action, 'added');
+});
+
+test('AC-e07s03-03 a command with single quotes is found again on a second run', () => {
+  const command = `echo "it's"`;
+  const first = installed(null, command);
+  const second = installStopHook(first.text, cli, command);
+  assert.ok(second.ok);
+  assert.equal(second.action, 'unchanged');
+});
+
 test('AC-e07s03-04 an owner hook that only mentions the adapter path is kept', () => {
   const mention = [
     { type: 'command', command: `timeout 30 ${stopHookCommand(cli, 'lint')} || notify-send fail` },

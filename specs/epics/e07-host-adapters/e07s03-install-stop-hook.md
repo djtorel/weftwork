@@ -53,9 +53,11 @@ recommendations):
    portable entry waits for the entry command (e11).
 3. **A second run with a different command replaces weftwork's entry.**
    There is at most one. An entry is weftwork's when it is a command
-   hook whose command starts with `node '<adapter path>' -- ` (changed
-   after review round 1, 2026-11-12: a match on the path anywhere in
-   the command deleted owner hooks that only mentioned it).
+   hook whose command is exactly `node '<adapter path>' -- ` and one
+   single-quoted argument (changed after review rounds 1 and 4,
+   2026-11-12: a match on the path anywhere in the command deleted
+   owner hooks that only mentioned it, and a prefix match deleted
+   `... -- 'x' && echo owner`).
 4. **The file is re-printed as JSON with 2-space indents.** Key order is
    kept (JSON.parse keeps the insertion order of string keys). The first
    install can change the spacing of an existing file; after that a
