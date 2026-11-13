@@ -8,7 +8,8 @@
 // liveReport is pure; claude-live-cli.ts reads the files and prints. Order,
 // first match wins: the project settings hold no usable weftwork entry (not
 // registered); its adapter file is gone (not registered); hooks are off, or the
-// check cannot tell (not seen); no entry is exactly as the install writes it,
+// check cannot tell (not seen); no entry is exactly as the install writes it
+// with no changed copy of the same handler in the local, project or user file,
 // so a hand edit may stop it blocking (not seen); no usable call record (not
 // seen); the record is of the same adapter and command as such an entry
 // (live); otherwise not seen.
@@ -43,8 +44,9 @@ export type LiveInput = {
 export type LiveAnswer = 'live' | 'not-seen' | 'not-registered';
 export type LiveReport = { answer: LiveAnswer; reason: string; notes: string[] };
 
-/** A weftwork entry, and whether it is exactly what the install writes. */
-type Entry = StopHookEntry & { asInstalled: boolean };
+/** A weftwork entry: the file it is in, whether it is exactly what the install
+ * writes, and whether its adapter file exists. */
+type Entry = StopHookEntry & { file: string; asInstalled: boolean; present: boolean };
 type Registered = { ok: true; entries: Entry[]; others: number } | { ok: false; reason: string };
 
 /** What the check cannot see, printed with every answer. */
@@ -62,23 +64,37 @@ const standingNotes = [
     'record, so live means the hook was called, not that Claude Code called it.',
 ];
 
-/** The weftwork entries in the project's Stop list, and how many other Stop
- * hooks it holds. */
-function weftworkEntries(project: SettingsSource): Registered {
-  if (!project.read.ok) {
-    return { ok: false, reason: `${project.name}: ${project.read.error}` };
+/** The weftwork entries in one file's Stop list, and how many other Stop hooks
+ * it holds. */
+function weftworkEntries(source: SettingsSource, exists: (path: string) => boolean): Registered {
+  if (!source.read.ok) {
+    return { ok: false, reason: `${source.name}: ${source.read.error}` };
   }
-  const parsed = parseSettings(project.read.text);
+  const parsed = parseSettings(source.read.text);
   const stop = parsed.ok ? stopListOf(parsed.hooks) : parsed;
   if (!stop.ok) {
-    return { ok: false, reason: `${project.name}: ${stop.error}` };
+    return { ok: false, reason: `${source.name}: ${stop.error}` };
   }
   const hooks = stop.groups.flatMap((group) => group.hooks);
-  const entries = hooks.flatMap((hook) => {
+  const entries = hooks.flatMap((hook): Entry[] => {
     const ours = parseStopHook(hook);
-    return ours === null ? [] : [{ ...ours, asInstalled: isAsInstalled(hook, ours) }];
+    if (ours === null) return [];
+    return [{ ...ours, file: source.name, asInstalled: isAsInstalled(hook, ours), present: exists(ours.cliPath) }];
   });
   return { ok: true, entries, others: hooks.length - entries.length };
+}
+
+/** The weftwork entries in the local and user files. Claude Code runs a handler
+ * defined in more than one settings file once (hooks docs, read 2026-11-12),
+ * so a changed copy there can be the one that runs (review round 3, A1, B-1). */
+function copiesIn(sources: SettingsSource[], exists: (path: string) => boolean): Registered {
+  const entries: Entry[] = [];
+  for (const source of sources) {
+    const found = weftworkEntries(source, exists);
+    if (!found.ok) return found;
+    entries.push(...found.entries);
+  }
+  return { ok: true, entries, others: 0 };
 }
 
 /** Why hooks do not run, or null when they do, from the first file in
@@ -138,13 +154,13 @@ function answerFromRecord(present: Entry[], lastCall: LastCallRead, now: Date): 
   return { answer: 'not-seen', reason: `the last call, at ${when}, ran another command or adapter` };
 }
 
-/** The reason with every control character written as `\uXXXX`: C0, DEL and
- * C1, the direction marks and overrides, and the line and paragraph
- * separators. The record, the settings and the error texts are the agent's to
- * write, and such characters printed raw could draw a fake answer line or
- * reorder the text on the owner's screen (security review F2; review round 2,
- * A-F4 and B-1). */
-const unsafeCharacters = /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u2028-\u202e\u2066-\u2069]/g;
+/** The reason with every control character written as `\uXXXX`: the Unicode
+ * control characters (C0, DEL, C1), every Bidi_Control character, and the line
+ * and paragraph separators. The record, the settings and the error texts are
+ * the agent's to write, and such characters printed raw could draw a fake
+ * answer line or reorder the text on the owner's screen (security review F2;
+ * review rounds 2 and 3). */
+const unsafeCharacters = /[\p{Cc}\p{Bidi_Control}\u2028\u2029]/gu;
 
 function shown(text: string): string {
   return text.replace(unsafeCharacters, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
@@ -159,11 +175,11 @@ export function liveReport(input: LiveInput): LiveReport {
 
 /** Why the project has no usable weftwork entry, or null when it has one whose
  * adapter file exists. */
-function whyNotRegistered(entries: Entry[], others: number, input: LiveInput): string | null {
+function whyNotRegistered(entries: Entry[], others: number, file: string): string | null {
   if (entries.length === 0) {
-    return `no weftwork Stop hook in ${input.project.name} (${others} other Stop hook(s))`;
+    return `no weftwork Stop hook in ${file} (${others} other Stop hook(s))`;
   }
-  if (!entries.some((entry) => input.exists(entry.cliPath))) {
+  if (!entries.some((entry) => entry.present)) {
     const paths = entries.map((entry) => entry.cliPath).join(', ');
     return `the entry names ${paths}, which does not exist on this machine: run the install again`;
   }
@@ -172,30 +188,50 @@ function whyNotRegistered(entries: Entry[], others: number, input: LiveInput): s
 
 /** The report before its reason is escaped, in the order the header gives. */
 function rawReport(input: LiveInput): LiveReport {
-  const found = weftworkEntries(input.project);
+  const found = weftworkEntries(input.project, input.exists);
   if (!found.ok) {
     return { answer: 'not-registered', reason: found.reason, notes: [...standingNotes] };
   }
   const notes = notesFor(found.entries);
-  const missing = whyNotRegistered(found.entries, found.others, input);
+  const missing = whyNotRegistered(found.entries, found.others, input.project.name);
   if (missing !== null) {
     return { answer: 'not-registered', reason: missing, notes };
   }
+  return { ...answerWhenRegistered(found.entries, input), notes };
+}
+
+/** The answer for a registered hook whose adapter exists: hooks must be on,
+ * the local and user Stop lists readable, and then the entries decide. */
+function answerWhenRegistered(entries: Entry[], input: LiveInput): Omit<LiveReport, 'notes'> {
   const off = hooksOff([input.local, input.project, input.user]);
   if (off !== null) {
-    return { answer: 'not-seen', reason: off, notes };
+    return { answer: 'not-seen', reason: off };
   }
-  return { ...answerFor(found.entries, input), notes };
+  const copies = copiesIn([input.local, input.user], input.exists);
+  if (!copies.ok) {
+    return { answer: 'not-seen', reason: `cannot tell whether hooks are on: ${copies.reason}` };
+  }
+  return answerFor([...entries, ...copies.entries], input);
+}
+
+/** True when `a` and `b` are the same handler: the same adapter and command. */
+function sameHandler(a: StopHookEntry, b: StopHookEntry): boolean {
+  return a.cliPath === b.cliPath && a.command === b.command;
 }
 
 /** The answer once an entry is registered and hooks are on. Only an entry as
- * the install writes it, with its adapter file present, can block a stop, so
- * only a record of one of those is live. */
+ * the install writes it, with its adapter present and no changed copy of the
+ * same handler in any file, can block a stop, so only a record of one of those
+ * is live. A hand edit such as `async`, an `if` or a short `timeout` runs the
+ * hook without letting it block. */
 function answerFor(entries: Entry[], input: LiveInput): Omit<LiveReport, 'notes'> {
-  const usable = entries.filter((entry) => entry.asInstalled && input.exists(entry.cliPath));
+  const changed = entries.filter((entry) => !entry.asInstalled);
+  const usable = entries.filter((entry) =>
+    entry.asInstalled && entry.present && !changed.some((other) => sameHandler(other, entry)));
   if (usable.length === 0) {
-    const reason = 'the weftwork entry was changed by hand (async, if, timeout or another field), ' +
-      'so it may not block a stop: run the install again';
+    const files = [...new Set(changed.map((entry) => entry.file))].join(', ');
+    const reason = `a weftwork entry in ${files} was changed by hand (async, if, timeout or another ` +
+      'field), so the hook may not block a stop: remove the copy or run the install again';
     return { answer: 'not-seen', reason };
   }
   return answerFromRecord(usable, input.lastCall, input.now);

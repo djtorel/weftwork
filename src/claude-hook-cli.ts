@@ -109,10 +109,10 @@ async function refusedInput(): Promise<HookOutput | null> {
 
 /** Record that the host called this hook, for the live check. Both calls never
  * throw, and the result is ignored: the record must not change the answer. It
- * is awaited, not left running, because the deadline and signal paths leave
- * through process.exit, which would cut off a write still in flight; awaited,
- * a call refused for bad or missing input still leaves its record (review
- * round 2, A-F7). */
+ * is awaited so the write is done before the input is read, as the spec says.
+ * The deadline and signal paths leave through process.exit and can still cut
+ * off a write in flight; that call then reads as not seen (review round 3,
+ * A6, B-4). */
 async function recordCall(dir: string, command: string): Promise<void> {
   const path = await lastCallPath(dir);
   if (path !== null) {

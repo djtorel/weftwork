@@ -67,7 +67,17 @@ export function readSettings(path: string, follow = false): Read {
   } catch (error) {
     return { ok: false, error: `${path} could not be read: ${messageOf(error)}` };
   } finally {
+    closeQuietly(fd);
+  }
+}
+
+/** Close `fd`. A failed close does not undo a read that worked, and an expected
+ * failure is a returned value here, never a throw (review round 3, B-7). */
+function closeQuietly(fd: number): void {
+  try {
     closeSync(fd);
+  } catch {
+    // Nothing to do: the read's own result is what the caller gets.
   }
 }
 

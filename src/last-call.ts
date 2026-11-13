@@ -62,13 +62,22 @@ export async function writeLastCall(path: string, call: LastCall): Promise<LastC
   }
 }
 
+/** The longest `at` a record may hold: an ISO time is 24 characters. A longer
+ * one could carry text that the check prints (review round 3, B-3). */
+const maxTimeLength = 40;
+
+/** True when `at` is a time Date.parse reads and no longer than a time is. */
+function isTime(at: unknown): at is string {
+  return typeof at === 'string' && at.length <= maxTimeLength && !Number.isNaN(Date.parse(at));
+}
+
 /** The record in `data`, or null when a field is missing or has the wrong type. */
 function toCall(data: unknown): LastCall | null {
   if (!isRecord(data)) {
     return null;
   }
   const { at, cliPath, command } = data;
-  if (typeof at !== 'string' || typeof cliPath !== 'string' || typeof command !== 'string') {
+  if (!isTime(at) || typeof cliPath !== 'string' || typeof command !== 'string') {
     return null;
   }
   return { at, cliPath, command };
