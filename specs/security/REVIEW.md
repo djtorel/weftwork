@@ -914,3 +914,25 @@ Deferred: storing `CLAUDE_PROJECT_DIR` in the record (B-9), and reading at most
 cap + 1 bytes instead of trusting `fstat` (B-6, e10).
 
 Verdict is unchanged: PASS.
+
+## Addendum: request-review round 4 (2026-11-12)
+
+Reviewer A 80, Reviewer B 75, one must-fix. Applied:
+
+- Must-fix B-1, a defect from the round-3 change: an as-installed entry in the
+  user or local file could stand in for a changed project entry, so the check
+  said `live` while the project's own entry could not block. Now only project
+  entries can be usable; a copy can only rule one out.
+- Tests for the adapter half of the copy rule (A-1) and the start anchor of
+  the entry parser, with an install test that keeps an owner hook that runs the
+  entry after its own shell text (B-2).
+- The reason names only the files of changed copies of the project's handler
+  (A-5) and says "cannot tell whether a changed copy of the entry exists" for
+  an unreadable copy list (A-3, B-5); identical entries are counted once
+  (A-2, B-3); `copiesIn` has its own type (A-4, B-6); two notes added (B-8,
+  B-4).
+
+Deferred: comparing resolved adapter paths (B-4, fails toward "not live").
+Declined: sharing one `git rev-parse` between the record and the engine (B-7).
+
+Verdict is unchanged: PASS.

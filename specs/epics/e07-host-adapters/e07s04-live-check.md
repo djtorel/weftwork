@@ -153,11 +153,13 @@ added call (task 2), and both have tests through the real CLI.
      after precedence (local over project over user): `not-seen`, naming
      the file that decides it.
   5. No call record, or one that cannot be read: `not-seen`.
-  6. No weftwork entry with its adapter present is exactly what the
+  6. No project entry with its adapter present is exactly what the
      install writes (`{type, command, timeout}`, nothing more) with no
      changed copy of the same handler (same adapter and command) in the
-     local, project or user file: `not-seen`, naming the file, "remove
-     the copy or run the install again". A hand edit such as
+     local, project or user file: `not-seen`, naming the files of those
+     changed copies, "remove the copy or run the install again". A copy
+     can rule a project entry out but never stand in for it (review
+     round 4, B-1). A hand edit such as
      `"async": true`, an `if` or a short `timeout` runs the hook but
      cannot block a stop, and Claude Code runs a handler defined in more
      than one settings file once (Claude Code hooks docs, read
@@ -371,6 +373,14 @@ No new packages. Node built-ins only (`node:fs`, `node:path`). `[OK]`
   record, so the root can read as live for a hook that ran there. The
   notes say so; storing `CLAUDE_PROJECT_DIR` in the record is deferred
   (review round 3, B-9).
+- **A symlinked adapter path never reads as live.** Node records the
+  resolved path of the running adapter, so an entry that names it
+  through a symlink runs and blocks but reads as `not-seen`. It errs
+  toward "not live"; the notes say so. Comparing resolved paths is
+  deferred (review round 4, B-4).
+- **Two `git rev-parse` runs per stop.** The record and the engine each
+  find the git dir. A few milliseconds; sharing it would change the
+  engine's interface (review round 4, B-7, declined).
 - **Size caps check `fstat`, then read to the end.** A file that grows
   between the two is read past the cap. A narrow race in the owner's own
   process; deferred to e10 with the other file hardening (review round
