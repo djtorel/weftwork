@@ -124,10 +124,6 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       writeFileSync(join(repo, 'sub', '.git'), 'gitdir: /elsewhere\n');
       return 'sub/.git';
     }, ['gitdir'], /inside \.git/],
-    ['an edit that would pass 1 MiB (review 2, A9)', (_repo, specs) => {
-      writeFileSync(join(specs, 'near.yaml'), `a: x\nb: ${'x'.repeat(1024 * 1024 - 20)}\n`);
-      return 'specs/near.yaml';
-    }, ['a'], /larger than 1048576 bytes/],
     ['a state file over 1 MiB', (_repo, specs) => {
       writeFileSync(join(specs, 'big.yaml'), `a: ${'x'.repeat(1024 * 1024)}\n`);
       return 'specs/big.yaml';
@@ -147,6 +143,17 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
     assert.deepEqual(after, before, label);
     if (targetBefore !== null) assert.equal(readFileSync(target, 'utf8'), targetBefore, `${label}: the target changed`);
   }
+});
+
+// AC-e08s01-08, review 2 (A9): a write must not make a file the writer cannot read
+test('the CLI refuses an edit that would push the file past 1 MiB', () => {
+  const { repo, specs } = repoWithState();
+  const near = `a: x\nb: ${'x'.repeat(1024 * 1024 - 20)}\n`;
+  writeFileSync(join(specs, 'near.yaml'), near);
+  const run = runCli(repo, request('specs/near.yaml', ['a'], 'y'.repeat(100)));
+  assert.equal(run.status, 1, JSON.stringify(run.result).slice(0, 200));
+  assert.match(run.result.error ?? '', /larger than 1048576 bytes/);
+  assert.equal(readFileSync(join(specs, 'near.yaml'), 'utf8'), near);
 });
 
 // AC-e08s01-08, review 2 (A1, B2): in a worktree .git is a YAML-shaped file

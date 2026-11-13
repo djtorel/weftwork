@@ -10,9 +10,9 @@
 // edit it. Text of the wrong shape is refused, never repaired or overwritten.
 import { lstatSync } from 'node:fs';
 import { join } from 'node:path';
-import { installStopHook, type Action, type Failure } from './claude-install.ts';
+import { installStopHook, type Action } from './claude-install.ts';
 import { isMissing } from './errors.ts';
-import { readRegularFile, writeAtomic, type ReadRegular, type RegularFile } from './regular-file.ts';
+import { readRegularFile, writeAtomic, type Failure, type ReadRegular, type RegularFile } from './regular-file.ts';
 
 /** The most readSettings reads. A real settings file is a few KiB; the live
  * check follows symlinks, so the file may be any file the agent links. */
