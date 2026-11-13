@@ -6,11 +6,11 @@
 // repository; none touches this repository's own specs/state.yaml.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { checkStateField, readStateFields, setStateField, stateFields, stateFile } from './state-fields.ts';
-import { cleanupTempDirs, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -153,4 +153,24 @@ test('readStateFields refuses a repository with no state file', () => {
 test('readStateFields refuses invalid YAML', () => {
   const result = readStateFields(repoWithState('active_flow: [\n'));
   assert.equal(result.ok, false);
+});
+
+// Security review e08s02, F1: get must not read through a folder outside the root.
+test('readStateFields refuses a specs folder that is a symlink out of the repository', () => {
+  const repo = makeTestRepo();
+  const outside = makeTempDir();
+  writeFileSync(join(outside, 'state.yaml'), fixture);
+  symlinkSync(outside, join(repo, 'specs'));
+  const result = readStateFields(repo);
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.error, /outside the repository/);
+});
+
+// Security review e08s02, F2: an alias bomb is a refusal, not a throw.
+test('readStateFields refuses an alias bomb and does not throw', () => {
+  const lines = ['a: &a [x, x, x, x, x, x, x, x, x, x]', 'b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]'];
+  lines.push('c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]', 'active_flow: null', '');
+  const result = readStateFields(repoWithState(lines.join('\n')));
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.error, /alias/i);
 });
