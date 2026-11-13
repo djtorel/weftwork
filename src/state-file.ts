@@ -8,7 +8,7 @@
 import { realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { CST, isMap, isScalar, Parser, parseAllDocuments, parseDocument, type Document, type Scalar } from 'yaml';
+import { CST, isMap, isScalar, parse, Parser, parseAllDocuments, parseDocument, stringify, type Document, type Scalar } from 'yaml';
 import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
@@ -17,6 +17,8 @@ import { readRegularFile, writeAtomic } from './regular-file.ts';
 export const maxStateBytes = 1024 * 1024;
 
 export type FieldValue = string | number | boolean | null;
+/** The value setMapping writes: a flat mapping of text, null and lists of text. */
+export type MappingValue = Readonly<Record<string, string | null | readonly string[]>>;
 export type SetField = { ok: true; text: string } | Failure;
 export type WriteField = { ok: true; action: 'written' | 'unchanged'; file: string } | Failure;
 type Reading = { data: unknown; warnings: number };
@@ -251,6 +253,68 @@ export function setField(text: string, path: readonly string[], value: FieldValu
   return firstEditThatHolds(text, path, normalised, want);
 }
 
+/** Why `value` cannot be written as the mapping at `key`, or null. Each entry
+ * is text, null or a list of text, and every string passes refusalForValue. */
+function refusalForMapping(key: string, value: unknown): string | null {
+  if (key === '') return 'the key path is empty';
+  if (!isRecord(value) || !isPlainData(value)) return `${key}: the value must be a mapping of plain data`;
+  for (const [field, item] of Object.entries(value)) {
+    const items: unknown[] = Array.isArray(item) ? item : [item];
+    if (Array.isArray(item) && item.some((entry) => typeof entry !== 'string')) return `${key}.${field}: a list must hold only text`;
+    if (!Array.isArray(item) && item !== null && typeof item !== 'string') return `${key}.${field}: must be text, null or a list of text`;
+    for (const entry of items) {
+      const refusal = entry === null ? null : refusalForValue([key, field], entry);
+      if (refusal !== null) return `${key}.${field}: ${refusal}`;
+    }
+  }
+  return null;
+}
+
+/** The start and end offsets of the entry for top-level `key` in `text`: from
+ * its key to the end of its value. Comments before the next key are outside. */
+function entrySpan(text: string, key: string): { ok: true; start: number; end: number } | Failure {
+  const doc = [...new Parser().parse(text)].find((token) => token.type === 'document');
+  const map = doc?.type === 'document' ? doc.value : undefined;
+  if (map?.type !== 'block-map') return { ok: false, error: 'the document is not a block mapping' };
+  const item = map.items.find((entry) => CST.isScalar(entry.key) && CST.resolveAsScalar(entry.key)?.value === key);
+  if (item === undefined || item.key === null || item.key === undefined) return { ok: false, error: `there is no key ${key}` };
+  const last = item.value ?? item.sep?.at(-1) ?? item.key;
+  return { ok: true, start: item.key.offset, end: last.offset + CST.stringify(last).length };
+}
+
+/** Replace the value of the top-level `key` in the YAML `text` with the flat
+ * mapping `value`, in block style, and keep every byte outside that entry. The
+ * key must exist; the writer never adds a top-level key. The new entry is
+ * written with the YAML 1.1 schema, so PyYAML reads it as the same data, and
+ * the new text is kept only when it reads as the old data with that one key
+ * replaced. Otherwise no text comes back. */
+export function setMapping(text: string, key: string, value: MappingValue): SetField {
+  const refusal = refusalForMapping(key, value);
+  if (refusal !== null) return { ok: false, error: refusal };
+  const parsed = parseOne(text);
+  if (!parsed.ok) return parsed;
+  const span = entrySpan(text, key);
+  if (!span.ok) return span;
+  const collision = keysCollide(parsed.doc, [key]);
+  if (collision !== null) return collision;
+  if (!isRecord(parsed.data) || !Object.hasOwn(parsed.data, key)) {
+    return { ok: false, error: `${key} does not read back as written: YAML reads the key as another value` };
+  }
+  const data = { ...parsed.data, [key]: unsharedCopy(value) };
+  if (isDeepStrictEqual(data, parsed.data)) return { ok: true, text };
+  let entry = stringify({ [key]: value }, { version: '1.1' });
+  if (!isDeepStrictEqual(parse(entry, { version: '1.1' }), { [key]: value })) {
+    return { ok: false, error: `${key}: PyYAML would not read the new value back` };
+  }
+  if (!text.slice(span.start, span.end).endsWith('\n')) entry = entry.replace(/\n$/, '');
+  if (text.includes('\r\n')) entry = entry.replaceAll('\n', '\r\n');
+  const edited = text.slice(0, span.start) + entry + text.slice(span.end);
+  if (!holdsData(edited, { data, warnings: parsed.warnings })) {
+    return { ok: false, error: `${key} could not be replaced so that the file reads back as the old data with this key replaced` };
+  }
+  return { ok: true, text: edited };
+}
+
 /** The real path `file` names, when it lies inside `root` and outside `.git`:
  * `file` is resolved against `root`, and its directory after resolving
  * symlinks must be `root` or below it. The file name itself is not resolved:
@@ -283,12 +347,26 @@ export function insideRoot(root: string, file: string): { ok: true; path: string
  * mode, and only when the text changes. A file that cannot be read, parsed or
  * checked is never written. */
 export function writeStateField(root: string, file: string, path: readonly string[], value: FieldValue): WriteField {
+  return writeStateEdit(root, file, (text) => setField(text, path, value));
+}
+
+/** Replace the value of the top-level `key` of the state file `file` with the
+ * mapping `value` (setMapping), with the same checks and atomic write as
+ * writeStateField. */
+export function writeStateMapping(root: string, file: string, key: string, value: MappingValue): WriteField {
+  return writeStateEdit(root, file, (text) => setMapping(text, key, value));
+}
+
+/** Read the state file `file` under `root`, apply `edit`, and write the result
+ * when the text changes; the shared body of writeStateField and
+ * writeStateMapping. */
+function writeStateEdit(root: string, file: string, edit: (text: string) => SetField): WriteField {
   const inside = insideRoot(root, file);
   if (!inside.ok) return inside;
   const read = readRegularFile(inside.path, { follow: false, maxBytes: maxStateBytes });
   if (!read.ok) return read;
   if (read.file === null) return { ok: false, error: `${file} does not exist` };
-  const result = setField(read.file.text, path, value);
+  const result = edit(read.file.text);
   if (!result.ok) return { ok: false, error: `${file}: ${result.error}` };
   if (result.text === read.file.text) return { ok: true, action: 'unchanged', file };
   if (Buffer.byteLength(result.text) > maxStateBytes) {
