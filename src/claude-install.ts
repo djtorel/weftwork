@@ -38,6 +38,9 @@ function stopHookPrefix(cliPath: string): string {
   return `node ${shellQuote(cliPath)} -- `;
 }
 
+/** A weftwork entry read back: the adapter file and the declared command. */
+export type StopHookEntry = { cliPath: string; command: string };
+
 /** The command of the hook entry: the prefix, then the declared command. */
 export function stopHookCommand(cliPath: string, command: string): string {
   return stopHookPrefix(cliPath) + shellQuote(command);
@@ -56,7 +59,7 @@ function unquote(inner: string): string {
  * or null when `text` is not exactly what stopHookCommand writes. The install
  * and the live check both decide what an entry is here, so they cannot drift.
  * An owner hook that mentions the path or adds shell text after it is not ours. */
-export function parseStopHookCommand(text: string): { cliPath: string; command: string } | null {
+export function parseStopHookCommand(text: string): StopHookEntry | null {
   const match = stopHookText.exec(text);
   if (match === null) {
     return null;
@@ -67,10 +70,22 @@ export function parseStopHookCommand(text: string): { cliPath: string; command: 
 /** The adapter path and the declared command of `hook` when it is a weftwork
  * entry (a command hook whose command text parses), else null. The install
  * and the live check both read hook entries through this. */
-export function parseStopHook(hook: unknown): { cliPath: string; command: string } | null {
+export function parseStopHook(hook: unknown): StopHookEntry | null {
   return isRecord(hook) && hook.type === 'command' && typeof hook.command === 'string'
     ? parseStopHookCommand(hook.command)
     : null;
+}
+
+/** The whole hook entry the install writes for `cliPath` and `command`. */
+export function installedEntry(cliPath: string, command: string): object {
+  return { type: 'command', command: stopHookCommand(cliPath, command), timeout: hookTimeoutSeconds };
+}
+
+/** True when `hook`, read back as `entry`, is exactly what the install writes.
+ * A hand edit can make an entry that runs but cannot block a stop: `async`,
+ * an `if`, or a timeout the host cuts short (review B-F1). */
+export function isAsInstalled(hook: unknown, entry: StopHookEntry): boolean {
+  return isDeepStrictEqual(hook, installedEntry(entry.cliPath, entry.command));
 }
 
 /** True when `hook` is a weftwork entry for the adapter at `cliPath`. An entry
@@ -191,7 +206,7 @@ export function installStopHook(text: string | null, cliPath: string, command: s
   if (!stop.ok) {
     return stop;
   }
-  const entry = { type: 'command', command: stopHookCommand(cliPath, command), timeout: hookTimeoutSeconds };
+  const entry = installedEntry(cliPath, command);
   const install = { cliPath, entry };
   const out = renderSettings(parsed, editStopGroups(stop.groups, install));
   const changed = out !== text;
