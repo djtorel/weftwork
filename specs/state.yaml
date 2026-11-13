@@ -408,26 +408,26 @@ waivers:
 handoff:
   next_skill: release-branch
   next_story: e07s04
-  note: 'commit-message done 2026-11-12 on branch e07s04-live-check (not
-    pushed). Working tree clean. All 22 commits since main (28c371f) have a
-    Conventional Commits title and the Story: e07s04 trailer; no attribution
-    footer. No breaking change. Types: 5 feat, 3 fix, 9 test, 4 docs, 2
-    refactor. Release bump for the story: minor (feat present); the three
-    fix commits alone would be patch. Several titles are sentences ("the
-    live check escapes ...") rather than imperatives; rewriting unpushed
-    history needs the owner''s go-ahead, so they stay. Proposed squash title
-    for the PR: feat(adapter): check that the Stop hook is live. Body: the
-    Stop hook never starting blocks nothing and no host option reports it,
-    so the check reads the settings and a per-call record and says live
-    only when the same entry was called. release-branch: the PR must not
-    carry the bigpowers provenance marker. request-review (dual-blind) was
-    recommended and has not run; it is not in the handoff chain, so ask the
-    owner before release-branch if it is wanted. Carry: gate-trace R1 needs
-    an owner decision before e07 is released; for e10: ledger.jsonl is
-    appended to through a hard link, and a symlinked .git/weftwork
-    directory. Pushes, PRs and merges need an explicit go-ahead each. Do not
-    run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call
-    run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
+  note: 'request-review done 2026-11-12 on branch e07s04-live-check (not
+    pushed). The review cap ran out at 5 of 5 without a dual pass (round 5:
+    A 71.4, B 83.3, no must-fix; one must-fix in round 4, fixed). The owner
+    chose option A: fix the round-5 items and release; those fixes were not
+    re-reviewed. Preflight green, 466 of 466 tests; tools/assert-audit-story.sh
+    passes. Round history and deferrals are in specs/security/REVIEW.md
+    (e07s04 addenda) and the audit addendum in
+    specs/verifications/AUDIT-e07-e07s04.md. commit-message found nothing to
+    commit. PR body must name each gate: verify-work PASS (owner manual run on
+    3d7efed, before the review changes; the script step 5 text now says
+    "for ''true''"), security review PASS, audit PASS (addendum), review cap
+    exhausted and waived by the owner, gate-trace R1 needs an owner decision
+    before e07 is released. Deferred to e10: symlinked .git/weftwork, torn or
+    briefly empty record (temp file and rename), size caps checked by fstat
+    then read to EOF. Deferred: CLAUDE_PROJECT_DIR in the record, resolved
+    adapter paths. Declined: a staleness limit, sharing one git rev-parse.
+    Pushes, PRs and merges need an explicit go-ahead each. No bigpowers
+    provenance marker in the PR body. Do not run
+    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
+    tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -464,9 +464,9 @@ metrics:
       total_seconds: 26.0
       avg_seconds: 26.0
     respond-review:
-      calls: 1
-      total_seconds: 131.0
-      avg_seconds: 131.0
+      calls: 6
+      total_seconds: 931.0
+      avg_seconds: 155.16666666666666
     commit-message:
       calls: 5
       total_seconds: 46.0
