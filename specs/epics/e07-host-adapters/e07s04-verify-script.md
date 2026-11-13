@@ -70,8 +70,8 @@ to expect. `exit=` shows the exit code: 0 only for `live`.
    ```
 
    Expect `weftwork live check: live`, the reason `Claude Code last called
-   this hook at <time> (<n> s ago)` with the time of step 4, and
-   `exit=0`.
+   this hook for 'true' at <time> (<n> s ago)` with the time of step 4,
+   and `exit=0`.
 
 6. In terminal 2, turn hooks off in the personal settings, check, then
    turn them back on and check again:

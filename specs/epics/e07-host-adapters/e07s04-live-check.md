@@ -153,9 +153,16 @@ added call (task 2), and both have tests through the real CLI.
      after precedence (local over project over user): `not-seen`, naming
      the file that decides it.
   5. No call record, or one that cannot be read: `not-seen`.
-  6. The call record's adapter path and command equal an entry's:
-     `live`, with the record's time and age. Otherwise `not-seen`
-     ("the last call ran another command or adapter").
+  6. No weftwork entry with its adapter present is exactly what the
+     install writes (`{type, command, timeout}`, nothing more):
+     `not-seen`, "run the install again". A hand edit such as
+     `"async": true`, an `if` or a short `timeout` runs the hook but
+     cannot block a stop (Claude Code hooks docs, read 2026-11-12;
+     review round 1, B-F1).
+  7. The call record's adapter path and command equal such an entry's:
+     `live`, with the command, the record's time and age ("in the
+     future" for a time after now). Otherwise `not-seen` ("the last call
+     ran another command or adapter").
 - Notes, always printed: managed settings and `--settings` were not read,
   and `allowManagedHooksOnly` there would stop the hook; when two weftwork
   entries exist, two Stop hooks run; the hook runs in
@@ -347,8 +354,18 @@ No new packages. Node built-ins only (`node:fs`, `node:path`). `[OK]`
   "live". The test asserts that the install's path and the adapter's own
   path are equal for a normal checkout.
 - **A torn record.** Two hooks writing at once, or a crash mid-write, can
-  leave a file that is not JSON. It reads as `not-seen`, and the next call
-  fixes it.
+  leave a file that is not JSON. It reads as `not-seen`. With two weftwork
+  entries both write on every stop, so a torn file can recur (review round
+  1 reproduced 8 in 200 concurrent writes). It errs toward "not live". A
+  temp file and a rename would fix it; deferred to e10 with the git-dir
+  paths.
+- **A symlinked `.git/weftwork` directory.** `O_NOFOLLOW` covers only the
+  file name, so the record (and the ledger) can be written in a directory
+  the agent links to. Deferred to e10, which owns the git-dir paths (review
+  round 1, A-F9 and B-F4).
+- **A hook run by hand counts as called.** Running the adapter with
+  `CLAUDE_PROJECT_DIR` set writes a matching record. The notes say so
+  (review round 1, A-F8).
 - **Extra work on every call.** One `git rev-parse` and one small write
   before the input is read. The engine runs the same `git` call, and both
   fall under the hook's own deadline (e07s02).

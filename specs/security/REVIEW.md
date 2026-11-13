@@ -858,3 +858,21 @@ Each fix has a test-only commit that failed first, then the fix:
   (append only), and a symlinked `.git/weftwork` directory.
 
 Verdict is unchanged: PASS.
+
+## Addendum: request-review round 1 (2026-11-12)
+
+Two reviewers found no must-fix; the owner approved fixing the rest on the
+branch. Security-relevant changes:
+
+- The live check counts an entry only when it is exactly what the install
+  writes. An `async`, `if` or short-`timeout` entry runs but cannot block a
+  stop, and before the fix the check called it `live` (B-F1).
+- `readSettings` refuses a file past 1 MiB before reading it, now that the
+  check follows symlinks (B-F10).
+- The call record ignores a failed `close`, so a failed write cannot become a
+  block (A-F3, B-F9).
+- Deferred to e10, and written into the spec's risks: a symlinked
+  `.git/weftwork` directory (A-F9, B-F4, also true of the ledger) and a torn
+  record from concurrent writes (A-F2, errs toward "not live").
+
+Verdict is unchanged: PASS.
