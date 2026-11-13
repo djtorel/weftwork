@@ -3,7 +3,8 @@
 // Claude Code runs weftwork's Stop hook there, and exits 0 only when it does.
 // It reads .claude/settings.local.json, .claude/settings.json, the user
 // settings ($CLAUDE_CONFIG_DIR/settings.json, else ~/.claude/settings.json)
-// and the call record. Logic lives in claude-live.ts. It writes nothing.
+// and the call record, following symlinks as Claude Code does. Logic lives in
+// claude-live.ts. It writes nothing.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { liveReport, type LiveAnswer, type SettingsSource } from './claude-live.ts';
@@ -31,7 +32,7 @@ function source(name: string, path: string | null): SettingsSource {
   if (path === null) {
     return { name, read: { ok: false, error: 'neither CLAUDE_CONFIG_DIR nor HOME is set' } };
   }
-  const read = readSettings(path);
+  const read = readSettings(path, true);
   return { name: path, read: read.ok ? { ok: true, text: read.file?.text ?? null } : read };
 }
 

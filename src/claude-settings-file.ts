@@ -30,12 +30,13 @@ type Opened = { ok: true; fd: number | null } | Failure;
 export type SettingsFile = { text: string; mode: number };
 export type Read = { ok: true; file: SettingsFile | null } | Failure;
 
-/** Open the settings file without blocking and without following a symlink.
- * `fd` is null when there is no file. The agent can replace the file, and
- * opening a FIFO blocks (BUG-007). */
-function openIfExists(path: string): Opened {
+/** Open the settings file without blocking, and without following a symlink
+ * unless `follow` says so. `fd` is null when there is no file. The agent can
+ * replace the file, and opening a FIFO blocks (BUG-007). */
+function openIfExists(path: string, follow: boolean): Opened {
+  const flags = constants.O_RDONLY | constants.O_NONBLOCK | (follow ? 0 : constants.O_NOFOLLOW);
   try {
-    return { ok: true, fd: openSync(path, constants.O_RDONLY | constants.O_NONBLOCK | constants.O_NOFOLLOW) };
+    return { ok: true, fd: openSync(path, flags) };
   } catch (error) {
     if (isMissing(error)) return { ok: true, fd: null };
     return { ok: false, error: `${path} cannot be opened as a regular file: ${messageOf(error)}` };
@@ -43,9 +44,12 @@ function openIfExists(path: string): Opened {
 }
 
 /** Read the settings file. `file` is null when there is none. Only a regular
- * file is read. The file's mode comes back too, so a rewrite keeps it. */
-export function readSettings(path: string): Read {
-  const opened = openIfExists(path);
+ * file is read. The file's mode comes back too, so a rewrite keeps it. The
+ * install refuses a symlink, since it writes. The live check only reads, and
+ * Claude Code reads a symlinked file (a dotfile manager's), so it passes
+ * `follow`; the target must still be a regular file. */
+export function readSettings(path: string, follow = false): Read {
+  const opened = openIfExists(path, follow);
   if (!opened.ok) return opened;
   const fd = opened.fd;
   if (fd === null) return { ok: true, file: null };
