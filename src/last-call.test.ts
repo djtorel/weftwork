@@ -100,6 +100,21 @@ test('an error names the call record, not the ledger (review A-F1)', async () =>
   assert.doesNotMatch(read.error, /ledger/);
 });
 
+test('a record past 64 KiB is refused on read (review B-F3)', async () => {
+  const path = freshPath();
+  await writeLastCall(path, { ...call, command: 'x'.repeat(64 * 1024) });
+  assert.equal((await readLastCall(path)).ok, false);
+});
+
+test('a symlink to a valid record is refused on read (review B-F3)', async () => {
+  const dir = makeTempDir();
+  const real = join(dir, 'real.json');
+  await writeLastCall(real, call);
+  const path = join(dir, 'last-call.json');
+  symlinkSync(real, path);
+  assert.equal((await readLastCall(path)).ok, false);
+});
+
 test('a FIFO in place of the file returns at once for a write and a read (BUG-007)', () => {
   const fifo = JSON.stringify(makeFifo());
   const out = inChild(

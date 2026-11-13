@@ -209,3 +209,43 @@ test('a record dated after now says so, not a negative age (review F4/F6)', () =
 test('the notes say a hand-run hook also leaves a record (review A-F8)', () => {
   assert.ok(liveReport(input()).notes.some((note) => /by hand/.test(note)));
 });
+
+/** Two weftwork entries: one whose adapter exists, one whose adapter is gone. */
+const gone = '/gone/src/claude-hook-cli.ts';
+const twoEntries = source('.claude/settings.json', settings([entry('npm test'), entry('npm run x', gone)]));
+
+test('a record of the entry whose adapter is gone is not live (review B-F2)', () => {
+  const lastCall = { ok: true, call: { ...call, cliPath: gone, command: 'npm run x' } } as const;
+  assert.equal(liveReport(input({ project: twoEntries, lastCall })).answer, 'not-seen');
+});
+
+test('one entry with its adapter present is enough to be registered (review B-F2)', () => {
+  assert.equal(liveReport(input({ project: twoEntries })).answer, 'live');
+});
+
+test('a disableAllHooks that is not true or false: cannot tell (review B-F2)', () => {
+  const project = source('.claude/settings.json', settings([entry()], { disableAllHooks: 'true' }));
+  const report = liveReport(input({ project }));
+  assert.equal(report.answer, 'not-seen');
+  assert.match(report.reason, /cannot tell whether hooks are on/);
+});
+
+test('a false in local settings wins over a true in project and user (review A-F5)', () => {
+  const report = liveReport(input({
+    local: source('.claude/settings.local.json', JSON.stringify({ disableAllHooks: false })),
+    project: source('.claude/settings.json', settings([entry()], { disableAllHooks: true })),
+    user: source('/home/u/.claude/settings.json', JSON.stringify({ disableAllHooks: true })),
+  }));
+  assert.equal(report.answer, 'live');
+});
+
+test('local or user settings that are JSON but not an object: cannot tell (review A-F5)', () => {
+  for (const change of [
+    { local: source('.claude/settings.local.json', '[]') },
+    { user: source('/home/u/.claude/settings.json', '"text"') },
+  ]) {
+    const report = liveReport(input(change));
+    assert.equal(report.answer, 'not-seen', JSON.stringify(change));
+    assert.match(report.reason, /cannot tell whether hooks are on/);
+  }
+});

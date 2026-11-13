@@ -182,3 +182,11 @@ test('AC-e07s04-07 a call refused for bad arguments writes no record', async () 
   assert.equal(runHook(stopInput(repo), [], repo).status, 2);
   assert.equal(existsSync(await recordPath(repo)), false);
 });
+
+test('the record is written before the input is read, so bad input still leaves one (review B-F3)', async () => {
+  const repo = makeTestRepo();
+  assert.equal(runHook('not json', ['--', 'true'], repo).status, 2);
+  const read = await readLastCall(await recordPath(repo));
+  assert.ok(read.ok && read.call !== null, 'a record was written');
+  assert.equal(read.call.command, 'true');
+});
