@@ -1174,3 +1174,78 @@ boundary, and each needs a caller who can already write the repository.
 
 PASS at 3f2e2b4. No HIGH finding at confidence 8 or more. F1 (alias bomb)
 is still fixed (test in state-file.test.ts and state-cli.test.ts).
+
+# Security review for branch e08s02-state-fields (e08s02, verify-work step 5)
+
+review_date: 2026-11-13
+branch: e08s02-state-fields
+head: f0d74ba (findings), 2260d5a (fixes)
+base: main (81e60a1)
+scope: git diff 81e60a1..HEAD -- src docs. Focus: the field table
+  (src/state-fields.ts), the new request shape of the state CLI
+  (src/state-cli.ts) and the new read path ("get").
+method: security-review 5-phase scan, reviewed inline; two attack paths
+  probed live in the scratchpad (a symlinked specs folder, an alias bomb).
+
+## Executable surface
+
+1. `src/state-cli.ts` reads one JSON request from stdin (capped at 1 MiB).
+   `set` writes one of five fields of `specs/state.yaml` through
+   `setStateField`; `get` reads those five fields. The file name is fixed;
+   the caller no longer names a file or a key path.
+2. `src/state-fields.ts` checks the key against the table and the value for
+   type, then calls `writeStateField` of e08s01 unchanged.
+
+As in e08s01, the CLI is not a privilege boundary: it runs as the user who
+starts it. It must not read or write outside the root, and it must fail
+closed with one JSON line.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Write outside the root | Narrower than e08s01: the file is fixed, and the write path keeps the e08s01 root, `.git` and symlink checks. Tested (state-file.write.test.ts). |
+| Read outside the root | **F1 below**, fixed. |
+| Alias expansion on read | **F2 below**, fixed. |
+| Key injection (`__proto__`, dotted paths) | Refused: only the five table keys pass; the read walk uses `Object.hasOwn`. |
+| Value with a newline or a long value | Refused before the writer. Tested. |
+| Unknown request fields (`file`, `path`) | Exit 2, nothing read or written. Tested. |
+| Command or shell injection | None: no shell; `git` through `execFile` with fixed arguments (unchanged). |
+| Secrets in the diff | None. |
+| Outbound requests | None. |
+
+## Findings
+
+### F1. get read the state file through a folder outside the root — LOW — CWE-59 — confidence 9
+
+- `src/state-fields.ts`, `readStateFields` at f0d74ba read
+  `join(root, 'specs/state.yaml')` with `O_NOFOLLOW` on the file name
+  only. When `specs` is a symlink to a folder outside the repository, `get`
+  read and printed five fields of the file there; `set` refused the same
+  path.
+- Exploit scenario: a cloned repository ships `specs` as a symlink to
+  another folder. `get` prints up to five one-line scalars of a
+  `state.yaml` there, with the user's own permissions. Low impact, but it
+  breaks the rule that the engine works only inside the root.
+- Fix (2260d5a): `readStateData` in `src/state-file.ts` runs the writer's
+  root and `.git` check, and `get` uses it. Tested.
+
+### F2. An alias bomb made get throw — LOW — CWE-248 — confidence 10
+
+- `readStateFields` at f0d74ba called `Document.toJS()` directly. A
+  four-line alias bomb made it throw `ReferenceError`, and the CLI died with
+  a stack trace and no JSON line. It is the e08s01 F1 defect on the new read
+  path. Nothing was written.
+- Fix (2260d5a): `readStateData` parses with the writer's `parseOne`, which
+  turns the throw into a refusal. Tested; probe gives exit 1 with one JSON
+  line.
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- The e08s01 deferred risks (parent swap race, fstat-then-read-to-EOF) now
+  apply to the read path as well. They stay with e10.
+
+## Verdict
+
+PASS for the security gate: no HIGH finding at confidence 8 or more. F1 and
+F2 are LOW and are fixed in the verify-work gaps loop.

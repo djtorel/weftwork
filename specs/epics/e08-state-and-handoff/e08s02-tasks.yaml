@@ -1,28 +1,22 @@
 ---
 # Status uses CONVENTIONS.md values: todo, in_progress, done.
-# slice-tasks 2026-11-13. The engine owns a small documented field set
-# and refuses everything else (R12: "keep the field set small and
-# documented"). The writer of e08s01 can change any key; this story
-# limits what the engine lets a caller change, so the file keeps a
-# shape a session with no memory can read.
-# Open for plan-work (recommendation first):
-#   1. The engine owns these keys of specs/state.yaml: active_flow,
-#      active_epic, active_story, phase and vcs.branch. The handoff
-#      block belongs to e08s03. Everything else (workflow_mode,
-#      test_plan, vcs.kind, waivers, metrics) is owned by the owner or
-#      by the global scripts. The engine refuses to set it and keeps it
-#      byte-for-byte.
-#   2. Values are checked for type only (text or null, one line, 200
-#      characters at most). The id patterns (e08, e08s01) are
-#      bigpowers naming, not an engine rule, so the engine does not
-#      check them.
-#   3. "Written only by the engine" means one exported write function,
-#      which the CLIs call. No test greps for other writers. The single
-#      writer half of H24 rests on design precedent, not on a measured
-#      fault (R12), so no gate is added until a fault is seen.
+# slice-tasks 2026-11-13; plan-work 2026-11-13. The engine owns a
+# small documented field set and refuses everything else (R12:
+# "keep the field set small and documented"). The writer of e08s01
+# can change any key; this story limits what the engine lets a
+# caller change, so the file keeps a shape a session with no memory
+# can read.
+# Owner decisions (2026-11-13, plan-work; all four recommendations
+# taken; spec e08s02-state-fields.md section 1):
+#   1. The engine owns active_flow, active_epic, active_story, phase
+#      and vcs.branch. handoff is e08s03. The rest stays byte-for-byte.
+#   2. Type-only checks: text or null, one line, 200 code points.
+#   3. One exported write function (setStateField); no writer grep.
+#   4. The state CLI takes no "file"; it uses specs/state.yaml.
 story_id: e08s02
+spec: e08s02-state-fields.md
 title: The engine changes only the documented state fields
-status: todo
+status: done
 bcps: 4
 type: feat
 context: engine
@@ -43,7 +37,7 @@ tasks:
       node --test src/state-fields.test.ts src/state-file.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
@@ -51,10 +45,11 @@ tasks:
         - "e08 B2"
   - id: 2
     description: >-
-      RED, then GREEN. Extend src/state-cli.test.ts first, then
-      src/state-cli.ts: "set" now goes through the field table, and a
-      new "get" reads the documented fields of the file and prints them
-      as one JSON line. A host reads state through the engine, not by
+      RED, then GREEN. Rewrite src/state-cli.test.ts first, then
+      src/state-cli.ts: the request is {op, key, value} with no "file";
+      "set" goes through setStateField, and a new "get" reads the
+      documented fields of specs/state.yaml and prints them as one JSON
+      line. A host reads state through the engine, not by
       parsing the YAML itself. Exit codes as in e08s01. A test sets
       every documented field in one repository and checks that
       waivers and metrics came out byte-identical
@@ -62,7 +57,7 @@ tasks:
       node --test src/state-fields.test.ts src/state-file.test.ts
       src/state-cli.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
@@ -78,7 +73,7 @@ tasks:
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: minor
       categories:

@@ -24,8 +24,8 @@ type Parsed = ({ ok: true; doc: Document } & Reading) | Failure;
 type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | Failure;
 
 /** True for a value the writer can put in a scalar: a string, a finite number,
- * a boolean or null. The CLI checks its input with the same rule. */
-export function isFieldValue(value: unknown): value is FieldValue {
+ * a boolean or null. setField refuses any other value with this rule. */
+function isFieldValue(value: unknown): value is FieldValue {
   if (typeof value === 'number') return Number.isFinite(value);
   return value === null || typeof value === 'string' || typeof value === 'boolean';
 }
@@ -34,7 +34,7 @@ export function isFieldValue(value: unknown): value is FieldValue {
  * warning count. yaml refuses to expand too many aliases by throwing from toJS
  * (a billion-laughs guard); that is a refusal here, not a crash (security
  * review F1). */
-function parseOne(text: string): Parsed {
+export function parseOne(text: string): Parsed {
   const docs = parseAllDocuments(text);
   const doc = Array.isArray(docs) && docs.length === 1 ? docs[0] : undefined;
   if (doc === undefined) return { ok: false, error: 'the text must be exactly one YAML document' };
@@ -255,7 +255,7 @@ export function setField(text: string, path: readonly string[], value: FieldValu
  * `file` is resolved against `root`, and its directory after resolving
  * symlinks must be `root` or below it. The file name itself is not resolved:
  * readRegularFile refuses a symlink there. */
-function insideRoot(root: string, file: string): { ok: true; path: string } | Failure {
+export function insideRoot(root: string, file: string): { ok: true; path: string } | Failure {
   try {
     const realRoot = realpathSync(root);
     const target = resolve(realRoot, file);

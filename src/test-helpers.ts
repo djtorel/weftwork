@@ -2,7 +2,7 @@
 // Shared by the test files: temporary directories and temporary git
 // repositories, so no test runs a command in the real repository.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -55,6 +55,17 @@ export function makeTestRepo(files: Record<string, string> = { 'tracked.txt': 'o
   git(dir, 'add', '-A');
   git(dir, 'commit', '-q', '-m', 'init');
   return dir;
+}
+
+/** A temporary repository whose specs/state.yaml is `text`, mode 0640. */
+export function makeStateRepo(text: string): { repo: string; specs: string; state: string } {
+  const repo = makeTestRepo();
+  const specs = join(repo, 'specs');
+  mkdirSync(specs);
+  const state = join(specs, 'state.yaml');
+  writeFileSync(state, text);
+  chmodSync(state, 0o640);
+  return { repo, specs, state };
 }
 
 /** The ledger of the repository at `repo`, read back. Fails the test if the

@@ -1,0 +1,169 @@
+// story: e08s02
+// The field table (e08s02 AC-01 to AC-05): the engine sets only the five
+// documented fields of specs/state.yaml, checks each value for type, refuses
+// everything else with the file left the same bytes, reads the documented
+// fields back, and agrees with docs/STATE.md. Every test runs in a temporary
+// repository; none touches this repository's own specs/state.yaml.
+import { after, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { parse } from 'yaml';
+import { checkStateField, readStateFields, setStateField, stateFields, stateFile } from './state-fields.ts';
+import { cleanupTempDirs, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
+
+after(cleanupTempDirs);
+
+const fixture = readFileSync(join(import.meta.dirname, 'fixtures', 'state.yaml'), 'utf8');
+
+/** The repository of makeStateRepo, with specs/state.yaml set to `text`. */
+const repoWithState = (text: string = fixture): string => makeStateRepo(text).repo;
+
+const stateText = (repo: string): string => readFileSync(join(repo, stateFile), 'utf8');
+
+/** The value at a dotted key of parsed YAML text. */
+function valueAt(text: string, key: string): unknown {
+  let node: unknown = parse(text);
+  for (const part of key.split('.')) node = (node as Record<string, unknown>)[part];
+  return node;
+}
+
+test('AC-e08s02-01 the table is the five documented fields', () => {
+  assert.equal(stateFile, 'specs/state.yaml');
+  assert.deepEqual([...stateFields].sort(), ['active_epic', 'active_flow', 'active_story', 'phase', 'vcs.branch']);
+});
+
+for (const [key, value] of [
+  ['active_flow', 'build_epic'],
+  ['active_epic', 'e09'],
+  ['active_story', null],
+  ['phase', 'initiate'],
+  ['vcs.branch', 'e08s02-state-fields'],
+] as const) {
+  test(`AC-e08s02-01 ${key} is accepted and written`, () => {
+    const repo = repoWithState(fixture);
+    assert.deepEqual(setStateField(repo, key, value), { ok: true, action: 'written', file: stateFile });
+    assert.equal(valueAt(stateText(repo), key), value);
+  });
+}
+
+for (const key of ['workflow_mode', 'test_plan', 'vcs.kind', 'handoff.next_skill', 'waivers', 'metrics', 'no_such_key', '']) {
+  test(`AC-e08s02-02 the key ${JSON.stringify(key)} is refused and the file is the same bytes`, () => {
+    const repo = repoWithState(fixture);
+    const result = setStateField(repo, key, 'x');
+    assert.equal(result.ok, false);
+    assert.ok(!result.ok && result.error.includes(JSON.stringify(key)), JSON.stringify(result));
+    assert.equal(stateText(repo), fixture);
+  });
+}
+
+for (const [name, value] of [
+  ['the number 3', 3],
+  ['the boolean true', true],
+  ['a list', ['e08s02']],
+  ['an object', { id: 'e08s02' }],
+  ['undefined', undefined],
+  ['text with a newline', 'e08s02\nphase: x'],
+  ['text with a carriage return', 'e08s02\rx'],
+  ['text of 201 code points', 'x'.repeat(201)],
+  ['text of 201 astral code points', '😀'.repeat(201)],
+] as const) {
+  test(`AC-e08s02-03 ${name} is refused and the file is the same bytes`, () => {
+    const repo = repoWithState(fixture);
+    const result = setStateField(repo, 'active_story', value);
+    assert.equal(result.ok, false);
+    assert.ok(!result.ok && result.error.includes('"active_story"'), JSON.stringify(result));
+    assert.equal(stateText(repo), fixture);
+  });
+}
+
+test('AC-e08s02-03 checkStateField answers without a file', () => {
+  assert.equal(checkStateField('phase', 'build'), null);
+  assert.equal(checkStateField('phase', null), null);
+  assert.equal(checkStateField('metrics', 'x')?.ok, false);
+  assert.equal(checkStateField('phase', 3)?.ok, false);
+});
+
+for (const [name, value] of [
+  ['200 code points', 'x'.repeat(200)],
+  ['200 astral code points (400 UTF-16 units)', '😀'.repeat(200)],
+  ['empty text', ''],
+] as const) {
+  test(`AC-e08s02-04 a value of ${name} is accepted`, () => {
+    const repo = repoWithState(fixture);
+    assert.deepEqual(setStateField(repo, 'active_story', value), { ok: true, action: 'written', file: stateFile });
+    assert.equal(valueAt(stateText(repo), 'active_story'), value);
+  });
+}
+
+test('AC-e08s02-04 setting a field to the value it holds is unchanged', () => {
+  const repo = repoWithState(fixture);
+  assert.deepEqual(setStateField(repo, 'phase', 'planning'), { ok: true, action: 'unchanged', file: stateFile });
+  assert.equal(stateText(repo), fixture);
+});
+
+test('AC-e08s02-05 the engine rows of docs/STATE.md are the keys of stateFields', () => {
+  const doc = readFileSync(join(import.meta.dirname, '..', 'docs', 'STATE.md'), 'utf8');
+  const rows = doc.split('\n').filter((line) => line.startsWith('| `'));
+  assert.ok(rows.length > stateFields.length, 'the table also lists the keys the engine does not write');
+  const engineKeys = rows
+    .map((line) => line.split('|').map((cell) => cell.trim()))
+    .filter((cells) => cells[3] === 'engine')
+    .map((cells) => (cells[1] as string).replaceAll('`', ''));
+  assert.deepEqual(engineKeys.sort(), [...stateFields].sort());
+});
+
+test('readStateFields gives the documented fields and nothing else', () => {
+  const repo = repoWithState(fixture);
+  // The expected values come from the fixture, so no story id is written here.
+  const expected = Object.fromEntries(stateFields.map((key) => [key, valueAt(fixture, key)]));
+  assert.equal(Object.keys(expected).length, 5);
+  assert.ok(Object.values(expected).some((value) => typeof value === 'string'), 'the fixture has text fields');
+  assert.deepEqual(readStateFields(repo), { ok: true, fields: expected });
+});
+
+for (const [name, text, key] of [
+  ['a missing key', fixture.replace(/^phase: planning\n/m, ''), 'phase'],
+  ['a value that is not text', fixture.replace(/^phase: planning$/m, 'phase: 3'), 'phase'],
+  ['a mapping in place of text', fixture.replace(/^active_flow: null$/m, 'active_flow:\n  a: b'), 'active_flow'],
+  ['vcs as text, not a mapping', fixture.replace(/^vcs:\n  kind: git\n  branch: [^\n]*\n/m, 'vcs: git\n'), 'vcs.branch'],
+  ['vcs with no value', fixture.replace(/^vcs:\n  kind: git\n  branch: [^\n]*\n/m, 'vcs:\n'), 'vcs.branch'],
+  ['vcs with no branch', fixture.replace(/^  branch: [^\n]*\n/m, ''), 'vcs.branch'],
+] as const) {
+  test(`readStateFields refuses ${name} and names the key`, () => {
+    const result = readStateFields(repoWithState(text));
+    assert.equal(result.ok, false);
+    assert.ok(!result.ok && result.error.includes(JSON.stringify(key)), JSON.stringify(result));
+  });
+}
+
+test('readStateFields refuses a repository with no state file', () => {
+  const result = readStateFields(makeTestRepo());
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && result.error.includes(stateFile), JSON.stringify(result));
+});
+
+test('readStateFields refuses invalid YAML', () => {
+  const result = readStateFields(repoWithState('active_flow: [\n'));
+  assert.equal(result.ok, false);
+});
+
+// Security review e08s02, F1: get must not read through a folder outside the root.
+test('readStateFields refuses a specs folder that is a symlink out of the repository', () => {
+  const repo = makeTestRepo();
+  const outside = makeTempDir();
+  writeFileSync(join(outside, 'state.yaml'), fixture);
+  symlinkSync(outside, join(repo, 'specs'));
+  const result = readStateFields(repo);
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.error, /outside the repository/);
+});
+
+// Security review e08s02, F2: an alias bomb is a refusal, not a throw.
+test('readStateFields refuses an alias bomb and does not throw', () => {
+  const lines = ['a: &a [x, x, x, x, x, x, x, x, x, x]', 'b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]'];
+  lines.push('c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]', 'active_flow: null', '');
+  const result = readStateFields(repoWithState(lines.join('\n')));
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.error, /alias/i);
+});

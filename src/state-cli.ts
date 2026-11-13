@@ -1,22 +1,24 @@
 // story: e08s01
-// Thin shell over the state writer: JSON on stdin, one JSON line on stdout, the
-// exit code carries the answer. Logic lives in state-file.ts.
+// story: e08s02
+// Thin shell over the field table: JSON on stdin, one JSON line on stdout, the
+// exit code carries the answer. Logic lives in state-fields.ts.
 //
-// Input: {"file": string, "path": string[], "value": string | number | boolean
-// | null}. "file" is named from the root of the repository that holds the
-// working directory. Exit 0 when the file was written or already held the
-// value; 1 when the engine refused (not a regular file, outside the root,
-// invalid YAML, a missing key, a value it could not keep); 2 for input it
-// cannot read (not JSON, the wrong shape, not in a git repository).
+// Input: {"op": "set", "key": string, "value": unknown} or {"op": "get"}.
+// It always works on specs/state.yaml under the root of the repository that
+// holds the working directory; "key" is a dotted field name from
+// docs/STATE.md. Exit 0 when the file was written, already held the value, or
+// was read; 1 when the engine refused (a key outside the table, a bad value,
+// a file it cannot read or keep); 2 for input it cannot read (not JSON, the
+// wrong shape, an unknown op, not in a git repository).
 import { isRecord } from './json.ts';
 import { messageOf } from './errors.ts';
 import { strictUtf8 } from './regular-file.ts';
-import { isFieldValue, writeStateField, type FieldValue } from './state-file.ts';
+import { readStateFields, setStateField } from './state-fields.ts';
 import { repositoryRoot } from './tree.ts';
 
 const maxInputBytes = 1024 * 1024;
 
-type Request = { file: string; path: string[]; value: FieldValue };
+type Request = { op: 'set'; key: string; value: unknown } | { op: 'get' };
 
 /** All of stdin, or null when it is larger than maxInputBytes. */
 async function readStdin(): Promise<Buffer | null> {
@@ -32,8 +34,9 @@ async function readStdin(): Promise<Buffer | null> {
   return Buffer.concat(chunks);
 }
 
-/** The request in `text`, or why it cannot be read. */
-function parseFieldRequest(text: string): Request | string {
+/** The request in `text`, or why it cannot be read. The value of a set is
+ * checked by the field table, so a bad value is a refusal, not bad input. */
+function parseRequest(text: string): Request | string {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -41,13 +44,12 @@ function parseFieldRequest(text: string): Request | string {
     return `stdin is not JSON: ${messageOf(error)}`;
   }
   if (!isRecord(data)) return 'stdin must be a JSON object';
-  const { file, path, value } = data;
-  if (typeof file !== 'string' || file === '') return '"file" must be a non-empty string';
-  if (!Array.isArray(path) || path.length === 0 || !path.every((key): key is string => typeof key === 'string')) {
-    return '"path" must be a non-empty list of strings';
-  }
-  if (!('value' in data) || !isFieldValue(value)) return '"value" must be a string, a finite number, a boolean or null';
-  return { file, path, value };
+  const keys = Object.keys(data).sort().join(',');
+  if (data.op === 'get') return keys === 'op' ? { op: 'get' } : '"get" takes no other field';
+  if (data.op !== 'set') return '"op" must be "set" or "get"';
+  if (keys !== 'key,op,value') return '"set" takes exactly "op", "key" and "value"';
+  if (typeof data.key !== 'string') return '"key" must be a string';
+  return { op: 'set', key: data.key, value: data.value };
 }
 
 function printAnswer(result: object, exitCode: number): void {
@@ -61,7 +63,7 @@ async function main(): Promise<void> {
   // Strict, as the file read is: a lossy decode would write U+FFFD to disk (review 4, B2).
   const text = strictUtf8(bytes);
   if (text === null) return printAnswer({ ok: false, error: 'stdin is not valid UTF-8' }, 2);
-  const request = parseFieldRequest(text);
+  const request = parseRequest(text);
   if (typeof request === 'string') return printAnswer({ ok: false, error: request }, 2);
   let root: string;
   try {
@@ -69,7 +71,7 @@ async function main(): Promise<void> {
   } catch (error) {
     return printAnswer({ ok: false, error: `${process.cwd()} is not in a git repository: ${messageOf(error)}` }, 2);
   }
-  const result = writeStateField(root, request.file, request.path, request.value);
+  const result = request.op === 'get' ? readStateFields(root) : setStateField(root, request.key, request.value);
   printAnswer(result, result.ok ? 0 : 1);
 }
 
