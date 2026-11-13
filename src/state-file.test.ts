@@ -135,6 +135,10 @@ test('what the writer refuses: an error that names the problem, and no text', ()
     ['an int tag and a string (review B3)', 'a: !!int 3\n', ['a'], 'x', /could not be set/],
     ['a multi-line value in a CRLF file (review A3, B4)', 'a: x\r\nb: 1\r\n', ['a'], 'p\nq', /CRLF/],
     ['a key with no value (review A7)', 'a:\nb: 1\n', ['a'], 'y', /a has no value to replace/],
+    ['a field under an anchored mapping (review 2, A3, B3)', 'base: &b\n  x: 1\nother: *b\n', ['base', 'x'], 2, /could not be set/],
+    ['a NEL in the value (review 2, B1)', 'a: x\n', ['a'], 'a\u0085b', /line break/],
+    ['an LS in the value (review 2, B1)', 'a: x\n', ['a'], 'a\u2028b', /line break/],
+    ['a PS in the value (review 2, B1)', 'a: x\n', ['a'], 'a\u2029b', /line break/],
   ];
   for (const [label, text, path, value, message] of cases) {
     const result = setField(text, path, value as FieldValue);
@@ -180,6 +184,16 @@ test('a string that YAML 1.1 reads as another type is quoted', () => {
   }
 });
 
+// AC-e08s01-04, review 2 (A4, B1): PyYAML cannot load these plain, or
+// changes them, so only printable ASCII that is not = or << is written plain.
+test('a string PyYAML would refuse or change as a plain scalar is double-quoted', () => {
+  for (const value of ['=', '<<', 'a\tb', 'café', 'a\u0001b']) {
+    const after = set('a: x\n', ['a'], value);
+    assert.match(after, /^a: "/, JSON.stringify(value));
+    assert.equal(parseDocument(after).get('a'), value, JSON.stringify(value));
+  }
+});
+
 // AC-e08s01-03: constructs next to the edited value that must keep working
 test('anchors, fitting tags, CRLF and same-line comments are kept', () => {
   const cases: [string, string[], FieldValue, string][] = [
@@ -187,6 +201,10 @@ test('anchors, fitting tags, CRLF and same-line comments are kept', () => {
     ['a: !!str x\nb: 2\n', ['a'], 'z', 'a: !!str z\nb: 2\n'],
     ['a: x\r\nb: 1\r\n', ['a'], 'z', 'a: z\r\nb: 1\r\n'],
     ['a: x # keep\nb: 1\n', ['a'], 'z', 'a: z # keep\nb: 1\n'],
+    ['a: >-\r\n  x\r\nb: 1\r\n', ['a'], 'z', 'a: "z"\r\nb: 1\r\n'],
+    ['a: 1\n', ['a'], 1e21, 'a: 1.0e+21\n'],
+    ['a: 1\n', ['a'], 1e-7, 'a: 1.0e-7\n'],
+    ['a: 1\n', ['a'], -0, 'a: 0\n'],
   ];
   for (const [text, path, value, expected] of cases) assert.equal(set(text, path, value), expected, JSON.stringify(text));
 });
@@ -216,7 +234,7 @@ test('for every scalar of every fixture, an edit changes no byte outside its val
     assert.ok(scalars.length > 5, name);
     for (const { path, start, length } of scalars) {
       const result = setField(text, path, 'edited value');
-      if (!result.ok) continue;
+      assert.ok(result.ok, `${name} ${path.join('.')}: ${result.ok ? '' : result.error}`);
       const tail = text.length - start - length;
       const label = `${name} ${path.join('.')}`;
       assert.equal(result.text.slice(0, start), text.slice(0, start), label);

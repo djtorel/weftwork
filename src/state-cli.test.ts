@@ -7,10 +7,10 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
 import { setField } from './state-file.ts';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -119,6 +119,15 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       return '.git/state.yaml';
     }, ['a'], /inside \.git/],
     ['the repository root itself (review B9)', () => '.', ['a'], /names the repository root/],
+    ['a .git file in a nested folder (review 2, A11, B8)', (repo) => {
+      mkdirSync(join(repo, 'sub'));
+      writeFileSync(join(repo, 'sub', '.git'), 'gitdir: /elsewhere\n');
+      return 'sub/.git';
+    }, ['gitdir'], /inside \.git/],
+    ['an edit that would pass 1 MiB (review 2, A9)', (_repo, specs) => {
+      writeFileSync(join(specs, 'near.yaml'), `a: x\nb: ${'x'.repeat(1024 * 1024 - 20)}\n`);
+      return 'specs/near.yaml';
+    }, ['a'], /larger than 1048576 bytes/],
     ['a state file over 1 MiB', (_repo, specs) => {
       writeFileSync(join(specs, 'big.yaml'), `a: ${'x'.repeat(1024 * 1024)}\n`);
       return 'specs/big.yaml';
@@ -128,13 +137,28 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
     const { repo, specs } = repoWithState();
     const file = arrange(repo, specs);
     const before = snapshot(specs);
+    const target = isAbsolute(file) ? file : join(repo, file);
+    const targetBefore = existsSync(target) && statSync(target).isFile() ? readFileSync(target, 'utf8') : null;
     const run = runCli(repo, request(file, path, 'x'));
     assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
     assert.equal(run.result.ok, false, label);
     assert.match(run.result.error ?? '', message, label);
     const after = snapshot(specs);
     assert.deepEqual(after, before, label);
+    if (targetBefore !== null) assert.equal(readFileSync(target, 'utf8'), targetBefore, `${label}: the target changed`);
   }
+});
+
+// AC-e08s01-08, review 2 (A1, B2): in a worktree .git is a YAML-shaped file
+test('the CLI refuses to edit the .git file of a worktree', () => {
+  const { repo } = repoWithState();
+  const worktree = join(makeTempDir(), 'wt');
+  git(repo, 'worktree', 'add', '-q', worktree);
+  const before = readFileSync(join(worktree, '.git'), 'utf8');
+  const run = runCli(worktree, request('.git', ['gitdir'], '/elsewhere'));
+  assert.equal(run.status, 1, JSON.stringify(run.result));
+  assert.match(run.result.error ?? '', /inside \.git/);
+  assert.equal(readFileSync(join(worktree, '.git'), 'utf8'), before);
 });
 
 test('the CLI answers exit 2 for input it cannot read', () => {
