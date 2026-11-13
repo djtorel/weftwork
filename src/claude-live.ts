@@ -48,6 +48,7 @@ export type LiveReport = { answer: LiveAnswer; reason: string; notes: string[] }
  * writes, and whether its adapter file exists. */
 type Entry = StopHookEntry & { file: string; asInstalled: boolean; present: boolean };
 type Registered = { ok: true; entries: Entry[]; others: number } | { ok: false; reason: string };
+type Copies = { ok: true; entries: Entry[] } | { ok: false; reason: string };
 
 /** What the check cannot see, printed with every answer. */
 const standingNotes = [
@@ -64,6 +65,10 @@ const standingNotes = [
     'record, so live means the hook was called, not that Claude Code called it.',
   'The record does not name the project folder: a session started in a ' +
     'subdirectory that has its own copy of the same entry also leaves it.',
+  'The user settings were read from this shell\'s CLAUDE_CONFIG_DIR or HOME, ' +
+    'which can differ from the ones the Claude Code session runs with.',
+  'An entry that names the adapter through a symlinked path runs and blocks, ' +
+    'but never reads as live: the record holds the resolved path.',
 ];
 
 /** The weftwork entries in one file's Stop list, and how many other Stop hooks
@@ -89,14 +94,14 @@ function weftworkEntries(source: SettingsSource, exists: (path: string) => boole
 /** The weftwork entries in the local and user files. Claude Code runs a handler
  * defined in more than one settings file once (hooks docs, read 2026-11-12),
  * so a changed copy there can be the one that runs (review round 3, A1, B-1). */
-function copiesIn(sources: SettingsSource[], exists: (path: string) => boolean): Registered {
+function copiesIn(sources: SettingsSource[], exists: (path: string) => boolean): Copies {
   const entries: Entry[] = [];
   for (const source of sources) {
     const found = weftworkEntries(source, exists);
     if (!found.ok) return found;
     entries.push(...found.entries);
   }
-  return { ok: true, entries, others: 0 };
+  return { ok: true, entries };
 }
 
 /** Why hooks do not run, or null when they do, from the first file in
@@ -133,9 +138,12 @@ function ageOf(at: string, now: Date): string {
   return unit === undefined ? `${seconds} s ago` : `${Math.floor(seconds / unit[0])} ${unit[1]} ago`;
 }
 
+/** The notes, with a count of distinct handlers when there is more than one:
+ * Claude Code runs the same handler once (review round 4, A-2, B-3). */
 function notesFor(entries: Entry[]): string[] {
-  const many = entries.length > 1
-    ? [`${entries.length} weftwork Stop hooks are registered, so ${entries.length} run on each stop.`]
+  const handlers = new Set(entries.map((entry) => `${entry.cliPath}\0${entry.command}`)).size;
+  const many = handlers > 1
+    ? [`${handlers} weftwork Stop hooks are registered, so ${handlers} run on each stop.`]
     : [];
   return [...many, ...standingNotes];
 }
@@ -211,9 +219,9 @@ function answerWhenRegistered(entries: Entry[], input: LiveInput): Omit<LiveRepo
   }
   const copies = copiesIn([input.local, input.user], input.exists);
   if (!copies.ok) {
-    return { answer: 'not-seen', reason: `cannot tell whether hooks are on: ${copies.reason}` };
+    return { answer: 'not-seen', reason: `cannot tell whether a changed copy of the entry exists: ${copies.reason}` };
   }
-  return answerFor([...entries, ...copies.entries], input);
+  return answerFor(entries, copies.entries, input);
 }
 
 /** True when `a` and `b` are the same handler: the same adapter and command. */
@@ -221,17 +229,19 @@ function sameHandler(a: StopHookEntry, b: StopHookEntry): boolean {
   return a.cliPath === b.cliPath && a.command === b.command;
 }
 
-/** The answer once an entry is registered and hooks are on. Only an entry as
- * the install writes it, with its adapter present and no changed copy of the
- * same handler in any file, can block a stop, so only a record of one of those
- * is live. A hand edit such as `async`, an `if` or a short `timeout` runs the
- * hook without letting it block. */
-function answerFor(entries: Entry[], input: LiveInput): Omit<LiveReport, 'notes'> {
-  const changed = entries.filter((entry) => !entry.asInstalled);
-  const usable = entries.filter((entry) =>
+/** The answer once an entry is registered and hooks are on. Only a project
+ * entry as the install writes it, with its adapter present and no changed copy
+ * of the same handler in any file, can block a stop, so only a record of one of
+ * those is live. A copy in the local or user file can rule an entry out, never
+ * stand in for it (review round 4, B-1). A hand edit such as `async`, an `if`
+ * or a short `timeout` runs the hook without letting it block. */
+function answerFor(project: Entry[], copies: Entry[], input: LiveInput): Omit<LiveReport, 'notes'> {
+  const changed = [...project, ...copies].filter((entry) => !entry.asInstalled);
+  const usable = project.filter((entry) =>
     entry.asInstalled && entry.present && !changed.some((other) => sameHandler(other, entry)));
   if (usable.length === 0) {
-    const files = [...new Set(changed.map((entry) => entry.file))].join(', ');
+    const relevant = changed.filter((other) => project.some((entry) => sameHandler(other, entry)));
+    const files = [...new Set(relevant.map((entry) => entry.file))].join(', ');
     const reason = `a weftwork entry in ${files} was changed by hand (async, if, timeout or another ` +
       'field), so the hook may not block a stop: remove the copy or run the install again';
     return { answer: 'not-seen', reason };
