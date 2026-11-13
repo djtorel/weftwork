@@ -428,7 +428,7 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   next_story: e08s01
   next_epic: e08
   note: 'e08s01 is built on branch e08s01-state-writer (made with git checkout -b,
@@ -440,8 +440,14 @@ handoff:
     yaml 2.9.1 as the first runtime dependency. verify-work passed 2026-11-13 at
     7492272 (486 tests, owner UAT, security review F1 LOW fixed; evidence in
     specs/verifications/e08s01-verify.yaml). audit-code PASS 2026-11-13 at 5d8a0e1
-    (seven items fixed; specs/verifications/AUDIT-e08-e08s01.md). Next: request-review,
-    then release-branch. Nothing is pushed. Owner decisions 2026-11-13: yaml 2.9.1 on its CST layer
+    (seven items fixed; specs/verifications/AUDIT-e08-e08s01.md). request-review
+    PASS in round 5 of 5 at 0ccc46a (A 95.5, B 100; rounds 1 to 4 failed: 93.75/92.6,
+    83.9/90.6, 88.5/91.3, 92.3/91.7). Every finding was fixed test-first or recorded
+    in the spec (5a known limits, 6 risks for e10). After the pass, the owner approved
+    one more fix (a1f5d08, ab0a5c9, 42363fb: keys that read as one key, a clearer
+    refusal message); it was not re-reviewed, so say so in the PR body. The verify
+    evidence (7492272) and the audit (5d8a0e1) predate the review fixes: re-run Preflight,
+    the audit gate and the security check at release. Next: release-branch. Nothing is pushed. Owner decisions 2026-11-13: yaml 2.9.1 on its CST layer
     (Parser, CST.setScalarValue, CST.stringify), not the Document API, which rewrote
     495 lines of state.yaml in the spike; no folding of long values (e08s03 decides);
     share the file helpers; e08-only waivers for missing specs, gate-trace R1 and
@@ -484,9 +490,9 @@ metrics:
       total_seconds: 3680.0
       avg_seconds: 131.42857142857142
     request-review:
-      calls: 11
-      total_seconds: 14230.0
-      avg_seconds: 1293.6363636363637
+      calls: 12
+      total_seconds: 19595.0
+      avg_seconds: 1632.9166666666667
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
