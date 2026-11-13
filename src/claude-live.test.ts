@@ -251,8 +251,8 @@ test('local or user settings that are JSON but not an object: cannot tell (revie
 });
 
 test('control and direction characters are escaped, plain text is not (review round 2, A-F1, A-F4, B-1)', () => {
-  const escaped = [0x00, 0x0a, 0x1f, 0x7f, 0x85, 0x9b, 0x9f, 0x200e, 0x200f, 0x2028, 0x2029, 0x202a, 0x202e, 0x2066, 0x2069];
-  const kept = [0x20, 0x7e, 0xa0, 0xe9, 0x2027, 0x202f, 0x2065, 0x206a];
+  const escaped = [0x00, 0x0a, 0x1f, 0x7f, 0x85, 0x9b, 0x9f, 0x061c, 0x200e, 0x200f, 0x2028, 0x2029, 0x202a, 0x202e, 0x2066, 0x2069];
+  const kept = [0x20, 0x7e, 0xa0, 0xe9, 0x061b, 0x2027, 0x202f, 0x2065, 0x206a];
   const reasonFor = (code: number) => {
     const at = `T${String.fromCharCode(code)}Z`;
     return liveReport(input({ lastCall: { ok: true, call: { ...call, at, command: 'other' } } })).reason;
@@ -275,4 +275,45 @@ test('a record at now is 0 s ago; one second later is in the future (review roun
   const at = (iso: string) => liveReport(input({ lastCall: { ok: true, call: { ...call, at: iso } } })).reason;
   assert.match(at('2026-11-12T12:00:00.000Z'), /\(0 s ago\)/);
   assert.match(at('2026-11-12T12:00:01.000Z'), /\(in the future\)/);
+});
+
+/** One Stop group per file, so a copy can sit in local or user settings. */
+const local = (hooks: unknown[]) => source('.claude/settings.local.json', settings(hooks));
+const user = (hooks: unknown[]) => source('/home/u/.claude/settings.json', settings(hooks));
+
+test('a changed copy of the handler in another file is not live, the file named (review round 3, A1, B-1)', () => {
+  const cases: [Partial<LiveInput>, RegExp][] = [
+    [{ local: local([{ ...entry(), async: true }]) }, /settings\.local\.json/],
+    [{ user: user([{ ...entry(), timeout: 1 }]) }, /\/home\/u/],
+    [{ project: source('.claude/settings.json', settings([entry(), { ...entry(), if: 'x' }])) }, /\.claude\/settings\.json/],
+  ];
+  for (const [change, file] of cases) {
+    const report = liveReport(input(change));
+    assert.equal(report.answer, 'not-seen', JSON.stringify(change));
+    assert.match(report.reason, /remove the copy or run the install again/);
+    assert.match(report.reason, file);
+  }
+});
+
+test('an exact copy, or a changed entry for another command, leaves the hook live (review round 3)', () => {
+  assert.equal(liveReport(input({ local: local([entry()]) })).answer, 'live');
+  assert.equal(liveReport(input({ user: user([{ ...entry('npm run other'), async: true }]) })).answer, 'live');
+});
+
+test('a Stop list in local settings that is not a list: cannot tell (review round 3)', () => {
+  const report = liveReport(input({ local: source('.claude/settings.local.json', '{"hooks":{"Stop":{}}}') }));
+  assert.equal(report.answer, 'not-seen');
+  assert.match(report.reason, /settings\.local\.json/);
+});
+
+test('one entry: no many-hooks note, and its notes are its own (review round 3, A3, B-5)', () => {
+  const first = liveReport(input());
+  assert.ok(!first.notes.some((note) => /weftwork Stop hooks are registered/.test(note)));
+  first.notes.push('changed');
+  assert.ok(!liveReport(input()).notes.includes('changed'));
+});
+
+test('exactly 60 s reads as 1 min (review round 3, B-5)', () => {
+  const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at: '2026-11-12T11:59:00.000Z' } } }));
+  assert.match(report.reason, /\(1 min ago\)/);
 });

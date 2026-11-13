@@ -114,6 +114,16 @@ test('an empty CLAUDE_CONFIG_DIR is unset, so HOME holds the user settings (revi
   assert.ok(out.stdout.includes(join(home, '.claude', 'settings.json')), out.stdout);
 });
 
+test('an empty HOME with no CLAUDE_CONFIG_DIR: the user settings are not read (review round 3, A2, B-5)', () => {
+  const repo = makeTestRepo();
+  const env = { ...cleanEnv(), HOME: '' };
+  run([installCli, '--', 'true'], { cwd: repo, env });
+  callHook(repo, env, 'true');
+  const out = run([checkCli], { cwd: repo, env });
+  assert.equal(out.status, 1);
+  assert.match(out.stdout, /cannot tell whether hooks are on/);
+});
+
 test('AC-e07s04-08 a changed entry is not seen until the host calls it again', () => {
   const repo = makeTestRepo();
   const env = cleanEnv();

@@ -115,6 +115,18 @@ test('a symlink to a valid record is refused on read (review B-F3)', async () =>
   assert.equal((await readLastCall(path)).ok, false);
 });
 
+test('a record whose time is missing, not a time, or too long is not a call record (review round 3, A4, B-3)', async () => {
+  const path = freshPath();
+  mkdirSync(dirname(path), { recursive: true });
+  const { at: _at, ...noTime } = call;
+  for (const record of [noTime, { ...call, at: 7 }, { ...call, at: 'not a time' }, { ...call, at: `${' '.repeat(300)}2026-11-12` }]) {
+    writeFileSync(path, JSON.stringify(record));
+    const read = await readLastCall(path);
+    assert.ok(!read.ok, JSON.stringify(record).slice(0, 60));
+    assert.match(read.error, /not a call record/);
+  }
+});
+
 test('a FIFO in place of the file returns at once for a write and a read (BUG-007)', () => {
   const fifo = JSON.stringify(makeFifo());
   const out = inChild(
