@@ -6,8 +6,9 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { stopHookCommand } from './claude-install.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -149,4 +150,42 @@ test('AC-e07s04-09 arguments are refused with the usage', () => {
   const out = run([checkCli, '--', 'true'], { cwd: repo, env: cleanEnv() });
   assert.equal(out.status, 1);
   assert.match(out.stderr, /usage/);
+});
+
+test('the next step fits the reason: a changed copy, and a project file the install refuses (review round 5)', () => {
+  const repo = makeTestRepo();
+  const env = cleanEnv();
+  run([installCli, '--', 'true'], { cwd: repo, env });
+  callHook(repo, env, 'true');
+  const copy = { type: 'command', command: stopHookCommand(hookCli, 'true'), timeout: 660, async: true };
+  writeFileSync(join(repo, '.claude', 'settings.local.json'), JSON.stringify({ hooks: { Stop: [{ hooks: [copy] }] } }));
+  const changed = run([checkCli], { cwd: repo, env });
+  assert.match(changed.stdout, /remove the changed copy/);
+  assert.doesNotMatch(changed.stdout, /start Claude Code/);
+  writeFileSync(join(repo, '.claude', 'settings.json'), '{');
+  const broken = run([checkCli], { cwd: repo, env });
+  assert.equal(broken.status, 1);
+  assert.doesNotMatch(broken.stdout, /run the install here/);
+});
+
+test('an entry whose adapter file does not exist: not registered (review round 5, A-F5)', () => {
+  const repo = makeTestRepo();
+  const entry = { type: 'command', command: stopHookCommand('/nowhere/claude-hook-cli.ts', 'true'), timeout: 660 };
+  mkdirSync(join(repo, '.claude'));
+  writeFileSync(join(repo, '.claude', 'settings.json'), JSON.stringify({ hooks: { Stop: [{ hooks: [entry] }] } }));
+  const out = run([checkCli], { cwd: repo, env: cleanEnv() });
+  assert.equal(out.status, 1);
+  assert.match(out.stdout, /not registered/);
+});
+
+test('settings changed after the last call: not seen until the next call (review round 5, B-1)', () => {
+  const repo = makeTestRepo();
+  const env = cleanEnv();
+  run([installCli, '--', 'true'], { cwd: repo, env });
+  callHook(repo, env, 'true');
+  const later = new Date(Date.now() + 5000);
+  utimesSync(join(repo, '.claude', 'settings.json'), later, later);
+  const out = run([checkCli], { cwd: repo, env });
+  assert.equal(out.status, 1);
+  assert.match(out.stdout, /changed after the last call/);
 });

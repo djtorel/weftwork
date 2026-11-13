@@ -55,7 +55,7 @@ test('no file reads as no call', async () => {
 test('a file that is not JSON, or has a field of the wrong type, is an error', async () => {
   const path = freshPath();
   mkdirSync(dirname(path), { recursive: true });
-  for (const text of ['{"at":', '[]', JSON.stringify({ ...call, command: 7 }), JSON.stringify({ at: call.at })]) {
+  for (const text of ['{"at":', '[]', JSON.stringify({ ...call, command: 7 }), JSON.stringify({ ...call, cliPath: 5 }), JSON.stringify({ at: call.at })]) {
     writeFileSync(path, text);
     const read = await readLastCall(path);
     assert.equal(read.ok, false, text);
@@ -125,6 +125,21 @@ test('a record whose time is missing, not a time, or too long is not a call reco
     assert.ok(!read.ok, JSON.stringify(record).slice(0, 60));
     assert.match(read.error, /not a call record/);
   }
+});
+
+test('a time of exactly 40 characters and a record of exactly 64 KiB are read (review round 5, B-5)', async () => {
+  const path = freshPath();
+  mkdirSync(dirname(path), { recursive: true });
+  const at = '2026-11-12T10:00:00.00000000000000+00:00';
+  assert.equal(at.length, 40);
+  writeFileSync(path, JSON.stringify({ ...call, at }));
+  assert.ok((await readLastCall(path)).ok, 'a 40-character time');
+  writeFileSync(path, JSON.stringify({ ...call, at: `${at.slice(0, 20)}0${at.slice(20)}` }));
+  assert.ok(!(await readLastCall(path)).ok, 'a 41-character time');
+  const base = JSON.stringify({ ...call, command: '' });
+  writeFileSync(path, JSON.stringify({ ...call, command: 'x'.repeat(64 * 1024 - base.length) }));
+  assert.equal(statSync(path).size, 64 * 1024);
+  assert.ok((await readLastCall(path)).ok, 'a record of exactly 64 KiB');
 });
 
 test('a FIFO in place of the file returns at once for a write and a read (BUG-007)', () => {

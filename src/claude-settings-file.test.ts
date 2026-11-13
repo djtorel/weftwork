@@ -5,9 +5,9 @@
 // B-F10).
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { maxSettingsBytes, readSettings } from './claude-settings-file.ts';
+import { maxSettingsBytes, readSettings, userSettingsPath } from './claude-settings-file.ts';
 import { cleanupTempDirs, makeTempDir } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -29,4 +29,20 @@ test('a settings file at the cap is read', () => {
   const read = readSettings(path);
   assert.ok(read.ok && read.file !== null);
   assert.equal(read.file.text, text);
+});
+
+test('readSettings returns the time the file last changed (review round 5, B-1)', () => {
+  const path = join(makeTempDir(), 'settings.json');
+  writeFileSync(path, '{}');
+  const read = readSettings(path);
+  assert.ok(read.ok && read.file !== null);
+  assert.equal(read.file.mtime.getTime(), statSync(path).mtime.getTime());
+});
+
+test('userSettingsPath: CLAUDE_CONFIG_DIR, then HOME, an empty value counting as unset (review round 5, B-4)', () => {
+  assert.equal(userSettingsPath({ CLAUDE_CONFIG_DIR: '/c', HOME: '/h' }), '/c/settings.json');
+  assert.equal(userSettingsPath({ CLAUDE_CONFIG_DIR: '', HOME: '/h' }), '/h/.claude/settings.json');
+  assert.equal(userSettingsPath({ HOME: '/h' }), '/h/.claude/settings.json');
+  assert.equal(userSettingsPath({ CLAUDE_CONFIG_DIR: '', HOME: '' }), null);
+  assert.equal(userSettingsPath({}), null);
 });
