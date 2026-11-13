@@ -118,3 +118,28 @@ Result: PASS. Two judgement calls were resolved by the owner (see below).
 ## Verdict
 
 PASS. Both items resolved.
+
+## Independent review (request-review, 2026-11-12)
+
+Dual-blind AND-gate (two fresh reviewers each round, 94 percent and no must-fix
+from both). Passed in round 4 of 5.
+
+| Round | Reviewer A | Reviewer B | Result |
+|-------|-----------|-----------|--------|
+| 1 | 81.8 (0 must, 6 should) | 86.4 (0 must, 3 should) | fail |
+| 2 | 90.0 (0 must, 3 should) | 95.5 (0 must, 1 should) | fail |
+| 3 | 92.3 (0 must, 2 should) | 87.5 (0 must, 2 should) | fail |
+| 4 | 100 (0 must, 0 should) | 96.2 (0 must, 1 should) | pass |
+
+What the rounds fixed: the weftwork-entry match (first a substring, then a bare
+prefix, now the exact prefix plus one quoted argument), the kept file mode and
+the temp file's mode, the `reformatted` action, expected failures as returned
+values, an empty settings file, and tests that kill the mutants the reviewers
+found.
+
+**The last fix was not re-reviewed.** Reviewer B's round 4 should-fix (a hook
+`node '<path>' -- 'x' && echo owner` was deleted on replace) was a real bug,
+reproduced before the fix. The owner chose to fix it without a round 5
+("go with your recommendations", 2026-11-12). The fix and two tests were
+checked by mutation (a bare prefix match and a regex that rejects the escaped
+quote both fail a test) and by the full Preflight, 384 tests.

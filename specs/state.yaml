@@ -406,28 +406,32 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: commit-message
+  next_skill: release-branch
   next_story: e07s03
-  note: 'e07s03 is built on branch e07s03-install-stop-hook (5 commits, not pushed):
-    src/claude-install.ts, src/claude-install-cli.ts, their tests (25) and the owner
-    verify script e07s03-verify-script.md. Preflight green (372 tests). All three
-    tasks passing. verify-work passed 2026-11-12 (gates green, owner UAT passed).
-    Next: audit-code, then request-review and release-branch. The owner runs the verify
-    script (AC-11, spends tokens) and records the result in specs/verifications/e07s03-verify.yaml,
-    including whether a running session sees a newly added hook (the docs do not say).
-    Decisions are in the spec. Carry to e07s04: the live check must say that in a
-    worktree session the gate checks the main checkout, and that GIT_DIR, GIT_WORK_TREE
-    and GIT_INDEX_FILE in the hook environment would move the fingerprint (also a
-    note for e10); a SIGKILL or a crash before the handlers exist is fail-open and
-    only e07s04 can see it. Open residuals, owned elsewhere: a stuck git process outlives
-    the hook (engine git calls take no abort signal; an e06 story); signal-killed
-    runs and the failure ceiling (e06 decision, unverified); F5, an agent can make
-    the ledger unreadable to switch stop rules off (e08 or e09); the setsid residual
-    (T6); T4, authorship of override.json is not proof. The gate-trace R1 waiver covers
-    e07 only; drop it when e07 closes. main is protected: land by PR, with the owner''s
-    explicit go-ahead for each push, PR and merge. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml.'
+  note: 'e07s03 is done on branch e07s03-install-stop-hook (not pushed):
+    src/claude-install.ts, src/claude-install-cli.ts, their tests, the owner
+    verify script and evidence. Preflight green (384 tests). All three tasks
+    passing. verify-work passed (owner UAT, 2026-11-12), audit-code passed,
+    request-review passed in round 4 of 5 (A 100, B 96.2; see
+    specs/verifications/AUDIT-e07-e07s03.md). The last fix, an exact match for
+    weftwork''s entry, came after the review and was not re-reviewed (owner
+    decision). Next: release-branch, with the owner''s go-ahead for each push,
+    PR and merge. Open from the UAT: whether a running session sees a newly
+    added hook (the docs do not say; step 6 of the verify script was not run).
+    Decisions are in the spec. Carry to e07s04: the live check must say that in
+    a worktree session the gate checks the main checkout, and that GIT_DIR,
+    GIT_WORK_TREE and GIT_INDEX_FILE in the hook environment would move the
+    fingerprint (also a note for e10); a SIGKILL or a crash before the handlers
+    exist is fail-open and only e07s04 can see it. Open residuals, owned
+    elsewhere: a stuck git process outlives the hook (engine git calls take no
+    abort signal; an e06 story); signal-killed runs and the failure ceiling (e06
+    decision, unverified); F5, an agent can make the ledger unreadable to switch
+    stop rules off (e08 or e09); the setsid residual (T6); T4, authorship of
+    override.json is not proof. The gate-trace R1 waiver covers e07 only; drop
+    it when e07 closes. main is protected: land by PR, with the owner''s
+    explicit go-ahead for each push, PR and merge. Do not run
+    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
+    tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -456,9 +460,9 @@ metrics:
       total_seconds: 3104.0
       avg_seconds: 119.38461538461539
     request-review:
-      calls: 10
-      total_seconds: 12252.0
-      avg_seconds: 1225.2
+      calls: 11
+      total_seconds: 14230.0
+      avg_seconds: 1293.6363636363637
     kickoff-branch:
       calls: 1
       total_seconds: 26.0
