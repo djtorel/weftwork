@@ -27,7 +27,7 @@ stories:
   - id: e07s03
     title: Install registers the Stop hook in the project's Claude Code settings
     bcps: 5
-    status: todo
+    status: done
     tasks: e07s03-tasks.yaml
     delta: ADDED
   - id: e07s04
