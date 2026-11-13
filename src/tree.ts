@@ -1,4 +1,4 @@
-// story: e06s02, e07s02, e08s01
+// story: e06s02, e07s02, e08s01, e08s03
 // A fingerprint of a git working tree: the files that git lists as tracked
 // or as untracked and not ignored, with their contents. The gate takes it
 // before and after a command, so a command that edits the tree is not done.
@@ -14,6 +14,7 @@ import { constants } from 'node:fs';
 import type { Stats } from 'node:fs';
 import { lstat, open, readlink } from 'node:fs/promises';
 import { promisify } from 'node:util';
+import { strictUtf8 } from './regular-file.ts';
 
 const run = promisify(execFile);
 
@@ -46,6 +47,31 @@ async function gitOutput(cwd: string, args: string[]): Promise<Buffer> {
 export async function repositoryRoot(cwd: string): Promise<Buffer> {
   const output = await gitOutput(cwd, ['rev-parse', '--show-toplevel']);
   return output.subarray(0, output.length - 1);
+}
+
+/** The paths `git status` lists in the working tree that holds `cwd`:
+ * changed, staged and untracked files that are not ignored, with a rename or
+ * copy given by its new path. Not ok when `cwd` is not in a repository, git
+ * fails, or a path is not UTF-8. Never rejects. */
+export async function uncommittedPaths(cwd: string): Promise<{ ok: true; paths: string[] } | { ok: false; error: string }> {
+  let output: Buffer;
+  try {
+    output = await gitOutput(cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+  const text = strictUtf8(output);
+  if (text === null) return { ok: false, error: 'git status lists a path that is not UTF-8' };
+  const entries = text.split('\0');
+  const paths: string[] = [];
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index] as string;
+    if (entry === '') continue;
+    paths.push(entry.slice(3));
+    // A rename or copy is followed by its old path, which is not listed.
+    if (entry[0] === 'R' || entry[0] === 'C') index++;
+  }
+  return { ok: true, paths };
 }
 
 /** Tracked files and untracked files that are not ignored, as bytes. */

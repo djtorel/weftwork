@@ -100,10 +100,12 @@ an export and keeps its contracts; the existing suites of `state-file`,
   code points or fewer; `next_epic` and `next_story` the same or null;
   `note` text of 1 to 4000 code points; `files` a list of repository
   paths. A path is refused when it is absolute, leaves the root (`..`),
-  holds a line break, or does not exist.
+  holds a line break, or does not exist. A key the block does not have is
+  refused and named, so a typo such as `next_stroy` is not read as null.
 - `writeHandoff(root, input)` checks the input, then sets `written_at` to
-  the time now (ISO 8601, UTC) and `uncommitted` to the paths `git status`
-  lists, without `specs/state.yaml`, and writes the block with
+  the time now (ISO 8601, UTC, to the second) and `uncommitted` to the
+  paths `git status` lists, sorted, without `specs/state.yaml`, and writes
+  the block with
   `writeStateMapping`. A refused input writes nothing.
 
 #### ADDED: the handoff CLI, `src/handoff-cli.ts`
