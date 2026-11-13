@@ -406,21 +406,28 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: commit-message
+  next_skill: release-branch
   next_story: e07s04
-  note: 'audit-code PASS 2026-11-12 on branch e07s04-live-check (not pushed): six
-    items fixed in two commits (function length, a 5-argument test helper, three generic
-    names, the duplicated command-hook test now in parseStopHook, the untested age
-    units). AUDIT_LATEST.md names e07s04 and tools/assert-audit-story.sh passes; Preflight
-    green, 424 of 424 tests. Every change is already committed with the Story: e07s04
-    trailer, so commit-message has nothing to draft; the owner decides whether to
-    skip it. Then request-review (dual-blind, as for e07s03), then release-branch.
-    The owner gave a standing go-ahead to commit on this branch; pushes, PRs and merges
-    still need an explicit go-ahead each. Carry: gate-trace R1 needs an owner decision
-    before e07 is released; for e10: ledger.jsonl is appended to through a hard link,
-    and a symlinked .git/weftwork directory. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml.'
+  note: 'commit-message done 2026-11-12 on branch e07s04-live-check (not
+    pushed). Working tree clean. All 22 commits since main (28c371f) have a
+    Conventional Commits title and the Story: e07s04 trailer; no attribution
+    footer. No breaking change. Types: 5 feat, 3 fix, 9 test, 4 docs, 2
+    refactor. Release bump for the story: minor (feat present); the three
+    fix commits alone would be patch. Several titles are sentences ("the
+    live check escapes ...") rather than imperatives; rewriting unpushed
+    history needs the owner''s go-ahead, so they stay. Proposed squash title
+    for the PR: feat(adapter): check that the Stop hook is live. Body: the
+    Stop hook never starting blocks nothing and no host option reports it,
+    so the check reads the settings and a per-call record and says live
+    only when the same entry was called. release-branch: the PR must not
+    carry the bigpowers provenance marker. request-review (dual-blind) was
+    recommended and has not run; it is not in the handoff chain, so ask the
+    owner before release-branch if it is wanted. Carry: gate-trace R1 needs
+    an owner decision before e07 is released; for e10: ledger.jsonl is
+    appended to through a hard link, and a symlinked .git/weftwork
+    directory. Pushes, PRs and merges need an explicit go-ahead each. Do not
+    run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call
+    run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
