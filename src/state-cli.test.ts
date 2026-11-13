@@ -1,23 +1,28 @@
 // story: e08s01
-// The state CLI, run as a real process in temporary repositories (e08s01
-// AC-07, AC-08): it writes one field through writeStateField, keeps the mode,
-// leaves no temp file, and refuses a symlink, a FIFO, a file outside the
-// repository, invalid YAML and a missing key, leaving every file as it was. No
-// test touches this repository's own specs/state.yaml.
+// story: e08s02
+// The state CLI, run as a real process in temporary repositories (e08s02
+// AC-06 to AC-08): "set" changes one documented field of specs/state.yaml
+// through the field table and keeps every other byte, "get" prints the
+// documented fields, and the exit codes of e08s01 stay. The writer's file
+// refusals are tested on writeStateField itself (state-file.write.test.ts).
+// No test touches this repository's own specs/state.yaml.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { chmodSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { setField } from './state-file.ts';
-import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const stateCli = join(import.meta.dirname, 'state-cli.ts');
 const fixture = readFileSync(join(import.meta.dirname, 'fixtures', 'state.yaml'), 'utf8');
 
-type Run = { status: number | null; result: { ok: boolean; action?: string; file?: string; error?: string } };
+type Run = {
+  status: number | null;
+  result: { ok: boolean; action?: string; file?: string; error?: string; fields?: Record<string, unknown> };
+};
 
 /** Run the state CLI in `cwd` with `input` on stdin. Its stdout must be one
  * JSON line. */
@@ -28,15 +33,8 @@ function runCli(cwd: string, input: string | Buffer): Run {
   return { status: out.status, result: JSON.parse(lines[0] as string) as Run['result'] };
 }
 
-const request = (file: string, path: unknown, value: unknown): string => JSON.stringify({ file, path, value });
-
-/** Each entry of `dir` with its text, or 'not a file', to compare before and after a run. */
-function snapshot(dir: string): string[][] {
-  return readdirSync(dir).map((name) => {
-    const path = join(dir, name);
-    return [name, statSync(path).isFile() ? readFileSync(path).toString('hex') : 'not a file'];
-  });
-}
+const set = (key: unknown, value: unknown): string => JSON.stringify({ op: 'set', key, value });
+const get = JSON.stringify({ op: 'get' });
 
 /** A temporary repository with the state fixture at specs/state.yaml, mode 0640. */
 function repoWithState(): { repo: string; specs: string; state: string } {
@@ -49,154 +47,135 @@ function repoWithState(): { repo: string; specs: string; state: string } {
   return { repo, specs, state };
 }
 
-// AC-e08s01-07
-test('the CLI writes one field, keeps the mode and leaves no temp file', () => {
+test('set writes one documented field, keeps the mode and leaves no temp file', () => {
   const { repo, specs, state } = repoWithState();
-  const run = runCli(repo, request('specs/state.yaml', ['handoff', 'next_skill'], 'verify-work'));
-  assert.equal(run.status, 0);
+  const run = runCli(repo, set('active_story', 'e08s02'));
+  assert.equal(run.status, 0, JSON.stringify(run.result));
   assert.deepEqual(run.result, { ok: true, action: 'written', file: 'specs/state.yaml' });
-  const expected = setField(fixture, ['handoff', 'next_skill'], 'verify-work');
+  const expected = setField(fixture, ['active_story'], 'e08s02');
   assert.ok(expected.ok);
   assert.equal(readFileSync(state, 'utf8'), expected.text);
   assert.equal(statSync(state).mode & 0o777, 0o640);
   assert.deepEqual(readdirSync(specs), ['state.yaml']);
 });
 
-test('the CLI leaves a field that already holds the value as it was', () => {
+test('set leaves a field that already holds the value as it was', () => {
   const { repo, state } = repoWithState();
   const before = statSync(state).mtimeMs;
-  const run = runCli(repo, request('specs/state.yaml', ['handoff', 'next_skill'], 'develop-tdd'));
+  const run = runCli(repo, set('phase', 'planning'));
   assert.equal(run.status, 0);
   assert.deepEqual(run.result, { ok: true, action: 'unchanged', file: 'specs/state.yaml' });
   assert.equal(readFileSync(state, 'utf8'), fixture);
   assert.equal(statSync(state).mtimeMs, before);
 });
 
-test('the file is named from the repository root, whatever the working directory', () => {
+test('the state file is found from the repository root, whatever the working directory', () => {
   const { specs, state } = repoWithState();
-  const run = runCli(specs, request('specs/state.yaml', ['active_story'], null));
+  const run = runCli(specs, set('active_story', null));
   assert.equal(run.status, 0, run.result.error ?? '');
   assert.match(readFileSync(state, 'utf8'), /^active_story: null$/m);
 });
 
-// AC-e08s01-08
-test('the CLI refuses with exit 1 and leaves the files as they were', () => {
-  const cases: [string, (repo: string, specs: string) => string, unknown[], RegExp][] = [
-    ['a symlink', (_repo, specs) => {
-      writeFileSync(join(specs, 'real.yaml'), fixture);
-      symlinkSync(join(specs, 'real.yaml'), join(specs, 'link.yaml'));
-      return 'specs/link.yaml';
-    }, ['active_story'], /cannot be opened as a regular file/],
-    ['an absolute path outside the root', () => {
-      const outside = join(makeTempDir(), 'state.yaml');
-      writeFileSync(outside, fixture);
-      return outside;
-    }, ['active_story'], /outside the repository/],
-    ['a symlinked directory that leads outside', (repo) => {
-      const outside = makeTempDir();
-      writeFileSync(join(outside, 'state.yaml'), fixture);
-      symlinkSync(outside, join(repo, 'elsewhere'));
-      return 'elsewhere/state.yaml';
-    }, ['active_story'], /outside the repository/],
-    ['a FIFO', (_repo, specs) => {
-      spawnSync('mkfifo', [join(specs, 'fifo.yaml')]);
-      return 'specs/fifo.yaml';
-    }, ['active_story'], /not a regular file/],
-    ['invalid YAML', (_repo, specs) => {
-      writeFileSync(join(specs, 'bad.yaml'), 'a: [1, 2\nb: c\n');
-      return 'specs/bad.yaml';
-    }, ['b'], /not valid YAML/],
-    ['a missing key', () => 'specs/state.yaml', ['handoff', 'no_such_key'], /no_such_key/],
-    ['an alias bomb (security review F1)', (_repo, specs) => {
-      const lines = ['a: &a [x, x, x, x, x, x, x, x, x, x]', 'b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]'];
-      lines.push('c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]', 'k: v', '');
-      writeFileSync(join(specs, 'bomb.yaml'), lines.join('\n'));
-      return 'specs/bomb.yaml';
-    }, ['k'], /alias/i],
-    ['a missing file', () => 'specs/none.yaml', ['active_story'], /does not exist/],
-    ['a file under .git (review B9)', (repo) => {
-      writeFileSync(join(repo, '.git', 'state.yaml'), 'a: 1\n');
-      return '.git/state.yaml';
-    }, ['a'], /inside \.git/],
-    ['the repository root itself (review B9)', () => '.', ['a'], /names the repository root/],
-    ['a symlinked folder that leads into .git (review 4, A1)', (repo) => {
-      writeFileSync(join(repo, '.git', 'state.yaml'), 'a: 1\n');
-      symlinkSync('.git', join(repo, 'g'));
-      return 'g/state.yaml';
-    }, ['a'], /inside \.git/],
-    ['a .GIT folder, which a case-insensitive disk reads as .git (review 4, A2)', (repo) => {
-      mkdirSync(join(repo, '.GIT'));
-      writeFileSync(join(repo, '.GIT', 'state.yaml'), 'a: 1\n');
-      return '.GIT/state.yaml';
-    }, ['a'], /inside \.git/],
-    ['invalid UTF-8 in another field (review 3, A2, B2)', (_repo, specs) => {
-      writeFileSync(join(specs, 'latin1.yaml'), Buffer.from('a: 1\n# caf\xe9\nb: 2\n', 'latin1'));
-      return 'specs/latin1.yaml';
-    }, ['a'], /not valid UTF-8/],
-    ['a .git file in a nested folder (review 2, A11, B8)', (repo) => {
-      mkdirSync(join(repo, 'sub'));
-      writeFileSync(join(repo, 'sub', '.git'), 'gitdir: /elsewhere\n');
-      return 'sub/.git';
-    }, ['gitdir'], /inside \.git/],
-    ['a state file over 1 MiB', (_repo, specs) => {
-      writeFileSync(join(specs, 'big.yaml'), `a: ${'x'.repeat(1024 * 1024)}\n`);
-      return 'specs/big.yaml';
-    }, ['a'], /larger than 1048576 bytes/],
-  ];
-  for (const [label, arrange, path, message] of cases) {
-    const { repo, specs } = repoWithState();
-    const file = arrange(repo, specs);
-    const before = snapshot(specs);
-    const target = isAbsolute(file) ? file : join(repo, file);
-    const targetBefore = existsSync(target) && statSync(target).isFile() ? readFileSync(target).toString('hex') : null;
-    const run = runCli(repo, request(file, path, 'x'));
-    assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
-    assert.equal(run.result.ok, false, label);
-    assert.match(run.result.error ?? '', message, label);
-    const after = snapshot(specs);
-    assert.deepEqual(after, before, label);
-    if (targetBefore !== null) assert.equal(readFileSync(target).toString('hex'), targetBefore, `${label}: the target changed`);
+// AC-e08s02-06
+test('get prints the documented fields and no other key', () => {
+  const { repo, specs } = repoWithState();
+  for (const cwd of [repo, specs]) {
+    const run = runCli(cwd, get);
+    assert.equal(run.status, 0, JSON.stringify(run.result));
+    assert.deepEqual(run.result, {
+      ok: true,
+      fields: {
+        active_flow: null,
+        active_epic: 'e08',
+        active_story: 'e08s01',
+        phase: 'planning',
+        'vcs.branch': 'e08s01-state-writer',
+      },
+    });
   }
 });
 
-// AC-e08s01-08, review 2 (A9): a write must not make a file the writer cannot read
-test('the CLI refuses an edit that would push the file past 1 MiB', () => {
-  const { repo, specs } = repoWithState();
-  const near = `a: x\nb: ${'x'.repeat(1024 * 1024 - 20)}\n`;
-  writeFileSync(join(specs, 'near.yaml'), near);
-  const run = runCli(repo, request('specs/near.yaml', ['a'], 'y'.repeat(100)));
-  assert.equal(run.status, 1, JSON.stringify(run.result).slice(0, 200));
-  assert.match(run.result.error ?? '', /larger than 1048576 bytes/);
-  assert.equal(readFileSync(join(specs, 'near.yaml'), 'utf8'), near);
+// AC-e08s02-07
+test('setting every documented field keeps the rest of the file byte for byte', () => {
+  const { repo, state } = repoWithState();
+  const values: [string, string | null][] = [
+    ['active_flow', 'build_epic'],
+    ['active_epic', 'e09'],
+    ['active_story', 'e09s01'],
+    ['phase', 'execute'],
+    ['vcs.branch', 'e09s01-budget'],
+  ];
+  for (const [key, value] of values) {
+    const run = runCli(repo, set(key, value));
+    assert.equal(run.status, 0, `${key}: ${JSON.stringify(run.result)}`);
+  }
+  const after = readFileSync(state, 'utf8');
+  const rest = (text: string): string => text.slice(text.indexOf('\nwaivers:'));
+  assert.equal(rest(after), rest(fixture), 'waivers, handoff and metrics');
+  for (const line of ['workflow_mode: solo-git', 'test_plan: lite', '  kind: git']) {
+    assert.ok(after.includes(`\n${line}\n`) || after.startsWith(`${line}\n`), line);
+  }
+  const read = runCli(repo, get);
+  assert.deepEqual(read.result.fields, Object.fromEntries(values));
 });
 
-// AC-e08s01-08, review 2 (A1, B2): in a worktree .git is a YAML-shaped file
-test('the CLI refuses to edit the .git file of a worktree', () => {
-  const { repo } = repoWithState();
-  const worktree = join(makeTempDir(), 'wt');
-  git(repo, 'worktree', 'add', '-q', worktree);
-  const before = readFileSync(join(worktree, '.git'), 'utf8');
-  const run = runCli(worktree, request('.git', ['gitdir'], '/elsewhere'));
-  assert.equal(run.status, 1, JSON.stringify(run.result));
-  assert.match(run.result.error ?? '', /inside \.git/);
-  assert.equal(readFileSync(join(worktree, '.git'), 'utf8'), before);
+test('the CLI refuses with exit 1 and leaves the state file as it was', () => {
+  const cases: [string, string, RegExp][] = [
+    ['a key outside the table', set('handoff.next_skill', 'x'), /"handoff\.next_skill" is not a field the engine writes/],
+    ['a key the owner writes', set('workflow_mode', 'x'), /"workflow_mode"/],
+    ['a value with a newline', set('phase', 'a\nb'), /"phase" must be one line/],
+    ['a value over 200 characters', set('phase', 'x'.repeat(201)), /"phase" must be 200 characters or fewer/],
+    ['a number', set('phase', 3), /"phase" must be text or null/],
+    ['an object', set('phase', { a: 1 }), /"phase" must be text or null/],
+  ];
+  for (const [label, input, message] of cases) {
+    const { repo, state } = repoWithState();
+    const run = runCli(repo, input);
+    assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
+    assert.equal(run.result.ok, false, label);
+    assert.match(run.result.error ?? '', message, label);
+    assert.equal(readFileSync(state, 'utf8'), fixture, label);
+  }
 });
 
+test('set and get answer exit 1 when the state file cannot be read', () => {
+  const missing = makeTestRepo();
+  const linked = repoWithState();
+  writeFileSync(join(linked.specs, 'real.yaml'), fixture);
+  unlinkSync(linked.state);
+  symlinkSync(join(linked.specs, 'real.yaml'), linked.state);
+  const cases: [string, string, string, RegExp][] = [
+    ['set with no state file', missing, set('phase', 'x'), /does not exist/],
+    ['get with no state file', missing, get, /does not exist/],
+    ['set on a symlinked state file', linked.repo, set('phase', 'x'), /regular file/],
+    ['get on a symlinked state file', linked.repo, get, /regular file/],
+  ];
+  for (const [label, cwd, input, message] of cases) {
+    const run = runCli(cwd, input);
+    assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
+    assert.match(run.result.error ?? '', message, label);
+  }
+  assert.equal(readFileSync(join(linked.specs, 'real.yaml'), 'utf8'), fixture);
+});
+
+// AC-e08s02-08
 test('the CLI answers exit 2 for input it cannot read', () => {
-  const { repo } = repoWithState();
+  const { repo, state } = repoWithState();
   const cases: [string, string, string | Buffer][] = [
-    ['stdin that is not JSON', repo, '{"file":'],
-    ['a path that is not a list of strings', repo, request('specs/state.yaml', 'handoff.next_skill', 'x')],
-    ['a path with a number in it', repo, request('specs/state.yaml', ['handoff', 1], 'x')],
-    ['a value that is an object', repo, request('specs/state.yaml', ['active_story'], { a: 1 })],
-    ['no file', repo, JSON.stringify({ path: ['active_story'], value: 'x' })],
-    ['an empty path (review A6, B5)', repo, request('specs/state.yaml', [], 'x')],
-    ['stdin that is not valid UTF-8 (review 4, B2)', repo, Buffer.concat([
-      Buffer.from('{"file":"specs/state.yaml","path":["active_story"],"value":"b'), Buffer.from([0xff]), Buffer.from('"}'),
+    ['stdin that is not JSON', repo, '{"op":'],
+    ['stdin that is not an object', repo, '["set"]'],
+    ['no op', repo, JSON.stringify({ key: 'phase', value: 'x' })],
+    ['an unknown op', repo, JSON.stringify({ op: 'delete', key: 'phase' })],
+    ['a request with a "file" field', repo, JSON.stringify({ op: 'set', file: 'specs/state.yaml', key: 'phase', value: 'x' })],
+    ['a "path" list in place of a key', repo, JSON.stringify({ op: 'set', path: ['phase'], value: 'x' })],
+    ['a key that is not text', repo, set(['phase'], 'x')],
+    ['set with no value', repo, JSON.stringify({ op: 'set', key: 'phase' })],
+    ['get with a key', repo, JSON.stringify({ op: 'get', key: 'phase' })],
+    ['stdin that is not valid UTF-8', repo, Buffer.concat([
+      Buffer.from('{"op":"set","key":"phase","value":"b'), Buffer.from([0xff]), Buffer.from('"}'),
     ])],
-    ['a value that is not finite (review B5)', repo, '{"file":"specs/state.yaml","path":["active_story"],"value":1e999}'],
-    ['stdin over 1 MiB', repo, request('specs/state.yaml', ['active_story'], 'x'.repeat(1024 * 1024))],
-    ['a working directory that is not in a git repository', makeTempDir(), request('state.yaml', ['a'], 'x')],
+    ['stdin over 1 MiB', repo, set('phase', 'x'.repeat(1024 * 1024))],
+    ['a working directory that is not in a git repository', makeTempDir(), get],
   ];
   for (const [label, cwd, input] of cases) {
     const run = runCli(cwd, input);
@@ -204,5 +183,5 @@ test('the CLI answers exit 2 for input it cannot read', () => {
     assert.equal(run.result.ok, false, label);
     assert.ok((run.result.error ?? '').length > 0, label);
   }
-  assert.equal(readFileSync(join(repo, 'specs', 'state.yaml'), 'utf8'), fixture);
+  assert.equal(readFileSync(state, 'utf8'), fixture);
 });
