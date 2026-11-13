@@ -22,7 +22,8 @@ export const maxStateBytes = 1024 * 1024;
 export type FieldValue = string | number | boolean | null;
 export type SetField = { ok: true; text: string } | { ok: false; error: string };
 export type WriteField = { ok: true; action: 'written' | 'unchanged'; file: string } | { ok: false; error: string };
-type Parsed = { ok: true; doc: Document } | { ok: false; error: string };
+type Parsed = { ok: true; doc: Document; data: unknown } | { ok: false; error: string };
+type Data = { ok: true; data: unknown } | { ok: false; error: string };
 type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | { ok: false; error: string };
 
 function isFieldValue(value: unknown): value is FieldValue {
@@ -30,7 +31,18 @@ function isFieldValue(value: unknown): value is FieldValue {
   return value === null || typeof value === 'string' || typeof value === 'boolean';
 }
 
-/** Parse `text` as exactly one YAML document with no errors. */
+/** The data of `doc`. yaml refuses to expand too many aliases by throwing from
+ * toJS (a billion-laughs guard); that is a refusal here, not a crash (security
+ * review F1). */
+function dataOf(doc: Document): Data {
+  try {
+    return { ok: true, data: doc.toJS() };
+  } catch (error) {
+    return { ok: false, error: `the text cannot be read as data: ${messageOf(error)}` };
+  }
+}
+
+/** Parse `text` as exactly one YAML document with no errors, and its data. */
 function parseOne(text: string): Parsed {
   const docs = parseAllDocuments(text);
   if (!Array.isArray(docs) || docs.length !== 1) {
@@ -39,7 +51,8 @@ function parseOne(text: string): Parsed {
   const doc = docs[0] as Document;
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: `the text is not valid YAML: ${first.message}` };
-  return { ok: true, doc };
+  const data = dataOf(doc);
+  return data.ok ? { ok: true, doc, data: data.data } : data;
 }
 
 /** The scalar token at `path` in the one document of `tokens`. Each key must
@@ -75,7 +88,7 @@ function edit(text: string, path: readonly string[], value: FieldValue, type?: S
 /** True when `text` is one valid document whose data is `expected`. */
 function holds(text: string, expected: unknown): boolean {
   const parsed = parseOne(text);
-  return parsed.ok && isDeepStrictEqual(parsed.doc.toJS(), expected);
+  return parsed.ok && isDeepStrictEqual(parsed.data, expected);
 }
 
 /** Set the scalar at `path` in the YAML `text` to `value`, and keep every
@@ -96,11 +109,12 @@ export function setField(text: string, path: readonly string[], value: FieldValu
   if (isDeepStrictEqual(parsed.doc.getIn(path), value)) return { ok: true, text };
   const expected = parsed.doc.clone();
   expected.setIn(path, value);
-  const want = expected.toJS();
+  const want = dataOf(expected);
+  if (!want.ok) return want;
   const styles: (Scalar.Type | undefined)[] = typeof value === 'string' ? [undefined, 'QUOTE_DOUBLE'] : ['PLAIN'];
   for (const type of styles) {
     const result = edit(text, path, value, type);
-    if (result.ok && holds(result.text, want)) return result;
+    if (result.ok && holds(result.text, want.data)) return result;
   }
   return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data` };
 }
