@@ -8,8 +8,10 @@
 // liveReport is pure; claude-live-cli.ts reads the files and prints. Order,
 // first match wins: the project settings hold no usable weftwork entry (not
 // registered); its adapter file is gone (not registered); hooks are off, or the
-// check cannot tell (not seen); no usable call record (not seen); the record is
-// of the same adapter and command as an entry (live); otherwise not seen.
+// check cannot tell (not seen); no entry is exactly as the install writes it,
+// so a hand edit may stop it blocking (not seen); no usable call record (not
+// seen); the record is of the same adapter and command as such an entry
+// (live); otherwise not seen.
 //
 // disableAllHooks takes the value left after precedence: local, then project,
 // then user settings (Claude Code docs, "Disable or remove hooks", read
@@ -136,12 +138,16 @@ function answerFromRecord(present: Entry[], lastCall: LastCallRead, now: Date): 
   return { answer: 'not-seen', reason: `the last call, at ${when}, ran another command or adapter` };
 }
 
-/** The reason with every control character written as `\uXXXX`. The record,
- * the settings and the error texts are the agent's to write, and escape codes
- * printed raw could draw a fake answer line on the owner's screen (security
- * review F2). */
+/** The reason with every control character written as `\uXXXX`: C0, DEL and
+ * C1, the direction marks and overrides, and the line and paragraph
+ * separators. The record, the settings and the error texts are the agent's to
+ * write, and such characters printed raw could draw a fake answer line or
+ * reorder the text on the owner's screen (security review F2; review round 2,
+ * A-F4 and B-1). */
+const unsafeCharacters = /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u2028-\u202e\u2066-\u2069]/g;
+
 function shown(text: string): string {
-  return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
+  return text.replace(unsafeCharacters, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
 /** Whether the hook is live. Only a record of the same adapter and command as
@@ -168,7 +174,7 @@ function whyNotRegistered(entries: Entry[], others: number, input: LiveInput): s
 function rawReport(input: LiveInput): LiveReport {
   const found = weftworkEntries(input.project);
   if (!found.ok) {
-    return { answer: 'not-registered', reason: found.reason, notes: standingNotes };
+    return { answer: 'not-registered', reason: found.reason, notes: [...standingNotes] };
   }
   const notes = notesFor(found.entries);
   const missing = whyNotRegistered(found.entries, found.others, input);
