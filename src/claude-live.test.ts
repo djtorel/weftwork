@@ -30,6 +30,8 @@ test('AC-e07s04-05 the notes name what the check cannot see', () => {
   assert.match(notes, /GIT_DIR/);
   assert.match(notes, /evidence, not proof/);
   assert.match(notes, /subdirectory/);
+  assert.match(notes, /CLAUDE_CONFIG_DIR/);
+  assert.match(notes, /symlink/);
 });
 
 test('AC-e07s04-02 no project settings file: not registered', () => {
