@@ -16,7 +16,7 @@
 story_id: e08s02
 spec: e08s02-state-fields.md
 title: The engine changes only the documented state fields
-status: in_progress
+status: done
 bcps: 4
 type: feat
 context: engine
