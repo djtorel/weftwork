@@ -44,24 +44,26 @@ function readSettings(repo: string): Record<string, unknown> {
   return value;
 }
 
+/** The first group of hooks.Stop, with its hooks list. */
+function firstStopGroup(settings: Record<string, unknown>): { hooks: unknown[] } {
+  assert.ok(isRecord(settings.hooks));
+  assert.ok(Array.isArray(settings.hooks.Stop));
+  const group: unknown = settings.hooks.Stop[0];
+  assert.ok(isRecord(group) && Array.isArray(group.hooks));
+  return { hooks: group.hooks };
+}
+
 test('AC-e07s03-07 a repository with no .claude directory gets the entry', () => {
   const repo = makeTestRepo();
   const run = install(repo, '--', 'npm test');
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /added/);
+  assert.match(run.stdout, /^added/);
   assert.match(run.stdout, /trust/i);
   assert.match(run.stdout, /new Claude Code session/);
   assert.match(run.stdout, /this machine/);
-  const hooks = readSettings(repo).hooks;
-  assert.ok(isRecord(hooks) && Array.isArray(hooks.Stop));
-  const group: unknown = hooks.Stop[0];
-  assert.ok(isRecord(group) && Array.isArray(group.hooks));
+  const group = firstStopGroup(readSettings(repo));
   assert.deepEqual(group.hooks, [
-    {
-      type: 'command',
-      command: `node '${adapterCli}' -- 'npm test'`,
-      timeout: hookTimeoutSeconds,
-    },
+    { type: 'command', command: `node '${adapterCli}' -- 'npm test'`, timeout: hookTimeoutSeconds },
   ]);
 });
 
@@ -87,23 +89,20 @@ test('AC-e07s03-07 the written entry runs the real adapter and blocks a failing 
 test('AC-e07s03-08 an existing file keeps its other hooks and a second run changes nothing', () => {
   const repo = makeTestRepo();
   mkdirSync(join(repo, '.claude'));
-  const before = {
-    env: { A: '1' },
-    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'guard' }] }] },
-  };
+  const before = { env: { A: '1' }, hooks: { PreToolUse: [{ matcher: 'Bash' }] } };
   writeFileSync(settingsPath(repo), JSON.stringify(before));
   assert.equal(install(repo, '--', 'npm test').status, 0);
-  const first = readSettings(repo);
-  assert.deepEqual(first.env, before.env);
-  assert.ok(isRecord(first.hooks));
-  assert.deepEqual(first.hooks.PreToolUse, before.hooks.PreToolUse);
+  const kept = readSettings(repo);
+  assert.deepEqual(kept.env, before.env);
+  assert.ok(isRecord(kept.hooks));
+  assert.deepEqual(kept.hooks.PreToolUse, before.hooks.PreToolUse);
 
   const bytes = readFileSync(settingsPath(repo));
   const old = new Date('2020-01-01T00:00:00Z');
   utimesSync(settingsPath(repo), old, old);
   const again = install(repo, '--', 'npm test');
   assert.equal(again.status, 0, again.stderr);
-  assert.match(again.stdout, /unchanged/);
+  assert.match(again.stdout, /^unchanged/);
   assert.deepEqual(readFileSync(settingsPath(repo)), bytes);
   assert.equal(statSync(settingsPath(repo)).mtimeMs, old.getTime());
 });

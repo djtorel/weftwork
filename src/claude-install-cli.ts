@@ -13,30 +13,34 @@ import { installInProject } from './claude-install.ts';
 const usage = "usage: node claude-install-cli.ts -- '<declared command>'";
 const adapter = join(import.meta.dirname, 'claude-hook-cli.ts');
 
+/** What the owner does next, printed after a successful install. */
+function nextSteps(path: string): string {
+  return [
+    `Stop hook in ${path}`,
+    '',
+    'Next:',
+    `- The entry names ${adapter}, so it works on this machine only.`,
+    '- If Claude Code shows the workspace trust dialog, accept it. Until you do,',
+    '  it does not run the hook.',
+    '- Start a new Claude Code session. A session that is already running may not',
+    '  see the hook.',
+    '- Commit .claude/settings.json to share the hook with the team.',
+    '',
+  ].join('\n');
+}
+
 function main(args: string[]): number {
-  if (args.length !== 2 || args[0] !== '--' || (args[1] ?? '').trim() === '') {
+  const [flag, command] = args;
+  if (args.length !== 2 || flag !== '--' || command === undefined || command.trim() === '') {
     process.stderr.write(`${usage}\n`);
     return 1;
   }
-  const result = installInProject(process.cwd(), adapter, args[1] ?? '');
+  const result = installInProject(process.cwd(), adapter, command);
   if (!result.ok) {
     process.stderr.write(`weftwork install: ${result.error}\n`);
     return 1;
   }
-  process.stdout.write(
-    [
-      `${result.action}: Stop hook in ${result.path}`,
-      '',
-      'Next:',
-      `- The entry names ${adapter}, so it works on this machine only.`,
-      '- If Claude Code shows the workspace trust dialog, accept it. Until you do,',
-      '  it does not run the hook.',
-      '- Start a new Claude Code session. A session that is already running may not',
-      '  see the hook.',
-      '- Commit .claude/settings.json to share the hook with the team.',
-      '',
-    ].join('\n'),
-  );
+  process.stdout.write(`${result.action}: ${nextSteps(result.path)}`);
   return 0;
 }
 

@@ -26,8 +26,7 @@ function installed(text: string | null, command = 'npm test') {
 
 /** The Stop groups of a parsed settings value. */
 function stopGroups(value: unknown): unknown[] {
-  assert.ok(isRecord(value));
-  assert.ok(isRecord(value.hooks));
+  assert.ok(isRecord(value) && isRecord(value.hooks));
   assert.ok(Array.isArray(value.hooks.Stop));
   return value.hooks.Stop;
 }
@@ -56,25 +55,24 @@ test('AC-e07s03-01 the output is 2-space JSON with a final newline', () => {
 });
 
 test('AC-e07s03-02 other keys and hooks are kept, in order', () => {
+  const other = { hooks: [{ type: 'command', command: 'other-stop' }] };
   const before = {
     env: { A: '1' },
     hooks: {
       PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'guard' }] }],
-      Stop: [{ hooks: [{ type: 'command', command: 'other-stop' }] }],
+      Stop: [other],
     },
     permissions: { allow: ['Bash(ls)'] },
   };
   const { value } = installed(JSON.stringify(before));
   assert.ok(isRecord(value));
-  assert.deepEqual(Object.keys(value), ['env', 'hooks', 'permissions']);
-  assert.deepEqual(value.env, before.env);
-  assert.deepEqual(value.permissions, before.permissions);
   assert.ok(isRecord(value.hooks));
+  assert.deepEqual(Object.keys(value), ['env', 'hooks', 'permissions']);
+  assert.deepEqual([value.env, value.permissions], [before.env, before.permissions]);
   assert.deepEqual(Object.keys(value.hooks), ['PreToolUse', 'Stop']);
   assert.deepEqual(value.hooks.PreToolUse, before.hooks.PreToolUse);
-  const groups = stopGroups(value);
-  assert.equal(groups.length, 2);
-  assert.deepEqual(groups[0], before.hooks.Stop[0]);
+  assert.equal(stopGroups(value).length, 2);
+  assert.deepEqual(stopGroups(value)[0], other);
 });
 
 test('AC-e07s03-02 a settings file with no hooks key gets one', () => {
@@ -144,23 +142,23 @@ test('AC-e07s03-04 an entry from another checkout is not replaced', () => {
 });
 
 test('AC-e07s03-05 bad settings are refused, with no text', () => {
-  const bad: Record<string, string> = {
-    'not JSON': 'not json',
-    'empty text': '',
-    'a JSON array': '[]',
-    'a JSON string': '"x"',
-    'null': 'null',
-    'hooks is a string': '{"hooks":"x"}',
-    'hooks is an array': '{"hooks":[]}',
-    'hooks.Stop is an object': '{"hooks":{"Stop":{}}}',
-    'a Stop group that is not an object': '{"hooks":{"Stop":["x"]}}',
-    'a Stop group whose hooks is not a list': '{"hooks":{"Stop":[{"hooks":"x"}]}}',
-  };
-  for (const [name, text] of Object.entries(bad)) {
+  const bad = [
+    'not json',
+    '',
+    '[]',
+    '"x"',
+    'null',
+    '{"hooks":"x"}',
+    '{"hooks":[]}',
+    '{"hooks":{"Stop":{}}}',
+    '{"hooks":{"Stop":["x"]}}',
+    '{"hooks":{"Stop":[{"hooks":"x"}]}}',
+  ];
+  for (const text of bad) {
     const result = installStopHook(text, cli, 'npm test');
-    assert.equal(result.ok, false, name);
-    assert.ok(!result.ok && result.error.length > 0, name);
-    assert.equal('text' in result, false, name);
+    assert.equal(result.ok, false, text);
+    assert.match(result.ok ? '' : result.error, /./, text);
+    assert.equal('text' in result, false, text);
   }
 });
 
