@@ -9,10 +9,10 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import { setField, writeStateField } from './state-file.ts';
-import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, git, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -26,20 +26,9 @@ function snapshot(dir: string): string[][] {
   });
 }
 
-/** A temporary repository with the state fixture at specs/state.yaml, mode 0640. */
-function repoWithState(): { repo: string; specs: string; state: string } {
-  const repo = makeTestRepo();
-  const specs = join(repo, 'specs');
-  mkdirSync(specs);
-  const state = join(specs, 'state.yaml');
-  writeFileSync(state, fixture);
-  chmodSync(state, 0o640);
-  return { repo, specs, state };
-}
-
 // AC-e08s01-07
 test('writeStateField writes one field, keeps the mode and leaves no temp file', () => {
-  const { repo, specs, state } = repoWithState();
+  const { repo, specs, state } = makeStateRepo(fixture);
   const result = writeStateField(repo, 'specs/state.yaml', ['handoff', 'next_skill'], 'verify-work');
   assert.deepEqual(result, { ok: true, action: 'written', file: 'specs/state.yaml' });
   const expected = setField(fixture, ['handoff', 'next_skill'], 'verify-work');
@@ -50,7 +39,7 @@ test('writeStateField writes one field, keeps the mode and leaves no temp file',
 });
 
 test('writeStateField leaves a field that already holds the value as it was', () => {
-  const { repo, state } = repoWithState();
+  const { repo, state } = makeStateRepo(fixture);
   const before = statSync(state).mtimeMs;
   const result = writeStateField(repo, 'specs/state.yaml', ['handoff', 'next_skill'], 'develop-tdd');
   assert.deepEqual(result, { ok: true, action: 'unchanged', file: 'specs/state.yaml' });
@@ -123,7 +112,7 @@ test('writeStateField refuses and leaves the files as they were', () => {
     }, ['a'], /larger than 1048576 bytes/],
   ];
   for (const [label, arrange, path, message] of cases) {
-    const { repo, specs } = repoWithState();
+    const { repo, specs } = makeStateRepo(fixture);
     const file = arrange(repo, specs);
     const before = snapshot(specs);
     const target = isAbsolute(file) ? file : join(repo, file);
@@ -139,7 +128,7 @@ test('writeStateField refuses and leaves the files as they were', () => {
 
 // AC-e08s01-08, review 2 (A9): a write must not make a file the writer cannot read
 test('writeStateField refuses an edit that would push the file past 1 MiB', () => {
-  const { repo, specs } = repoWithState();
+  const { repo, specs } = makeStateRepo(fixture);
   const near = `a: x\nb: ${'x'.repeat(1024 * 1024 - 20)}\n`;
   writeFileSync(join(specs, 'near.yaml'), near);
   const result = writeStateField(repo, 'specs/near.yaml', ['a'], 'y'.repeat(100));
@@ -150,7 +139,7 @@ test('writeStateField refuses an edit that would push the file past 1 MiB', () =
 
 // AC-e08s01-08, review 2 (A1, B2): in a worktree .git is a YAML-shaped file
 test('writeStateField refuses to edit the .git file of a worktree', () => {
-  const { repo } = repoWithState();
+  const { repo } = makeStateRepo(fixture);
   const worktree = join(makeTempDir(), 'wt');
   git(repo, 'worktree', 'add', '-q', worktree);
   const before = readFileSync(join(worktree, '.git'), 'utf8');

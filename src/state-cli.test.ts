@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setField } from './state-file.ts';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -36,19 +36,8 @@ function runCli(cwd: string, input: string | Buffer): Run {
 const set = (key: unknown, value: unknown): string => JSON.stringify({ op: 'set', key, value });
 const get = JSON.stringify({ op: 'get' });
 
-/** A temporary repository with the state fixture at specs/state.yaml, mode 0640. */
-function repoWithState(): { repo: string; specs: string; state: string } {
-  const repo = makeTestRepo();
-  const specs = join(repo, 'specs');
-  mkdirSync(specs);
-  const state = join(specs, 'state.yaml');
-  writeFileSync(state, fixture);
-  chmodSync(state, 0o640);
-  return { repo, specs, state };
-}
-
 test('set writes one documented field, keeps the mode and leaves no temp file', () => {
-  const { repo, specs, state } = repoWithState();
+  const { repo, specs, state } = makeStateRepo(fixture);
   const run = runCli(repo, set('active_story', 'e08s02'));
   assert.equal(run.status, 0, JSON.stringify(run.result));
   assert.deepEqual(run.result, { ok: true, action: 'written', file: 'specs/state.yaml' });
@@ -60,7 +49,7 @@ test('set writes one documented field, keeps the mode and leaves no temp file', 
 });
 
 test('set leaves a field that already holds the value as it was', () => {
-  const { repo, state } = repoWithState();
+  const { repo, state } = makeStateRepo(fixture);
   const before = statSync(state).mtimeMs;
   const run = runCli(repo, set('phase', 'planning'));
   assert.equal(run.status, 0);
@@ -70,7 +59,7 @@ test('set leaves a field that already holds the value as it was', () => {
 });
 
 test('the state file is found from the repository root, whatever the working directory', () => {
-  const { specs, state } = repoWithState();
+  const { specs, state } = makeStateRepo(fixture);
   const run = runCli(specs, set('active_story', null));
   assert.equal(run.status, 0, run.result.error ?? '');
   assert.match(readFileSync(state, 'utf8'), /^active_story: null$/m);
@@ -78,7 +67,7 @@ test('the state file is found from the repository root, whatever the working dir
 
 // AC-e08s02-06
 test('get prints the documented fields and no other key', () => {
-  const { repo, specs } = repoWithState();
+  const { repo, specs } = makeStateRepo(fixture);
   for (const cwd of [repo, specs]) {
     const run = runCli(cwd, get);
     assert.equal(run.status, 0, JSON.stringify(run.result));
@@ -97,7 +86,7 @@ test('get prints the documented fields and no other key', () => {
 
 // AC-e08s02-07
 test('setting every documented field keeps the rest of the file byte for byte', () => {
-  const { repo, state } = repoWithState();
+  const { repo, state } = makeStateRepo(fixture);
   const values: [string, string | null][] = [
     ['active_flow', 'build_epic'],
     ['active_epic', 'e09'],
@@ -129,7 +118,7 @@ test('the CLI refuses with exit 1 and leaves the state file as it was', () => {
     ['an object', set('phase', { a: 1 }), /"phase" must be text or null/],
   ];
   for (const [label, input, message] of cases) {
-    const { repo, state } = repoWithState();
+    const { repo, state } = makeStateRepo(fixture);
     const run = runCli(repo, input);
     assert.equal(run.status, 1, `${label}: ${JSON.stringify(run.result)}`);
     assert.equal(run.result.ok, false, label);
@@ -140,7 +129,7 @@ test('the CLI refuses with exit 1 and leaves the state file as it was', () => {
 
 test('set and get answer exit 1 when the state file cannot be read', () => {
   const missing = makeTestRepo();
-  const linked = repoWithState();
+  const linked = makeStateRepo(fixture);
   writeFileSync(join(linked.specs, 'real.yaml'), fixture);
   unlinkSync(linked.state);
   symlinkSync(join(linked.specs, 'real.yaml'), linked.state);
@@ -160,7 +149,7 @@ test('set and get answer exit 1 when the state file cannot be read', () => {
 
 // AC-e08s02-08
 test('the CLI answers exit 2 for input it cannot read', () => {
-  const { repo, state } = repoWithState();
+  const { repo, state } = makeStateRepo(fixture);
   const cases: [string, string, string | Buffer][] = [
     ['stdin that is not JSON', repo, '{"op":'],
     ['stdin that is not an object', repo, '["set"]'],

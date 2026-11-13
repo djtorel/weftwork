@@ -192,19 +192,19 @@ Feature: The engine changes only the documented state fields
 
 ## Steps
 
-1. RED then GREEN: write `src/state-fields.test.ts` for AC-01 to AC-05 on a
-   copy of `src/fixtures/state.yaml` in a temp repository and record the
-   failure; then write `src/state-fields.ts` (`stateFile`, `stateFields`,
+1. RED then GREEN (ref: §1 decisions 1 and 2): write `src/state-fields.test.ts`
+   for AC-01 to AC-05 on a copy of `src/fixtures/state.yaml` in a temp
+   repository and record the failure; then write `src/state-fields.ts` (`stateFile`, `stateFields`,
    `checkStateField`, `setStateField`, `readStateFields`) and
    `docs/STATE.md` → verify: `node --test src/state-fields.test.ts
    src/state-file.test.ts && npm run typecheck`
-2. RED then GREEN: rewrite `src/state-cli.test.ts` for the new request
+2. RED then GREEN (ref: §1 decision 4): rewrite `src/state-cli.test.ts` for the new request
    (AC-06 to AC-08, and the e08s01 exit-code cases that still apply) and
    record the failure; then change `src/state-cli.ts` to `op`, `key` and
    `value` → verify: `node --test src/state-fields.test.ts
    src/state-file.test.ts src/state-cli.test.ts && npm run typecheck`
 3. Name `state-fields.ts` and `docs/STATE.md` in the AGENTS.md Architecture
-   section, then run Preflight → verify: `grep -q 'state-fields' AGENTS.md
+   section (ref: §1 decision 3 and §3 field document), then run Preflight → verify: `grep -q 'state-fields' AGENTS.md
    && yamllint specs && bash tools/validate-specs-yaml.sh && bash
    tools/check-gate-ignores.sh && npm run typecheck && npm test`
 

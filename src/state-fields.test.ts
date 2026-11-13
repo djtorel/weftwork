@@ -6,23 +6,18 @@
 // repository; none touches this repository's own specs/state.yaml.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { checkStateField, readStateFields, setStateField, stateFields, stateFile } from './state-fields.ts';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const fixture = readFileSync(join(import.meta.dirname, 'fixtures', 'state.yaml'), 'utf8');
 
-/** A temporary repository whose specs/state.yaml is `text`. */
-function repoWithState(text: string = fixture): string {
-  const repo = makeTestRepo();
-  mkdirSync(join(repo, 'specs'));
-  writeFileSync(join(repo, stateFile), text);
-  return repo;
-}
+/** The repository of makeStateRepo, with specs/state.yaml set to `text`. */
+const repoWithState = (text: string = fixture): string => makeStateRepo(text).repo;
 
 const stateText = (repo: string): string => readFileSync(join(repo, stateFile), 'utf8');
 
@@ -46,7 +41,7 @@ for (const [key, value] of [
   ['vcs.branch', 'e08s02-state-fields'],
 ] as const) {
   test(`AC-e08s02-01 ${key} is accepted and written`, () => {
-    const repo = repoWithState();
+    const repo = repoWithState(fixture);
     assert.deepEqual(setStateField(repo, key, value), { ok: true, action: 'written', file: stateFile });
     assert.equal(valueAt(stateText(repo), key), value);
   });
@@ -54,7 +49,7 @@ for (const [key, value] of [
 
 for (const key of ['workflow_mode', 'test_plan', 'vcs.kind', 'handoff.next_skill', 'waivers', 'metrics', 'no_such_key', '']) {
   test(`AC-e08s02-02 the key ${JSON.stringify(key)} is refused and the file is the same bytes`, () => {
-    const repo = repoWithState();
+    const repo = repoWithState(fixture);
     const result = setStateField(repo, key, 'x');
     assert.equal(result.ok, false);
     assert.ok(!result.ok && result.error.includes(JSON.stringify(key)), JSON.stringify(result));
@@ -74,7 +69,7 @@ for (const [name, value] of [
   ['text of 201 astral code points', '😀'.repeat(201)],
 ] as const) {
   test(`AC-e08s02-03 ${name} is refused and the file is the same bytes`, () => {
-    const repo = repoWithState();
+    const repo = repoWithState(fixture);
     const result = setStateField(repo, 'active_story', value);
     assert.equal(result.ok, false);
     assert.ok(!result.ok && result.error.includes('"active_story"'), JSON.stringify(result));
@@ -95,14 +90,14 @@ for (const [name, value] of [
   ['empty text', ''],
 ] as const) {
   test(`AC-e08s02-04 a value of ${name} is accepted`, () => {
-    const repo = repoWithState();
+    const repo = repoWithState(fixture);
     assert.deepEqual(setStateField(repo, 'active_story', value), { ok: true, action: 'written', file: stateFile });
     assert.equal(valueAt(stateText(repo), 'active_story'), value);
   });
 }
 
 test('AC-e08s02-04 setting a field to the value it holds is unchanged', () => {
-  const repo = repoWithState();
+  const repo = repoWithState(fixture);
   assert.deepEqual(setStateField(repo, 'phase', 'planning'), { ok: true, action: 'unchanged', file: stateFile });
   assert.equal(stateText(repo), fixture);
 });
@@ -119,7 +114,7 @@ test('AC-e08s02-05 the engine rows of docs/STATE.md are the keys of stateFields'
 });
 
 test('readStateFields gives the documented fields and nothing else', () => {
-  const repo = repoWithState();
+  const repo = repoWithState(fixture);
   // The expected values come from the fixture, so no story id is written here.
   const expected = Object.fromEntries(stateFields.map((key) => [key, valueAt(fixture, key)]));
   assert.equal(Object.keys(expected).length, 5);

@@ -34,7 +34,7 @@ export function isFieldValue(value: unknown): value is FieldValue {
  * warning count. yaml refuses to expand too many aliases by throwing from toJS
  * (a billion-laughs guard); that is a refusal here, not a crash (security
  * review F1). */
-function parseOne(text: string): Parsed {
+export function parseOne(text: string): Parsed {
   const docs = parseAllDocuments(text);
   const doc = Array.isArray(docs) && docs.length === 1 ? docs[0] : undefined;
   if (doc === undefined) return { ok: false, error: 'the text must be exactly one YAML document' };
@@ -255,7 +255,7 @@ export function setField(text: string, path: readonly string[], value: FieldValu
  * `file` is resolved against `root`, and its directory after resolving
  * symlinks must be `root` or below it. The file name itself is not resolved:
  * readRegularFile refuses a symlink there. */
-function insideRoot(root: string, file: string): { ok: true; path: string } | Failure {
+export function insideRoot(root: string, file: string): { ok: true; path: string } | Failure {
   try {
     const realRoot = realpathSync(root);
     const target = resolve(realRoot, file);
@@ -274,20 +274,6 @@ function insideRoot(root: string, file: string): { ok: true; path: string } | Fa
   } catch (error) {
     return { ok: false, error: `${file} cannot be resolved: ${messageOf(error)}` };
   }
-}
-
-/** The data of the state file `file` (named from `root`), read with the same
- * checks as writeStateField: a regular file inside the root and outside .git,
- * not a symlink, of at most maxStateBytes, one YAML document of plain data. An
- * alias bomb is a refusal, not a throw (e08s02 security review F1, F2). */
-export function readStateData(root: string, file: string): { ok: true; data: unknown } | Failure {
-  const inside = insideRoot(root, file);
-  if (!inside.ok) return inside;
-  const read = readRegularFile(inside.path, { follow: false, maxBytes: maxStateBytes });
-  if (!read.ok) return read;
-  if (read.file === null) return { ok: false, error: `${file} does not exist` };
-  const parsed = parseOne(read.file.text);
-  return parsed.ok ? { ok: true, data: parsed.data } : { ok: false, error: `${file}: ${parsed.error}` };
 }
 
 /** Set the scalar at `path` in the state file `file` (named from `root`) to
