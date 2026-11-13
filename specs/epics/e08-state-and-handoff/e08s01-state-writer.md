@@ -321,6 +321,22 @@ regular-file read; the owner chose to share it.
   (owner decision, 2026-11-13, plan-work). e09 decides whether an unreadable
   ledger answers exhausted.
 
+## 5a. Known limits (review round 1, items A8 and B4)
+
+These change only the edited value's own text, so the byte-span check
+allows them. e08s03, which writes the multi-line handoff note, decides
+whether to handle them.
+
+- A `|+` (keep) block scalar counts its trailing blank lines as part of
+  its value. Setting it removes those lines with the old value, so a
+  blank line before the next entry can go.
+- A block scalar at the end of a file with no final newline gets one.
+- A multi-line value is refused in a file with CRLF line endings,
+  because the library writes LF inside it.
+- yaml's YAML 1.1 schema reads a few strings as numbers that PyYAML
+  reads as strings (`e01`), so such a value written as a plain string is
+  double-quoted. That only adds quotes.
+
 ## 6. Risks
 
 - **A future YAML construct the writer garbles.** AC-06 round-trips the live
