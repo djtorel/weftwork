@@ -174,3 +174,16 @@ test('control characters the agent wrote are escaped in the reason (security F2)
   const project = source('.claude/settings.json', settings([entry('npm test', gone)]));
   assert.doesNotMatch(liveReport(input({ project })).reason, control);
 });
+
+test('the age of the last call is printed in the largest whole unit', () => {
+  const ages: [string, RegExp][] = [
+    ['2026-11-12T11:59:30.000Z', /\(30 s ago\)/],
+    ['2026-11-12T09:00:00.000Z', /\(3 h ago\)/],
+    ['2026-11-10T11:00:00.000Z', /\(2 d ago\)/],
+    ['not a time', /\(age unknown\)/],
+  ];
+  for (const [at, age] of ages) {
+    const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at } } }));
+    assert.match(report.reason, age, at);
+  }
+});
