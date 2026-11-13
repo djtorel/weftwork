@@ -187,3 +187,25 @@ test('the age of the last call is printed in the largest whole unit', () => {
     assert.match(report.reason, age, at);
   }
 });
+
+test('an entry changed by hand so it may not block is not live (review B-F1)', () => {
+  const changed = [{ ...entry(), async: true }, { ...entry(), if: 'Bash(git *)' }, { ...entry(), timeout: 1 }];
+  for (const hook of changed) {
+    const report = liveReport(input({ project: source('.claude/settings.json', settings([hook])) }));
+    assert.equal(report.answer, 'not-seen', JSON.stringify(hook));
+    assert.match(report.reason, /install again/);
+  }
+});
+
+test('the live reason names the command that ran (review B-F5)', () => {
+  assert.match(liveReport(input()).reason, /'npm test'/);
+});
+
+test('a record dated after now says so, not a negative age (review F4/F6)', () => {
+  const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at: '2026-11-12T12:01:30.000Z' } } }));
+  assert.match(report.reason, /\(in the future\)/);
+});
+
+test('the notes say a hand-run hook also leaves a record (review A-F8)', () => {
+  assert.ok(liveReport(input()).notes.some((note) => /by hand/.test(note)));
+});
