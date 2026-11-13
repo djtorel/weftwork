@@ -154,11 +154,14 @@ added call (task 2), and both have tests through the real CLI.
      the file that decides it.
   5. No call record, or one that cannot be read: `not-seen`.
   6. No weftwork entry with its adapter present is exactly what the
-     install writes (`{type, command, timeout}`, nothing more):
-     `not-seen`, "run the install again". A hand edit such as
+     install writes (`{type, command, timeout}`, nothing more) with no
+     changed copy of the same handler (same adapter and command) in the
+     local, project or user file: `not-seen`, naming the file, "remove
+     the copy or run the install again". A hand edit such as
      `"async": true`, an `if` or a short `timeout` runs the hook but
-     cannot block a stop (Claude Code hooks docs, read 2026-11-12;
-     review round 1, B-F1).
+     cannot block a stop, and Claude Code runs a handler defined in more
+     than one settings file once (Claude Code hooks docs, read
+     2026-11-12; review rounds 1 and 3, B-F1, A1, B-1).
   7. The call record's adapter path and command equal such an entry's:
      `live`, with the command, the record's time and age ("in the
      future" for a time after now). Otherwise `not-seen` ("the last call
@@ -363,6 +366,15 @@ No new packages. Node built-ins only (`node:fs`, `node:path`). `[OK]`
   file name, so the record (and the ledger) can be written in a directory
   the agent links to. Deferred to e10, which owns the git-dir paths (review
   round 1, A-F9 and B-F4).
+- **The record does not name the project folder.** A session started in
+  a subdirectory with its own copy of the same entry writes the same
+  record, so the root can read as live for a hook that ran there. The
+  notes say so; storing `CLAUDE_PROJECT_DIR` in the record is deferred
+  (review round 3, B-9).
+- **Size caps check `fstat`, then read to the end.** A file that grows
+  between the two is read past the cap. A narrow race in the owner's own
+  process; deferred to e10 with the other file hardening (review round
+  3, B-6).
 - **A hook run by hand counts as called.** Running the adapter with
   `CLAUDE_PROJECT_DIR` set writes a matching record. The notes say so
   (review round 1, A-F8).

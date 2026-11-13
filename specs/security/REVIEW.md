@@ -893,3 +893,24 @@ recordCall comments are corrected (A-F6, A-F7).
   rename would fix both, together with the git-dir symlink.
 
 Verdict is unchanged: PASS.
+
+## Addendum: request-review round 3 (2026-11-12)
+
+Reviewer A 50, Reviewer B 88.9, no must-fix. Applied:
+
+- A changed copy of the handler (same adapter and command) in the local,
+  project or user Stop list now stops a `live` answer. Claude Code runs a
+  handler defined in more than one settings file once, so an `async`, `if` or
+  short-`timeout` copy may be the one that runs, and it cannot block a stop
+  (A1, B-1; both reproduced it with `liveReport`).
+- The reason escapes every `\p{Cc}` and `\p{Bidi_Control}` character, U+061C
+  included (A5, B-2).
+- A record's `at` must be a parseable time of at most 40 characters, so a
+  padded or missing time is not a record (A4, B-3).
+- `readSettings` ignores a failed close (B-7).
+- The note list says the record does not name the project folder (B-9).
+
+Deferred: storing `CLAUDE_PROJECT_DIR` in the record (B-9), and reading at most
+cap + 1 bytes instead of trusting `fstat` (B-6, e10).
+
+Verdict is unchanged: PASS.
