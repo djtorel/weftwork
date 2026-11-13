@@ -105,3 +105,28 @@ phases:
     note: >-
       Two gaps, both fixed and re-verified: security review F1 and the
       false double-tag from a test value.
+release_recheck:
+  # release-branch 2026-11-13. The five review rounds changed src/ after
+  # the run above; the mechanical gates were re-run on the final code.
+  # The owner's manual run (at 7492272) was not repeated by the owner;
+  # the agent re-ran the same seven steps in a scratch clone at 3f2e2b4,
+  # and every output matched the pass lines the owner checked.
+  head: 3f2e2b4
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    tests: 494
+    pass: 494
+    fail: 0
+  coverage:
+    command: "node --test --experimental-test-coverage"
+    lines_all: 99.27
+    branches_all: 96.09
+    state_file_lines: 98.66
+    regular_file_lines: 95.65
+  security_review: "PASS, REVIEW.md addendum at 3f2e2b4"
+  audit_gate: "PASS, tools/assert-audit-story.sh release"
+  gate_trace: "WAIVED (R1, e08-only owner waiver); critic 0 blockers"
+  blind_spots: {high: 0, medium: 43, low: 11}

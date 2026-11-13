@@ -23,7 +23,7 @@
 # (bp-timing.sh, record-cycle-time.sh) still write the same files.
 story_id: e08s01
 title: A caller sets one field of a state file and nothing else changes
-status: in_progress
+status: done
 bcps: 5
 type: feat
 context: engine

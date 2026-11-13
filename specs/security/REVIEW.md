@@ -1133,3 +1133,44 @@ caller write outside the root, and it must fail closed.
 
 PASS for the security gate: no HIGH finding at confidence 8 or more. F1 is
 LOW and is fixed in the verify-work gaps loop.
+
+## Addendum: e08s01 at release head 3f2e2b4 (release-branch step 2a)
+
+review_date: 2026-11-13
+scope: git diff d8aa880..3f2e2b4 -- src (the five review rounds' fixes:
+  9 files, 481 insertions, 98 deletions).
+method: re-read inline against the final code. Every reviewer in rounds 1 to
+  5 was also asked to check security, and each finding was fixed or
+  recorded.
+
+### What changed for security
+
+- **Path checks are stricter.** Any path with a `.git` segment in any case is
+  refused, on the final path after realpath. That covers a worktree's `.git`
+  file (rounds 2 to 4, verified by tests with a real `git worktree`). The
+  root itself is refused.
+- **Strict UTF-8, file and stdin.** `readRegularFile` refuses invalid UTF-8,
+  and so does the CLI's stdin. No edit can write U+FFFD in place of bytes it
+  did not touch. The Stop-hook install's settings read inherits this, as the
+  owner approved.
+- **Output PyYAML can load.** Characters PyYAML's reader refuses are refused
+  as values, so one edit can no longer make a state file unloadable for the
+  repository's tools.
+- **No false success.** Alias, anchored-mapping, tag and merged-key cases are
+  refused instead of written or reported as unchanged.
+- **No new sinks.** No shell, no exec and no eval in the new files; `git` still
+  runs through `tree.ts`'s `execFile`. No secrets in the diff (grep for key,
+  token and private-key shapes).
+
+### Still deferred to e10 (spec section 6)
+
+The parent-directory swap between realpath and rename; a file inside a nested
+repository or submodule; a git directory in the work tree under another name
+(round 5, B1); git's HFS-ignorable spellings of `.git`; the size cap checked
+by fstat then read to end of file. None is HIGH: the CLI is not a privilege
+boundary, and each needs a caller who can already write the repository.
+
+### Verdict
+
+PASS at 3f2e2b4. No HIGH finding at confidence 8 or more. F1 (alias bomb)
+is still fixed (test in state-file.test.ts and state-cli.test.ts).

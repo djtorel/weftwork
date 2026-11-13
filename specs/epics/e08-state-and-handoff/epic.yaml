@@ -14,7 +14,7 @@ stories:
   - id: e08s01
     title: A caller sets one field of a state file and nothing else changes
     bcps: 5
-    status: in_progress
+    status: done
     tasks: e08s01-tasks.yaml
     delta: ADDED
   - id: e08s02

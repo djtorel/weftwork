@@ -120,3 +120,24 @@ Result: PASS. Seven items were fixed in this audit (2242b19, 5d8a0e1).
 - Preflight at 5d8a0e1: exit 0, 486 of 486 tests.
 
 VERDICT: PASS
+
+## Addendum: re-check at release head 3f2e2b4
+
+The five review rounds changed src/ after this audit (d8aa880..3f2e2b4).
+The checklist was re-run on the final code:
+
+- ✓ Files under 300 lines: state-file.ts 299, regular-file.ts 115,
+  state-cli.ts 76.
+- ✓ No function over 20 lines in the new or changed modules.
+- ✓ No `any`, `@ts-ignore` or `eslint-disable`; the one cast (`chunk as
+  Buffer`) has its comment.
+- ✓ Every review fix landed test-first: a RED commit checked by
+  verify-tdd-red-commit.sh, then GREEN (rounds 1 to 5).
+- ✓ Failure moved to errors.ts, so the pure install edit no longer imports
+  the file module for a type; one import per module.
+- ✓ Coverage (node --experimental-test-coverage): 99.27% lines and 96.09%
+  branches overall; state-file.ts 98.66% lines, regular-file.ts 95.65%. The
+  uncovered lines are defensive catch blocks.
+- ✓ Preflight at 3f2e2b4: exit 0, 494 of 494 tests.
+
+VERDICT: PASS
