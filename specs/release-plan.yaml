@@ -111,7 +111,7 @@ epics:
   - id: e08
     title: State and handoff (B2)
     wsjf: 3.8               # (8 + 3 + 8) / 5; estimate
-    bcps: 19                # sliced 2026-11-13: 4 stories, 4 to 5 BCPs
+    bcps: 21                # e08s03 5 to 7 at plan-work 2026-11-13
     risk: P2
     depends_on: [e06]
     capsule_dir: epics/e08-state-and-handoff

@@ -42,7 +42,7 @@ development_status:
   e08: in_progress
   e08s01: done
   e08s02: done
-  e08s03: todo
+  e08s03: in_progress
   e08s04: todo
   e09: todo
   e10: todo
@@ -87,7 +87,7 @@ epics:
     status: in_progress
     title: State and handoff (B2)
     wsjf: 3.8
-    total_bcps: 19
+    total_bcps: 21
   e09:
     status: todo
     title: Budget and ceilings (B5)

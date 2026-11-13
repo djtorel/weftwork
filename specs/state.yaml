@@ -1,12 +1,12 @@
 workflow_mode: solo-git
-active_flow: null
+active_flow: build_epic
 active_epic: e08
-active_story: null
+active_story: e08s03
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e08s03-handoff-note
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -428,33 +428,30 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e08s03
   next_epic: e08
-  note: 'e08s02 (the engine changes only the documented state fields) is released
-    by PR from branch e08s02-state-fields. Next: kickoff-branch for e08s03 from main
-    with git checkout -b (not a worktree), then plan-work; e08s03 has a tasks file
-    but no story spec yet. e08s03 writes the handoff block. Its tasks file opens with
-    four open choices and a recommendation each (the block fields and which ones the
-    engine fills; a 4000-character note cap, refused not cut; no commit hash, because
-    PRs are squash-merged; one file, not two); put them to the owner at plan-work.
-    Build on e08s02: src/state-fields.ts owns active_flow, active_epic, active_story,
-    phase and vcs.branch (stateFields, checkStateField, setStateField, readStateFields)
-    and docs/STATE.md lists who writes each key; the state CLI takes {op: set, key,
-    value} or {op: get} and refuses handoff.* until e08s03 adds it, so edit the handoff
-    block by hand until then. Review notes left for e08s03 or later (not defects):
-    get returns values that set would refuse (a block scalar, over 200 characters),
-    so decide whether readStateFields applies the same value check; the root, regular-file
-    and does-not-exist preamble is in both readStateData (state-fields.ts) and writeStateField
-    (state-file.ts), and one shared readStateText would keep them in step; stateFields
-    could be a union type of the five keys; a value that checkStateField accepts but
-    the writer refuses (NEL, LS, PS) gives an error that does not name the key. e08
-    waivers in this file stay until e08 closes (missing specs for e08s03 and e08s04,
-    gate-trace R1, the MED status-ledger finding). Residual F5 belongs to e09 (owner
-    decision 2026-11-13). e10 owns the e08s01 spec section 6 path risks. Run request-review
-    (dual-blind) after audit-code and before commit-message; e08s02 missed it at first
-    and went back. Start in a fresh session. Pushes, PRs and merges need an explicit
-    go-ahead each. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
+  note: 'kickoff-branch done 2026-11-13: branch e08s03-handoff-note from main at 6722344,
+    Preflight green. plan-work done: spec e08s03-handoff.md, 7 BCPs; the owner took
+    all five recommendations (decision 5: setMapping in src/state-file.ts replaces
+    one top-level mapping). Next: develop-tdd for e08s03 task 1. Build on e08s02:
+    src/state-fields.ts owns active_flow, active_epic, active_story, phase and vcs.branch
+    (stateFields, checkStateField, setStateField, readStateFields) and docs/STATE.md
+    lists who writes each key; the state CLI takes {op: set, key, value} or {op: get}
+    and refuses handoff.* until e08s03 adds it, so edit the handoff block by hand
+    until then. Review notes left for e08s03 or later (not defects): get returns values
+    that set would refuse (a block scalar, over 200 characters), so decide whether
+    readStateFields applies the same value check; the root, regular-file and does-not-exist
+    preamble is in both readStateData (state-fields.ts) and writeStateField (state-file.ts),
+    and one shared readStateText would keep them in step; stateFields could be a union
+    type of the five keys; a value that checkStateField accepts but the writer refuses
+    (NEL, LS, PS) gives an error that does not name the key. e08 waivers in this file
+    stay until e08 closes (missing specs for e08s03 and e08s04, gate-trace R1, the
+    MED status-ledger finding). Residual F5 belongs to e09 (owner decision 2026-11-13).
+    e10 owns the e08s01 spec section 6 path risks. Run request-review (dual-blind)
+    after audit-code and before commit-message; e08s02 missed it at first and went
+    back. Start in a fresh session. Pushes, PRs and merges need an explicit go-ahead
+    each. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
     call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml. specs/metrics/cycle-times.md
     has no e07s04 row; ask the owner whether to backfill it. Deferred: CLAUDE_PROJECT_DIR
     in the record, resolved adapter paths. Declined: a staleness limit, sharing one
@@ -464,17 +461,18 @@ metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 28
-      total_seconds: 439.0
-      avg_seconds: 15.678571428571429
+      calls: 29
+      total_seconds: 473.0
+      avg_seconds: 16.310344827586206
     plan-work:
-      calls: 30
-      total_seconds: 15926.0
-      avg_seconds: 530.8666666666667
+      calls: 31
+      total_seconds: 16498.0
+      avg_seconds: 532.1935483870968
     develop-tdd:
       calls: 30
       total_seconds: 12345.0
       avg_seconds: 411.5
+      _start: '2026-11-13T22:32:25Z'
     verify-work:
       calls: 30
       total_seconds: 5178.0
@@ -492,9 +490,9 @@ metrics:
       total_seconds: 19595.0
       avg_seconds: 1632.9166666666667
     kickoff-branch:
-      calls: 1
-      total_seconds: 26.0
-      avg_seconds: 26.0
+      calls: 2
+      total_seconds: 55.0
+      avg_seconds: 27.5
     respond-review:
       calls: 6
       total_seconds: 931.0
