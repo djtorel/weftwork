@@ -4,7 +4,7 @@ title: Host adapters (B3)
 wsjf: 4.2
 total_bcps: 20
 risk: P2
-status: in_progress
+status: done
 depends_on:
   - e06
 done_when: >-

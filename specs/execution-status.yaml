@@ -34,7 +34,7 @@ development_status:
   e06s03: done
   e06s04: done
   e06s05: done
-  e07: in_progress
+  e07: done
   e07s01: done
   e07s02: done
   e07s03: done
@@ -70,12 +70,12 @@ epics:
     wsjf: 2.5
     total_bcps: 11
   e06:
-    status: todo
+    status: done
     title: Engine core and done gate (B1)
     wsjf: 3.5
     total_bcps: 17
   e07:
-    status: in_progress
+    status: done
     title: Host adapters (B3)
     wsjf: 4.2
     total_bcps: 20

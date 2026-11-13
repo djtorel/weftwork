@@ -101,11 +101,13 @@ epics:
     bcps: 20                # sliced 2026-11-12: 4 stories; e07s02 3 to 5
     risk: P2
     depends_on: [e06]
-    capsule_dir: epics/e07-host-adapters
+    capsule_dir: epics/archive/e07-host-adapters
     release: "0.2.0"
     note: >-
       Candidate B3. Claude Code first; pi only if the wrapper stays
       small. Raw WSJF is above e06, but it needs the engine.
+      Done and archived 2026-11-13; the pi wrapper was left out and is
+      not planned.
   - id: e08
     title: State and handoff (B2)
     wsjf: 3.8               # (8 + 3 + 8) / 5; estimate

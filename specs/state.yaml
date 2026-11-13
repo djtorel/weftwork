@@ -1,12 +1,12 @@
 workflow_mode: solo-git
 active_flow: null
-active_epic: e07
-active_story: e07s04
+active_epic: null
+active_story: null
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e07s04-live-check
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -409,31 +409,26 @@ handoff:
   next_skill: slice-tasks
   next_story: null
   next_epic: e08
-  note: 'release-branch is ready for e07s04 on 2026-11-12, branch e07s04-live-check.
-    Landing (push, PR, merge) waits for the owner''s go-ahead. Gates: Preflight green, 466 of 466 tests;
-    full coverage 99.24 lines, 96.06 branches; audit gate PASS for story and release;
-    gate-trace verify OK (critic 0 blockers); security review at c68a19c PASS (no
-    HIGH at confidence 8 or more; M1, the symlinked .git/weftwork directory, deferred
-    to e10). Review cap ran out at 5 of 5 without a dual pass; the owner waived it
-    and chose to release. The PR body names each gate and the waiver, and carries
-    no bigpowers provenance marker (project flow rule). e07s04 is done in its tasks
-    file, epic.yaml and execution-status.yaml; the e07 capsule stays in epics/ because
-    gate-trace R1 for e07 still needs an owner decision (the e07 waiver ends at e07
-    release). Next in execution order: e08 (B2, state and handoff); e08 has only its
-    epic.yaml, so start in a fresh session with slice-tasks. Pushes, PRs and merges
-    need an explicit go-ahead each. After a merge: sync main, delete the local and
-    remote branch, and check CI on the merge commit (scripts/wait-for-ci.sh). Do not
-    run scripts/sync-status-from-epics.sh. Deferred to e10: the symlinked git-dir
-    directory, the torn or briefly empty record (temp file and rename), size caps
-    checked by fstat then read to EOF. Deferred: CLAUDE_PROJECT_DIR in the record,
-    resolved adapter paths. Declined: a staleness limit, sharing one git rev-parse.'
+  note: 'e07 is closed on 2026-11-13: all four stories are done and landed (PR
+    #52 was the last), the capsule is archived in epics/archive/e07-host-adapters,
+    and the e07 status is reconciled in epic.yaml, execution-status.yaml and
+    release-plan.yaml. The R1 gate-trace waiver for e07 needs no renewal: no e07
+    story is undone. Next in execution order: e08 (B2, state and handoff). e08
+    has only its epic.yaml, so start in a fresh session with slice-tasks, on a
+    new branch made with git checkout -b. Pushes, PRs and merges need an explicit
+    go-ahead each. Do not run scripts/sync-status-from-epics.sh. Deferred to e10:
+    the symlinked git-dir directory, the torn or briefly empty record (temp file
+    and rename), size caps checked by fstat then read to EOF. Deferred:
+    CLAUDE_PROJECT_DIR in the record, resolved adapter paths. Declined: a
+    staleness limit, sharing one git rev-parse. The pi wrapper for e07 was left
+    out; add it as a later story only if the owner asks.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 24
-      total_seconds: 356.0
-      avg_seconds: 14.833333333333334
+      calls: 25
+      total_seconds: 380.0
+      avg_seconds: 15.2
     plan-work:
       calls: 28
       total_seconds: 15284.0
