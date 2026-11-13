@@ -1,0 +1,104 @@
+---
+# verify-work 2026-11-12. Mechanical gates pass. Manual UAT (step 6) is
+# NOT done: it needs the owner's real Claude Code session (AC-e07s03-11).
+# The story stays in_progress until that section is filled in and passes.
+story_id: e07s03
+verified_at: "2026-11-12T23:49:33Z"
+verifier: verify-work
+risk: P1
+branch: e07s03-install-stop-hook
+head: b2db1b7
+phases:
+  smoke:
+    passed: null
+    note: "N/A. This is a CLI library with no server process."
+  build:
+    passed: null
+    note: "No build step. Node runs .ts directly (CLAUDE.md)."
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+    exit_code: 0
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  tests:
+    passed: true
+    command: "npm test"
+    tests: 372
+    pass: 372
+    fail: 0
+  terminal_verdict:
+    command: "npm test"
+    exit_code: 0
+    captured_at: "2026-11-12T23:47:00Z"
+    note: "Single run. The run's output is in the scratchpad test.log."
+  preflight:
+    passed: true
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+  security_review:
+    passed: true
+    report: specs/security/REVIEW.md (section e07s03)
+    high_findings_at_8_or_more: 0
+  blind_spots:
+    passed: true
+    high: 0
+    medium: 37
+    low: 8
+    note: "37 MEDIUM findings are the repository's standing list. None is HIGH."
+  completeness_critic:
+    passed: true
+    blocker: 0
+    warning: 0
+    note: >-
+      The first run gave one BLOCKER: the traceability matrix was stale
+      (written before this branch's commits). scripts/trace-stories.sh
+      regenerated it, and the re-run is clean. The gate was not changed.
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    exit_code: 0
+  manual:
+    status: passed
+    script: specs/epics/e07-host-adapters/e07s03-verify-script.md
+    verified_by: owner, 2026-11-12, real Claude Code session
+    steps:
+      - step: "2 and 3. Install in a scratch copy, then run it again"
+        expected: "added, then unchanged"
+        actual: "Owner reported all steps passed; no detail given"
+        passed: true
+      - step: "4. Start claude, accept trust, run /hooks"
+        expected: "Stop entry listed under project settings"
+        actual: "Owner answered yes, one answer for the dialog and /hooks"
+        passed: true
+      - step: "5. Ask for a one-line reply with the hook command set to false"
+        expected: "Stop blocked with the engine's reason"
+        actual: >-
+          Blocked, then the stop went through with the warning "weftwork:
+          not done (stalled): 3 failed runs in a row on the same tree with
+          the same failure". The e06 stall rule ended the loop after three
+          blocks, before the host's cap of eight.
+        passed: true
+      - step: "6. Does a running session see a changed hook (optional)"
+        expected: "A recorded fact, either answer passes"
+        actual: "Not run. The owner did not understand the step."
+        passed: null
+    claude_edited_settings: false
+    recheck_after_audit_refactor:
+      date: "2026-11-12"
+      by: agent, in a scratch clone (deleted afterwards)
+      steps: "Install twice with the command false, on the final code"
+      expected: "added, then unchanged; one Stop entry with timeout 660"
+      actual: "added, then unchanged; entry and path as expected"
+      passed: true
+    note: >-
+      Step 6 stays open. The docs do not say whether a running session
+      sees a hook added or changed in settings, so the install tells the
+      owner to start a new session. Rewrite step 6 or drop it.
+  gaps:
+    closed: true
+    note: "Manual UAT passed. Step 6 was optional and is not run."

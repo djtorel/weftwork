@@ -672,3 +672,53 @@ No finding is open at that level, so the security gate does not block. The
 residuals above stay, with the stuck-git orphan the one worth an e06 story. The
 fail-open residual that remains is a crash or a signal before the handlers are
 installed and SIGKILL, and e07s04 owns the check for those.
+
+---
+
+# Security review for branch e07s03-install-stop-hook (e07s03, install registers the Stop hook)
+
+review_date: 2026-11-12
+branch: e07s03-install-stop-hook
+base: main (8a7685f)
+scope: git diff main...HEAD -- src/claude-install.ts, src/claude-install-cli.ts and their tests (focus: settings read and write, symlink and FIFO handling, shell quoting of the declared command in the hook entry, temp-file rename)
+method: security-review 5-phase scan, read-only, reviewed inline
+
+## Executable surface
+
+1. `src/claude-install-cli.ts` runs with the owner's shell. It takes one argument after `--`. That argument becomes the shell command that the Stop hook runs. The owner types it, so no agent input reaches it.
+2. `src/claude-install.ts` reads and writes `<project>/.claude/settings.json` in the owner's current directory.
+
+## Context research
+
+- `shellQuote` wraps text in single quotes and writes each `'` as `'\''`. Adapter path and declared command both go through it. The `sh -c` round-trip test (AC-e07s03-06) passes with quotes and a space in the path.
+- The file is untrusted input (threat T1, e10). The install refuses to edit it when it is not in the expected shape. It never repairs or overwrites it.
+- The git check `lstat(.git)` runs before any write.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Shell injection via the declared command | Not exploitable. The command is single-quoted, so the shell reads it as one word. The owner is the only source. |
+| Shell injection via the adapter path | Not exploitable. The path is single-quoted. |
+| Symlink on settings.json | Refused. The open uses O_NOFOLLOW, and the test checks that the target is unchanged. |
+| Symlink on .claude | Refused by lstat (test checks no write goes through it). |
+| FIFO or device as settings.json | Refused. O_NONBLOCK, then fstat must say regular file (BUG-007 class). Test runs with a timeout. |
+| Temp-file write and rename | `wx` flag, so an existing file is not followed. Rename replaces the path atomically. A symlink at the destination is replaced, not followed. |
+| Secrets in the diff | None. |
+| Unsafe deserialization | JSON.parse of user-owned text only. Own keys are copied with spread, so `__proto__` stays data. |
+| Outbound requests | None. |
+
+## Findings (confidence 8 or more)
+
+None. No unaddressed HIGH findings.
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- **Substring match on the adapter path (confidence about 5).** `isOurs` uses `command.includes(shellQuote(cliPath))`. A hook of another tool whose command quotes this checkout's adapter path would be treated as weftwork's and removed on replace. Impact is limited to a hook that names this checkout's adapter path. Possible fix: compare the full command with `stopHookCommand(cliPath, …)` prefix, or anchor on `node '<path>' --`.
+- **Predictable temp name (confidence about 4).** `settings.json.<pid>.tmp` is predictable. The `finally` block runs `rmSync(temp, {force: true})`, so a file planted there before the write would be deleted. Writing into `.claude` already requires write access to the project, so this adds nothing new.
+- **No size cap on the settings read (confidence about 3).** A very large settings file is read whole. This slows only the owner's own run.
+- **Check-then-use on `.claude` (confidence about 3).** `lstat(.claude)` runs before `mkdir` and the write. Exploiting it needs the agent to race the owner's install, which is outside the threat model for this command.
+
+## Verdict
+
+PASS for the security gate. No HIGH finding at confidence 8 or more. The four observations are recorded for the e10 review and do not block e07s03.
