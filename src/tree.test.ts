@@ -1,4 +1,4 @@
-// story: e06s02
+// story: e06s02, e08s03
 // Tests for the working-tree fingerprint (e06s02, AC-01 to AC-05).
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { fingerprintTree } from './tree.ts';
+import { fingerprintTree, uncommittedPaths } from './tree.ts';
 import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -160,4 +160,33 @@ test('AC-e06s02-05 a directory that does not exist is not ok', async () => {
 
 test('AC-e06s02-05 a path with a NUL byte is not ok', async () => {
   await assertNotOk('/tmp\u0000x');
+});
+
+// e08s03: the paths the handoff records as uncommitted at write time.
+test('uncommittedPaths lists changed, staged, renamed and untracked paths', async () => {
+  const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'old name.txt': 'x\n', 'clean.txt': 'c\n' });
+  writeFileSync(join(repo, 'tracked.txt'), 'two\n');
+  git(repo, 'mv', 'old name.txt', 'new name.txt');
+  mkdirSync(join(repo, 'dir'));
+  writeFileSync(join(repo, 'dir', 'line\nbreak.txt'), 'u\n');
+  const result = await uncommittedPaths(repo);
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  assert.deepEqual([...result.paths].sort(), ['dir/line\nbreak.txt', 'new name.txt', 'tracked.txt']);
+});
+
+test('uncommittedPaths gives an empty list for a clean tree', async () => {
+  assert.deepEqual(await uncommittedPaths(makeTestRepo()), { ok: true, paths: [] });
+});
+
+test('uncommittedPaths refuses a path that is not UTF-8', async () => {
+  const repo = makeTestRepo();
+  writeFileSync(Buffer.concat([Buffer.from(join(repo, 'bad-')), Buffer.from([0xff]), Buffer.from('.txt')]), 'u\n');
+  const result = await uncommittedPaths(repo);
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && /UTF-8/.test(result.error), result.ok ? '' : result.error);
+});
+
+test('uncommittedPaths fails outside a repository', async () => {
+  const result = await uncommittedPaths(makeTempDir());
+  assert.equal(result.ok, false);
 });
