@@ -406,22 +406,22 @@ waivers:
   scope: e07 only; drop it when e07 closes, or as soon as every undone e07 story could
     carry a code tag
 handoff:
-  next_skill: develop-tdd
+  next_skill: verify-work
   next_story: e07s04
-  note: 'kickoff-branch done 2026-11-12: branch e07s04-live-check from main at 28c371f
-    (git checkout -b, no worktree, BUG-002), Preflight green (384 of 384 tests). The
-    spec e07s04-live-check.md, the rewritten e07s04-tasks.yaml and this state.yaml
-    are not committed yet; put them in the first commit on the branch, with the Story:
-    e07s04 trailer, after the owner''s go-ahead. Start develop-tdd at task 1 (refactor:
-    split the file I/O of src/claude-install.ts into src/claude-settings-file.ts,
-    then parseStopHookCommand, RED first). The spec holds the owner decisions (own
-    last-call.json file; live = same entry was called; local, project and user settings
-    with precedence). plan-consistency-check: 0 CRITICAL, 0 HIGH, 3 MED (standing
-    todo/in_progress/done rule), acknowledged by the owner. Carry: gate-trace R1 needs
-    an owner decision before e07 is released. main is protected: land by PR, with
-    the owner''s explicit go-ahead for each push, PR and merge. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on
-    specs/state.yaml.'
+  note: 'develop-tdd done 2026-11-12 on branch e07s04-live-check (not pushed): all
+    5 tasks done, each with RED and GREEN commits and the Story: e07s04 trailer; Preflight
+    green, 420 of 420 tests. New: src/claude-settings-file.ts (file I/O split from
+    claude-install.ts), parseStopHookCommand in claude-install.ts, src/last-call.ts,
+    the adapter writes last-call.json before it reads the input, src/claude-live.ts
+    (liveReport) and src/claude-live-cli.ts. The story stays in_progress until the
+    owner runs specs/epics/e07-host-adapters/e07s04-verify-script.md (AC-e07s04-10)
+    and verify-work records it in specs/verifications/e07s04-verify.yaml. Step 7 of
+    that script records whether a running session picks up a changed hook. The owner
+    gave a standing go-ahead to commit on this branch at each RED and GREEN; pushes,
+    PRs and merges still need an explicit go-ahead each. Carry: gate-trace R1 needs
+    an owner decision before e07 is released. The RED gate script (scripts/verify-tdd-red-commit.sh)
+    skips outside fix_bug. Do not run scripts/sync-status-from-epics.sh. After the
+    last bp-timing.sh call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -434,10 +434,9 @@ metrics:
       total_seconds: 15284.0
       avg_seconds: 545.8571428571429
     develop-tdd:
-      calls: 27
-      total_seconds: 11117.0
-      avg_seconds: 411.74074074074076
-      _start: '2026-11-13T02:10:36Z'
+      calls: 28
+      total_seconds: 11672.0
+      avg_seconds: 416.85714285714283
     verify-work:
       calls: 27
       total_seconds: 3044.0

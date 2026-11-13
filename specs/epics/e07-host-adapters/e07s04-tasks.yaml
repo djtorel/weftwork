@@ -15,7 +15,7 @@
 # No model tokens are spent except in the owner's run (task 5).
 story_id: e07s04
 title: Check that the hook is live, and fail loudly when it is not
-status: todo
+status: in_progress
 bcps: 5
 type: feat
 context: adapter
@@ -111,7 +111,7 @@ tasks:
       && bash tools/check-gate-ignores.sh && npm run typecheck
       && npm test
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
