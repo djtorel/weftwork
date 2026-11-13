@@ -159,3 +159,15 @@ test('AC-e07s04-04 local or user settings that cannot be read: not seen', () => 
     assert.match(report.reason, /cannot tell whether hooks are on/);
   }
 });
+
+test('control characters the agent wrote are escaped in the reason (security F2)', () => {
+  const control = /[\u0000-\u001f\u007f-\u009f]/;
+  const forged = { ...call, at: 'T\u001b[2K\rweftwork live check: live', command: 'other' };
+  const unseen = liveReport(input({ lastCall: { ok: true, call: forged } }));
+  assert.equal(unseen.answer, 'not-seen');
+  assert.doesNotMatch(unseen.reason, control);
+  assert.match(unseen.reason, /\\u001b/);
+  const gone = '/tmp/x\u001b[2K\r/claude-hook-cli.ts';
+  const project = source('.claude/settings.json', settings([entry('npm test', gone)]));
+  assert.doesNotMatch(liveReport(input({ project })).reason, control);
+});
