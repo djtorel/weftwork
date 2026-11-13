@@ -67,7 +67,7 @@ test('the CLI leaves a field that already holds the value as it was', () => {
 test('the file is named from the repository root, whatever the working directory', () => {
   const { specs, state } = repoWithState();
   const run = runCli(specs, request('specs/state.yaml', ['active_story'], null));
-  assert.equal(run.status, 0, run.result.error);
+  assert.equal(run.status, 0, run.result.error ?? '');
   assert.match(readFileSync(state, 'utf8'), /^active_story: null$/m);
 });
 

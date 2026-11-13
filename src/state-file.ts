@@ -9,11 +9,19 @@
 // CST.setScalarValue checks no types: the string "true" written plain would
 // read back as a boolean. So every edit is parsed again and accepted only when
 // the data equals the old data with that one field set.
+import { realpathSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { CST, Parser, parseAllDocuments, type Document, type Scalar } from 'yaml';
+import { messageOf } from './errors.ts';
+import { readRegularFile, writeAtomic } from './regular-file.ts';
+
+/** The most writeStateField reads. A state file is a few tens of KiB. */
+export const maxStateBytes = 1024 * 1024;
 
 export type FieldValue = string | number | boolean | null;
 export type SetField = { ok: true; text: string } | { ok: false; error: string };
+export type WriteField = { ok: true; action: 'written' | 'unchanged'; file: string } | { ok: false; error: string };
 type Parsed = { ok: true; doc: Document } | { ok: false; error: string };
 type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | { ok: false; error: string };
 
@@ -95,4 +103,41 @@ export function setField(text: string, path: readonly string[], value: FieldValu
     if (result.ok && holds(result.text, want)) return result;
   }
   return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data` };
+}
+
+/** The real path `file` names, when it lies inside `root`: `file` is resolved
+ * against `root`, and its directory after resolving symlinks must be `root` or
+ * below it. The file name itself is not resolved: readRegularFile refuses a
+ * symlink there. */
+function insideRoot(root: string, file: string): { ok: true; path: string } | { ok: false; error: string } {
+  try {
+    const realRoot = realpathSync(root);
+    const target = resolve(realRoot, file);
+    const parent = realpathSync(dirname(target));
+    const rel = relative(realRoot, parent);
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+      return { ok: false, error: `${file} is outside the repository root ${realRoot}` };
+    }
+    return { ok: true, path: join(parent, basename(target)) };
+  } catch (error) {
+    return { ok: false, error: `${file} cannot be resolved: ${messageOf(error)}` };
+  }
+}
+
+/** Set the scalar at `path` in the state file `file` (named from `root`) to
+ * `value`, keeping every other byte. The file must be a regular file inside
+ * the repository root, not a symlink, of at most maxStateBytes. It is written
+ * through a temp file and a rename with its old mode, and only when the text
+ * changes. A file that cannot be read, parsed or checked is never written. */
+export function writeStateField(root: string, file: string, path: readonly string[], value: FieldValue): WriteField {
+  const inside = insideRoot(root, file);
+  if (!inside.ok) return inside;
+  const read = readRegularFile(inside.path, { follow: false, maxBytes: maxStateBytes });
+  if (!read.ok) return read;
+  if (read.file === null) return { ok: false, error: `${file} does not exist` };
+  const result = setField(read.file.text, path, value);
+  if (!result.ok) return { ok: false, error: `${file}: ${result.error}` };
+  if (result.text === read.file.text) return { ok: true, action: 'unchanged', file };
+  const failed = writeAtomic(inside.path, result.text, read.file.mode);
+  return failed ?? { ok: true, action: 'written', file };
 }
