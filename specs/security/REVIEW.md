@@ -956,3 +956,99 @@ to release (option A). These fixes were not re-reviewed:
 
 Each fix has a test that failed first or a mutant it kills. Verdict is
 unchanged: PASS.
+
+# Security review for branch e07s04-live-check, current head (e07s04, release-branch step 2a)
+
+review_date: 2026-11-12
+branch: e07s04-live-check
+head: c3d8708
+base: main (28c371f)
+scope: git diff 28c371f..HEAD -- src (17 files, including the round 1 to 5
+  changes). Focus: the entry rule (claude-install.ts, claude-live.ts), the
+  call record (last-call.ts, claude-hook-cli.ts), the settings reads
+  (claude-settings-file.ts), the close-error handling (ledger.ts), and the CLI
+  files (claude-live-cli.ts, claude-install-cli.ts).
+method: security-review 5-phase scan, reviewed inline against the final code;
+  earlier e07s04 findings re-checked in the code.
+
+## Executable surface
+
+1. `src/claude-hook-cli.ts` writes `<git dir>/weftwork/last-call.json` before it
+   reads the host's stdin. It runs as the owner, outside the agent's sandbox.
+2. `src/claude-live-cli.ts` reads three settings files and the record, prints
+   a report, and writes nothing.
+3. `src/claude-install-cli.ts` writes `.claude/settings.json` (unchanged in
+   this story apart from the file split).
+
+## Context research
+
+- No shell is involved in any new path. `git` runs through `execFile`, as
+  the ledger already does, with `core.fsmonitor=false`.
+- Every text the reason prints that the agent can write is escaped: the call
+  record's time and command, the settings paths and error texts. The escape
+  set is `\p{Cc}`, `\p{Bidi_Control}` and U+2028/2029, with the `u` flag.
+- The notes are fixed text plus a count of distinct handlers.
+- The record is 0600 in a 0700 directory, since it holds the declared command
+  (T8). Its read is capped at 64 KiB and its time at 40 characters.
+- Untrusted settings are parsed with `JSON.parse` and read back through
+  `parseStopHook`. No object is merged or spread from them into a result.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Command or shell injection | None new. The check never runs the entry; the hook runs the owner's declared command as before. |
+| Secrets in the diff | None (grep for key and token shapes, private keys). |
+| Escape codes or bidi overrides in printed text | Escaped in the reason (verified in `claude-live.ts`, boundary test). |
+| Symlink at the record file | Refused on write and read (`O_NOFOLLOW`). |
+| Hard link at the record file | Refused on write (`nlink !== 1`, before the truncate). |
+| FIFO, device or directory at the record file | Refused without blocking (`O_NONBLOCK` and the regular-file check). |
+| Symlinked settings file, read by the live check | Followed, as Claude Code reads it; the target must be a regular file. The install still refuses symlinks. |
+| Settings or record larger than the cap | Refused (1 MiB and 64 KiB), checked with `fstat` (see below). |
+| Failed record write changing the hook's answer | No: the result is ignored and close errors are swallowed (`ignoreCloseError`). |
+| Hook hanging on the record write | No: the write is non-blocking and bounded by the hook's deadline. |
+| Outbound requests | None. |
+
+## Findings (confidence 8 or more)
+
+None. No HIGH finding at confidence 8 or more.
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- **M1, symlinked `<git dir>/weftwork` directory (MEDIUM, confidence about 7).**
+  `mkdir` with `recursive` accepts an existing symlink to a directory, and
+  `O_NOFOLLOW` guards only the last path component. An agent that can write
+  the git dir can therefore make the hook, which runs as the owner, create or
+  truncate `last-call.json` (fixed name, 0600) and append to `ledger.jsonl` in
+  a directory it names. The ledger has the same property (e06s03). This is
+  the round 1 finding A-F9 / B-F4, and it stays deferred to e10, which owns
+  the git-dir paths. It does not reach HIGH: the file name and the contents
+  are fixed, and the directory must already be writable by the owner.
+- **L1, race at the record file (LOW, confidence about 4).** The file is
+  created by `O_CREAT`, and the single-link check runs after the open. A
+  hard link added in that window could see the truncate. Narrow; the same
+  e10 work (temp file and rename) removes it.
+- **Size caps are checked with `fstat`, then read to end of file.** A file
+  that grows between the two is read past the cap. Narrow; deferred to e10.
+
+## Earlier e07s04 findings, re-checked against this head
+
+- **F1, hard link at the record file (MEDIUM): still fixed.** `nlink !== 1`
+  at `src/last-call.ts:48`, with a test that the linked file is unchanged.
+- **F2, control characters in the printed reason (LOW): still fixed, and
+  widened.** `unsafeCharacters` at `src/claude-live.ts:206` covers every `Cc`
+  and `Bidi_Control` character (which includes U+061C, U+200E/F, U+202A-E and
+  U+2066-9) and U+2028/2029. Boundary tests cover both sides.
+- **Symlinked settings file read by the live check (observation): still
+  fixed.** The live check follows the link (`follow` flag at
+  `src/claude-settings-file.ts:41`, used at `src/claude-live-cli.ts:42`); a
+  FIFO or directory behind a link is still refused after the non-blocking
+  open. The install keeps refusing symlinks.
+- **Symlinked `.git/weftwork` directory (round 1 A-F9 / B-F4): still open**,
+  recorded as M1 above and deferred to e10 as the owner decided.
+
+## Verdict
+
+PASS for the security gate. No HIGH finding at confidence 8 or more. M1 is
+MEDIUM at confidence about 7, the same class as the ledger, and deferred to
+e10 as already decided. The three earlier findings are still fixed.
