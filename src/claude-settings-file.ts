@@ -31,7 +31,7 @@ export const maxSettingsBytes = 1024 * 1024;
 
 export type InstallInProject = { ok: true; action: Action; path: string } | Failure;
 type Opened = { ok: true; fd: number | null } | Failure;
-export type SettingsFile = { text: string; mode: number };
+export type SettingsFile = { text: string; mode: number; mtime: Date };
 export type Read = { ok: true; file: SettingsFile | null } | Failure;
 
 /** Open the settings file without blocking, and without following a symlink
@@ -63,7 +63,7 @@ export function readSettings(path: string, follow = false): Read {
     if (stat.size > maxSettingsBytes) {
       return { ok: false, error: `${path} is larger than ${maxSettingsBytes} bytes` };
     }
-    return { ok: true, file: { text: readFileSync(fd, 'utf8'), mode: stat.mode & 0o777 } };
+    return { ok: true, file: { text: readFileSync(fd, 'utf8'), mode: stat.mode & 0o777, mtime: stat.mtime } };
   } catch (error) {
     return { ok: false, error: `${path} could not be read: ${messageOf(error)}` };
   } finally {
@@ -79,6 +79,17 @@ function closeQuietly(fd: number): void {
   } catch {
     // Nothing to do: the read's own result is what the caller gets.
   }
+}
+
+/** The user settings file Claude Code reads: $CLAUDE_CONFIG_DIR/settings.json,
+ * else ~/.claude/settings.json, or null when neither is set. An empty value
+ * counts as unset: join('', ...) would name a file in the project (review
+ * round 3, A-F7; moved here from the CLI in round 5, B-4). */
+export function userSettingsPath(env: Record<string, string | undefined>): string | null {
+  const configDir = env.CLAUDE_CONFIG_DIR === '' ? undefined : env.CLAUDE_CONFIG_DIR;
+  const home = env.HOME === '' ? undefined : env.HOME;
+  const dir = configDir ?? (home === undefined ? undefined : join(home, '.claude'));
+  return dir === undefined ? null : join(dir, 'settings.json');
 }
 
 /** True when `dir` holds a `.git` entry, a directory or a worktree file. */

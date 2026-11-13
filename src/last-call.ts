@@ -17,17 +17,13 @@ import { dirname, join } from 'node:path';
 import { isMissing, messageOf } from './errors.ts';
 import { isRecord } from './json.ts';
 import type { StopHookEntry } from './claude-install.ts';
-import { ledgerPath, openRegular } from './ledger.ts';
+import { ignoreCloseError, ledgerPath, openRegular } from './ledger.ts';
 
 /** One call: when, which adapter file ran, and the declared command. */
 export type LastCall = { at: string } & StopHookEntry;
 
 export type LastCallWrite = { ok: true } | { ok: false; error: string };
 export type LastCallRead = { ok: true; call: LastCall | null } | { ok: false; error: string };
-
-/** A failed close must not reach the hook: the record is a side note, and a
- * rejection would turn into a block (review A-F3, B-F9). */
-function ignoreCloseError(): void {}
 
 /** The most the check reads. A real record is a few hundred bytes. */
 const maxRecordBytes = 64 * 1024;

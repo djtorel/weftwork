@@ -13,7 +13,7 @@ test('an entry changed by hand so it may not block is not live (review B-F1)', (
   for (const hook of changed) {
     const report = liveReport(input({ project: source('.claude/settings.json', settings([hook])) }));
     assert.equal(report.answer, 'not-seen', JSON.stringify(hook));
-    assert.match(report.reason, /install again/);
+    assert.equal(report.next, 'run-install');
   }
 });
 
@@ -30,7 +30,7 @@ test('a changed copy of the handler in another file is not live, the file named 
   for (const [change, file] of cases) {
     const report = liveReport(input(change));
     assert.equal(report.answer, 'not-seen', JSON.stringify(change));
-    assert.match(report.reason, /remove the copy or run the install again/);
+    assert.match(report.reason, /changed by hand/);
     assert.match(report.reason, file);
   }
 });

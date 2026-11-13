@@ -11,8 +11,9 @@
 // check cannot tell (not seen); no entry is exactly as the install writes it
 // with no changed copy of the same handler in the local, project or user file,
 // so a hand edit may stop it blocking (not seen); no usable call record (not
-// seen); the record is of the same adapter and command as such an entry
-// (live); otherwise not seen.
+// seen); the record is of the same adapter and command as such an entry, and
+// no settings file changed after it (live); otherwise not seen. Each answer
+// carries the one step that can change it.
 //
 // disableAllHooks takes the value left after precedence: local, then project,
 // then user settings (Claude Code docs, "Disable or remove hooks", read
@@ -27,7 +28,9 @@ import {
 } from './claude-install.ts';
 import type { LastCall, LastCallRead } from './last-call.ts';
 
-export type SettingsRead = { ok: true; text: string | null } | { ok: false; error: string };
+/** What reading one settings file gave: its text (null for no file) and when
+ * it last changed, or the error. */
+export type SettingsRead = { ok: true; text: string | null; changedAt?: Date } | { ok: false; error: string };
 /** One settings file: its name for the report, and what reading it gave. */
 export type SettingsSource = { name: string; read: SettingsRead };
 
@@ -42,7 +45,11 @@ export type LiveInput = {
 };
 
 export type LiveAnswer = 'live' | 'not-seen' | 'not-registered';
-export type LiveReport = { answer: LiveAnswer; reason: string; notes: string[] };
+/** The one step that can change the answer (review round 5). */
+export type NextStep = 'run-install' | 'fix-settings' | 'remove-copy' | 'turn-hooks-on' | 'stop-once';
+export type LiveReport = { answer: LiveAnswer; reason: string; next: NextStep | null; notes: string[] };
+/** An answer before its notes are added. */
+type Verdict = Omit<LiveReport, 'notes'>;
 
 /** A weftwork entry: the file it is in, whether it is exactly what the install
  * writes, and whether its adapter file exists. */
@@ -104,24 +111,28 @@ function copiesIn(sources: SettingsSource[], exists: (path: string) => boolean):
   return { ok: true, entries };
 }
 
+function notSeen(reason: string, next: NextStep): Verdict {
+  return { answer: 'not-seen', reason, next };
+}
+
 /** Why hooks do not run, or null when they do, from the first file in
  * precedence order that sets disableAllHooks. A file that cannot be read means
  * the check cannot tell. */
-function hooksOff(sources: SettingsSource[]): string | null {
+function hooksOff(sources: SettingsSource[]): Verdict | null {
   for (const source of sources) {
     const parsed = source.read.ok ? parseSettings(source.read.text) : source.read;
     if (!parsed.ok) {
-      return `cannot tell whether hooks are on: ${source.name}: ${parsed.error}`;
+      return notSeen(`cannot tell whether hooks are on: ${source.name}: ${parsed.error}`, 'fix-settings');
     }
     const value = parsed.settings.disableAllHooks;
     if (value === true) {
-      return `disableAllHooks is true in ${source.name}, so Claude Code runs no hook from settings`;
-    }
-    if (value !== undefined && value !== false) {
-      return `cannot tell whether hooks are on: disableAllHooks in ${source.name} is not true or false`;
+      return notSeen(`disableAllHooks is true in ${source.name}, so Claude Code runs no hook from settings`, 'turn-hooks-on');
     }
     if (value === false) {
       return null;
+    }
+    if (value !== undefined) {
+      return notSeen(`cannot tell whether hooks are on: disableAllHooks in ${source.name} is not true or false`, 'fix-settings');
     }
   }
   return null;
@@ -138,30 +149,52 @@ function ageOf(at: string, now: Date): string {
   return unit === undefined ? `${seconds} s ago` : `${Math.floor(seconds / unit[0])} ${unit[1]} ago`;
 }
 
-/** The notes, with a count of distinct handlers when there is more than one:
- * Claude Code runs the same handler once (review round 4, A-2, B-3). */
+/** One handler: the adapter and the command. Claude Code runs the same handler
+ * once, so entries with one key are one hook (review rounds 4 and 5). */
+function handlerKey(entry: StopHookEntry): string {
+  return `${entry.cliPath}\0${entry.command}`;
+}
+
+function sameHandler(a: StopHookEntry, b: StopHookEntry): boolean {
+  return handlerKey(a) === handlerKey(b);
+}
+
+/** The notes, with a count of distinct handlers in the project settings when
+ * there is more than one. Handlers in the local or user file run too, so the
+ * count is a floor (review round 5, A-F3). */
 function notesFor(entries: Entry[]): string[] {
-  const handlers = new Set(entries.map((entry) => `${entry.cliPath}\0${entry.command}`)).size;
+  const handlers = new Set(entries.map(handlerKey)).size;
   const many = handlers > 1
-    ? [`${handlers} weftwork Stop hooks are registered, so ${handlers} run on each stop.`]
+    ? [`${handlers} weftwork Stop hooks are registered in the project settings, so at least ${handlers} run on each stop.`]
     : [];
   return [...many, ...standingNotes];
 }
 
-/** The answer for a registered hook whose adapter exists. */
-function answerFromRecord(present: Entry[], lastCall: LastCallRead, now: Date): Omit<LiveReport, 'notes'> {
-  if (!lastCall.ok) {
-    return { answer: 'not-seen', reason: `the call record cannot be read: ${lastCall.error}` };
+/** When any of `sources` last changed, in ms, or 0 when none says. */
+function newestChange(sources: SettingsSource[]): number {
+  const times = sources.map((source) => (source.read.ok ? source.read.changedAt?.getTime() ?? 0 : 0));
+  return Math.max(0, ...times);
+}
+
+/** The answer from the call record. A record from before the newest settings
+ * change may be of an entry that has changed since, so it is not live until the
+ * host calls the hook again (review round 5, B-1). */
+function answerFromRecord(usable: Entry[], input: LiveInput): Verdict {
+  if (!input.lastCall.ok) {
+    return notSeen(`the call record cannot be read: ${input.lastCall.error}`, 'stop-once');
   }
-  const call: LastCall | null = lastCall.call;
+  const call: LastCall | null = input.lastCall.call;
   if (call === null) {
-    return { answer: 'not-seen', reason: 'no call recorded yet: let a Claude Code session stop once' };
+    return notSeen('no call recorded yet: let a Claude Code session stop once', 'stop-once');
   }
-  const when = `${call.at} (${ageOf(call.at, now)})`;
-  if (present.some((entry) => entry.cliPath === call.cliPath && entry.command === call.command)) {
-    return { answer: 'live', reason: `Claude Code last called this hook for '${call.command}' at ${when}` };
+  const when = `${call.at} (${ageOf(call.at, input.now)})`;
+  if (!usable.some((entry) => sameHandler(entry, call))) {
+    return notSeen(`the last call, at ${when}, ran another command or adapter`, 'stop-once');
   }
-  return { answer: 'not-seen', reason: `the last call, at ${when}, ran another command or adapter` };
+  if (Date.parse(call.at) < newestChange([input.local, input.project, input.user])) {
+    return notSeen(`the settings changed after the last call, at ${when}, so that call may have run an older entry`, 'stop-once');
+  }
+  return { answer: 'live', reason: `Claude Code last called this hook for '${call.command}' at ${when}`, next: null };
 }
 
 /** The reason with every control character written as `\uXXXX`: the Unicode
@@ -196,55 +229,51 @@ function whyNotRegistered(entries: Entry[], others: number, file: string): strin
   return null;
 }
 
-/** The report before its reason is escaped, in the order the header gives. */
+/** The report before its reason is escaped, in the order the header gives. A
+ * project file the install cannot read is fixed by hand, not by the install. */
 function rawReport(input: LiveInput): LiveReport {
   const found = weftworkEntries(input.project, input.exists);
   if (!found.ok) {
-    return { answer: 'not-registered', reason: found.reason, notes: [...standingNotes] };
+    return { answer: 'not-registered', reason: found.reason, next: 'fix-settings', notes: [...standingNotes] };
   }
   const notes = notesFor(found.entries);
   const missing = whyNotRegistered(found.entries, found.others, input.project.name);
   if (missing !== null) {
-    return { answer: 'not-registered', reason: missing, notes };
+    return { answer: 'not-registered', reason: missing, next: 'run-install', notes };
   }
   return { ...answerWhenRegistered(found.entries, input), notes };
 }
 
 /** The answer for a registered hook whose adapter exists: hooks must be on,
  * the local and user Stop lists readable, and then the entries decide. */
-function answerWhenRegistered(entries: Entry[], input: LiveInput): Omit<LiveReport, 'notes'> {
+function answerWhenRegistered(entries: Entry[], input: LiveInput): Verdict {
   const off = hooksOff([input.local, input.project, input.user]);
   if (off !== null) {
-    return { answer: 'not-seen', reason: off };
+    return off;
   }
   const copies = copiesIn([input.local, input.user], input.exists);
   if (!copies.ok) {
-    return { answer: 'not-seen', reason: `cannot tell whether a changed copy of the entry exists: ${copies.reason}` };
+    return notSeen(`cannot tell whether a changed copy of the entry exists: ${copies.reason}`, 'fix-settings');
   }
   return answerFor(entries, copies.entries, input);
-}
-
-/** True when `a` and `b` are the same handler: the same adapter and command. */
-function sameHandler(a: StopHookEntry, b: StopHookEntry): boolean {
-  return a.cliPath === b.cliPath && a.command === b.command;
 }
 
 /** The answer once an entry is registered and hooks are on. Only a project
  * entry as the install writes it, with its adapter present and no changed copy
  * of the same handler in any file, can block a stop, so only a record of one of
  * those is live. A copy in the local or user file can rule an entry out, never
- * stand in for it (review round 4, B-1). A hand edit such as `async`, an `if`
- * or a short `timeout` runs the hook without letting it block. */
-function answerFor(project: Entry[], copies: Entry[], input: LiveInput): Omit<LiveReport, 'notes'> {
+ * stand in for it (review round 4, B-1). The install fixes only the project
+ * file, so a changed copy elsewhere is removed by hand (review round 5, A-F1). */
+function answerFor(project: Entry[], copies: Entry[], input: LiveInput): Verdict {
   const changed = [...project, ...copies].filter((entry) => !entry.asInstalled);
   const usable = project.filter((entry) =>
     entry.asInstalled && entry.present && !changed.some((other) => sameHandler(other, entry)));
-  if (usable.length === 0) {
-    const relevant = changed.filter((other) => project.some((entry) => sameHandler(other, entry)));
-    const files = [...new Set(relevant.map((entry) => entry.file))].join(', ');
-    const reason = `a weftwork entry in ${files} was changed by hand (async, if, timeout or another ` +
-      'field), so the hook may not block a stop: remove the copy or run the install again';
-    return { answer: 'not-seen', reason };
+  if (usable.length > 0) {
+    return answerFromRecord(usable, input);
   }
-  return answerFromRecord(usable, input.lastCall, input.now);
+  const relevant = changed.filter((other) => project.some((entry) => sameHandler(other, entry)));
+  const files = [...new Set(relevant.map((entry) => entry.file))];
+  const reason = `a weftwork entry in ${files.join(', ')} was changed by hand (async, if, timeout or ` +
+    'another field), so the hook may not block a stop';
+  return notSeen(reason, files.every((file) => file === input.project.name) ? 'run-install' : 'remove-copy');
 }

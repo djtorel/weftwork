@@ -7,8 +7,8 @@
 // claude-live.ts. It writes nothing.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { liveReport, type LiveAnswer, type LiveReport, type SettingsSource } from './claude-live.ts';
-import { isGitRoot, readSettings } from './claude-settings-file.ts';
+import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type SettingsSource } from './claude-live.ts';
+import { isGitRoot, readSettings, userSettingsPath } from './claude-settings-file.ts';
 import { lastCallPath, readLastCall, type LastCallRead } from './last-call.ts';
 
 const usage = 'usage: node claude-live-cli.ts (no arguments; run it in the project root)';
@@ -20,12 +20,18 @@ const labels: Record<LiveAnswer, string> = {
   'not-registered': 'not registered',
 };
 
-const nextStep: Record<LiveAnswer, string> = {
-  live: '',
-  'not-seen':
+const nextStep: Record<NextStep, string> = {
+  'run-install': `Next: run the install here: node ${installCli} -- '<declared command>'\n`,
+  'fix-settings':
+    'Next: fix the settings file named above by hand so it is valid JSON of the right\n' +
+    'shape. The install does not edit a file it cannot read.\n',
+  'remove-copy':
+    'Next: remove the changed copy in the file named above, or make it match the entry\n' +
+    'in .claude/settings.json. The install edits only .claude/settings.json.\n',
+  'turn-hooks-on': 'Next: set disableAllHooks to false, or remove it, in the file named above.\n',
+  'stop-once':
     'Next: start Claude Code in this directory, accept the workspace trust dialog if it\n' +
-    'appears, and let a session stop once. If disableAllHooks is true, set it to false.\n',
-  'not-registered': `Next: run the install here: node ${installCli} -- '<declared command>'\n`,
+    'appears, and let a session stop once.\n',
 };
 
 /** One settings file as the report names it: by its path. */
@@ -34,16 +40,8 @@ function source(path: string | null): SettingsSource {
     return { name: 'user settings', read: { ok: false, error: 'neither CLAUDE_CONFIG_DIR nor HOME is set' } };
   }
   const read = readSettings(path, true);
-  return { name: path, read: read.ok ? { ok: true, text: read.file?.text ?? null } : read };
-}
-
-/** The user settings file Claude Code reads, from the environment. An empty
- * variable counts as unset: join('', ...) would name a file in the project. */
-function userSettingsPath(env: NodeJS.ProcessEnv): string | null {
-  const configDir = env.CLAUDE_CONFIG_DIR === '' ? undefined : env.CLAUDE_CONFIG_DIR;
-  const home = env.HOME === '' ? undefined : env.HOME;
-  const dir = configDir ?? (home === undefined ? undefined : join(home, '.claude'));
-  return dir === undefined ? null : join(dir, 'settings.json');
+  if (!read.ok) return { name: path, read };
+  return { name: path, read: { ok: true, text: read.file?.text ?? null, changedAt: read.file?.mtime } };
 }
 
 async function lastCallOf(dir: string): Promise<LastCallRead> {
@@ -67,7 +65,8 @@ async function reportFor(dir: string): Promise<LiveReport> {
 function print(report: LiveReport): void {
   const notes = report.notes.map((note) => `- ${note}\n`).join('');
   const lines = `weftwork live check: ${labels[report.answer]}\n${report.reason}\n\n`;
-  process.stdout.write(`${lines}${nextStep[report.answer]}\nNotes:\n${notes}`);
+  const next = report.next === null ? '' : nextStep[report.next];
+  process.stdout.write(`${lines}${next}\nNotes:\n${notes}`);
 }
 
 async function main(args: string[]): Promise<number> {

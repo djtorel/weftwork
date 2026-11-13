@@ -78,6 +78,11 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
   }
 }
 
+/** A failed close must not reach a caller that promises never to throw: on the
+ * hook path a rejection would turn into a block (review A-F3, B-F9; round 5,
+ * B-6). The file's own result is what the caller gets. */
+export function ignoreCloseError(): void {}
+
 /**
  * Open the ledger without blocking, and only if it is a regular file. The agent
  * can replace the file (T3), and opening a FIFO blocks until the other end is
@@ -95,7 +100,7 @@ export async function openRegular(path: string, flags: number, mode?: number): P
     }
     return handle;
   } catch (error) {
-    await handle.close();
+    await handle.close().catch(ignoreCloseError);
     throw error;
   }
 }
@@ -117,7 +122,7 @@ async function writeLine(path: string, line: object): Promise<AppendResult> {
   } catch (error) {
     return { ok: false, error: messageOf(error) };
   } finally {
-    await handle?.close();
+    await handle?.close().catch(ignoreCloseError);
   }
 }
 
