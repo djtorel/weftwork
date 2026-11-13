@@ -7,17 +7,20 @@
 //
 // The agent can write this file (T3), so a record is evidence, not proof. It
 // can also replace the file: only a regular file is opened, never a FIFO
-// (BUG-007) and never through a symlink, since the write truncates. The record
+// (BUG-007), and the file itself never through a symlink or a second hard
+// link, since the write truncates. A symlinked weftwork directory is not
+// refused: the ledger has the same gap, and git-dir paths are e10's. The record
 // holds the command string, so the file is 0600 in a 0700 directory (T8).
 import { constants } from 'node:fs';
 import { mkdir, type FileHandle } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { isMissing, messageOf } from './errors.ts';
 import { isRecord } from './json.ts';
+import type { StopHookEntry } from './claude-install.ts';
 import { ledgerPath, openRegular } from './ledger.ts';
 
 /** One call: when, which adapter file ran, and the declared command. */
-export type LastCall = { at: string; cliPath: string; command: string };
+export type LastCall = { at: string } & StopHookEntry;
 
 export type LastCallWrite = { ok: true } | { ok: false; error: string };
 export type LastCallRead = { ok: true; call: LastCall | null } | { ok: false; error: string };

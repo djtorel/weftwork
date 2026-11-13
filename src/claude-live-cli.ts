@@ -28,9 +28,10 @@ const nextStep: Record<LiveAnswer, string> = {
   'not-registered': `Next: run the install here: node ${installCli} -- '<declared command>'\n`,
 };
 
-function source(name: string, path: string | null): SettingsSource {
+/** One settings file as the report names it: by its path. */
+function source(path: string | null): SettingsSource {
   if (path === null) {
-    return { name, read: { ok: false, error: 'neither CLAUDE_CONFIG_DIR nor HOME is set' } };
+    return { name: 'user settings', read: { ok: false, error: 'neither CLAUDE_CONFIG_DIR nor HOME is set' } };
   }
   const read = readSettings(path, true);
   return { name: path, read: read.ok ? { ok: true, text: read.file?.text ?? null } : read };
@@ -54,9 +55,9 @@ async function lastCallOf(dir: string): Promise<LastCallRead> {
  * environment's user settings. */
 async function reportFor(dir: string): Promise<LiveReport> {
   return liveReport({
-    local: source('.claude/settings.local.json', join(dir, '.claude', 'settings.local.json')),
-    project: source('.claude/settings.json', join(dir, '.claude', 'settings.json')),
-    user: source('user settings', userSettingsPath(process.env)),
+    local: source(join(dir, '.claude', 'settings.local.json')),
+    project: source(join(dir, '.claude', 'settings.json')),
+    user: source(userSettingsPath(process.env)),
     exists: existsSync,
     lastCall: await lastCallOf(dir),
     now: new Date(),
