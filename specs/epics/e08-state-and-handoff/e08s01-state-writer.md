@@ -333,7 +333,7 @@ regular-file read; the owner chose to share it.
   (owner decision, 2026-11-13, plan-work). e09 decides whether an unreadable
   ledger answers exhausted.
 
-## 5a. Known limits (review rounds 1 to 3)
+## 5a. Known limits (review rounds 1 to 5)
 
 These change only the edited value's own text, so the byte-span check
 allows them. e08s03, which writes the multi-line handoff note, decides
@@ -357,6 +357,9 @@ whether to handle them.
 - A file whose data holds anything other than mappings, sequences and
   scalars (a `%YAML 1.1` directive with dates, or a tag such as
   `!!binary`) is refused with that reason (review round 3).
+- A mapping key that is itself a collection (`? [x]`) makes yaml print a
+  Node warning on stderr each time the file is parsed. The CLI's stdout is
+  still one JSON line (review round 5, A2).
 - The writer does not repair text it does not change. When a field
   already holds the value under YAML 1.2, the file is left as it is, even
   if PyYAML reads that text as another type (`a: yes` and the string
@@ -382,6 +385,11 @@ whether to handle them.
   needs a `git rev-parse` per parent folder. Deferred to e10 with the
   other path hardening (the parent swap above, git's HFS-ignorable
   spellings of `.git`, and the size cap read to end of file).
+- **A git directory inside the work tree under another name can be
+  edited** (`git init --separate-git-dir` into the tree, or a `.git` file
+  pointing there). Only `.git` segments are refused (review round 5, B1).
+  e10 should also refuse paths under the real paths of
+  `git rev-parse --git-dir` and `--git-common-dir`.
 - **A crash between the temp file and the rename** leaves a `.tmp` file
   beside the state file, never a torn state file. No fsync: a power loss can
   lose the write (same as the install).
