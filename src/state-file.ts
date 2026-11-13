@@ -276,6 +276,20 @@ function insideRoot(root: string, file: string): { ok: true; path: string } | Fa
   }
 }
 
+/** The data of the state file `file` (named from `root`), read with the same
+ * checks as writeStateField: a regular file inside the root and outside .git,
+ * not a symlink, of at most maxStateBytes, one YAML document of plain data. An
+ * alias bomb is a refusal, not a throw (e08s02 security review F1, F2). */
+export function readStateData(root: string, file: string): { ok: true; data: unknown } | Failure {
+  const inside = insideRoot(root, file);
+  if (!inside.ok) return inside;
+  const read = readRegularFile(inside.path, { follow: false, maxBytes: maxStateBytes });
+  if (!read.ok) return read;
+  if (read.file === null) return { ok: false, error: `${file} does not exist` };
+  const parsed = parseOne(read.file.text);
+  return parsed.ok ? { ok: true, data: parsed.data } : { ok: false, error: `${file}: ${parsed.error}` };
+}
+
 /** Set the scalar at `path` in the state file `file` (named from `root`) to
  * `value`, keeping every other byte. The file must be a regular file inside
  * the repository root and outside `.git`, not a symlink, of at most

@@ -146,7 +146,7 @@ test('set and get answer exit 1 when the state file cannot be read', () => {
   symlinkSync(join(linked.specs, 'real.yaml'), linked.state);
   const cases: [string, string, string, RegExp][] = [
     ['set with no state file', missing, set('phase', 'x'), /specs\/state\.yaml/],
-    ['get with no state file', missing, get, /specs\/state\.yaml does not exist/],
+    ['get with no state file', missing, get, /specs\/state\.yaml/],
     ['set on a symlinked state file', linked.repo, set('phase', 'x'), /regular file/],
     ['get on a symlinked state file', linked.repo, get, /regular file/],
   ];

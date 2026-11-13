@@ -4,12 +4,9 @@
 // other key, so waivers, metrics and the owner's settings stay byte for byte.
 // setStateField is the one write function the CLIs call; writeStateField of
 // state-file.ts does the format-preserving edit.
-import { join } from 'node:path';
-import { parseDocument } from 'yaml';
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
-import { readRegularFile } from './regular-file.ts';
-import { maxStateBytes, writeStateField, type WriteField } from './state-file.ts';
+import { readStateData, writeStateField, type WriteField } from './state-file.ts';
 
 /** The state file, named from the repository root. */
 export const stateFile = 'specs/state.yaml';
@@ -52,15 +49,13 @@ export function setStateField(root: string, key: string, value: unknown): WriteF
   return writeStateField(root, stateFile, key.split('.'), value as string | null);
 }
 
-/** The documented fields of specs/state.yaml under `root`, and nothing else. A
- * missing field, or one that is not text or null, is a failure that names it. */
+/** The documented fields of specs/state.yaml under `root`, and nothing else,
+ * read with the writer's checks (readStateData). A missing field, or one that
+ * is not text or null, is a failure that names it. */
 export function readStateFields(root: string): StateFields {
-  const read = readRegularFile(join(root, stateFile), { follow: false, maxBytes: maxStateBytes });
+  const read = readStateData(root, stateFile);
   if (!read.ok) return read;
-  if (read.file === null) return { ok: false, error: `${stateFile} does not exist` };
-  const doc = parseDocument(read.file.text);
-  if (doc.errors.length > 0) return { ok: false, error: `${stateFile} is not valid YAML: ${doc.errors[0]?.message}` };
-  const data: unknown = doc.toJS();
+  const data = read.data;
   const fields: Record<string, string | null> = {};
   for (const key of stateFields) {
     let node: unknown = data;
