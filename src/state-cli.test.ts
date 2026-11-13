@@ -99,6 +99,12 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       return 'specs/bad.yaml';
     }, ['b'], /not valid YAML/],
     ['a missing key', () => 'specs/state.yaml', ['handoff', 'no_such_key'], /no_such_key/],
+    ['an alias bomb (security review F1)', (_repo, specs) => {
+      const lines = ['a: &a [x, x, x, x, x, x, x, x, x, x]', 'b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]'];
+      lines.push('c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]', 'k: v', '');
+      writeFileSync(join(specs, 'bomb.yaml'), lines.join('\n'));
+      return 'specs/bomb.yaml';
+    }, ['k'], /alias/i],
     ['a missing file', () => 'specs/none.yaml', ['active_story'], /does not exist/],
   ];
   for (const [label, arrange, path, message] of cases) {

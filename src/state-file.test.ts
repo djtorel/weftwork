@@ -139,6 +139,20 @@ test('what the writer refuses: an error that names the problem, and no text', ()
   }
 });
 
+// AC-e08s01-05, security review F1: yaml's alias guard throws from toJS
+test('an alias bomb is refused as a value, not thrown', () => {
+  const bomb = [
+    'a: &a [x, x, x, x, x, x, x, x, x, x]',
+    'b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]',
+    'c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]',
+    'k: v',
+    '',
+  ].join('\n');
+  const result = setField(bomb, ['k'], 'x');
+  assert.ok(!result.ok);
+  assert.match(result.error, /alias/i);
+});
+
 // AC-e08s01-06
 test("this repository's own specs/state.yaml round-trips", () => {
   const text = readFileSync(liveState, 'utf8');
