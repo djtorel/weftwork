@@ -115,3 +115,20 @@ Result: PASS. Six items were fixed in this audit (two commits, below).
 ## Verdict
 
 PASS.
+
+## Addendum: request-review (2026-11-12)
+
+audit-code ran at 94b20df. Five request-review rounds then changed the code;
+the full checklist was not re-run. The later changes are covered by:
+
+- the request-review rounds (both reviewers checked CONVENTIONS.md, function
+  and file sizes, and smells in every round);
+- the same style measurements on the final code (every function 20 lines or
+  fewer, at most 3 arguments, every file under 300 lines, `tsc --noEmit
+  --noUnusedLocals --noUnusedParameters` clean);
+- mutation checks on each fix, and the full Preflight on the final commit.
+
+Review result: cap exhausted at 5 of 5 without a dual pass (round 5: A 71.4,
+B 83.3, no must-fix). The owner chose to fix the round-5 items and release;
+those fixes were not re-reviewed. Round scores: 1 (90, 72.7), 2 (85.7, 100),
+3 (50, 88.9), 4 (80, 75, one must-fix, fixed), 5 (71.4, 83.3).

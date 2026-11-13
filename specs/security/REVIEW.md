@@ -936,3 +936,23 @@ Deferred: comparing resolved adapter paths (B-4, fails toward "not live").
 Declined: sharing one `git rev-parse` between the record and the engine (B-7).
 
 Verdict is unchanged: PASS.
+
+## Addendum: request-review round 5 and the review cap (2026-11-12)
+
+Reviewer A 71.4, Reviewer B 83.3, no must-fix. The review cap (5 rounds) is
+used up without a dual pass; the owner chose to fix the round-5 items and go
+to release (option A). These fixes were not re-reviewed:
+
+- Each answer carries its next step, so the CLI no longer tells the owner to
+  run the install for a copy the install cannot edit, or to start a session
+  when the settings are broken (A-F1, A-F2, B-3).
+- A record older than the newest change to any of the three settings files is
+  not live, so a call made under an entry that has since changed (for example
+  an `async` entry fixed by hand) no longer reads as live (B-1). This was the
+  last path to a wrong `live` the reviewers found.
+- The ledger ignores close errors on the hook path too (B-6), with tests for
+  the record's field types and size boundaries (A-F4, B-5), the CLI's adapter
+  check (A-F5) and `userSettingsPath` in the library (B-4).
+
+Each fix has a test that failed first or a mutant it kills. Verdict is
+unchanged: PASS.

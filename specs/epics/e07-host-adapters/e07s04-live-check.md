@@ -164,10 +164,20 @@ added call (task 2), and both have tests through the real CLI.
      cannot block a stop, and Claude Code runs a handler defined in more
      than one settings file once (Claude Code hooks docs, read
      2026-11-12; review rounds 1 and 3, B-F1, A1, B-1).
-  7. The call record's adapter path and command equal such an entry's:
-     `live`, with the command, the record's time and age ("in the
-     future" for a time after now). Otherwise `not-seen` ("the last call
+  7. The call record's adapter path and command equal such an entry's,
+     and no settings file changed after the record's time: `live`, with
+     the command, the record's time and age ("in the future" for a time
+     after now). A record older than the newest settings change may be
+     of an entry that changed since, so it is `not-seen` until the next
+     call (review round 5, B-1). Otherwise `not-seen` ("the last call
      ran another command or adapter").
+- Each answer carries the one step that can change it, and the CLI
+  prints that step: run the install (no entry, a missing adapter, a
+  changed project entry), fix a settings file by hand (a file the
+  install or the check cannot read), remove a changed copy outside the
+  project file (the install edits only `.claude/settings.json`), turn
+  hooks on, or let a session stop once (review round 5, A-F1, A-F2,
+  B-3).
 - Notes, always printed: managed settings and `--settings` were not read,
   and `allowManagedHooksOnly` there would stop the hook; when two weftwork
   entries exist, two Stop hooks run; the hook runs in
