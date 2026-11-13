@@ -1,20 +1,14 @@
 // story: e08s01
 // The format-preserving writer for state files: set one scalar field and keep
-// every other byte. Global scripts rewrote these files through a YAML dump,
-// which dropped the leading ---, the comments and the folded scalars (BUG-001,
-// BUG-004, BUG-005). This writer edits the concrete syntax tree of the yaml
-// package instead: CST.stringify joins the source text back in order, so only
-// the edited value's text changes, and a check after the edit proves it.
-//
-// CST.setScalarValue checks no types: the string "true" written plain would
-// read back as a boolean. So every edit is parsed again and accepted only when
-// the data equals the old data with that one field set and no new warning
-// appears. A plain string must also read as the same string under YAML 1.1,
-// because this repository's tools read state files with PyYAML.
+// every other byte, where a YAML dump dropped the ---, comments and folded
+// scalars (BUG-001, BUG-004, BUG-005). It edits the yaml package's concrete
+// syntax tree, then parses the result: it is kept only when the data equals the
+// old data with that one field set, no new warning appears, and PyYAML (which
+// this repository's tools use) would read the value the same way.
 import { realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { CST, Parser, parseAllDocuments, parseDocument, type Document, type Scalar } from 'yaml';
+import { CST, isMap, isScalar, Parser, parseAllDocuments, parseDocument, type Document, type Scalar } from 'yaml';
 import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
@@ -84,6 +78,29 @@ function findScalar(tokens: CST.Token[], path: readonly string[]): Found {
   return { ok: true, token: node };
 }
 
+/** The property name a key gets in the data: toJS turns a key's value into a
+ * string, so `"1"` and `1.0` both become "1", and `""` and null both "". */
+function dataKeyOf(key: unknown): string | null {
+  if (!isScalar(key)) return null;
+  return key.value === null ? '' : String(key.value);
+}
+
+/** A refusal when a mapping on `path` has two keys that become one property in
+ * the data: the syntax tree finds the first, the data keeps the last, and the
+ * writer could answer "unchanged" without writing (review round 5, A1). */
+function keysCollide(doc: Document, path: readonly string[]): Failure | null {
+  let node: unknown = doc.contents;
+  for (const [index, key] of path.entries()) {
+    if (!isMap(node)) return null;
+    const matches = node.items.filter((pair) => dataKeyOf(pair.key) === key);
+    if (matches.length > 1) {
+      return { ok: false, error: `${path.slice(0, index + 1).join('.')}: more than one key reads as "${key}"` };
+    }
+    node = matches[0]?.value;
+  }
+  return null;
+}
+
 /** `value` as YAML source for setScalarValue. A number in exponent form gets a
  * dot (`1.0e+21`): PyYAML's float needs one and reads `1e+21` as a string
  * (review 2, A5). */
@@ -99,11 +116,9 @@ function sourceOf(value: FieldValue): string {
 const plainSafe = /^[\x21-\x7E](?:[\x20-\x7E]*[\x21-\x7E])?$/;
 
 /** False when `token` is a plain scalar holding a string that PyYAML would
- * refuse or read as something else: characters outside plainSafe, `=` and
- * `<<` (YAML 1.1 value and merge keys, review 2, A4, B1), or text that YAML
- * 1.1 reads as another type, such as `yes`, `on` or `1_000` (review B2).
- * yaml's own 1.1 schema reads a few more strings as numbers than PyYAML does
- * (`e01`), which can only add quotes, never drop them. */
+ * refuse or read as something else: characters outside plainSafe, `=` and `<<`
+ * (review 2, A4, B1), or text YAML 1.1 reads as another type, such as `yes` or
+ * `1_000` (review B2). yaml's 1.1 schema over-reads a few (`e01`): extra quotes. */
 function plainStringIsSafe(token: CST.FlowScalar | CST.BlockScalar, value: FieldValue): boolean {
   if (typeof value !== 'string' || token.type !== 'scalar') return true;
   if (!plainSafe.test(value) || value === '=' || value === '<<') return false;
@@ -188,7 +203,8 @@ function firstEditThatHolds(text: string, path: readonly string[], value: FieldV
   }
   if (!anyStyleWrote && reason !== '') return { ok: false, error: reason };
   const also = reason === '' ? '' : `; another style failed: ${reason}`;
-  return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} without changing other data${also}` };
+  const goal = 'so that the file reads back as the old data with this field set';
+  return { ok: false, error: `${path.join('.')} could not be set to ${JSON.stringify(value)} ${goal}${also}` };
 }
 
 /** The characters PyYAML's reader accepts, less NEL, which YAML 1.1 reads as a
@@ -225,6 +241,8 @@ export function setField(text: string, path: readonly string[], value: FieldValu
   if (!parsed.ok) return parsed;
   const found = findScalar([...new Parser().parse(text)], path);
   if (!found.ok) return found;
+  const collision = keysCollide(parsed.doc, path);
+  if (collision !== null) return collision;
   const want = expectedReading(parsed, path, normalised);
   if (!want.ok) return want;
   // Unchanged is decided on the data, not on doc.getIn, which cannot find a
