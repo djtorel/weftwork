@@ -428,7 +428,7 @@ waivers:
   date: 2026-11-13
   scope: e08 only
 handoff:
-  next_skill: audit-code
+  next_skill: commit-message
   next_story: e08s02
   next_epic: e08
   note: 'e08s01 (format-preserving state writer) is released by PR from branch e08s01-state-writer.
@@ -474,9 +474,9 @@ metrics:
       total_seconds: 5178.0
       avg_seconds: 172.6
     audit-code:
-      calls: 22
-      total_seconds: 1993.0
-      avg_seconds: 90.5909090909091
+      calls: 23
+      total_seconds: 2125.0
+      avg_seconds: 92.3913043478261
     release-branch:
       calls: 29
       total_seconds: 3850.0
