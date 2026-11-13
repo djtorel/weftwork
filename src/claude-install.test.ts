@@ -139,6 +139,12 @@ test('AC-e07s03-04 the entry is replaced in its place, between other hooks', () 
   assert.equal(action, 'replaced');
 });
 
+test('AC-e07s03-02 an untouched group with an empty hooks list is kept', () => {
+  const empty = { hooks: [] };
+  const { value } = installed(JSON.stringify({ hooks: { Stop: [empty] } }));
+  assert.deepEqual(stopGroups(value), [empty, { hooks: [entry('npm test')] }]);
+});
+
 test('AC-e07s03-04 two identical entries collapse to one and read as replaced', () => {
   const dup = { hooks: [entry('npm test')] };
   const { value, action } = installed(JSON.stringify({ hooks: { Stop: [dup, dup] } }));

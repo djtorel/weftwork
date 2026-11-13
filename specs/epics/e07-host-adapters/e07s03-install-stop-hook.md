@@ -271,6 +271,17 @@ No new packages. Node built-ins only (`node:fs`, `node:path`). `[OK]`
   entry beside it, so two Stop hooks run. Better a duplicate than a
   deleted hook. `reformatted` is the action when weftwork's entry was
   already right and only the spacing of the file changed.
+- **Owner fields on weftwork's entry are dropped on replace.** The
+  entry is replaced whole by `{type, command, timeout}`, so a key the
+  owner added to it (for example `statusMessage`) is lost.
+- **Two small races are accepted.** An edit made between the read and
+  the rename is lost (last writer wins), and `.claude` could be swapped
+  for a symlink between the check and the write. Both need something
+  else running in the project during the install. Node has no
+  `openat`; protecting the file is e10's job.
+- **The temp file's mode is not unit-tested.** The temp file is created
+  with the target's mode so it is never wider than the file it
+  replaces, but a test cannot see the file while it exists.
 - **The file is re-printed through JSON.** Numbers that do not survive
   a round trip change (`1.50` becomes `1.5`, an integer past 2^53 loses
   digits). Unlikely in a settings file; comments and a BOM make it

@@ -263,14 +263,15 @@ function removeQuietly(path: string): void {
 }
 
 /** Write `text` to `path` through a random-named temp file and a rename, so a
- * crashed process never leaves half a file (no fsync: a power loss can), and a
- * leftover file is never this run's to delete. `mode` is set with chmod, as the
- * umask would strip it at creation; with no `mode` (a new file) it decides. */
+ * crashed process never leaves half a file (no fsync: a power loss can). The
+ * name is random enough that a collision is not a case worth code. The temp
+ * file is created with `mode`, so it is never wider than the file it replaces,
+ * and chmod undoes the umask; with no `mode` (a new file) the umask decides. */
 function writeAtomic(path: string, text: string, mode: number | undefined): Failure | null {
   const temp = join(dirname(path), `settings.json.${randomBytes(6).toString('hex')}.tmp`);
   try {
     mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(temp, text, { flag: 'wx' });
+    writeFileSync(temp, text, { flag: 'wx', mode: mode ?? 0o666 });
     if (mode !== undefined) chmodSync(temp, mode);
     renameSync(temp, path);
     return null;
