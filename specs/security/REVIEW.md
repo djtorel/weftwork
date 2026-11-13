@@ -876,3 +876,20 @@ branch. Security-relevant changes:
   record from concurrent writes (A-F2, errs toward "not live").
 
 Verdict is unchanged: PASS.
+
+## Addendum: request-review round 2 (2026-11-12)
+
+Reviewer A 85.7, Reviewer B 100, no must-fix. Applied: the reason escapes the
+Unicode direction marks and overrides and the line and paragraph separators,
+with a boundary test over the whole escape range (A-F1, A-F4, B-1); the notes
+are copied (B-2); the future-age boundary is tested (A-F2); the header and
+recordCall comments are corrected (A-F6, A-F7).
+
+- Declined, A-F3 (a staleness limit on `live`): the owner decided at
+  plan-work that the record's age is printed, not judged. The age is in the
+  reason.
+- Still deferred to e10, A-F5 and B-3: the record is truncated, then written,
+  so it is briefly empty. Same family as the torn record; a temp file and a
+  rename would fix both, together with the git-dir symlink.
+
+Verdict is unchanged: PASS.
