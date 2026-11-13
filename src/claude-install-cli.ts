@@ -2,13 +2,13 @@
 // Thin shell for the install: run in the root of a project, it registers the
 // Stop hook in that project's .claude/settings.json. The declared command is
 // the one argument after `--`, as claude-hook-cli.ts reads it. Logic lives in
-// claude-install.ts. Exit 0 on success and 1 on any error; this is not a hook,
+// claude-install.ts and claude-settings-file.ts. Exit 0 on success and 1 on any error; this is not a hook,
 // so exit 2 means nothing here.
 //
 // SECURITY: the command is shell code that the hook will run, so it comes from
 // the owner at this prompt. The settings file is untrusted input (e10).
 import { join } from 'node:path';
-import { installInProject } from './claude-install.ts';
+import { installInProject } from './claude-settings-file.ts';
 
 const usage = "usage: node claude-install-cli.ts -- '<declared command>'";
 const adapter = join(import.meta.dirname, 'claude-hook-cli.ts');
