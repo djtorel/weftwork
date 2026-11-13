@@ -1,0 +1,76 @@
+// story: e08s01
+// Thin shell over the state writer: JSON on stdin, one JSON line on stdout, the
+// exit code carries the answer. Logic lives in state-file.ts.
+//
+// Input: {"file": string, "path": string[], "value": string | number | boolean
+// | null}. "file" is named from the root of the repository that holds the
+// working directory. Exit 0 when the file was written or already held the
+// value; 1 when the engine refused (not a regular file, outside the root,
+// invalid YAML, a missing key, a value it could not keep); 2 for input it
+// cannot read (not JSON, the wrong shape, not in a git repository).
+import { isRecord } from './json.ts';
+import { messageOf } from './errors.ts';
+import { strictUtf8 } from './regular-file.ts';
+import { isFieldValue, writeStateField, type FieldValue } from './state-file.ts';
+import { repositoryRoot } from './tree.ts';
+
+const maxInputBytes = 1024 * 1024;
+
+type Request = { file: string; path: string[]; value: FieldValue };
+
+/** All of stdin, or null when it is larger than maxInputBytes. */
+async function readStdin(): Promise<Buffer | null> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of process.stdin) {
+    // No encoding is set on stdin, so every chunk is a Buffer; the iterator is typed any.
+    const buffer = chunk as Buffer;
+    size += buffer.length;
+    if (size > maxInputBytes) return null;
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks);
+}
+
+/** The request in `text`, or why it cannot be read. */
+function parseFieldRequest(text: string): Request | string {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    return `stdin is not JSON: ${messageOf(error)}`;
+  }
+  if (!isRecord(data)) return 'stdin must be a JSON object';
+  const { file, path, value } = data;
+  if (typeof file !== 'string' || file === '') return '"file" must be a non-empty string';
+  if (!Array.isArray(path) || path.length === 0 || !path.every((key): key is string => typeof key === 'string')) {
+    return '"path" must be a non-empty list of strings';
+  }
+  if (!('value' in data) || !isFieldValue(value)) return '"value" must be a string, a finite number, a boolean or null';
+  return { file, path, value };
+}
+
+function printAnswer(result: object, exitCode: number): void {
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+  process.exitCode = exitCode;
+}
+
+async function main(): Promise<void> {
+  const bytes = await readStdin();
+  if (bytes === null) return printAnswer({ ok: false, error: `stdin is larger than ${maxInputBytes} bytes` }, 2);
+  // Strict, as the file read is: a lossy decode would write U+FFFD to disk (review 4, B2).
+  const text = strictUtf8(bytes);
+  if (text === null) return printAnswer({ ok: false, error: 'stdin is not valid UTF-8' }, 2);
+  const request = parseFieldRequest(text);
+  if (typeof request === 'string') return printAnswer({ ok: false, error: request }, 2);
+  let root: string;
+  try {
+    root = (await repositoryRoot(process.cwd())).toString();
+  } catch (error) {
+    return printAnswer({ ok: false, error: `${process.cwd()} is not in a git repository: ${messageOf(error)}` }, 2);
+  }
+  const result = writeStateField(root, request.file, request.path, request.value);
+  printAnswer(result, result.ok ? 0 : 1);
+}
+
+await main();

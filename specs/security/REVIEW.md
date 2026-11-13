@@ -1052,3 +1052,125 @@ None. No HIGH finding at confidence 8 or more.
 PASS for the security gate. No HIGH finding at confidence 8 or more. M1 is
 MEDIUM at confidence about 7, the same class as the ledger, and deferred to
 e10 as already decided. The three earlier findings are still fixed.
+
+# Security review for branch e08s01-state-writer (e08s01, verify-work step 5)
+
+review_date: 2026-11-13
+branch: e08s01-state-writer
+head: d8aa880
+base: main (aac82fa)
+scope: git diff aac82fa..HEAD -- src package.json package-lock.json. Focus:
+  the state writer (src/state-file.ts), its CLI (src/state-cli.ts), the
+  shared file helpers (src/regular-file.ts, moved from
+  claude-settings-file.ts), the repositoryRoot export (src/tree.ts) and the
+  new runtime dependency yaml 2.9.1.
+method: security-review 5-phase scan, reviewed inline; three attack paths
+  probed live in the scratchpad (alias bomb, deep nesting, hard link).
+
+## Executable surface
+
+1. `src/state-cli.ts` reads one JSON request from stdin (capped at 1 MiB),
+   finds the repository root with `git rev-parse --show-toplevel` (through
+   `execFile`, no shell), and rewrites one YAML file inside that root.
+2. `src/claude-settings-file.ts` now calls the moved helpers; its behaviour is
+   unchanged and its tests pass unchanged.
+
+The CLI is not a privilege boundary: it runs as the user who starts it, and
+anyone who can start it can already write the repository. It must not let a
+caller write outside the root, and it must fail closed.
+
+## Context research
+
+- yaml 2.9.1, exact pin, lockfile integrity sha512, ISC, no dependencies;
+  slopcheck `[OK]` at plan-work.
+- yaml guards alias expansion itself: `toJS` throws `ReferenceError`
+  ("Excessive alias count") past its `maxAliasCount` (default 100).
+- Output is `JSON.stringify` of the result, so control characters in a path
+  or an error are escaped.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Path traversal (`..`, absolute path) | Refused: the parent's real path must be the real root or below it. Tested. |
+| Symlinked directory that leads outside | Refused by the same check after `realpath`. Tested. |
+| Symlink at the file name | Refused (`O_NOFOLLOW`). Tested. |
+| Hard link to a file outside the root | Safe: the write is a temp file and a rename, which replaces the entry; the outside file stays as it was (probe: link count 2 to 1, content unchanged). `protected_hardlinks=1` also limits who can make the link. |
+| FIFO, device or directory at the file | Refused without blocking (`O_NONBLOCK`, regular-file check). Tested. |
+| Temp file pre-created as a symlink | The temp file is opened `wx` (`O_EXCL`), with a random name. |
+| Oversized input or file | Refused at 1 MiB each. |
+| Deep nesting (50 000 `[`, 3 000 block levels) | Returned as an error value; no crash (probe). |
+| Alias expansion (billion laughs) | **F1 below**: no expansion happens, but the guard's throw escapes. |
+| File text in error messages | yaml error messages quote one source line. Only files the caller can already read inside the root are read, so nothing new is exposed. |
+| Command or shell injection | None: no shell; `git` through `execFile` with fixed arguments. |
+| Secrets in the diff | None (grep for key and token shapes; the only hits are CST token names). |
+| Outbound requests | None. |
+
+## Findings (confidence 8 or more)
+
+### F1. An alias bomb makes setField throw instead of answering — LOW — CWE-248 — confidence 10
+
+- `src/state-file.ts`, `holds` and `setField` call `Document.toJS()`, which
+  throws `ReferenceError` when a file has more alias expansions than yaml
+  allows.
+- Exploit scenario: a state file with ten nested anchors of ten aliases each
+  (four lines). `setField` throws, and `state-cli.ts` dies with a Node stack
+  trace and no JSON line, against its contract (one JSON line, exit 1 for a
+  refusal). Nothing is written, so it fails closed; the harm is a broken
+  contract for the caller, not a write.
+- Fix: treat a throw from parsing or from `toJS` as a refusal with an error
+  value, and test it.
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- **The parent directory can be swapped between `realpath` and the rename
+  (LOW, confidence about 4).** Recorded as a risk in the spec and deferred to
+  e10 with the other git-dir and path hardening.
+- **Size cap checked with `fstat`, then read to end of file** (moved
+  unchanged from the install). Narrow; deferred to e10, as for e07s04.
+
+## Verdict
+
+PASS for the security gate: no HIGH finding at confidence 8 or more. F1 is
+LOW and is fixed in the verify-work gaps loop.
+
+## Addendum: e08s01 at release head 3f2e2b4 (release-branch step 2a)
+
+review_date: 2026-11-13
+scope: git diff d8aa880..3f2e2b4 -- src (the five review rounds' fixes:
+  9 files, 481 insertions, 98 deletions).
+method: re-read inline against the final code. Every reviewer in rounds 1 to
+  5 was also asked to check security, and each finding was fixed or
+  recorded.
+
+### What changed for security
+
+- **Path checks are stricter.** Any path with a `.git` segment in any case is
+  refused, on the final path after realpath. That covers a worktree's `.git`
+  file (rounds 2 to 4, verified by tests with a real `git worktree`). The
+  root itself is refused.
+- **Strict UTF-8, file and stdin.** `readRegularFile` refuses invalid UTF-8,
+  and so does the CLI's stdin. No edit can write U+FFFD in place of bytes it
+  did not touch. The Stop-hook install's settings read inherits this, as the
+  owner approved.
+- **Output PyYAML can load.** Characters PyYAML's reader refuses are refused
+  as values, so one edit can no longer make a state file unloadable for the
+  repository's tools.
+- **No false success.** Alias, anchored-mapping, tag and merged-key cases are
+  refused instead of written or reported as unchanged.
+- **No new sinks.** No shell, no exec and no eval in the new files; `git` still
+  runs through `tree.ts`'s `execFile`. No secrets in the diff (grep for key,
+  token and private-key shapes).
+
+### Still deferred to e10 (spec section 6)
+
+The parent-directory swap between realpath and rename; a file inside a nested
+repository or submodule; a git directory in the work tree under another name
+(round 5, B1); git's HFS-ignorable spellings of `.git`; the size cap checked
+by fstat then read to end of file. None is HIGH: the CLI is not a privilege
+boundary, and each needs a caller who can already write the repository.
+
+### Verdict
+
+PASS at 3f2e2b4. No HIGH finding at confidence 8 or more. F1 (alias bomb)
+is still fixed (test in state-file.test.ts and state-cli.test.ts).

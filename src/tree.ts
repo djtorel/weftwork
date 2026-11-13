@@ -1,4 +1,4 @@
-// story: e06s02, e07s02
+// story: e06s02, e07s02, e08s01
 // A fingerprint of a git working tree: the files that git lists as tracked
 // or as untracked and not ignored, with their contents. The gate takes it
 // before and after a command, so a command that edits the tree is not done.
@@ -41,7 +41,9 @@ async function gitOutput(cwd: string, args: string[]): Promise<Buffer> {
   return stdout;
 }
 
-async function repositoryRoot(cwd: string): Promise<Buffer> {
+/** The root of the repository that holds `cwd`, as bytes (`git rev-parse
+ * --show-toplevel`). Rejects when `cwd` is not in a repository. */
+export async function repositoryRoot(cwd: string): Promise<Buffer> {
   const output = await gitOutput(cwd, ['rev-parse', '--show-toplevel']);
   return output.subarray(0, output.length - 1);
 }

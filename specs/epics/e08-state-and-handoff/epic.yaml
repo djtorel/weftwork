@@ -3,7 +3,7 @@ id: e08
 title: State and handoff (B2)
 wsjf: 3.8
 risk: P2
-status: todo
+status: in_progress
 depends_on:
   - e06
 done_when: >-
@@ -14,7 +14,7 @@ stories:
   - id: e08s01
     title: A caller sets one field of a state file and nothing else changes
     bcps: 5
-    status: todo
+    status: done
     tasks: e08s01-tasks.yaml
     delta: ADDED
   - id: e08s02
