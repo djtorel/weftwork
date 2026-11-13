@@ -119,6 +119,10 @@ test('the CLI refuses with exit 1 and leaves the files as they were', () => {
       return '.git/state.yaml';
     }, ['a'], /inside \.git/],
     ['the repository root itself (review B9)', () => '.', ['a'], /names the repository root/],
+    ['invalid UTF-8 in another field (review 3, A2, B2)', (_repo, specs) => {
+      writeFileSync(join(specs, 'latin1.yaml'), Buffer.from('a: 1\n# caf\xe9\nb: 2\n', 'latin1'));
+      return 'specs/latin1.yaml';
+    }, ['a'], /not valid UTF-8/],
     ['a .git file in a nested folder (review 2, A11, B8)', (repo) => {
       mkdirSync(join(repo, 'sub'));
       writeFileSync(join(repo, 'sub', '.git'), 'gitdir: /elsewhere\n');

@@ -28,6 +28,19 @@ test('a regular file comes back with its text, mode and change time', () => {
   assert.equal(read.file.mtime.getTime(), statSync(path).mtime.getTime());
 });
 
+// review 3 (A2, B2): a lossy decode would rewrite bytes the caller never touched
+test('invalid UTF-8 is refused, and a leading BOM is kept', () => {
+  const dir = makeTempDir();
+  writeFileSync(join(dir, 'bad'), Buffer.from([0x61, 0x3a, 0x20, 0x63, 0x61, 0x66, 0xe9, 0x0a]));
+  const bad = readRegularFile(join(dir, 'bad'), { follow: false, maxBytes: 100 });
+  assert.ok(!bad.ok);
+  assert.match(bad.error, /not valid UTF-8/);
+  writeFileSync(join(dir, 'bom'), '\uFEFFa: 1\n');
+  const bom = readRegularFile(join(dir, 'bom'), { follow: false, maxBytes: 100 });
+  assert.ok(bom.ok && bom.file !== null);
+  assert.equal(bom.file.text, '\uFEFFa: 1\n');
+});
+
 test('the size cap: at the cap is read, one byte past it is refused', () => {
   const dir = makeTempDir();
   writeFileSync(join(dir, 'at'), 'x'.repeat(10));

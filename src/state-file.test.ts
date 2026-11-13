@@ -139,6 +139,16 @@ test('what the writer refuses: an error that names the problem, and no text', ()
     ['a NEL in the value (review 2, B1)', 'a: x\n', ['a'], 'a\u0085b', /line break/],
     ['an LS in the value (review 2, B1)', 'a: x\n', ['a'], 'a\u2028b', /line break/],
     ['a PS in the value (review 2, B1)', 'a: x\n', ['a'], 'a\u2029b', /line break/],
+    ['a DEL (review 3, A1, B1)', 'a: x\n', ['a'], 'a\u007Fb', /character PyYAML cannot read/],
+    ['a C1 control U+0080 (review 3)', "a: 'x'\n", ['a'], 'a\u0080b', /character PyYAML cannot read/],
+    ['a C1 control U+009F (review 3)', 'a: |\n  x\n', ['a'], 'a\u009Fb', /character PyYAML cannot read/],
+    ['U+FFFE (review 3)', 'a: x\n', ['a'], 'a\uFFFEb', /character PyYAML cannot read/],
+    ['U+FFFF (review 3)', 'a: x\n', ['a'], 'a\uFFFFb', /character PyYAML cannot read/],
+    ['a lone surrogate (review 3, B5)', 'a: x\n', ['a'], 'a\uD800b', /character PyYAML cannot read/],
+    ['a C0 control (review 3)', "a: 'x'\n", ['a'], 'a\u0001b', /character PyYAML cannot read/],
+    ['a %YAML 1.1 file with a date (review 3, A4)', '%YAML 1.1\n---\nd: 2001-12-14\nk: old\n', ['k'], 'new', /mappings, sequences and scalars/],
+    ['a !!binary value elsewhere (review 3, A4)', 'd: !!binary aGVsbG8=\nk: old\n', ['k'], 'new', /mappings, sequences and scalars/],
+    ['a specific first reason is kept (review 3, A5)', 'a: &x >-\r\n  x\r\nb: *x\r\n', ['a'], 'z', /could not be set.*CRLF/],
   ];
   for (const [label, text, path, value, message] of cases) {
     const result = setField(text, path, value as FieldValue);
@@ -187,7 +197,7 @@ test('a string that YAML 1.1 reads as another type is quoted', () => {
 // AC-e08s01-04, review 2 (A4, B1): PyYAML cannot load these plain, or
 // changes them, so only printable ASCII that is not = or << is written plain.
 test('a string PyYAML would refuse or change as a plain scalar is double-quoted', () => {
-  for (const value of ['=', '<<', 'a\tb', 'café', 'a\u0001b']) {
+  for (const value of ['=', '<<', 'a\tb', 'café']) {
     const after = set('a: x\n', ['a'], value);
     assert.match(after, /^a: "/, JSON.stringify(value));
     assert.equal(parseDocument(after).get('a'), value, JSON.stringify(value));
