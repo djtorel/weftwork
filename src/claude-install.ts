@@ -64,11 +64,19 @@ export function parseStopHookCommand(text: string): { cliPath: string; command: 
   return { cliPath: unquote(match[1] ?? ''), command: unquote(match[2] ?? '') };
 }
 
-/** True when `hook` is a weftwork entry for the adapter at `cliPath`: a command
- * hook whose command text parses. An entry from another checkout is not ours. */
-function isOurs(hook: unknown, cliPath: string): boolean {
+/** The adapter path and the declared command of `hook` when it is a weftwork
+ * entry (a command hook whose command text parses), else null. The install
+ * and the live check both read hook entries through this. */
+export function parseStopHook(hook: unknown): { cliPath: string; command: string } | null {
   return isRecord(hook) && hook.type === 'command' && typeof hook.command === 'string'
-    && parseStopHookCommand(hook.command)?.cliPath === cliPath;
+    ? parseStopHookCommand(hook.command)
+    : null;
+}
+
+/** True when `hook` is a weftwork entry for the adapter at `cliPath`. An entry
+ * from another checkout is not ours. */
+function isOurs(hook: unknown, cliPath: string): boolean {
+  return parseStopHook(hook)?.cliPath === cliPath;
 }
 
 function isGroup(value: unknown): value is Group {

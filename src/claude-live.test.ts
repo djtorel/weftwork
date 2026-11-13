@@ -96,30 +96,33 @@ test('AC-e07s04-02 a weftwork entry whose adapter does not exist: not registered
   assert.match(report.reason, /install again/);
 });
 
+const on = { disableAllHooks: true };
+const off = { disableAllHooks: false };
+
+/** AC-e07s04-03: a settings change, the answer, and the file the reason names. */
+const precedenceCases: [Partial<LiveInput>, string, RegExp | null][] = [
+  [{ project: source('.claude/settings.json', settings([entry()], on)) }, 'not-seen', /settings\.json/],
+  [{ user: source('/home/u/.claude/settings.json', JSON.stringify(on)) }, 'not-seen', /\/home\/u/],
+  [
+    {
+      user: source('/home/u/.claude/settings.json', JSON.stringify(on)),
+      project: source('.claude/settings.json', settings([entry()], off)),
+    },
+    'live',
+    null,
+  ],
+  [
+    {
+      project: source('.claude/settings.json', settings([entry()], off)),
+      local: source('.claude/settings.local.json', JSON.stringify(on)),
+    },
+    'not-seen',
+    /settings\.local\.json/,
+  ],
+];
+
 test('AC-e07s04-03 disableAllHooks follows precedence: local, then project, then user', () => {
-  const on = { disableAllHooks: true };
-  const off = { disableAllHooks: false };
-  const cases: [Partial<LiveInput>, string, RegExp | null][] = [
-    [{ project: source('.claude/settings.json', settings([entry()], on)) }, 'not-seen', /settings\.json/],
-    [{ user: source('/home/u/.claude/settings.json', JSON.stringify(on)) }, 'not-seen', /\/home\/u/],
-    [
-      {
-        user: source('/home/u/.claude/settings.json', JSON.stringify(on)),
-        project: source('.claude/settings.json', settings([entry()], off)),
-      },
-      'live',
-      null,
-    ],
-    [
-      {
-        project: source('.claude/settings.json', settings([entry()], off)),
-        local: source('.claude/settings.local.json', JSON.stringify(on)),
-      },
-      'not-seen',
-      /settings\.local\.json/,
-    ],
-  ];
-  for (const [change, answer, names] of cases) {
+  for (const [change, answer, names] of precedenceCases) {
     const report = liveReport(input(change));
     assert.equal(report.answer, answer, JSON.stringify(change));
     if (names !== null) {

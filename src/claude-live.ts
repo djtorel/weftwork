@@ -15,8 +15,7 @@
 // then user settings (Claude Code docs, "Disable or remove hooks", read
 // 2026-11-12). Managed settings and the --settings flag sit above all three
 // and cannot be read from here, so the notes say so.
-import { parseSettings, parseStopHookCommand, stopListOf } from './claude-install.ts';
-import { isRecord } from './json.ts';
+import { parseSettings, parseStopHook, stopListOf } from './claude-install.ts';
 import type { LastCall, LastCallRead } from './last-call.ts';
 
 export type SettingsRead = { ok: true; text: string | null } | { ok: false; error: string };
@@ -54,7 +53,7 @@ const standingNotes = [
 
 /** The weftwork entries in the project's Stop list, and how many other Stop
  * hooks it holds. */
-function registered(project: SettingsSource): Registered {
+function weftworkEntries(project: SettingsSource): Registered {
   if (!project.read.ok) {
     return { ok: false, reason: `${project.name}: ${project.read.error}` };
   }
@@ -65,9 +64,7 @@ function registered(project: SettingsSource): Registered {
   }
   const hooks = stop.groups.flatMap((group) => group.hooks);
   const entries = hooks.flatMap((hook) => {
-    const ours = isRecord(hook) && hook.type === 'command' && typeof hook.command === 'string'
-      ? parseStopHookCommand(hook.command)
-      : null;
+    const ours = parseStopHook(hook);
     return ours === null ? [] : [ours];
   });
   return { ok: true, entries, others: hooks.length - entries.length };
@@ -113,7 +110,7 @@ function notesFor(entries: Entry[]): string[] {
 }
 
 /** The answer for a registered hook whose adapter exists. */
-function seen(present: Entry[], lastCall: LastCallRead, now: Date): Omit<LiveReport, 'notes'> {
+function answerFromRecord(present: Entry[], lastCall: LastCallRead, now: Date): Omit<LiveReport, 'notes'> {
   if (!lastCall.ok) {
     return { answer: 'not-seen', reason: `the call record cannot be read: ${lastCall.error}` };
   }
@@ -139,29 +136,38 @@ function shown(text: string): string {
 /** Whether the hook is live. Only a record of the same adapter and command as
  * an entry in the settings now is `live`. */
 export function liveReport(input: LiveInput): LiveReport {
-  const report = decide(input);
+  const report = rawReport(input);
   return { ...report, reason: shown(report.reason) };
 }
 
-function decide(input: LiveInput): LiveReport {
-  const found = registered(input.project);
+/** Why the project has no usable weftwork entry, or null when it has one whose
+ * adapter file exists. */
+function whyNotRegistered(entries: Entry[], others: number, input: LiveInput): string | null {
+  if (entries.length === 0) {
+    return `no weftwork Stop hook in ${input.project.name} (${others} other Stop hook(s))`;
+  }
+  if (!entries.some((entry) => input.exists(entry.cliPath))) {
+    const paths = entries.map((entry) => entry.cliPath).join(', ');
+    return `the entry names ${paths}, which does not exist on this machine: run the install again`;
+  }
+  return null;
+}
+
+/** The report before its reason is escaped, in the order the header gives. */
+function rawReport(input: LiveInput): LiveReport {
+  const found = weftworkEntries(input.project);
   if (!found.ok) {
     return { answer: 'not-registered', reason: found.reason, notes: standingNotes };
   }
   const notes = notesFor(found.entries);
-  if (found.entries.length === 0) {
-    const reason = `no weftwork Stop hook in ${input.project.name} (${found.others} other Stop hook(s))`;
-    return { answer: 'not-registered', reason, notes };
-  }
-  const present = found.entries.filter((entry) => input.exists(entry.cliPath));
-  if (present.length === 0) {
-    const paths = found.entries.map((entry) => entry.cliPath).join(', ');
-    const reason = `the entry names ${paths}, which does not exist on this machine: run the install again`;
-    return { answer: 'not-registered', reason, notes };
+  const missing = whyNotRegistered(found.entries, found.others, input);
+  if (missing !== null) {
+    return { answer: 'not-registered', reason: missing, notes };
   }
   const off = hooksOff([input.local, input.project, input.user]);
   if (off !== null) {
     return { answer: 'not-seen', reason: off, notes };
   }
-  return { ...seen(present, input.lastCall, input.now), notes };
+  const present = found.entries.filter((entry) => input.exists(entry.cliPath));
+  return { ...answerFromRecord(present, input.lastCall, input.now), notes };
 }

@@ -7,7 +7,7 @@
 // claude-live.ts. It writes nothing.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { liveReport, type LiveAnswer, type SettingsSource } from './claude-live.ts';
+import { liveReport, type LiveAnswer, type LiveReport, type SettingsSource } from './claude-live.ts';
 import { isGitRoot, readSettings } from './claude-settings-file.ts';
 import { lastCallPath, readLastCall, type LastCallRead } from './last-call.ts';
 
@@ -47,6 +47,25 @@ async function lastCallOf(dir: string): Promise<LastCallRead> {
   return path === null ? { ok: false, error: 'no git dir found' } : readLastCall(path);
 }
 
+/** The report for the project in `dir`, from the files there and in the
+ * environment's user settings. */
+async function reportFor(dir: string): Promise<LiveReport> {
+  return liveReport({
+    local: source('.claude/settings.local.json', join(dir, '.claude', 'settings.local.json')),
+    project: source('.claude/settings.json', join(dir, '.claude', 'settings.json')),
+    user: source('user settings', userSettingsPath(process.env)),
+    exists: existsSync,
+    lastCall: await lastCallOf(dir),
+    now: new Date(),
+  });
+}
+
+function print(report: LiveReport): void {
+  const notes = report.notes.map((note) => `- ${note}\n`).join('');
+  const lines = `weftwork live check: ${labels[report.answer]}\n${report.reason}\n\n`;
+  process.stdout.write(`${lines}${nextStep[report.answer]}\nNotes:\n${notes}`);
+}
+
 async function main(args: string[]): Promise<number> {
   const dir = process.cwd();
   if (args.length !== 0) {
@@ -57,17 +76,8 @@ async function main(args: string[]): Promise<number> {
     process.stderr.write(`weftwork live check: ${dir} is not the root of a git repository\n`);
     return 1;
   }
-  const report = liveReport({
-    local: source('.claude/settings.local.json', join(dir, '.claude', 'settings.local.json')),
-    project: source('.claude/settings.json', join(dir, '.claude', 'settings.json')),
-    user: source('user settings', userSettingsPath(process.env)),
-    exists: existsSync,
-    lastCall: await lastCallOf(dir),
-    now: new Date(),
-  });
-  const notes = report.notes.map((note) => `- ${note}\n`).join('');
-  const lines = `weftwork live check: ${labels[report.answer]}\n${report.reason}\n\n`;
-  process.stdout.write(`${lines}${nextStep[report.answer]}\nNotes:\n${notes}`);
+  const report = await reportFor(dir);
+  print(report);
   return report.answer === 'live' ? 0 : 1;
 }
 
