@@ -25,6 +25,10 @@ import { dirname, join } from 'node:path';
 import { installStopHook, type Action, type Failure } from './claude-install.ts';
 import { isMissing, messageOf } from './errors.ts';
 
+/** The most readSettings reads. A real settings file is a few KiB; the live
+ * check follows symlinks, so the file may be any file the agent links. */
+export const maxSettingsBytes = 1024 * 1024;
+
 export type InstallInProject = { ok: true; action: Action; path: string } | Failure;
 type Opened = { ok: true; fd: number | null } | Failure;
 export type SettingsFile = { text: string; mode: number };
@@ -56,6 +60,9 @@ export function readSettings(path: string, follow = false): Read {
   try {
     const stat = fstatSync(fd);
     if (!stat.isFile()) return { ok: false, error: `${path} is not a regular file` };
+    if (stat.size > maxSettingsBytes) {
+      return { ok: false, error: `${path} is larger than ${maxSettingsBytes} bytes` };
+    }
     return { ok: true, file: { text: readFileSync(fd, 'utf8'), mode: stat.mode & 0o777 } };
   } catch (error) {
     return { ok: false, error: `${path} could not be read: ${messageOf(error)}` };

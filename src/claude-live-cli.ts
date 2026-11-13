@@ -36,9 +36,12 @@ function source(name: string, path: string | null): SettingsSource {
   return { name: path, read: read.ok ? { ok: true, text: read.file?.text ?? null } : read };
 }
 
-/** The user settings file Claude Code reads, from the environment. */
+/** The user settings file Claude Code reads, from the environment. An empty
+ * variable counts as unset: join('', ...) would name a file in the project. */
 function userSettingsPath(env: NodeJS.ProcessEnv): string | null {
-  const dir = env.CLAUDE_CONFIG_DIR ?? (env.HOME === undefined ? undefined : join(env.HOME, '.claude'));
+  const configDir = env.CLAUDE_CONFIG_DIR === '' ? undefined : env.CLAUDE_CONFIG_DIR;
+  const home = env.HOME === '' ? undefined : env.HOME;
+  const dir = configDir ?? (home === undefined ? undefined : join(home, '.claude'));
   return dir === undefined ? null : join(dir, 'settings.json');
 }
 

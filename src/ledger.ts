@@ -1,4 +1,4 @@
-// story: e06s03, e07s02
+// story: e06s03, e07s02, e07s04
 // e07s02 (BUG-007): the ledger opens without blocking and only as a regular file.
 // e06s04 adds state lines (one per terminal state), the capped tail reader
 // the stop rules use (security review F3) and failingRun.
@@ -91,7 +91,7 @@ export async function openRegular(path: string, flags: number, mode?: number): P
   const handle = await open(path, flags | constants.O_NONBLOCK, mode);
   try {
     if (!(await handle.stat()).isFile()) {
-      throw new Error('the ledger is not a regular file');
+      throw new Error(`${path} is not a regular file`);
     }
     return handle;
   } catch (error) {

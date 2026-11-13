@@ -22,6 +22,10 @@ export type LastCall = { at: string; cliPath: string; command: string };
 export type LastCallWrite = { ok: true } | { ok: false; error: string };
 export type LastCallRead = { ok: true; call: LastCall | null } | { ok: false; error: string };
 
+/** A failed close must not reach the hook: the record is a side note, and a
+ * rejection would turn into a block (review A-F3, B-F9). */
+function ignoreCloseError(): void {}
+
 /** The most the check reads. A real record is a few hundred bytes. */
 const maxRecordBytes = 64 * 1024;
 
@@ -51,7 +55,7 @@ export async function writeLastCall(path: string, call: LastCall): Promise<LastC
   } catch (error) {
     return { ok: false, error: messageOf(error) };
   } finally {
-    await handle?.close();
+    await handle?.close().catch(ignoreCloseError);
   }
 }
 
@@ -88,6 +92,6 @@ export async function readLastCall(path: string): Promise<LastCallRead> {
   } catch (error) {
     return isMissing(error) ? { ok: true, call: null } : { ok: false, error: messageOf(error) };
   } finally {
-    await handle?.close();
+    await handle?.close().catch(ignoreCloseError);
   }
 }
