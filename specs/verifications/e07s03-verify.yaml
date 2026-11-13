@@ -102,3 +102,20 @@ phases:
   gaps:
     closed: true
     note: "Manual UAT passed. Step 6 was optional and is not run."
+release_recheck:
+  date: "2026-11-12"
+  note: >-
+    Re-run at release, after four review rounds changed the code. The
+    earlier phases above describe the code at commit b2db1b7.
+  preflight:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck
+      && node --test --experimental-test-coverage
+    exit_code: 0
+    tests: 384
+    pass: 384
+  coverage:
+    claude_install_ts: "98.66 percent lines, 95.89 percent branches"
+    claude_install_cli_ts: "100 percent lines, 100 percent branches"
+    all_files: "99.12 percent lines, 96.21 percent branches"

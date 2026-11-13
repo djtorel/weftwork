@@ -37,7 +37,7 @@ development_status:
   e07: in_progress
   e07s01: done
   e07s02: done
-  e07s03: todo
+  e07s03: done
   e07s04: todo
   e08: todo
   e09: todo
@@ -340,18 +340,23 @@ stories:
     effort_hours: 1.7375
     lead_time_minutes: 108
     bcp_per_hour: 2.9
+  e07s03:
+    effort_hours: 1.6056
+    lead_time_minutes: 102
+    bcp_per_hour: 3.1
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-12T03:00:08Z"
+  generated_at: "2026-11-13T01:30:00Z"
   rationale: >-
-    Release of e06s03. R1 fails by the rule: undone stories e06s04 and e06s05
-    have no code tags, because their code does not exist yet. e06s03 carries
-    explicit tags in src/ledger.ts, its tests and src/gate.ts. The gate-trace
-    skill itself was not run; trace-stories.sh and run-gate-trace-verify.sh
-    ran, with 0 critic blockers and 0 blind-spot HIGH findings. The first
-    critic run gave one BLOCKER from a stale traceability matrix; it cleared
-    after trace-stories.sh regenerated it. Owner waiver in state.yaml,
-    2026-11-11, for e06 only. Oracle downgrade applied: 87 of 111 links (78
-    percent) come from file and task heuristics.
-  heuristic_ratio: 0.78
+    Release of e07s03. R1 fails by the rule: undone story e07s04 has no code
+    tags, because its code does not exist yet. e07s03 carries 6 explicit
+    tags, in src/claude-install.ts, src/claude-install-cli.ts and their
+    tests. The gate-trace skill itself was not run; trace-stories.sh and
+    run-gate-trace-verify.sh ran, with 0 critic blockers and 0 blind-spot
+    HIGH findings. The first critic run, in verify-work, gave one BLOCKER
+    from a stale traceability matrix; it cleared after trace-stories.sh
+    regenerated it. Owner waiver in state.yaml, 2026-11-12, for e07 only.
+    Oracle downgrade applied: 119 of 183 links (65 percent) come from file
+    and task heuristics.
+  heuristic_ratio: 0.65
   downgrade_applied: true

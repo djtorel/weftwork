@@ -22,7 +22,7 @@
 # regular file is read (BUG-007 class, e10).
 story_id: e07s03
 title: Install registers the Stop hook in the project's Claude Code settings
-status: in_progress
+status: done
 bcps: 5
 type: feat
 context: adapter

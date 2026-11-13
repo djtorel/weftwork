@@ -143,3 +143,14 @@ reproduced before the fix. The owner chose to fix it without a round 5
 ("go with your recommendations", 2026-11-12). The fix and two tests were
 checked by mutation (a bare prefix match and a regex that rejects the escaped
 quote both fail a test) and by the full Preflight, 384 tests.
+
+## Addendum: the audit is older than the last four fixes (release-branch)
+
+audit-code ran at commit c62d51a. Four review rounds then changed the code
+(2b84be3, 00a1c31, a5d252f, fd4c438). The full checklist was not re-run. These
+later changes were covered by the request-review gate (round 4 of 5, both
+reviewers checked conventions and smells), by the same style measurements
+(every function 20 lines or fewer, at most 3 arguments, `claude-install.ts` at
+299 of 300 lines, `tsc --noUnusedLocals` clean), and by the full Preflight on
+the final commit: 384 of 384 tests.
+

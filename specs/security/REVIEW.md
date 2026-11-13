@@ -722,3 +722,24 @@ None. No unaddressed HIGH findings.
 ## Verdict
 
 PASS for the security gate. No HIGH finding at confidence 8 or more. The four observations are recorded for the e10 review and do not block e07s03.
+
+## Addendum: re-check on the final code (release-branch, 2026-11-12)
+
+The review above was written before four review rounds changed the code (commits
+c62d51a to fd4c438). Re-read against the final diff, `git diff main...HEAD -- src`:
+
+- The first observation (substring match on the adapter path) is fixed: an entry
+  is now a command hook that is exactly `node '<path>' -- ` and one quoted
+  argument, so an owner hook is no longer deleted or replaced. Tests pin it.
+- The second (predictable temp name) is fixed: the name is random, the file is
+  opened with `wx`, and it is created with the target's mode and then chmod'ed,
+  so it is never wider than the file it replaces.
+- Read and write faults are returned values. Nothing new reaches a shell: the
+  adapter path and the declared command still go through `shellQuote`, and a test
+  runs the result through `sh`.
+- Still open, and recorded in the spec's risks: no size cap on the read, and the
+  read-then-write and `.claude`-swap races. e10 owns protecting the file.
+- Both round 4 reviewers checked security and found no issue.
+
+Verdict is unchanged: PASS. No HIGH finding at confidence 8 or more.
+
