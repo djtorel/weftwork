@@ -156,3 +156,16 @@ test('any YAML 1.2 form of a whole number is accepted', () => {
   assert.equal(limitsOf({ repo: repo('budget:\n  maxFailures: 2.0\n') }).maxFailures, 2);
   assert.equal(limitsOf({ repo: repo('budget:\n  maxFailures: 0x2\n') }).maxFailures, 2);
 });
+
+test('more than one YAML document is named plainly, with its position (review round 2)', () => {
+  const error = errorOf({ repo: repo('budget: {maxFailures: 2}\n---\nx: 1\n') });
+  assert.match(error, /holds more than one YAML document at line 2, column 1$/);
+  assert.doesNotMatch(error, /parseAllDocuments/);
+});
+
+test('a long YAML error is cut to 200 characters (review round 2)', () => {
+  const error = errorOf({ repo: repo(`budget: {maxFailures: *${'a'.repeat(5000)}}\n`) });
+  const reason = error.slice(error.indexOf('not valid YAML: ') + 'not valid YAML: '.length);
+  assert.ok(reason.length <= 200, `reason is ${reason.length} characters`);
+  assert.match(reason, /…$/);
+});

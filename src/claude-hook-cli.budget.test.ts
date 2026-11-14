@@ -6,7 +6,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cliEnv, cliPath, stopInput } from './hook-cli-test-helpers.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -58,4 +58,15 @@ test('control characters and new lines from weftwork.yaml are escaped in the rea
   assert.doesNotMatch(out.stderr, /[\u001b\r\u009b]/u);
   assert.equal(out.stderr.split('\n').filter((line) => line !== '').length, 1, 'one line, no forged line');
   assert.match(out.stderr, /\\u001b/);
+});
+
+test('a symlinked weftwork.yaml blocks the stop and runs nothing', () => {
+  const repo = makeTestRepo();
+  const target = join(makeTempDir(), 'good.yaml');
+  writeFileSync(target, 'budget:\n  maxFailures: 2\n');
+  symlinkSync(target, join(repo, 'weftwork.yaml'));
+  const out = runHook(repo, 'touch ran.txt');
+  assert.equal(out.status, 2);
+  assert.match(out.stderr, /weftwork\.yaml/);
+  assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
 });
