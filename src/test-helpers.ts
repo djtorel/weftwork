@@ -163,3 +163,12 @@ export function inChild(module: string, expression: string, setup = '') {
 export function isolatedEnv(): NodeJS.ProcessEnv {
   return { ...process.env, XDG_CONFIG_HOME: makeTempDir() };
 }
+
+/** Nested aliases that expand past the yaml package's alias limit. */
+export function aliasBomb(): string {
+  const lines = ['a0: &a0 [x, x, x, x, x, x, x, x, x]'];
+  for (let i = 1; i < 12; i++) {
+    lines.push(`a${i}: &a${i} [${Array(9).fill(`*a${i - 1}`).join(', ')}]`);
+  }
+  return `${lines.join('\n')}\nbudget: {maxFailures: 2}\n`;
+}

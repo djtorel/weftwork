@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanupTempDirs, isolatedEnv, makeTempDir, makeTestRepo, readRepoLedger } from './test-helpers.ts';
+import { aliasBomb, cleanupTempDirs, isolatedEnv, makeTempDir, makeTestRepo, readRepoLedger } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -62,6 +62,7 @@ const bad: [string, Record<string, string>, RegExp][] = [
   ['an unknown key', { 'weftwork.yaml': 'budget:\n  maxFailure: 2\n' }, /budget\.maxFailure/],
   ['text that is not YAML', { 'weftwork.yaml': 'budget: [\n' }, /YAML/],
   ['a file over 64 KiB', { 'weftwork.yaml': `# ${'x'.repeat(64 * 1024)}\n` }, /65536/],
+  ['an alias bomb (security review F1)', { 'weftwork.yaml': aliasBomb() }, /YAML/],
 ];
 
 for (const [name, files, key] of bad) {
@@ -86,4 +87,12 @@ test('a symlinked weftwork.yaml exits 2', () => {
   const result = runCli(repo);
   assert.equal(result.status, 2);
   assert.match(String(result.line['error']), /weftwork\.yaml/);
+});
+
+test('control characters from weftwork.yaml are escaped in the CLI line (security review F2)', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  "k\\e[31m\\r\\u009b": 1\n' });
+  const result = spawnSync(process.execPath, [cliPath], { input: failing, cwd: repo, encoding: 'utf8', env: isolatedEnv() });
+  assert.equal(result.status, 2);
+  assert.doesNotMatch(result.stdout, /[\u001b\r\u009b]/u);
+  assert.match(result.stdout, /\\u009b/);
 });

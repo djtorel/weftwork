@@ -50,3 +50,12 @@ test('a bad weftwork.yaml blocks the stop, names the file and key, and runs noth
   assert.match(out.stderr, /budget\.maxFailures/);
   assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
 });
+
+test('control characters and new lines from weftwork.yaml are escaped in the reason (security review F2)', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  "k\\e[31m\\r\\u009b\\nforged line": 1\n' });
+  const out = runHook(repo, 'true');
+  assert.equal(out.status, 2);
+  assert.doesNotMatch(out.stderr, /[\u001b\r\u009b]/u);
+  assert.equal(out.stderr.split('\n').filter((line) => line !== '').length, 1, 'one line, no forged line');
+  assert.match(out.stderr, /\\u001b/);
+});

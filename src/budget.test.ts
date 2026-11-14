@@ -5,6 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveLimits, type BudgetSources } from './budget.ts';
+import { aliasBomb } from './test-helpers.ts';
 
 const user = (text: string) => ({ path: '/home/u/.config/weftwork/config.yaml', text });
 const repo = (text: string) => ({ path: '/repo/weftwork.yaml', text });
@@ -118,4 +119,10 @@ test('a bad user file is refused and named, even when the repository file is goo
   });
   assert.match(error, /config\.yaml/);
   assert.ok(error.includes('budget.stallAfter'), error);
+});
+
+test('an alias bomb is refused as an error value, not a throw (security review F1)', () => {
+  const error = errorOf({ repo: repo(aliasBomb()) });
+  assert.match(error, /\/repo\/weftwork\.yaml/);
+  assert.match(error, /YAML/);
 });
