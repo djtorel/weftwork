@@ -93,7 +93,7 @@
 
 ### Code Style
 - ✓ Functions 6 to 16 lines in `budget.ts`.
-- ✓ Files under 300 lines (`budget.ts` 160, `gate.ts` 217).
+- ✓ Files under 300 lines (`budget.ts` 157, `gate.ts` 217).
 - ✓ Names specific; max two levels of indentation; early returns.
 - ✓ Comments say why (the F1 throw, the F2 escaping, the recordCall order).
 
