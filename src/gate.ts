@@ -1,4 +1,4 @@
-// story: e06s01
+// story: e06s01, e09s02
 // The evidence gate: done means a declared command, run by the engine,
 // exited 0 and left the working tree as it found it. The agent's own claim
 // is never evidence (e06s01, e06s02). Every verdict is logged (e06s03). An
@@ -9,8 +9,8 @@ import { isInteger, isRecord } from './json.ts';
 import { runCommand, type Outcome } from './process.ts';
 import { fingerprintTree, type FingerprintResult } from './tree.ts';
 
-/** `blocked`, `stallAfter` and `maxFailures` are read for the engine
- * (e06s04); `runGate` ignores them. */
+/** `blocked`, `stallAfter` and `maxFailures` (e06s04) and `maxRuns`
+ * (e09s02) are read for the engine; `runGate` ignores them. */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -18,6 +18,7 @@ export type GateRequest = {
   blocked?: string;
   stallAfter?: number;
   maxFailures?: number;
+  maxRuns?: number;
 };
 
 export type Reason =
@@ -62,11 +63,12 @@ function isTimeout(value: unknown): value is number {
 const maxBlockedLength = 1000;
 const maxThreshold = 1000;
 
-/** The engine's two stop-rule limits. The request and the budget setting
- * files (e09s01) check them by the same rule. */
-export const limitKeys = ['stallAfter', 'maxFailures'] as const;
+/** The engine's stop-rule limits. The request and the budget setting files
+ * (e09s01) check them by the same rule. `maxRuns`, the loop ceiling, has no
+ * default: it is off unless set (e09s02). */
+export const limitKeys = ['stallAfter', 'maxFailures', 'maxRuns'] as const;
 export type LimitKey = (typeof limitKeys)[number];
-const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1 };
+const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1, maxRuns: 1 };
 
 /** True when `value` is a valid `key` limit: an integer in its range. */
 export function isLimit(key: LimitKey, value: unknown): value is number {
@@ -110,7 +112,7 @@ function optionalError(data: Record<string, unknown>): string | null {
   return null;
 }
 
-const optionalKeys = ['timeoutMs', 'blocked', 'stallAfter', 'maxFailures'] as const;
+const optionalKeys = ['timeoutMs', 'blocked', ...limitKeys] as const;
 
 /** The optional keys that are present in `data`. */
 function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
@@ -123,8 +125,8 @@ function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
  * Read one JSON object with a non-empty string `command`, an optional
  * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
  * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
- * spaces), an integer `stallAfter` from 2 to 1000 and an integer
- * `maxFailures` from 1 to 1000. The budget setting files (docs/BUDGET.md)
+ * spaces), an integer `stallAfter` from 2 to 1000, an integer
+ * `maxFailures` from 1 to 1000 and an integer `maxRuns` from 1 to 1000. The budget setting files (docs/BUDGET.md)
  * then set the limits, and a request value is used only when it is lower
  * (e09s01). Other keys are ignored, since later stories
  * add keys. Returns a value for bad input, never throws.

@@ -1,4 +1,4 @@
-// story: e09s01
+// story: e09s01, e09s02
 // The budget setting: the owner's limits for the engine's stop rules, read
 // from a user file and a repository file (docs/BUDGET.md). The built-in
 // defaults are overridden by the user file, which is overridden by the
@@ -15,7 +15,9 @@ import { isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { repositoryRoot } from './tree.ts';
 
-export type Limits = Record<LimitKey, number>;
+/** The limits for one run. `maxRuns` is absent when no source sets it: the
+ * loop ceiling is off by default (e09s02). */
+export type Limits = { stallAfter: number; maxFailures: number; maxRuns?: number };
 
 /** One setting file's path, for the error text, and its contents. */
 export type SettingFile = { path: string; text: string };
@@ -30,6 +32,13 @@ export type BudgetSources = {
 export type LimitsResult = { ok: true; limits: Limits } | { ok: false; error: string };
 
 const builtIn: Limits = { maxFailures: defaultMaxFailures, stallAfter: defaultStallAfter };
+
+/** A request value is used only when it is lower than the limit so far, so it
+ * can never raise the owner's limit; with no limit so far (maxRuns unset) any
+ * value is lower. */
+function lowered(limit: number | undefined, asked: number | undefined): number | undefined {
+  return asked !== undefined && (limit === undefined || asked < limit) ? asked : limit;
+}
 
 type BudgetCheck = { ok: true; budget: Partial<Limits> } | Failure;
 
@@ -138,8 +147,8 @@ export function resolveLimits(sources: BudgetSources): LimitsResult {
     Object.assign(limits, parsed.budget);
   }
   for (const key of limitKeys) {
-    const asked = sources.request[key];
-    if (asked !== undefined && asked < limits[key]) limits[key] = asked;
+    const value = lowered(limits[key], sources.request[key]);
+    if (value !== undefined) limits[key] = value;
   }
   return { ok: true, limits };
 }
