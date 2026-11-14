@@ -15,7 +15,7 @@
 spec: e08s04-resume-check.md
 story_id: e08s04
 title: The engine checks the handoff against the repository at resume
-status: in_progress
+status: done
 bcps: 5
 type: feat
 context: engine

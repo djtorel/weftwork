@@ -39,11 +39,11 @@ development_status:
   e07s02: done
   e07s03: done
   e07s04: done
-  e08: in_progress
+  e08: done
   e08s01: done
   e08s02: done
   e08s03: done
-  e08s04: in_progress
+  e08s04: done
   e09: todo
   e10: todo
   e11: todo
@@ -84,7 +84,7 @@ epics:
     wsjf: 4.2
     total_bcps: 20
   e08:
-    status: in_progress
+    status: done
     title: State and handoff (B2)
     wsjf: 3.8
     total_bcps: 21
@@ -361,17 +361,23 @@ stories:
     effort_hours: 2.1731
     lead_time_minutes: 180
     bcp_per_hour: 3.2
+  e08s04:
+    effort_hours: 2.0306
+    lead_time_minutes: 133
+    bcp_per_hour: 2.5
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-14T01:45:00Z"
+  generated_at: "2026-11-14T17:26:54Z"
   rationale: >-
-    Release of e08s03. R1 fails by the rule: undone story e08s04 has no
-    code tags, because its code does not exist yet. e08s03 carries
-    explicit tags in src/handoff.ts, src/handoff-cli.ts, src/state-mapping.ts,
-    src/state-write.ts, src/cli-io.ts, src/tree.ts and their tests (15
-    links). trace-stories.sh and run-gate-trace-verify.sh ran at 4ed9547
-    with 0 critic blockers and 0 blind-spot HIGH findings. Owner waiver in
-    state.yaml, 2026-11-13, for e08 only. Oracle downgrade applied: 151 of
-    248 links (61 percent) come from file and task heuristics.
-  heuristic_ratio: 0.61
+    Release of e08s04, which closes e08. R1, R2 and R3 pass: e08s04, the
+    only undone story, carries explicit tags in src/resume.ts,
+    src/resume-cli.ts and their tests; every done story has verify
+    evidence. R4 gives CONCERNS (15 of 36 stories tagged): the 21 untagged
+    stories are the research epics e01 to e05, which shipped docs, not
+    code; every story that shipped code is tagged. The oracle downgrade
+    (150 of 251 links, 60 percent, from heuristics) turns it into FAIL.
+    trace-stories.sh, the completeness critic (0 blockers) and the
+    blind-spot check (0 HIGH) ran at f9331d7. Owner waiver in state.yaml,
+    2026-11-14, for e08s04 only.
+  heuristic_ratio: 0.6
   downgrade_applied: true

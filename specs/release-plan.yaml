@@ -114,9 +114,12 @@ epics:
     bcps: 21                # e08s03 5 to 7 at plan-work 2026-11-13
     risk: P2
     depends_on: [e06]
-    capsule_dir: epics/e08-state-and-handoff
+    capsule_dir: epics/archive/e08-state-and-handoff
     release: "0.2.0"
-    note: Candidate B2. Runs in the same step as e07; no dependency.
+    note: >-
+      Candidate B2. Runs in the same step as e07; no dependency.
+      Done and archived 2026-11-14 with e08s04; the handoff is written by
+      the engine and checked at resume.
   - id: e09
     title: Budget and ceilings (B5)
     wsjf: 2.6               # (5 + 3 + 5) / 5; estimate

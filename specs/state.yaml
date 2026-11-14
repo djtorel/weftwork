@@ -1,12 +1,12 @@
 workflow_mode: solo-git
-active_flow: build_epic
-active_epic: e08
-active_story: e08s04
+active_flow: null
+active_epic: null
+active_story: null
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: e08s04-handoff-check
+  branch: main
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -438,47 +438,68 @@ waivers:
     1 of 3), as for e03s02 and e03s03.
   date: 2026-11-13
   scope: e08s03 only
+- what: gate-trace FAIL (rule R4 and the oracle downgrade) for e08s04
+  why: R1, R2 and R3 pass. R4 gives CONCERNS because 15 of 36 stories carry code tags;
+    the 21 untagged stories are the research epics e01 to e05, which shipped docs,
+    not code, and every story that shipped code is tagged. 150 of 251 links (60 percent)
+    come from heuristics, so the downgrade turns CONCERNS into FAIL. Earlier releases
+    reported only R1. The owner chose to waive it for e08s04 on 2026-11-14 (answer
+    to a release-branch question, recommended option); revisit when a story changes
+    the traceability matrix.
+  date: 2026-11-14
+  scope: e08s04 only
 handoff:
-  next_skill: develop-tdd
-  next_story: e08s04
-  next_epic: e08
-  branch: e08s04-handoff-check
-  written_at: '2026-11-14T15:59:41Z'
+  next_skill: slice-tasks
+  next_story: null
+  next_epic: "e09"
+  branch: main
+  written_at: "2026-11-14T17:27:24Z"
   files:
-  - specs/epics/e08-state-and-handoff/e08s04-resume-check.md
-  - specs/epics/e08-state-and-handoff/e08s04-tasks.yaml
-  - src/claude-live.ts
-  - src/tree.ts
-  - src/state-fields.ts
-  - src/handoff.ts
+    - specs/epics/e09-budget-and-ceilings/epic.yaml
+    - specs/release-plan.yaml
+    - docs/STATE.md
+    - docs/research/SYNTHESIS.md
   uncommitted:
-  - specs/epics/e08-state-and-handoff/e08s04-resume-check.md
-  - specs/epics/e08-state-and-handoff/e08s04-tasks.yaml
-  - specs/epics/e08-state-and-handoff/epic.yaml
-  - specs/execution-status.yaml
-  note: 'e08s04 (the engine checks the handoff against the repository at resume) is
-    planned on branch e08s04-handoff-check: spec specs/epics/e08-state-and-handoff/e08s04-resume-check.md,
-    tasks e08s04-tasks.yaml. The owner took all seven plan-work recommendations (spec
-    section 1): answers ready, stale, unverifiable, missing; stale lists every reason
-    (wrong or detached branch, a files path gone, a path uncommitted now that the
-    block did not list; specs/state.yaml left out); a path uncommitted then and clean
-    now is a note; the check never writes; no commit hash; nothing calls it in this
-    story; exit 0 ready, 1 not ready, 2 fault; a separate CLI, node src/resume-cli.ts,
-    no arguments. Next: develop-tdd, task 1 (src/resume.test.ts first, record RED,
-    then src/resume.ts as a pure report like liveReport in src/claude-live.ts). Task
-    2 adds currentBranch to src/tree.ts through gitOutput, exports readStateData from
-    src/state-fields.ts and writes src/resume-cli.ts; its tests start the real CLI
-    after a real handoff-cli write. files and uncommitted are never compared with
-    each other. Branch commits so far: 43d821e (state checkpoint before kickoff) and
-    the plan commit, if the owner approved it. Lessons from e08s03: check written
-    YAML with PyYAML; run request-review (dual-blind) early, after audit-code and
-    before commit-message; it hit its 5-round cap last time. e08 waivers stay until
-    e08 closes (gate-trace R1, the MED status-ledger finding; plan-consistency-check
-    shows it for e08s01 to e08s03). Accepted risk A1 is owned by e10. Every commit
-    needs a Story: e08s04 trailer. Pushes, PRs and merges need an explicit go-ahead
-    each. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
-    call run python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD. Owner
-    declined a backfill of the e07s04 cycle-time row.'
+    - specs/epics/archive/e08-state-and-handoff/e08s01-state-writer.md
+    - specs/epics/archive/e08-state-and-handoff/e08s01-tasks.yaml
+    - specs/epics/archive/e08-state-and-handoff/e08s02-state-fields.md
+    - specs/epics/archive/e08-state-and-handoff/e08s02-tasks.yaml
+    - specs/epics/archive/e08-state-and-handoff/e08s03-handoff.md
+    - specs/epics/archive/e08-state-and-handoff/e08s03-tasks.yaml
+    - specs/epics/archive/e08-state-and-handoff/e08s04-resume-check.md
+    - specs/epics/archive/e08-state-and-handoff/e08s04-tasks.yaml
+    - specs/epics/archive/e08-state-and-handoff/epic.yaml
+    - specs/execution-status.yaml
+    - specs/metrics/cycle-times.md
+    - specs/release-plan.yaml
+  note: "e08 (state and handoff, B2) is closed on 2026-11-14 with e08s04, the
+    resume check, released by squash-merged PR from branch e08s04-handoff-check.
+    All four e08 stories are done, the capsule is archived in
+    specs/epics/archive/e08-state-and-handoff, and the status is reconciled in
+    epic.yaml, execution-status.yaml and release-plan.yaml. Start the next
+    session with node src/resume-cli.ts in the repository root: on main it
+    should answer ready (exit 0); read docs/STATE.md section Checking the
+    handoff at resume for what ready cannot see. Next in execution order (owner
+    decision 2026-11-14): e09 (B5, budget and ceilings). e09 has only its
+    epic.yaml, so start in a fresh session with slice-tasks, on a new branch
+    made with git checkout -b in this checkout (not a worktree). The e08 waivers
+    in specs/state.yaml are history and need no renewal: no e08 story is undone.
+    The gate-trace waiver for e08s04 (R4 and the oracle downgrade: the research
+    epics e01 to e05 carry no code tags) was for that story only, so the next
+    release will meet the same FAIL; put it to the owner again. Write the
+    handoff only with node src/handoff-cli.ts and the state fields with node
+    src/state-cli.ts. Owned by e09: residual F5. Owned by e10: accepted risk A1
+    (git status runs a clean filter named in .git/config), the e08s01 spec
+    section 6 path risks, GIT_DIR and GIT_INDEX_FILE inherited by git, the
+    symlinked git-dir directory and the size caps checked by fstat then read to
+    EOF. Deferred to e11: calling the resume check from the entry command; a
+    SessionStart hook only if the owner asks. Lesson from e08s04: tell
+    request-review reviewers to guard every cd and check pwd before any command
+    that writes; a reviewer overwrote specs/state.yaml in round 2. Pushes, PRs
+    and merges need an explicit go-ahead each. Do not run
+    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
+    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD. Owner
+    declined a backfill of the e07s04 cycle-time row."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -503,9 +524,9 @@ metrics:
       total_seconds: 2589.0
       avg_seconds: 103.56
     release-branch:
-      calls: 31
-      total_seconds: 4370.0
-      avg_seconds: 140.96774193548387
+      calls: 32
+      total_seconds: 4699.0
+      avg_seconds: 146.84375
     request-review:
       calls: 13
       total_seconds: 27131.0
@@ -519,9 +540,9 @@ metrics:
       total_seconds: 1079.0
       avg_seconds: 154.14285714285714
     commit-message:
-      calls: 7
-      total_seconds: 386.0
-      avg_seconds: 55.142857142857146
+      calls: 8
+      total_seconds: 403.0
+      avg_seconds: 50.375
     change-request:
       calls: 1
       total_seconds: 70.0
