@@ -26,7 +26,7 @@ stories:
   - id: e08s03
     title: The engine writes the handoff note for a session with no memory
     bcps: 7
-    status: in_progress
+    status: done
     tasks: e08s03-tasks.yaml
     delta: ADDED
   - id: e08s04

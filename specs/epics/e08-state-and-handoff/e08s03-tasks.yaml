@@ -13,7 +13,7 @@
 spec: e08s03-handoff.md
 story_id: e08s03
 title: The engine writes the handoff note for a session with no memory
-status: in_progress
+status: done
 bcps: 7
 type: feat
 context: engine
