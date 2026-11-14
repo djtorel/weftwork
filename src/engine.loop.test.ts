@@ -280,3 +280,40 @@ test('the note for an unreadable ledger says what happens, with and without maxR
   assert.match(on, /ledger not read, the loop ceiling of 4 answers exhausted/);
   assert.doesNotMatch(on, /stop rules off/);
 });
+
+// Review round 3 (2026-11-14), items the code handles that no test pinned.
+
+test('R1 the loop ceiling comes before the stall rule', async () => {
+  const repo = makeTestRepo();
+  const request = { command: 'exit 7', cwd: repo, stallAfter: 2, maxRuns: 2 };
+  assert.equal((await runEngine(request)).state, 'failed');
+  const second = await runEngine(request);
+  assert.equal(second.state, 'exhausted');
+  assert.match(second.detail ?? '', /loop ceiling is 2/);
+});
+
+test('R1 a run at the loop ceiling does not spend the override record', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a', 'b']);
+  const before = await fingerprintTree(repo);
+  assert.ok(before.ok);
+  const file = join(dirname((await ledgerPath(repo)) as string), 'override.json');
+  const record = { command: 'exit 9', fingerprint: before.fingerprint, reason: 'flaky', author: 'dom', kind: 'override' };
+  writeFileSync(file, JSON.stringify(record));
+  assert.equal((await runEngine({ command: 'exit 9', cwd: repo, maxRuns: 3 })).state, 'exhausted');
+  assert.equal(existsSync(file), true, 'the record is still there');
+});
+
+test('R4 a passing run stays done when the ledger read after it fails, and the note says so', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a']);
+  const ledger = (await ledgerPath(repo)) as string;
+  let answer: Awaited<ReturnType<typeof runEngine>> | undefined;
+  const text = await stderrOf(async () => {
+    answer = await runEngine({ command: `chmod 200 "${ledger}"`, cwd: repo, maxRuns: 3 });
+  });
+  chmodSync(ledger, 0o600);
+  assert.equal(answer?.state, 'done');
+  assert.equal(answer?.done, true);
+  assert.match(text, /unless the run is done or killed/);
+});

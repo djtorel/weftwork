@@ -71,3 +71,11 @@ test('AC-e09s02-08 maxRuns 5 and a ledger that is a directory: exhausted, and no
   assert.equal(result.line['state'], 'exhausted');
   assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
 });
+
+test('AC-e09s02-07 with no setting file, a request maxRuns turns the ceiling on', () => {
+  const repo = makeTestRepo();
+  assert.equal(runCli(repo, { command: 'exit 1', maxRuns: 2 }).status, 1);
+  const second = runCli(repo, { command: 'exit 2', maxRuns: 2 });
+  assert.equal(second.status, 5);
+  assert.equal(second.line['state'], 'exhausted');
+});
