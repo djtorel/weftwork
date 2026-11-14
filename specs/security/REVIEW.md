@@ -1556,3 +1556,29 @@ an unknown key, the alias-bomb throw) is cut to 200 code points by
 warnings no longer reach stderr. No new input, sink or dependency. Ten
 review rounds of live probes (five per reviewer) found no security
 defect. Verdict unchanged: PASS. A1 and A2 owned by e10.
+
+## F5 status after e09s02 (2026-11-14, develop-tdd)
+
+Owner decision at plan-work, 2026-11-14 (recommended option): with
+`maxRuns` set, an unreadable ledger fails the loop closed.
+
+- With `maxRuns` set, F5 is closed. Before a run, a ledger that exists
+  and cannot be read answers `exhausted` and the command does not run
+  (`ceilingStop` in `src/engine.ts`). After a failed run, an unreadable
+  ledger also answers `exhausted`. Tests: `src/engine.loop.test.ts` (the
+  ledger made a directory before the run, and by the command during the
+  run) and `src/cli.loop.test.ts` (exit 5, nothing runs).
+- Without `maxRuns`, F5 stays as it was: the stop rules are off for that
+  call (AC-e06s04-28). `maxRuns` is off by default, so a default
+  repository keeps this LOW residual. docs/BUDGET.md tells the owner to
+  set `maxRuns` to close it.
+- New residual, LOW: the loop count reads the 1 MiB ledger tail. When the
+  tail is cut and holds no `done`, only the runs in it count. With
+  `maxRuns` at most 1000 a cut needs long command strings (about 1 KiB
+  each); an agent that pads its commands can keep the count under the
+  ceiling. Same class as T3: the agent can also erase lines. Not tested.
+- A forged `done` run line opens a new loop: the T3 class, as erasing
+  failures resets the failure ceiling. `done` itself still never comes
+  from the ledger (C4).
+
+The security review of the e09s02 diff runs at verify-work.

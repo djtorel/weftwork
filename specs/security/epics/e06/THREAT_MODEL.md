@@ -90,6 +90,13 @@ run from the breaker (e06s04) and fake the counts.
   takes the default mode (F1, F2 in specs/security/REVIEW.md). F2 is fixed:
   the directory is 0700 and the file 0600. F1 is LOW; the agent already has
   the user's own write access. e10 owns the fix.
+- Residual F5 (e06s04 review): a ledger that cannot be read turns the stop
+  rules off for that call. Owner decision at e09s02 plan-work
+  (2026-11-14): with the loop ceiling `maxRuns` set, an unreadable ledger
+  answers `exhausted` and nothing runs (fail closed). Without `maxRuns`
+  the rules stay off for that call. A forged `done` line opens a new
+  loop, the same class as erasing failures (specs/security/REVIEW.md, F5
+  status after e09s02).
 - Log injection (CWE-117): write each entry as one JSON object per
   line with `JSON.stringify`, so a command with a newline cannot start
   a second fake entry. The reader skips a torn or bad line, reports
