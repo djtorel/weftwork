@@ -28,7 +28,7 @@
 # Spec: e09s02-loop-ceiling.md.
 story_id: e09s02
 title: The engine stops the whole loop at a counted ceiling
-status: todo
+status: done
 bcps: 5
 type: feat
 context: engine

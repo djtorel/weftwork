@@ -21,7 +21,7 @@ stories:
   - id: e09s02
     title: The engine stops the whole loop at a counted ceiling
     bcps: 5
-    status: todo
+    status: done
     tasks: e09s02-tasks.yaml
     delta: ADDED
   - id: e09s03
