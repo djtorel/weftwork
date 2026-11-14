@@ -99,6 +99,20 @@ opens a new loop.
 
 It is off by default. Turn it on with `maxRuns` in a file.
 
+### How the loop ceiling is reset
+
+At the ceiling the engine refuses every call before it runs, even a command
+that would pass, so no new `done` can open a new loop. The answer stays
+`exhausted` until you change something:
+
+- raise or remove `maxRuns` in the setting file, or
+- move the ledger aside, for example
+  `mv .git/weftwork/ledger.jsonl .git/weftwork/ledger.old.jsonl`. The
+  engine then starts a new, empty ledger.
+
+The agent can also do the second one, since it can delete the ledger (T3,
+under Limits of this setting).
+
 ### A loop that cannot be counted
 
 The ledger is `.git/weftwork/ledger.jsonl`. A missing ledger is an empty
@@ -120,8 +134,15 @@ stderr. This is residual F5 in `specs/security/REVIEW.md`. Set `maxRuns`
 to close it.
 
 `done` is never read from the ledger. It comes only from running the
-command. A run that passes but whose ledger line cannot be written
-answers `no-ledger`, not done.
+command. A run that passes but whose ledger line cannot be written is not
+done: its reason is `no-ledger`. Without `maxRuns` it answers `failed`
+(exit 1). With `maxRuns` set it answers `exhausted` (exit 5), on purpose:
+every later pass would also be `no-ledger`, so `failed` would make the
+Claude Code hook block the stop again and again, and the loop would never
+end.
+
+Outside a git repository there is no ledger and no count. The engine runs
+no command there: it answers `no-tree` (not done).
 
 ## Limits of this setting
 

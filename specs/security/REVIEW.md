@@ -1683,3 +1683,14 @@ Owner decisions 2026-11-14 (recommended options):
 F1 now: the cut-tail case fails closed. What stays open is T3 only:
 deleting the ledger or forging a `done` line still starts a new loop
 (owned by e10). Verdict unchanged: PASS.
+
+## Addendum for e09s02 after request-review round 2 (2026-11-14)
+
+No new fail-open path. Changes: docs/BUDGET.md now says how the owner
+resets the loop ceiling (raise or remove `maxRuns`, or move the ledger
+aside) and that a passing run whose line cannot be written answers
+`exhausted` with reason `no-ledger` when `maxRuns` is set (owner decision
+2026-11-14: kept on purpose, so the hook does not block the stop forever).
+Tests guard that answer and that `done` stays false (C4). The stderr note
+for an unreadable ledger now names what happens with and without
+`maxRuns`. Verdict unchanged: PASS.
