@@ -1,0 +1,68 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-14. Tracer bullet for B5: the owner writes a
+# budget setting in a plain file, and the engine's answer changes.
+# Today stallAfter and maxFailures come only from the request or the
+# defaults in src/breaker.ts (3 and 5). After this story the engine
+# reads them from a per-repository setting, with a user-level default
+# that the repository overrides (SYNTHESIS Implications, budget
+# setting; owner candidate requirement of 2026-11-11) [S15][S9].
+# delta MODIFIED: before, the limits come from the request or the
+# built-in defaults; after, from the setting files as well.
+# Open choices for plan-work, each with a recommendation:
+#   1. Where the files live. Recommend weftwork.yaml at the repository
+#      root with a top-level "budget" mapping, and
+#      $XDG_CONFIG_HOME/weftwork/config.yaml (default ~/.config) for
+#      the user default. Plain YAML, read with the yaml package e08
+#      already pins.
+#   2. Precedence. Recommend built-in < user < repository, and a
+#      request field may only lower a limit, never raise it, so an
+#      agent that writes the request cannot lift the owner's ceiling.
+#   3. A bad setting file (unreadable, not YAML, a value out of range).
+#      Recommend: the run is refused with bad input (exit 2) and names
+#      the file and key, rather than falling back to the defaults.
+# Security note for e10: the agent can edit weftwork.yaml (the T3
+# class in specs/security/REVIEW.md). Protected paths are e10's job.
+story_id: e09s01
+title: The owner sets the engine's limits in a budget setting file
+status: todo
+bcps: 5
+type: feat
+context: engine
+risk: P1
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write src/budget.test.ts first and record the
+      failure. Then write src/budget.ts: a pure function that merges
+      the built-in defaults, the user setting and the repository
+      setting (and the request, as plan-work decides) into one set
+      of limits, and returns an error value for a bad key or value
+    verify: >-
+      node --test src/budget.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+  - id: 2
+    description: >-
+      RED, then GREEN. Read the two files (regular file, size cap,
+      no symlink, through src/regular-file.ts) and pass the merged
+      limits to runEngine. A CLI test in a makeTestRepo() repository
+      sets maxFailures 2 in weftwork.yaml and sees exhausted (exit 5)
+      on the third call; with no file the answer is unchanged
+    verify: >-
+      node --test src/budget.test.ts src/cli.budget.test.ts
+      src/engine.test.ts src/cli.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+  - id: 3
+    description: >-
+      Document the setting in docs/ (file names, keys, precedence,
+      defaults) and name src/budget.ts in the AGENTS.md Architecture
+      section. Then run the AGENTS.md Preflight line
+    verify: >-
+      grep -q 'budget.ts' AGENTS.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo

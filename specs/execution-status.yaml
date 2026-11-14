@@ -45,6 +45,10 @@ development_status:
   e08s03: done
   e08s04: done
   e09: todo
+  e09s01: todo
+  e09s02: todo
+  e09s03: todo
+  e09s04: todo
   e10: todo
   e11: todo
 epics:
@@ -92,6 +96,7 @@ epics:
     status: todo
     title: Budget and ceilings (B5)
     wsjf: 2.6
+    total_bcps: 18
   e10:
     status: todo
     title: Security baseline (B6)

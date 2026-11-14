@@ -1,0 +1,62 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-14. The handover reserve. Bounded Loops keeps a
+# reserve out of the budget so that a hard stop leaves a written
+# handoff [S3]; R15 asks for the same. After this story, when the runs
+# left under the loop ceiling (e09s02) reach the reserve, the answer
+# tells the agent to write the handoff now with node
+# src/handoff-cli.ts (e08s03), and the Claude Code adapter puts that
+# in the reason it gives the agent. At the ceiling the answer is
+# exhausted, as in e09s02.
+# delta ADDED.
+# Open choices for plan-work, each with a recommendation:
+#   1. The unit of the reserve. Recommend runs (reserveRuns), the
+#      unit the engine counts; default 1 when maxRuns is set, and it
+#      must be less than maxRuns.
+#   2. How the agent is told. Recommend a "detail" on the not-done
+#      answer (the field blocked and stalled already use), and the
+#      adapter's stderr reason. No new state and no new exit code.
+#   3. Whether exhausted checks that a handoff was written. Recommend
+#      no: the engine reports, it does not gate on the handoff. A
+#      later story can, if the owner asks.
+story_id: e09s03
+title: The engine keeps a reserve so a hard stop leaves a handoff
+status: todo
+bcps: 3
+type: feat
+context: engine
+risk: P2
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write the tests first and record the failure:
+      with maxRuns 4 and reserveRuns 1, the third failed run's answer
+      carries the handoff detail and the fourth call answers
+      exhausted. Add reserveRuns to the budget setting and the detail
+      to the engine answer
+    verify: >-
+      node --test src/budget.test.ts src/engine.test.ts
+      src/cli.budget.test.ts && npm run typecheck
+    risk: P2
+    status: todo
+  - id: 2
+    description: >-
+      RED, then GREEN. The Claude Code adapter puts the reserve detail
+      in the block reason it writes to stderr, so the agent reads it.
+      Test it with the hook CLI in a makeTestRepo() repository
+    verify: >-
+      node --test src/claude-hook.test.ts src/claude-hook-cli.test.ts
+      && npm run typecheck
+    risk: P2
+    status: todo
+  - id: 3
+    description: >-
+      Document reserveRuns in docs/. Then run the AGENTS.md Preflight
+      line
+    verify: >-
+      grep -q 'reserveRuns' docs/*.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo
