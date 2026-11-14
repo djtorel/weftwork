@@ -62,3 +62,28 @@ branch hash does not exist on `main`.
 `files` names a folder without a trailing slash (`build`), while
 `uncommitted` lists an untracked folder as git does (`build/`). A check
 that compares the two lists (e08s04) must allow for that.
+
+## Checking the handoff at resume
+
+At session start, before `kickoff-branch`, check the block against the
+repository with `resumeReport` in `src/resume.ts`:
+
+```bash
+node src/resume-cli.ts
+```
+
+It prints one JSON line on stdout and the next step on stderr, and never
+writes. The answer is one of:
+
+| Answer | Meaning | Exit |
+| ------ | ------- | ---- |
+| `ready` | the branch, the named files and git status match the block | 0 |
+| `stale` | the current branch is not `branch` (or HEAD is detached), a path in `files` does not exist, or a path is uncommitted now that `uncommitted` does not list; every reason is listed | 1 |
+| `unverifiable` | the block has no `branch`, or a key of the wrong type | 1 |
+| `missing` | the state file has no `handoff` block | 1 |
+
+A path that `uncommitted` lists and that is clean now is a note, not a
+reason. `specs/state.yaml` is always left out. Exit 2 means the check could
+not run: an argument was given, the folder is not in a git repository, git
+failed, or the state file cannot be read. After `kickoff-branch` the branch
+is the story branch, so the check answers `stale`; that is expected.
