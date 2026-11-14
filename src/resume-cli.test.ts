@@ -118,3 +118,11 @@ test('control characters in a path are escaped on stderr', () => {
     'esc\u001b[2K\rfake ready\u009b.txt is uncommitted now and was not when the handoff was written',
   ]);
 });
+
+test('a ready block with no next skill says to read its note', () => {
+  const { repo } = makeStateRepo('handoff:\n  branch: main\n');
+  const run = runResume(repo);
+  assert.equal(run.status, 0, JSON.stringify(run.result));
+  assert.equal(run.result['next_skill'], null);
+  assert.match(run.stderr, /names no next skill; read its note/);
+});
