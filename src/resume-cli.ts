@@ -18,6 +18,7 @@ import { insideRoot } from './state-write.ts';
 import { currentBranch, repositoryRoot, uncommittedPaths } from './tree.ts';
 
 type Checked = { ok: true; report: ResumeReport } | { ok: false; error: string };
+type HandoffRead = { ok: true; handoff: unknown } | { ok: false; error: string };
 
 /** True when `file` names a path inside `root` that exists. A symlink is a
  * name, not followed, as the handoff writer checks it. */
@@ -32,23 +33,30 @@ function existsIn(root: string, file: string): boolean {
   }
 }
 
+/** The value of the `handoff` key of the state file under `root`, undefined
+ * when the key is absent, read with the writer's checks. */
+function readHandoff(root: string): HandoffRead {
+  const read = readStateData(root, stateFile);
+  if (!read.ok) return read;
+  if (!isRecord(read.data)) return { ok: false, error: `${stateFile} is not a mapping` };
+  return { ok: true, handoff: Object.hasOwn(read.data, 'handoff') ? read.data['handoff'] : undefined };
+}
+
 /** The report for the repository that holds `cwd`, or why it cannot be made. */
-async function check(cwd: string): Promise<Checked> {
+async function checkRepository(cwd: string): Promise<Checked> {
   let root: string;
   try {
     root = (await repositoryRoot(cwd)).toString();
   } catch (error) {
     return { ok: false, error: `${cwd} is not in a git repository: ${messageOf(error)}` };
   }
-  const read = readStateData(root, stateFile);
+  const read = readHandoff(root);
   if (!read.ok) return read;
-  if (!isRecord(read.data)) return { ok: false, error: `${stateFile} is not a mapping` };
-  const handoff = Object.hasOwn(read.data, 'handoff') ? read.data['handoff'] : undefined;
   const branch = await currentBranch(root);
   if (!branch.ok) return { ok: false, error: `git symbolic-ref failed: ${branch.error}` };
   const status = await uncommittedPaths(root, [stateFile]);
   if (!status.ok) return { ok: false, error: `git status failed: ${status.error}` };
-  const report = resumeReport(handoff, {
+  const report = resumeReport(read.handoff, {
     branch: branch.branch,
     uncommitted: status.paths,
     exists: (file) => existsIn(root, file),
@@ -77,7 +85,8 @@ function nextStep(report: ResumeReport): string {
   }
 }
 
-function describe(report: ResumeReport): string {
+/** The report for a person: the answer, each reason and note, the next step. */
+function stderrText(report: ResumeReport): string {
   const reasons = report.reasons.map((reason) => `- ${shown(reason)}\n`).join('');
   const notes = report.notes.length === 0 ? '' : `Notes:\n${report.notes.map((note) => `- ${shown(note)}\n`).join('')}`;
   return `weftwork resume check: ${report.answer}\n${reasons}${notes}${nextStep(report)}\n`;
@@ -88,12 +97,12 @@ async function main(args: string[]): Promise<void> {
     process.stderr.write('usage: node resume-cli.ts (no arguments)\n');
     return printAnswer({ ok: false, error: 'the resume check takes no arguments' }, 2);
   }
-  const checked = await check(process.cwd());
+  const checked = await checkRepository(process.cwd());
   if (!checked.ok) {
     process.stderr.write(`weftwork resume check: ${shown(checked.error)}\n`);
     return printAnswer(checked, 2);
   }
-  process.stderr.write(describe(checked.report));
+  process.stderr.write(stderrText(checked.report));
   printAnswer(checked.report, checked.report.answer === 'ready' ? 0 : 1);
 }
 
