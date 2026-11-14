@@ -1,4 +1,4 @@
-// story: e08s02
+// story: e08s02, e08s04
 // The fields of specs/state.yaml that the engine owns (docs/STATE.md). The
 // engine sets only these, each one text or null on one line, and refuses every
 // other key, so waivers, metrics and the owner's settings stay byte for byte.
@@ -55,7 +55,7 @@ export function setStateField(root: string, key: string, value: unknown): WriteF
  * checks: a regular file inside the root and outside .git, not a symlink, of at
  * most maxStateBytes, one YAML document of plain data. An alias bomb is a
  * refusal, not a throw (e08s02 security review F1, F2). */
-function readStateData(root: string, file: string): { ok: true; data: unknown } | Failure {
+export function readStateData(root: string, file: string): { ok: true; data: unknown } | Failure {
   const inside = insideRoot(root, file);
   if (!inside.ok) return inside;
   const read = readRegularFile(inside.path, { follow: false, maxBytes: maxStateBytes });

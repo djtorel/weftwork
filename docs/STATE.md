@@ -60,5 +60,48 @@ the file. No commit hash is kept, because PRs are squash-merged and a
 branch hash does not exist on `main`.
 
 `files` names a folder without a trailing slash (`build`), while
-`uncommitted` lists an untracked folder as git does (`build/`). A check
-that compares the two lists (e08s04) must allow for that.
+`uncommitted` lists an untracked folder as git does (`build/`). The resume
+check never compares the two lists, so the forms do not meet.
+
+## Checking the handoff at resume
+
+At session start, before `kickoff-branch`, check the block against the
+repository with `resumeReport` in `src/resume.ts`:
+
+```bash
+node src/resume-cli.ts
+```
+
+It prints one JSON line on stdout, `{"ok":true,"answer":...,"reasons":[...],
+"notes":[...],"next_skill":...}`, or `{"ok":false,"error":...}` when it cannot
+run, and the next step on stderr. It never writes. The answer is one of:
+
+| Answer | Meaning | Exit |
+| ------ | ------- | ---- |
+| `ready` | the branch, the named files and git status match the block | 0 |
+| `stale` | HEAD is not on `branch` (another branch, detached, or a ref outside `refs/heads/`), a path in `files` is not found inside the repository, or a path is uncommitted now that `uncommitted` does not list; every reason is listed | 1 |
+| `unverifiable` | the block is not a mapping, has no `branch`, `files` or `uncommitted`, or one of them is null or of the wrong type | 1 |
+| `missing` | the state file has no `handoff` block, or a null one | 1 |
+
+A path that `uncommitted` lists and that git status no longer lists is a
+note, not a reason.
+
+`ready` means the same paths are uncommitted, not the same content. It
+sees only what `git status` lists. It cannot see a new file inside an
+untracked folder that `uncommitted` already lists (`out/`), more edits to
+a file that was already uncommitted, the deletion of a file that was
+already uncommitted, ignored files, files marked `assume-unchanged` or
+`skip-worktree`, a submodule set to `ignore = all`,
+or commits made on the branch since the handoff. It does not check the
+note or `next_skill`. `files` is the only existence check, so name in it
+every path the note relies on.
+
+`specs/state.yaml` is always left out. Exit 2 means the check could not
+run: an argument was given, the working directory is gone or not in a git
+repository, git failed, or the state file cannot be read. After
+`kickoff-branch` the branch is the story branch, so the check answers
+`stale`; that is expected.
+
+Every CLI line on stdout and the check's stderr text write control
+characters, bidi controls and line separators as `\uXXXX`
+(`terminalSafe` in `src/cli-io.ts`).
