@@ -4,7 +4,7 @@
 # stderr text and is covered by a test, not by a new manual run. The
 # mechanical gates were re-run at the head below.
 story_id: e08s04
-verified_at: "2026-11-14T18:05:00Z"
+verified_at: "2026-11-14T17:15:12Z"
 verifier: verify-work
 risk: P1
 branch: e08s04-handoff-check
@@ -36,7 +36,7 @@ phases:
       yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
     exit_code: 0
-    captured_at: "2026-11-14T18:05:00Z"
+    captured_at: "2026-11-14T17:15:12Z"
     note: >-
       Single run at 5b0e6f7, 683 of 683 tests, none skipped. Earlier runs:
       665 at 73928d7, 666 at 6651d64.
