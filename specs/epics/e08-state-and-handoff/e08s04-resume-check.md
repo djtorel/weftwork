@@ -96,21 +96,26 @@ gain one export each and keep their contracts; their suites cover them.
   `specs/state.yaml`) and `exists(path)`. It returns `{ answer, reasons,
   notes, next_skill }`.
 - `missing` when the handoff is `undefined` or null.
-- `unverifiable` when it is not a mapping, has no `branch`, or `branch`,
-  `files` or `uncommitted` has the wrong type (text; list of text; list
-  of text). A missing `files` or `uncommitted` is an empty list. The
-  reason names the key.
+- `unverifiable` when it is not a mapping, or `branch`, `files` or
+  `uncommitted` is missing, null or of the wrong type (text; list of text;
+  list of text). The engine always writes both lists, so a block without
+  them would otherwise read as `ready` on a clean tree with nothing checked
+  (request-review round 1). The reason names the key.
 - Otherwise every fault of decision 2 is a reason, in a fixed order
   (branch, then files, then uncommitted paths, each list sorted). Any
   reason makes the answer `stale`; none makes it `ready`.
-- A path in the block's `uncommitted` that is clean now gives a note.
+- A path in the block's `uncommitted` that git status no longer lists
+  gives a note.
 - `next_skill` is the block's `next_skill` when it is text, else null.
+- Every report has `ok: true`; the CLI's faults are `{ ok: false, error }`.
 
 #### ADDED: the current branch, `src/tree.ts`
 
-- `currentBranch(cwd)` runs `git symbolic-ref --quiet --short HEAD`
-  through `gitOutput`. Ok with the name, or with null on a detached HEAD;
-  not ok outside a repository. Never rejects.
+- `currentBranch(cwd)` runs `git symbolic-ref --quiet HEAD` through
+  `gitOutput` and strips `refs/heads/`. Ok with the name, or with null on a
+  detached HEAD or a HEAD that names a ref outside `refs/heads/`; not ok
+  outside a repository. Not `--short`, which gives `heads/main` when a tag
+  `main` exists (request-review round 1). Never rejects.
 
 #### ADDED: the resume CLI, `src/resume-cli.ts`
 
@@ -259,6 +264,8 @@ fault here asks for it.
 - **The check reads git through the same helper.** `git status` runs a
   clean filter named in `.git/config`; that is accepted risk A1, owned
   by e10, as for the writer.
-- **Hand-written older blocks.** A block without `uncommitted` is read as
-  having none, so any dirty path makes it stale. That errs toward
-  `stale`, not `ready`.
+- **Hand-written older blocks.** A block without `files` or `uncommitted`
+  is `unverifiable`, never `ready` (request-review round 1).
+- **`ready` compares paths, not content.** A new file inside an untracked
+  folder the block lists, or more edits to a file it lists, is not seen.
+  `docs/STATE.md` says so, and a CLI test pins the limit.

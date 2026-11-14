@@ -10,15 +10,15 @@
 // or the state file cannot be read or parsed (owner decision 6).
 import { lstatSync } from 'node:fs';
 import { printAnswer } from './cli-io.ts';
-import { messageOf } from './errors.ts';
+import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { resumeReport, type ResumeReport } from './resume.ts';
 import { readStateData, stateFile } from './state-fields.ts';
 import { insideRoot } from './state-write.ts';
 import { currentBranch, repositoryRoot, uncommittedPaths } from './tree.ts';
 
-type Checked = { ok: true; report: ResumeReport } | { ok: false; error: string };
-type HandoffRead = { ok: true; handoff: unknown } | { ok: false; error: string };
+type Checked = { ok: true; report: ResumeReport } | Failure;
+type HandoffRead = { ok: true; handoff: unknown } | Failure;
 
 /** True when `file` names a path inside `root` that exists. A symlink is a
  * name, not followed, as the handoff writer checks it. */
@@ -64,11 +64,12 @@ async function checkRepository(cwd: string): Promise<Checked> {
   return { ok: true, report };
 }
 
-/** `text` with each C0, DEL and C1 control character written as `\uXXXX`, so
- * a file name or a block value cannot drive the terminal (security review
- * F1, CWE-150). Only the stderr text needs it: JSON already escapes C0. */
+/** `text` with each C0, DEL and C1 control character, each bidi control and
+ * the line and paragraph separators written as `\uXXXX`, so a file name or a
+ * block value cannot drive or reorder the terminal (security review F1,
+ * CWE-150; request-review round 1). Only the stderr text needs it. */
 function terminalSafe(text: string): string {
-  return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`);
+  return text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
 /** The next step for an answer. */

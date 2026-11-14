@@ -10,6 +10,7 @@
 // only checked for existence. The two uncommitted lists, then and now, both
 // come from uncommittedPaths in tree.ts, so a folder is `dir/` in both and
 // they compare as text.
+import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 
 /** What the repository says now. `uncommitted` leaves out specs/state.yaml. */
@@ -22,7 +23,9 @@ export type ResumeFacts = {
 };
 
 export type ResumeAnswer = 'ready' | 'stale' | 'unverifiable' | 'missing';
-export type ResumeReport = { answer: ResumeAnswer; reasons: string[]; notes: string[]; next_skill: string | null };
+/** `ok` is true for every answer: the check ran. A fault that stops it is
+ * the CLI's `{ ok: false, error }`, so a caller tells them apart by `ok`. */
+export type ResumeReport = { ok: true; answer: ResumeAnswer; reasons: string[]; notes: string[]; next_skill: string | null };
 
 /** The parts of a block the check reads, once their types are known. */
 type Checkable = { branch: string; files: string[]; uncommitted: string[] };
@@ -31,16 +34,16 @@ function isTextList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
-/** The block's branch and lists, or why they cannot be checked. A missing
- * list is empty: a block without `uncommitted` errs toward stale. */
-function checkable(handoff: Record<string, unknown>): Checkable | string {
-  const { branch } = handoff;
-  const files = handoff['files'] ?? [];
-  const uncommitted = handoff['uncommitted'] ?? [];
-  if (typeof branch !== 'string') return 'the handoff has no branch to check';
-  if (!isTextList(files)) return 'the handoff files is not a list of paths';
-  if (!isTextList(uncommitted)) return 'the handoff uncommitted is not a list of paths';
-  return { branch, files, uncommitted };
+/** The block's branch and lists, or why they cannot be checked. The engine
+ * always writes both lists; a block without one, or with null, was not
+ * written by it, and on a clean tree would read as ready with nothing
+ * checked (request-review round 1). */
+function checkable(handoff: Record<string, unknown>): { ok: true; block: Checkable } | Failure {
+  const { branch, files, uncommitted } = handoff;
+  if (typeof branch !== 'string') return { ok: false, error: 'the handoff has no branch to check' };
+  if (!isTextList(files)) return { ok: false, error: 'the handoff files is missing or not a list of paths' };
+  if (!isTextList(uncommitted)) return { ok: false, error: 'the handoff uncommitted is missing or not a list of paths' };
+  return { ok: true, block: { branch, files, uncommitted } };
 }
 
 /** Every way the block and the facts differ, in a fixed order: the branch,
@@ -54,7 +57,7 @@ function staleReasons(block: Checkable, facts: ResumeFacts): string[] {
     reasons.push(`the current branch is ${facts.branch}; the handoff starts on branch ${block.branch}`);
   }
   for (const file of [...block.files].sort()) {
-    if (!facts.exists(file)) reasons.push(`${file} is named in the handoff and does not exist`);
+    if (!facts.exists(file)) reasons.push(`${file} is named in the handoff and was not found inside the repository`);
   }
   const then = new Set(block.uncommitted);
   for (const path of [...facts.uncommitted].sort()) {
@@ -63,28 +66,31 @@ function staleReasons(block: Checkable, facts: ResumeFacts): string[] {
   return reasons;
 }
 
-/** Paths that were uncommitted when the block was written and are clean now. */
+/** Paths that were uncommitted when the block was written and that git
+ * status no longer lists. Not "clean": after a rename or a partial add the
+ * old name is gone or the folder is listed by its files (review round 1). */
 function cleanNotes(block: Checkable, facts: ResumeFacts): string[] {
   const now = new Set(facts.uncommitted);
   return [...block.uncommitted]
     .sort()
     .filter((path) => !now.has(path))
-    .map((path) => `${path} was uncommitted when the handoff was written and is clean now`);
+    .map((path) => `${path} was uncommitted when the handoff was written and is no longer listed by git status`);
+}
+
+/** A report; the defaults fit the answers that check nothing. */
+function report(answer: ResumeAnswer, reasons: string[], notes: string[] = [], next_skill: string | null = null): ResumeReport {
+  return { ok: true, answer, reasons, notes, next_skill };
 }
 
 /** Whether the handoff block (the value of the `handoff` key, undefined when
  * the key is absent) can be trusted against the repository `facts`. Only
  * `ready` means it can. */
 export function resumeReport(handoff: unknown, facts: ResumeFacts): ResumeReport {
-  if (handoff === undefined || handoff === null) {
-    return { answer: 'missing', reasons: ['the state file has no handoff block'], notes: [], next_skill: null };
-  }
-  if (!isRecord(handoff)) {
-    return { answer: 'unverifiable', reasons: ['the handoff is not a mapping'], notes: [], next_skill: null };
-  }
+  if (handoff === undefined || handoff === null) return report('missing', ['the state file has no handoff block']);
+  if (!isRecord(handoff)) return report('unverifiable', ['the handoff is not a mapping']);
   const next_skill = typeof handoff['next_skill'] === 'string' ? handoff['next_skill'] : null;
-  const block = checkable(handoff);
-  if (typeof block === 'string') return { answer: 'unverifiable', reasons: [block], notes: [], next_skill };
-  const reasons = staleReasons(block, facts);
-  return { answer: reasons.length === 0 ? 'ready' : 'stale', reasons, notes: cleanNotes(block, facts), next_skill };
+  const checked = checkable(handoff);
+  if (!checked.ok) return report('unverifiable', [checked.error], [], next_skill);
+  const reasons = staleReasons(checked.block, facts);
+  return report(reasons.length === 0 ? 'ready' : 'stale', reasons, cleanNotes(checked.block, facts), next_skill);
 }

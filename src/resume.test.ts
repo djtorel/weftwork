@@ -88,7 +88,7 @@ test('AC-03 every unexpected uncommitted path is a reason, in sorted order', () 
   assert.match(report.reasons[1] ?? '', /z\.txt/);
 });
 
-test('AC-04 a path uncommitted then and clean now is a note, not a reason', () => {
+test('AC-04 a path uncommitted then and no longer listed now is a note, not a reason', () => {
   const report = resumeReport(block(), facts({ uncommitted: [] }));
   assert.equal(report.answer, 'ready');
   assert.deepEqual(report.reasons, []);

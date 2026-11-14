@@ -50,21 +50,24 @@ export async function repositoryRoot(cwd: string): Promise<Buffer> {
   return output.subarray(0, output.length - 1);
 }
 
-/** The short name of the branch HEAD points to (`git symbolic-ref --quiet
- * --short HEAD`), also before the first commit, or null on a detached HEAD
- * (git exits 1 then). Not ok when `cwd` is not in a repository, git fails
- * otherwise, or the name is not UTF-8. Never rejects. */
+/** The name of the branch HEAD points to (`git symbolic-ref --quiet HEAD`
+ * without `refs/heads/`), also before the first commit, or null on a detached
+ * HEAD (git exits 1 then) or a HEAD that names a ref outside refs/heads/.
+ * Not --short: it gives heads/main when a tag main exists (request-review
+ * round 1). Not ok when `cwd` is not in a repository, git fails otherwise,
+ * or the name is not UTF-8. Never rejects. */
 export async function currentBranch(cwd: string): Promise<{ ok: true; branch: string | null } | { ok: false; error: string }> {
   let output: Buffer;
   try {
-    output = await gitOutput(cwd, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
+    output = await gitOutput(cwd, ['symbolic-ref', '--quiet', 'HEAD']);
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 1) return { ok: true, branch: null };
     return { ok: false, error: messageOf(error) };
   }
   const text = strictUtf8(output);
   if (text === null) return { ok: false, error: 'the branch name is not UTF-8' };
-  return { ok: true, branch: text.replace(/\n$/, '') };
+  const ref = text.replace(/\n$/, '');
+  return { ok: true, branch: ref.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : null };
 }
 
 /** The status letters after which porcelain v1 -z gives a second, old path. */

@@ -60,8 +60,8 @@ the file. No commit hash is kept, because PRs are squash-merged and a
 branch hash does not exist on `main`.
 
 `files` names a folder without a trailing slash (`build`), while
-`uncommitted` lists an untracked folder as git does (`build/`). A check
-that compares the two lists (e08s04) must allow for that.
+`uncommitted` lists an untracked folder as git does (`build/`). The resume
+check never compares the two lists, so the forms do not meet.
 
 ## Checking the handoff at resume
 
@@ -72,18 +72,24 @@ repository with `resumeReport` in `src/resume.ts`:
 node src/resume-cli.ts
 ```
 
-It prints one JSON line on stdout and the next step on stderr, and never
-writes. The answer is one of:
+It prints one JSON line on stdout, `{"ok":true,"answer":...,"reasons":[...],
+"notes":[...],"next_skill":...}`, or `{"ok":false,"error":...}` when it cannot
+run, and the next step on stderr. It never writes. The answer is one of:
 
 | Answer | Meaning | Exit |
 | ------ | ------- | ---- |
 | `ready` | the branch, the named files and git status match the block | 0 |
 | `stale` | the current branch is not `branch` (or HEAD is detached), a path in `files` does not exist, or a path is uncommitted now that `uncommitted` does not list; every reason is listed | 1 |
-| `unverifiable` | the block has no `branch`, or a key of the wrong type | 1 |
+| `unverifiable` | the block has no `branch`, `files` or `uncommitted`, or one of them is null or of the wrong type | 1 |
 | `missing` | the state file has no `handoff` block | 1 |
 
-A path that `uncommitted` lists and that is clean now is a note, not a
-reason. `specs/state.yaml` is always left out. Exit 2 means the check could
+A path that `uncommitted` lists and that git status no longer lists is a
+note, not a reason.
+
+`ready` means the same paths are uncommitted, not the same content. It
+cannot see a new file inside an untracked folder that `uncommitted`
+already lists (`out/`), more edits to a file that was already uncommitted,
+ignored files, or commits made on the branch since the handoff. `specs/state.yaml` is always left out. Exit 2 means the check could
 not run: an argument was given, the folder is not in a git repository, git
 failed, or the state file cannot be read. After `kickoff-branch` the branch
 is the story branch, so the check answers `stale`; that is expected.
