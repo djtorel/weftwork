@@ -464,43 +464,39 @@ waivers:
   scope: e09 only; drop it when e09 closes, or as soon as every undone e09 story could
     carry a code tag
 handoff:
-  next_skill: develop-tdd
+  next_skill: audit-code
   next_story: e09s01
   next_epic: "e09"
   branch: e09s01-budget-setting
-  written_at: "2026-11-14T18:04:48Z"
+  written_at: "2026-11-14T18:41:53Z"
   files:
+    - specs/verifications/e09s01-verify.yaml
+    - specs/security/REVIEW.md
+    - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
     - specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md
-    - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
-    - src/gate.ts
-    - src/engine.ts
-    - src/cli.ts
-    - src/claude-hook-cli.ts
-    - src/regular-file.ts
-    - src/tree.ts
   uncommitted:
-    - specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md
-    - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
-  note: "e09s01 (the owner sets the engine's limits in a budget setting file, 5
-    BCPs) is planned on branch e09s01-budget-setting (plan-work 2026-11-14).
-    Spec: specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md; tasks:
-    e09s01-tasks.yaml, five tasks. Owner decisions (all four recommendations
-    taken): weftwork.yaml at the repository root with a top-level budget
-    mapping, user default $XDG_CONFIG_HOME/weftwork/config.yaml (or ~/.config);
-    built-in < user < repository, a request value is used only when lower; a bad
-    file is refused (CLI exit 2, hook blocks the stop) naming the file and key;
-    camelCase keys maxFailures and stallAfter. Owner waived for e09 only: the
-    plan-consistency-check missing-spec findings for e09s02 to e09s04, and the
-    gate-trace R1 FAIL for undone e09 stories. Next: develop-tdd, task 1 (RED
-    first in src/budget.test.ts). Every test that starts a CLI must set
-    XDG_CONFIG_HOME to an empty temporary directory (spec R6). The owner decides
-    F5 before e09s02. The owner said this session is fresh enough: do not
-    suggest a fresh session until e09s01 is released. Write the handoff only
-    with node src/handoff-cli.ts and state fields with node src/state-cli.ts.
-    Tell request-review reviewers to guard every cd and check pwd before any
-    write. Commits, pushes, PRs and merges need an explicit go-ahead each. Do
-    not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call
-    run python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
+    - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
+    - specs/security/REVIEW.md
+    - specs/verifications/e09s01-verify.yaml
+  note: "e09s01 (budget setting file, 5 BCPs) passed verify-work on 2026-11-14 at
+    87f6221 on branch e09s01-budget-setting: Preflight 737 of 737, the owner's
+    manual run passed (at 9ca599a), security review PASS with F1 (alias bomb
+    crashed the CLI) and F2 (setting-file text unescaped on stderr) fixed in
+    9607d02 RED and 87f6221 GREEN. Evidence:
+    specs/verifications/e09s01-verify.yaml. BUG-008 (a second SIGTERM once ended
+    the hook by signal, test AC-e07s02-13, not reproduced in 182 runs) is logged
+    open, outside this story, on the owner's decision. Next: audit-code (write
+    the Story: e09s01 line in specs/AUDIT_LATEST.md; run the gate through
+    tools/assert-audit-story.sh), then request-review, then release-branch. At
+    release put the gate-trace waiver to the owner only if the e09-only waiver
+    in state.yaml does not cover it. The owner decides F5 before e09s02. The
+    owner said this session is fresh enough: do not suggest a fresh session
+    until e09s01 is released. Write the handoff only with node
+    src/handoff-cli.ts and state fields with node src/state-cli.ts. Tell
+    request-review reviewers to guard every cd and check pwd before any write.
+    Pushes, PRs and merges need an explicit go-ahead each. Do not run
+    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
+    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -513,13 +509,13 @@ metrics:
       total_seconds: 18534.0
       avg_seconds: 561.6363636363636
     develop-tdd:
-      calls: 31
-      total_seconds: 12895.0
-      avg_seconds: 415.96774193548384
+      calls: 32
+      total_seconds: 13449.0
+      avg_seconds: 420.28125
     verify-work:
-      calls: 31
-      total_seconds: 5843.0
-      avg_seconds: 188.48387096774192
+      calls: 32
+      total_seconds: 6922.0
+      avg_seconds: 216.3125
     audit-code:
       calls: 25
       total_seconds: 2589.0
