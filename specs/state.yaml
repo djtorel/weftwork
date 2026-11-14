@@ -464,31 +464,36 @@ waivers:
   scope: e09 only; drop it when e09 closes, or as soon as every undone e09 story could
     carry a code tag
 handoff:
-  next_skill: request-review
+  next_skill: release-branch
   next_story: e09s01
   next_epic: "e09"
   branch: e09s01-budget-setting
-  written_at: "2026-11-14T18:45:41Z"
+  written_at: "2026-11-14T19:25:23Z"
   files:
-    - specs/verifications/AUDIT-e09-e09s01.md
-    - specs/AUDIT_LATEST.md
     - specs/verifications/e09s01-verify.yaml
-    - src/budget.ts
+    - specs/verifications/AUDIT-e09-e09s01.md
+    - specs/security/REVIEW.md
+    - docs/BUDGET.md
   uncommitted:
     - specs/AUDIT_LATEST.md
     - specs/verifications/AUDIT-e09-e09s01.md
-  note: "e09s01 (budget setting file, 5 BCPs) passed audit-code on 2026-11-14 at
-    858609f on branch e09s01-budget-setting (report
-    specs/verifications/AUDIT-e09-e09s01.md; tools/assert-audit-story.sh PASS).
-    Four fixes in the audit: readBudget split into yamlData, budgetMapping and
-    checkLimits; readSetting renamed readBudgetFile; settingMaxBytes and
-    userSettingPath unexported; budget errors no longer repeat the key.
-    verify-work passed earlier (specs/verifications/e09s01-verify.yaml);
-    security review PASS with F1 and F2 fixed. BUG-008 is logged open, outside
-    this story. Next: request-review (dual-blind). Tell the reviewers to guard
-    every cd and check pwd before any command that writes, and back up
-    specs/state.yaml first. Then re-run audit-code if the review changes code,
-    then release-branch. The owner decides F5 before e09s02. The owner said this
+    - specs/verifications/e09s01-verify.yaml
+  note: "e09s01 (budget setting file, 5 BCPs) passed request-review on 2026-11-14
+    in round 5 of 5 (A/B: 88.9/83.3, 100/60, 100/33.3, 75/100, 100/100) and the
+    second audit-code at 99ea55e on branch e09s01-budget-setting (Preflight 758
+    of 758; assert-audit-story PASS). Evidence:
+    specs/verifications/e09s01-verify.yaml,
+    specs/verifications/AUDIT-e09-e09s01.md, specs/security/REVIEW.md (F1, F2
+    fixed). The review tightened the setting to plain YAML 1.2 (one %YAML line,
+    no unresolved tag, plain mappings) with one-line error text cut to 200 code
+    points; docs/BUDGET.md matches. BUG-008 (a second SIGTERM once ended the
+    hook by signal) is logged open, outside this story. Next: release-branch. It
+    must: put the gate-trace result to the owner (the e09-only waiver in
+    state.yaml covers rule R1 for undone e09 stories); reconcile e09s01 to done
+    in e09s01-tasks.yaml, epic.yaml and execution-status.yaml; record cycle time
+    with tools/record-cycle-time.sh --file specs/metrics/cycle-times.md before
+    the squash merge; write the handoff for e09s02 (next_skill kickoff-branch,
+    branch main; the owner decides F5 before e09s02). The owner said this
     session is fresh enough: do not suggest a fresh session until e09s01 is
     released. Write the handoff only with node src/handoff-cli.ts and state
     fields with node src/state-cli.ts. Pushes, PRs and merges need an explicit
@@ -523,9 +528,9 @@ metrics:
       total_seconds: 4699.0
       avg_seconds: 146.84375
     request-review:
-      calls: 13
-      total_seconds: 27131.0
-      avg_seconds: 2087.0
+      calls: 14
+      total_seconds: 29024.0
+      avg_seconds: 2073.1428571428573
     kickoff-branch:
       calls: 2
       total_seconds: 55.0

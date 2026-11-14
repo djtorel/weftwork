@@ -111,4 +111,30 @@ Preflight at 858609f: `yamllint specs && bash tools/validate-specs-yaml.sh
 && bash tools/check-gate-ignores.sh && npm run typecheck && npm test`,
 exit 0, 737 of 737 tests.
 
+
+## Second run after request-review (2026-11-14, 99ea55e)
+
+Scope: `git diff 2ad5cb3..99ea55e -- src docs` (8 files, 234 insertions,
+68 deletions): the fixes from five request-review rounds.
+
+- ✓ Functions: none over 20 lines in budget.ts, gate.ts or cli.ts
+  (largest `yamlData` 17). Files: budget.ts 197, gate.ts 222, cli.ts 144,
+  budget.test.ts 227 lines.
+- ✓ Names: `clip`, `firstLine`, `yamlError`, `yamlDirectiveCount`,
+  `isMapping`, `isLimit`, `limitRule` each have 4 hits or fewer.
+- ✓ Types: no `any`, no `@ts-ignore`, no cast; the `as number` in
+  `checkLimits` is gone (`isLimit` is a type guard).
+- ✓ Duplication: the request and the files share `limitKeys`, `isLimit`
+  and `limitRule`; `cli.ts` prints through `printAnswer`.
+- ✓ Supply chain: no dependency change.
+- ✓ Tests: each behaviour fix has a RED commit that failed on a clean
+  copy of itself (541e268, 852662c, 1f1d6c2, 59258d8); 758 of 758 pass.
+- ✓ Scope: every change answers a review finding; the owner declined
+  three (content after `...`, the mise-shim install test, the `follow`
+  flag argument).
+- ✓ Docs: docs/BUDGET.md matches the refusals (YAML 1.2 only, one %YAML
+  line, unresolved tags, plain mappings, 200-character echo).
+
+Preflight at 99ea55e: exit 0, 758 of 758 tests.
+
 VERDICT: PASS

@@ -3,13 +3,14 @@
 # The security fixes after it (9607d02 RED, 87f6221 GREEN) change only
 # the refusal of an alias bomb and the escaping of error text; they are
 # covered by tests, not by a new manual run. The mechanical gates were
-# re-run at the head below.
+# re-run at the head below, after request-review (five rounds) and the
+# second audit.
 story_id: e09s01
-verified_at: "2026-11-14T18:41:06Z"
+verified_at: "2026-11-14T19:25:10Z"
 verifier: verify-work
 risk: P1
 branch: e09s01-budget-setting
-head: 87f6221
+head: 99ea55e
 phases:
   smoke:
     passed: null
@@ -28,8 +29,8 @@ phases:
   tests:
     passed: true
     command: "npm test"
-    tests: 737
-    pass: 737
+    tests: 758
+    pass: 758
     fail: 0
     skipped: 0
   terminal_verdict:
@@ -37,9 +38,10 @@ phases:
       yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
     exit_code: 0
-    captured_at: "2026-11-14T18:41:06Z"
+    captured_at: "2026-11-14T19:25:10Z"
     note: >-
-      Single run at 87f6221, 737 of 737 tests, none skipped. An earlier
+      Single run at 99ea55e, 758 of 758 tests, none skipped. At
+      verify-work (87f6221) it was 737 of 737. An earlier
       run at 9ca599a (2026-11-14T18:24Z) failed one test, AC-e07s02-13 in
       src/claude-hook-cli.signal.test.ts (status null for a second
       SIGTERM). It did not recur in 182 runs on this branch and on main;
@@ -94,6 +96,25 @@ phases:
     passed: true
     command: "bash scripts/verify-adversarial.sh"
     exit_code: 0
+  request_review:
+    passed: true
+    rounds: 5
+    scores_a_b: ["88.9/83.3", "100/60", "100/33.3", "75/100", "100/100"]
+    note: >-
+      Dual-blind AND-gate passed in round 5, the cap (both 100, no
+      must-fix). Round 1: a live-check test read the real user file
+      (XDG_CONFIG_HOME); rounds 2 to 4: error text (one line, position,
+      200-code-point cut, plain multi-document text) and YAML strictness
+      (only YAML 1.2, one %YAML line, no unresolved tag, plain mappings).
+      Round 5's two doc items were fixed after the pass in 99ea55e,
+      checked by the second audit, not re-reviewed. Declined by the owner:
+      content after a `...` end marker, the mise-shim install test
+      (src/claude-install.test.ts:239), the `follow` flag argument.
+      specs/state.yaml was backed up first and stayed unchanged.
+  audit:
+    passed: true
+    report: specs/verifications/AUDIT-e09-e09s01.md
+    note: "Second run after request-review; assert-audit-story PASS."
   manual:
     status: passed
     verified_by: owner, 2026-11-14, scratch clone from mktemp -d
