@@ -185,7 +185,9 @@ for (const [text, named] of badDirectives) {
 }
 
 test('a long unknown key is cut to 200 characters in the error (review round 3)', () => {
-  const error = errorOf({ repo: repo(`budget:\n  "${'k'.repeat(5000)}": 1\n`) });
+  // An explicit key (?) gets past the yaml package's 1024-character limit
+  // on implicit keys, so the whole key reaches the unknown-key check.
+  const error = errorOf({ repo: repo(`budget:\n  ? ${'k'.repeat(5000)}\n  : 1\n`) });
   const key = error.slice(error.indexOf('budget.') + 'budget.'.length, error.indexOf(' is not a known key'));
   assert.ok(key.length <= 200, `key is ${key.length} characters`);
   assert.match(key, /…$/);

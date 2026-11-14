@@ -33,14 +33,20 @@ const builtIn: Limits = { maxFailures: defaultMaxFailures, stallAfter: defaultSt
 
 type BudgetCheck = { ok: true; budget: Partial<Limits> } | Failure;
 
-const maxReasonLength = 200;
+const maxEchoLength = 200;
+
+/** `text` cut to 200 characters, counted as code points so a surrogate pair
+ * is never split: every piece of file text in an error stays short and echoes
+ * little of the file (an alias name or a key can be as long as the file). */
+function clip(text: string): string {
+  const chars = Array.from(text);
+  return chars.length <= maxEchoLength ? text : `${chars.slice(0, maxEchoLength - 1).join('')}…`;
+}
 
 /** The first line of a yaml package message, without the file excerpt that
- * follows it and cut to 200 characters: the reason stays one readable line
- * and echoes little file text (an alias name can be as long as the file). */
+ * follows it, cut by `clip`: the reason stays one readable line. */
 function firstLine(message: string): string {
-  const line = (message.split('\n')[0] ?? '').replace(/:$/, '');
-  return line.length <= maxReasonLength ? line : `${line.slice(0, maxReasonLength - 1)}…`;
+  return clip((message.split('\n')[0] ?? '').replace(/:$/, ''));
 }
 
 /** Why the YAML in a file is not valid, in the owner's words. The yaml
@@ -59,6 +65,10 @@ function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
   const doc = parseDocument(file.text, { logLevel: 'error' });
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: yamlError(first) };
+  // The yaml package only warns for %YAML 1.0, 2.0 or an unknown directive,
+  // and reads the file as 1.2; refuse them, as %YAML 1.1 (review round 3).
+  const directive = doc.warnings.find((warning) => warning.code === 'BAD_DIRECTIVE');
+  if (directive !== undefined) return { ok: false, error: `${firstLine(directive.message)}; use YAML 1.2` };
   const version = doc.directives.yaml.version;
   if (version !== '1.2') return { ok: false, error: `YAML ${version} is not supported; use YAML 1.2` };
   try {
@@ -89,7 +99,7 @@ function checkLimits(budget: Record<string, unknown>): BudgetCheck {
   const known: readonly string[] = limitKeys;
   const unknown = Object.keys(budget).find((key) => !known.includes(key));
   if (unknown !== undefined) {
-    return { ok: false, error: `budget.${unknown} is not a known key (known: ${limitKeys.join(', ')})` };
+    return { ok: false, error: `budget.${clip(unknown)} is not a known key (known: ${limitKeys.join(', ')})` };
   }
   const limits: Partial<Limits> = {};
   for (const key of limitKeys) {

@@ -55,8 +55,10 @@ The engine refuses a file that:
   (65536 bytes)
 - is not valid UTF-8, or not valid YAML (duplicate keys and more than one
   document count); the error is the first line of the YAML error, with its
-  line and column
-- declares a YAML version other than 1.2 (`%YAML 1.1`)
+  line and column where the YAML parser gives one (an unresolved alias has
+  none), cut to 200 characters
+- declares a YAML version other than 1.2 (`%YAML 1.0`, `1.1`, `2.0`) or a
+  directive other than `%YAML` and `%TAG`
 - has a top level that is not a plain mapping
 - has a `budget` that is not a plain mapping (an empty `budget:`, a
   `!!set` and an `!!omap` too)
