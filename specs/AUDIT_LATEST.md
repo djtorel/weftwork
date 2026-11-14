@@ -1,9 +1,9 @@
 # Audit (latest)
 
-Story: e08s04
-Branch: e08s04-handoff-check
-Full report: specs/verifications/AUDIT-e08-e08s04.md
-Mode: default (full checklist), second run after request-review (5b0e6f7)
+Story: e09s01
+Branch: e09s01-budget-setting
+Full report: specs/verifications/AUDIT-e09-e09s01.md
+Mode: default (full checklist), first run after verify-work (858609f)
 Result: PASS (four fixes made in the audit; see the full report)
 
 VERDICT: PASS

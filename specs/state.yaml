@@ -464,39 +464,37 @@ waivers:
   scope: e09 only; drop it when e09 closes, or as soon as every undone e09 story could
     carry a code tag
 handoff:
-  next_skill: audit-code
+  next_skill: request-review
   next_story: e09s01
   next_epic: "e09"
   branch: e09s01-budget-setting
-  written_at: "2026-11-14T18:41:53Z"
+  written_at: "2026-11-14T18:45:41Z"
   files:
+    - specs/verifications/AUDIT-e09-e09s01.md
+    - specs/AUDIT_LATEST.md
     - specs/verifications/e09s01-verify.yaml
-    - specs/security/REVIEW.md
-    - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
-    - specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md
+    - src/budget.ts
   uncommitted:
-    - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
-    - specs/security/REVIEW.md
-    - specs/verifications/e09s01-verify.yaml
-  note: "e09s01 (budget setting file, 5 BCPs) passed verify-work on 2026-11-14 at
-    87f6221 on branch e09s01-budget-setting: Preflight 737 of 737, the owner's
-    manual run passed (at 9ca599a), security review PASS with F1 (alias bomb
-    crashed the CLI) and F2 (setting-file text unescaped on stderr) fixed in
-    9607d02 RED and 87f6221 GREEN. Evidence:
-    specs/verifications/e09s01-verify.yaml. BUG-008 (a second SIGTERM once ended
-    the hook by signal, test AC-e07s02-13, not reproduced in 182 runs) is logged
-    open, outside this story, on the owner's decision. Next: audit-code (write
-    the Story: e09s01 line in specs/AUDIT_LATEST.md; run the gate through
-    tools/assert-audit-story.sh), then request-review, then release-branch. At
-    release put the gate-trace waiver to the owner only if the e09-only waiver
-    in state.yaml does not cover it. The owner decides F5 before e09s02. The
-    owner said this session is fresh enough: do not suggest a fresh session
-    until e09s01 is released. Write the handoff only with node
-    src/handoff-cli.ts and state fields with node src/state-cli.ts. Tell
-    request-review reviewers to guard every cd and check pwd before any write.
-    Pushes, PRs and merges need an explicit go-ahead each. Do not run
-    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
-    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
+    - specs/AUDIT_LATEST.md
+    - specs/verifications/AUDIT-e09-e09s01.md
+  note: "e09s01 (budget setting file, 5 BCPs) passed audit-code on 2026-11-14 at
+    858609f on branch e09s01-budget-setting (report
+    specs/verifications/AUDIT-e09-e09s01.md; tools/assert-audit-story.sh PASS).
+    Four fixes in the audit: readBudget split into yamlData, budgetMapping and
+    checkLimits; readSetting renamed readBudgetFile; settingMaxBytes and
+    userSettingPath unexported; budget errors no longer repeat the key.
+    verify-work passed earlier (specs/verifications/e09s01-verify.yaml);
+    security review PASS with F1 and F2 fixed. BUG-008 is logged open, outside
+    this story. Next: request-review (dual-blind). Tell the reviewers to guard
+    every cd and check pwd before any command that writes, and back up
+    specs/state.yaml first. Then re-run audit-code if the review changes code,
+    then release-branch. The owner decides F5 before e09s02. The owner said this
+    session is fresh enough: do not suggest a fresh session until e09s01 is
+    released. Write the handoff only with node src/handoff-cli.ts and state
+    fields with node src/state-cli.ts. Pushes, PRs and merges need an explicit
+    go-ahead each. Do not run scripts/sync-status-from-epics.sh. After the last
+    bp-timing.sh call run python3 tools/restore-yaml-style.py specs/state.yaml
+    --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -517,9 +515,9 @@ metrics:
       total_seconds: 6922.0
       avg_seconds: 216.3125
     audit-code:
-      calls: 25
-      total_seconds: 2589.0
-      avg_seconds: 103.56
+      calls: 26
+      total_seconds: 2688.0
+      avg_seconds: 103.38461538461539
     release-branch:
       calls: 32
       total_seconds: 4699.0
