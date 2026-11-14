@@ -1655,3 +1655,31 @@ does not block.
 F1 accepted (owner decision 2026-11-14, recommended option A): residual,
 owned with T3 by e10 (protected paths), which also covers deleting the
 ledger and a forged `done` line. No code change in e09s02.
+
+## Addendum for e09s02 after request-review round 1 (2026-11-14)
+
+Two fresh reviewers found two fail-open paths that the scan above missed.
+Owner decisions 2026-11-14 (recommended options):
+
+- **Fixed: a run that cannot be written is not counted (should-fix, both
+  reviewers).** With the ledger readable but not writable (mode 0400, a
+  full disk, EIO), failed runs were never counted, so `maxRuns` never
+  tripped. The gate now reports a failed write (`runLoggedGate`); with
+  `maxRuns` set, a run that is not `done` and not `killed` answers
+  `exhausted`. Test AC-e09s02-11 (read-only ledger).
+- **Fixed: a cut tail hides the loop (consider, reviewer A; extends F1).**
+  Commands of about 120 KB, which the request allows, leave about 8 runs
+  in the 1 MiB tail, so `maxRuns` of 9 or more never tripped, with no
+  ledger edit. With `maxRuns` set, a cut tail with no `done` and fewer
+  runs than `maxRuns` now answers `exhausted` and does not run. This also
+  closes the junk-line case of F1. Test AC-e09s02-12.
+- **Documented, not changed: any `done` opens a new loop (should-fix,
+  reviewer B).** On the engine CLI the agent writes the request, so a
+  command that always passes (`true`) between failures starts the count
+  again. This is owner decision 1 and the T1 limit: on the CLI the agent
+  picks the command. Through the Claude Code hook the owner fixes the
+  command. Written in docs/BUDGET.md, Limits of this setting.
+
+F1 now: the cut-tail case fails closed. What stays open is T3 only:
+deleting the ledger or forging a `done` line still starts a new loop
+(owned by e10). Verdict unchanged: PASS.

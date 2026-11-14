@@ -91,34 +91,50 @@ opens a new loop.
   is `maxRuns` or more, the answer is `exhausted`. A run that passes is
   `done`.
 - The detail names the ceiling: `3 runs since the last done, the loop
-  ceiling is 3`. The state line has `maxRuns` as its threshold.
-- The count reads the last 1 MiB of the ledger. When that tail holds no
-  `done`, only the runs in it count.
+  ceiling is 3`. The state line has `maxRuns` as its threshold. Its
+  `runs` and `failStreak` fields count the one command of that call, not
+  the loop; only the detail gives the loop count.
+- A `blocked` answer and a refused call add no run. An `overridden` run
+  is one run, as the failed run it is.
 
 It is off by default. Turn it on with `maxRuns` in a file.
 
-### A ledger that cannot be read
+### A loop that cannot be counted
 
 The ledger is `.git/weftwork/ledger.jsonl`. A missing ledger is an empty
-one. A ledger that exists but cannot be read (a directory, no read
-permission):
+one. The count reads the last 1 MiB of the ledger. With `maxRuns` set,
+the engine answers `exhausted` when it cannot count the loop:
 
-- with `maxRuns` set: the loop cannot be counted, so the engine answers
-  `exhausted` and does not run the command. When the ledger becomes
-  unreadable during a run that is not `done`, that run answers
-  `exhausted` too.
-- without `maxRuns`: the stop rules are off for that call, and the
-  engine writes a note to stderr. The run goes on. This is residual F5
-  in `specs/security/REVIEW.md`. Set `maxRuns` to close it.
+| Case | When it is checked | Detail starts with |
+| --- | --- | --- |
+| The ledger exists but cannot be read (a directory, no read permission, a FIFO) | Before the run (the command does not run) and after it | `the ledger cannot be read` |
+| The run's ledger line cannot be written (a read-only ledger, a full disk) | After the run | `the run could not be written to the ledger` |
+| The 1 MiB tail was cut and holds no `done` (very long commands, junk lines), and the runs in it are fewer than `maxRuns` | Before the run (the command does not run) and after it | `the ledger tail was cut with no done in it` |
 
-`done` never depends on the ledger. A run that passes but whose ledger
-line cannot be written answers `no-ledger`, not done.
+After a run, these cases apply only to a run that is not `done` and not
+`killed`. A `killed` run answers `killed`.
+
+Without `maxRuns`, these cases change nothing: the stop rules are off for
+a call whose ledger cannot be read, and the engine writes a note to
+stderr. This is residual F5 in `specs/security/REVIEW.md`. Set `maxRuns`
+to close it.
+
+`done` is never read from the ledger. It comes only from running the
+command. A run that passes but whose ledger line cannot be written
+answers `no-ledger`, not done.
 
 ## Limits of this setting
 
 - The agent can edit `weftwork.yaml`. Protecting it is a later story
   (e10, protected paths).
-- The agent can edit the ledger. A forged `done` line opens a new loop,
-  as erasing failures resets the failure ceiling (T3).
+- The agent can edit or delete the ledger. A forged `done` line, or a
+  deleted ledger, opens a new loop, as erasing failures resets the
+  failure ceiling (T3, e10).
+- Any `done` opens a new loop, whatever its command. On the engine CLI the
+  agent writes the request, so it can send a command that passes, such as
+  `true`, between failures and start the count again. This is the same
+  limit as T1: on the CLI the agent picks the command, so the engine cannot
+  judge whether it is a good check. Through the Claude Code hook you fix
+  the command, so the agent cannot do this.
 - There is no `timeoutMs` key. The hook sets its timeout to fit the
   host's hook deadline.

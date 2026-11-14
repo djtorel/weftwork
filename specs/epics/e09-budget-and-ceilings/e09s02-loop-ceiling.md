@@ -19,9 +19,13 @@ the whole loop.
 
 This story adds `maxRuns`, an optional loop ceiling. It counts every
 gate run, for any command, since the last `done`, and answers
-`exhausted` when it is reached. It is off unless the owner (or the
-request) sets it. It also closes residual F5 for the case where the
-owner turned the ceiling on: an unreadable ledger then fails closed.
+`exhausted` when it is reached, so changing the command no longer
+starts the count again. A `done` of any command does start a new loop
+(decision 1); on the CLI, where the agent writes the request, a command
+that always passes can do that (T1, docs/BUDGET.md). It is off unless
+the owner (or the request) sets it. It also closes residual F5 for the
+case where the owner turned the ceiling on: a loop that cannot be
+counted fails closed.
 
 Decisions recorded at plan-work (2026-11-14). The owner took all three
 recommendations of slice-tasks:
@@ -87,6 +91,12 @@ never raise or turn off the owner's value.
   run. If the read after a run fails, a run that is not `done` and not
   `killed` answers `exhausted`; a `done` run stays `done`. Without
   `maxRuns`, an unreadable ledger keeps the AC-28 behaviour.
+- **ADDED R4a (review round 1, owner decision 2026-11-14).** With
+  `maxRuns` set, two more cases mean the loop cannot be counted and
+  answer `exhausted`: the run's ledger line could not be written (after
+  a run that is not `done` and not `killed`), and the 1 MiB tail was cut
+  and holds no `done` while the runs in it are fewer than `maxRuns`
+  (before and after a run). Without `maxRuns` neither changes anything.
 - **ADDED R5.** The failure ceiling is checked before the loop
   ceiling; both answer `exhausted`. The Claude Code hook gets the same
   answer through `applyBudget`, with no hook change.
@@ -141,6 +151,22 @@ AC-e09s02-10  Given weftwork.yaml with budget.maxRuns 2
               When the Claude Code hook runs two different failing
               commands
               Then the second answer is the exhausted one (R5)
+
+AC-e09s02-11  Given maxRuns 5 and a read-only ledger
+              When a failing command runs
+              Then the answer is exhausted, the run did happen, and the
+              detail says the run could not be written (R4a)
+              And without maxRuns the answer stays failed
+
+AC-e09s02-12  Given maxRuns set and a ledger whose 1 MiB tail is cut and
+              holds no done (long commands or junk lines)
+              Then the call answers exhausted and does not run (R4a)
+              And a cut tail with a done in it is counted as usual
+              And without maxRuns nothing changes
+
+AC-e09s02-13  A run killed at the ceiling answers killed; at the ceiling
+              exhausted comes before blocked; a blocked answer and an
+              overridden run add no extra run (R1, R5)
 ```
 
 ## Steps
@@ -203,11 +229,12 @@ Run in a scratch clone so the ledger lines do not matter:
 
 ## 6. Risks
 
-- The count reads the 1 MiB ledger tail. If the tail is cut and holds
-  no `done`, only the runs in the tail are counted. With 1000 runs at
-  most this fits unless commands are very long; an agent that pads
-  commands could keep the count low. Detect: a test with a cut tail
-  and no `done`. Record it as a residual in `specs/security/REVIEW.md`.
+- The count reads the 1 MiB ledger tail. Review round 1 showed that
+  commands of about 120 KB, which the request allows, leave only about 8
+  runs in the tail. Fixed in R4a: a cut tail with no `done` fails closed
+  when `maxRuns` is set (AC-e09s02-12).
+- A ledger that can be read but not written hid failed runs from the
+  count (review round 1). Fixed in R4a (AC-e09s02-11).
 - F5 fails closed only with `maxRuns` set. A default repository keeps
   the old residual; `docs/BUDGET.md` says so.
 - `Limits` gains a key with no built-in value, which touches the type
