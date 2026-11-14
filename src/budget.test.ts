@@ -1,4 +1,4 @@
-// story: e09s01
+// story: e09s01, e09s02
 // resolveLimits: the built-in limits, overridden by the user file, overridden
 // by the repository file; a request value is used only when it is lower. A
 // file that cannot be used is an error that names the file and the key.
@@ -225,3 +225,36 @@ test('a %TAG directive is still accepted', () => {
   const text = '%TAG !e! tag:example.com,2000:\n---\nbudget: {maxFailures: 2}\n';
   assert.equal(limitsOf({ repo: repo(text) }).maxFailures, 2);
 });
+
+// e09s02: maxRuns, the loop ceiling. Off unless a source sets it.
+test('AC-e09s02-07 with no source setting maxRuns the loop ceiling stays off', () => {
+  assert.equal('maxRuns' in limitsOf({ repo: repo('budget:\n  maxFailures: 4\n') }), false);
+});
+
+test('AC-e09s02-07 a file sets maxRuns, and the repository file overrides the user file', () => {
+  assert.equal(limitsOf({ user: user('budget:\n  maxRuns: 9\n') }).maxRuns, 9);
+  const both = { user: user('budget:\n  maxRuns: 9\n'), repo: repo('budget:\n  maxRuns: 4\n') };
+  assert.equal(limitsOf(both).maxRuns, 4);
+});
+
+test('AC-e09s02-07 a request maxRuns lower than the file is used, a higher one is not', () => {
+  const file = repo('budget:\n  maxRuns: 4\n');
+  assert.equal(limitsOf({ repo: file, request: { maxRuns: 2 } }).maxRuns, 2);
+  assert.equal(limitsOf({ repo: file, request: { maxRuns: 9 } }).maxRuns, 4);
+});
+
+test('AC-e09s02-07 with no file value a request maxRuns turns the ceiling on', () => {
+  assert.equal(limitsOf({ request: { maxRuns: 2 } }).maxRuns, 2);
+});
+
+test('AC-e09s02-06 maxRuns from 1 to 1000 is accepted', () => {
+  assert.equal(limitsOf({ repo: repo('budget:\n  maxRuns: 1\n') }).maxRuns, 1);
+  assert.equal(limitsOf({ repo: repo('budget:\n  maxRuns: 1000\n') }).maxRuns, 1000);
+});
+
+for (const value of ['0', '1001', '2.5', '"3"']) {
+  test(`AC-e09s02-06 maxRuns ${value} is refused, naming the file and budget.maxRuns`, () => {
+    const error = errorOf({ repo: repo(`budget:\n  maxRuns: ${value}\n`) });
+    assert.match(error, /\/repo\/weftwork\.yaml: budget\.maxRuns must be an integer from 1 to 1000/);
+  });
+}
