@@ -89,7 +89,7 @@ tasks:
       node --test src/claude-hook-cli.budget.test.ts
       src/claude-hook-cli.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:

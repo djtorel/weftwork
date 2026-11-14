@@ -44,6 +44,7 @@ import {
   stdinDeadlineMs,
   type HookOutput,
 } from './claude-hook.ts';
+import { applyBudget } from './budget.ts';
 import { runEngine } from './engine.ts';
 import { lastCallPath, writeLastCall } from './last-call.ts';
 
@@ -134,7 +135,13 @@ async function run(args: string[]): Promise<HookOutput> {
   if (refused !== null) {
     return refused;
   }
-  const answer = await runEngine(request.request, controller.signal);
+  // The budget setting files set the limits (e09s01). After recordCall, so a
+  // bad file still counts as a call for the live check; a bad file blocks.
+  const budgeted = await applyBudget(request.request, process.env);
+  if (!budgeted.ok) {
+    return blockStop(budgeted.error);
+  }
+  const answer = await runEngine(budgeted.request, controller.signal);
   // An aborted run answers `killed`, which allows the stop. A signal is not a
   // result, so block.
   return controller.signal.aborted ? terminated() : hookAnswer(answer);
