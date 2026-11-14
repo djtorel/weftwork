@@ -81,7 +81,8 @@ test('AC-e07s03-07 the written entry runs the real adapter and blocks a failing 
     cwd: repo,
     input: '{}',
     encoding: 'utf8',
-    env: { ...process.env, CLAUDE_PROJECT_DIR: repo },
+    // An empty XDG_CONFIG_HOME: never the real user budget file (e09s01, R6).
+    env: { ...process.env, CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir() },
     timeout: 30000,
   });
   assert.equal(run.status, 2, run.stderr);
