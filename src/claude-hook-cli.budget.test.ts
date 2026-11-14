@@ -1,4 +1,4 @@
-// story: e09s01
+// story: e09s01, e09s02
 // The Claude Code hook applies the budget setting before the engine runs:
 // weftwork.yaml at the project's repository root and the user file under
 // XDG_CONFIG_HOME. Before e09s01 every hook run used the built-in limits. A bad
@@ -69,4 +69,14 @@ test('a symlinked weftwork.yaml blocks the stop and runs nothing', () => {
   assert.equal(out.status, 2);
   assert.match(out.stderr, /weftwork\.yaml/);
   assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
+});
+
+test('AC-e09s02-10 weftwork.yaml with maxRuns 2: the second of two different failing commands is exhausted', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxRuns: 2\n' });
+  const first = runHook(repo, 'exit 1');
+  assert.equal(first.status, 2, 'the first failure blocks the stop');
+  const second = runHook(repo, 'exit 2');
+  assert.equal(second.status, 0);
+  assert.match(second.stdout, /not done \(exhausted\)/);
+  assert.match(second.stdout, /loop ceiling is 2/);
 });

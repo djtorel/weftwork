@@ -1,4 +1,4 @@
-// story: e06s04
+// story: e06s04, e09s02
 // The three new input keys of parseRequest (e06s04 AC-15): blocked,
 // stallAfter and maxFailures.
 import { test } from 'node:test';
@@ -16,6 +16,8 @@ const okCases: ReadonlyArray<[string, Record<string, unknown>]> = [
   ['stallAfter 1000', { stallAfter: 1000 }],
   ['maxFailures 1', { maxFailures: 1 }],
   ['maxFailures 1000', { maxFailures: 1000 }],
+  ['maxRuns 1 (e09s02)', { maxRuns: 1 }],
+  ['maxRuns 1000 (e09s02)', { maxRuns: 1000 }],
 ];
 
 for (const [name, extra] of okCases) {
@@ -40,6 +42,9 @@ const badCases: ReadonlyArray<[string, Record<string, unknown>]> = [
   ['maxFailures 2.5', { maxFailures: 2.5 }],
   ['maxFailures 1001', { maxFailures: 1001 }],
   ['maxFailures null', { maxFailures: null }],
+  ['maxRuns 0 (AC-e09s02-06)', { maxRuns: 0 }],
+  ['maxRuns 1001 (AC-e09s02-06)', { maxRuns: 1001 }],
+  ['maxRuns 2.5 (AC-e09s02-06)', { maxRuns: 2.5 }],
 ];
 
 for (const [name, extra] of badCases) {
@@ -55,7 +60,7 @@ for (const [name, extra] of badCases) {
 test('AC-e06s04-15 a request without the new keys has none of them', () => {
   const result = parse({});
   assert.ok(result.ok);
-  for (const key of ['blocked', 'stallAfter', 'maxFailures']) {
+  for (const key of ['blocked', 'stallAfter', 'maxFailures', 'maxRuns']) {
     assert.equal(key in result.request, false);
   }
 });

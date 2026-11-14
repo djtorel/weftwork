@@ -1,13 +1,14 @@
 # The budget setting
 
-<!-- story: e09s01 -->
+<!-- story: e09s01, e09s02 -->
 
-The engine has two stop rules. You set their limits in a plain YAML file.
+The engine has three stop rules. You set their limits in a plain YAML file.
 
 | Key | What it limits | Answer when reached | Range | Built-in |
 | --- | --- | --- | --- | --- |
 | `maxFailures` | Failed runs in a row of one command | `exhausted` (exit 5) | 1 to 1000 | 5 |
 | `stallAfter` | Failed runs in a row on the same tree, with the same reason and exit code | `stalled` (exit 4) | 2 to 1000 | 3 |
+| `maxRuns` | Runs of any command since the last `done` (the loop ceiling) | `exhausted` (exit 5) | 1 to 1000 | off |
 
 ## The files
 
@@ -23,6 +24,7 @@ Both files hold a top-level `budget` mapping:
 budget:
   maxFailures: 3
   stallAfter: 2
+  maxRuns: 40
 ```
 
 The engine ignores other top-level keys. Later stories add them.
@@ -38,9 +40,11 @@ fingerprint the tree, so it answers `no-tree` (not done).
 1. The built-in value.
 2. The user file overrides it.
 3. The repository file overrides the user file, key by key.
-4. A request value (the JSON `maxFailures` or `stallAfter` on the
-   engine CLI) is used only when it is lower. An agent that writes the
-   request cannot raise your limit.
+4. A request value (the JSON `maxFailures`, `stallAfter` or `maxRuns` on
+   the engine CLI) is used only when it is lower. An agent that writes
+   the request cannot raise your limit. `maxRuns` has no built-in value,
+   so when no file sets it, any request value is lower and turns the
+   loop ceiling on. A request can never turn it off.
 
 ## A file that cannot be used
 
@@ -64,17 +68,100 @@ The engine refuses a file that:
 - has a top level that is not a plain mapping
 - has a `budget` that is not a plain mapping (an empty `budget:`, a
   `!!set` and an `!!omap` too)
-- has a key under `budget` other than `maxFailures` and `stallAfter` (a
-  long key is cut to 200 characters in the error)
+- has a key under `budget` other than `maxFailures`, `stallAfter` and
+  `maxRuns` (a long key is cut to 200 characters in the error)
 - has a value out of its range, or a value that is not an integer
   (an untagged `"2"` and `2.5` are refused; a plain YAML 1.2 number that is whole,
   such as `2.0` or `0x2`, counts as that number)
 
 An empty file, or one with only comments, sets nothing.
 
+## The loop ceiling
+
+`maxFailures` counts the failures of one exact command, so an agent that
+changes the command, or passes another one, starts again from zero.
+`maxRuns` counts every run of any command since the last `done` run of any
+command, or since the start of the ledger when there is none. Each `done`
+opens a new loop.
+
+- Before a run: when the count is `maxRuns` or more, the engine answers
+  `exhausted` (exit 5) and does not run the command, even one that would
+  pass. The failure ceiling is checked first.
+- After a run: when the run is not `done` and not `killed`, and the count
+  is `maxRuns` or more, the answer is `exhausted`. A run that passes is
+  `done`, unless its ledger line cannot be written (see A loop that
+  cannot be counted).
+- The detail names the ceiling: `3 runs since the last done, the loop
+  ceiling is 3`. The state line has `maxRuns` as its threshold. Its
+  `runs` and `failStreak` fields count the one command of that call, not
+  the loop; only the detail gives the loop count.
+- A `blocked` answer and a refused call add no run. An `overridden` run
+  is one run, as the failed run it is.
+
+It is off by default. Turn it on with `maxRuns` in a file.
+
+### How the loop ceiling is reset
+
+At the ceiling the engine refuses every call before it runs, even a command
+that would pass, so no new `done` can open a new loop. The answer stays
+`exhausted` until you change something:
+
+- raise or remove `maxRuns` in the setting file, or
+- move the ledger aside, for example
+  `mv .git/weftwork/ledger.jsonl .git/weftwork/ledger.old.jsonl`. The
+  engine then starts a new, empty ledger.
+
+The agent can also do the second one, since it can delete the ledger (T3,
+under Limits of this setting).
+
+### A loop that cannot be counted
+
+The ledger is `.git/weftwork/ledger.jsonl`. A missing ledger is an empty
+one. The count reads the last 1 MiB of the ledger. With `maxRuns` set,
+the engine answers `exhausted` when it cannot count the loop:
+
+| Case | When it is checked | Detail starts with |
+| --- | --- | --- |
+| The ledger exists but cannot be read (a directory, no read permission, a FIFO) | Before the run (the command does not run) and after it | `the ledger cannot be read` |
+| The run's ledger line cannot be written (a read-only ledger, a full disk) | After the run | `the run could not be written to the ledger` |
+| The 1 MiB tail was cut and holds no `done` (very long commands, junk lines), and the runs in it are fewer than `maxRuns` | Before the run (the command does not run) and after it | `the ledger tail was cut with no done in it` |
+
+After a run, these cases apply only to a run that is not `done` and not
+`killed`. A `killed` run answers `killed`.
+
+Without `maxRuns`, these cases change nothing: the stop rules are off for
+a call whose ledger cannot be read, and the engine writes a note to
+stderr. This is residual F5 in `specs/security/REVIEW.md`. Set `maxRuns`
+to close it.
+
+`done` is never read from the ledger. It comes only from running the
+command. A run that passes but whose ledger line cannot be written is not
+done: its reason is `no-ledger`. Without `maxRuns` it answers `failed`
+(exit 1). With `maxRuns` set it answers `exhausted` (exit 5), on purpose:
+every later pass would also be `no-ledger`, so `failed` would make the
+Claude Code hook block the stop again and again, and the loop would never
+end.
+
+Outside a git repository there is no ledger and no count. The engine runs
+no command there: it answers `no-tree` (not done).
+
 ## Limits of this setting
 
 - The agent can edit `weftwork.yaml`. Protecting it is a later story
   (e10, protected paths).
+- The agent can edit or delete the ledger. A forged `done` line, or a
+  deleted ledger, opens a new loop, as erasing failures resets the
+  failure ceiling (T3, e10).
+- Any `done` opens a new loop, whatever its command. On the engine CLI the
+  agent writes the request, so it can send a command that passes, such as
+  `true`, between failures and start the count again. This is the same
+  limit as T1: on the CLI the agent picks the command, so the engine cannot
+  judge whether it is a good check. Through the Claude Code hook you fix
+  the command, so the agent cannot do this.
+- Calls that run at the same time are checked at the same time. On the
+  engine CLI, several calls made together just under the ceiling can all
+  run before any of them is counted; each then answers `exhausted`. The
+  Claude Code hook runs one call at a time, so it is not affected. On the
+  CLI the agent picks the command anyway (T1).
 - There is no `timeoutMs` key. The hook sets its timeout to fit the
   host's hook deadline.

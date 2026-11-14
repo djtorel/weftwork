@@ -1,5 +1,5 @@
-// story: e06s04
-// The two ways the engine stops a run that goes nowhere, as pure functions
+// story: e06s04, e09s02
+// The ways the engine stops a run that goes nowhere, as pure functions
 // over ledger entries so tests need no process and no repository.
 //
 // The stall rule keys on evidence that can move: the tree fingerprint, the
@@ -49,4 +49,18 @@ export function checkCeiling(
 ): Trip | null {
   const count = failingRun(entries, command).length;
   return count >= maxFailures ? { state: 'exhausted', threshold: maxFailures, count } : null;
+}
+
+/**
+ * `exhausted` when the loop has used `maxRuns` runs or more: every run of any
+ * command since the last done of any command (e09s02). Changing the command
+ * does not reset it; only a done opens a new loop. Off when `maxRuns` is
+ * undefined, the default (docs/BUDGET.md).
+ */
+export function checkLoopCeiling(entries: LedgerEntry[], maxRuns: number | undefined): Trip | null {
+  if (maxRuns === undefined) {
+    return null;
+  }
+  const count = entries.length - (entries.findLastIndex((entry) => entry.done) + 1);
+  return count >= maxRuns ? { state: 'exhausted', threshold: maxRuns, count } : null;
 }

@@ -1,4 +1,4 @@
-// story: e06s01
+// story: e06s01, e09s02
 // The evidence gate: done means a declared command, run by the engine,
 // exited 0 and left the working tree as it found it. The agent's own claim
 // is never evidence (e06s01, e06s02). Every verdict is logged (e06s03). An
@@ -9,8 +9,8 @@ import { isInteger, isRecord } from './json.ts';
 import { runCommand, type Outcome } from './process.ts';
 import { fingerprintTree, type FingerprintResult } from './tree.ts';
 
-/** `blocked`, `stallAfter` and `maxFailures` are read for the engine
- * (e06s04); `runGate` ignores them. */
+/** `blocked`, `stallAfter` and `maxFailures` (e06s04) and `maxRuns`
+ * (e09s02) are read for the engine; `runGate` ignores them. */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -18,6 +18,7 @@ export type GateRequest = {
   blocked?: string;
   stallAfter?: number;
   maxFailures?: number;
+  maxRuns?: number;
 };
 
 export type Reason =
@@ -62,11 +63,12 @@ function isTimeout(value: unknown): value is number {
 const maxBlockedLength = 1000;
 const maxThreshold = 1000;
 
-/** The engine's two stop-rule limits. The request and the budget setting
- * files (e09s01) check them by the same rule. */
-export const limitKeys = ['stallAfter', 'maxFailures'] as const;
+/** The engine's stop-rule limits. The request and the budget setting files
+ * (e09s01) check them by the same rule. `maxRuns`, the loop ceiling, has no
+ * default: it is off unless set (e09s02). */
+export const limitKeys = ['stallAfter', 'maxFailures', 'maxRuns'] as const;
 export type LimitKey = (typeof limitKeys)[number];
-const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1 };
+const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1, maxRuns: 1 };
 
 /** True when `value` is a valid `key` limit: an integer in its range. */
 export function isLimit(key: LimitKey, value: unknown): value is number {
@@ -110,7 +112,7 @@ function optionalError(data: Record<string, unknown>): string | null {
   return null;
 }
 
-const optionalKeys = ['timeoutMs', 'blocked', 'stallAfter', 'maxFailures'] as const;
+const optionalKeys = ['timeoutMs', 'blocked', ...limitKeys] as const;
 
 /** The optional keys that are present in `data`. */
 function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
@@ -123,11 +125,12 @@ function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
  * Read one JSON object with a non-empty string `command`, an optional
  * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
  * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
- * spaces), an integer `stallAfter` from 2 to 1000 and an integer
- * `maxFailures` from 1 to 1000. The budget setting files (docs/BUDGET.md)
- * then set the limits, and a request value is used only when it is lower
- * (e09s01). Other keys are ignored, since later stories
- * add keys. Returns a value for bad input, never throws.
+ * spaces), an integer `stallAfter` from 2 to 1000, an integer
+ * `maxFailures` from 1 to 1000 and an integer `maxRuns` from 1 to 1000.
+ * The budget setting files (docs/BUDGET.md) then set the limits, and a
+ * request value is used only when it is lower (e09s01). Other keys are
+ * ignored, since later stories add keys. Returns a value for bad input,
+ * never throws.
  */
 export function parseRequest(text: string, defaultCwd: string): ParseResult {
   const data = readObject(text);
@@ -197,19 +200,31 @@ function note(text: string): void {
   process.stderr.write(`weftwork: ${text}\n`);
 }
 
+/** A verdict, and why its ledger line was not written (null when it was).
+ * With no git working tree there is no ledger, which is not a failed write. */
+export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
+
 /**
  * Log the verdict, whatever it is. A `passed` verdict that cannot be logged
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(cwd: string, verdict: Verdict): Promise<Verdict> {
+async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
   const path = await ledgerPath(cwd);
   const result = path === null ? null : await appendEntry(path, verdict, new Date());
   if (result?.ok) {
-    return verdict;
+    return { verdict, writeProblem: null };
   }
   note(`ledger not written: ${result === null ? 'no git working tree' : result.error}`);
-  return verdict.reason === 'passed' ? { ...verdict, done: false, reason: 'no-ledger' } : verdict;
+  const kept = verdict.reason === 'passed' ? { ...verdict, done: false, reason: 'no-ledger' as const } : verdict;
+  const writeProblem = result === null ? null : 'the run could not be written to the ledger';
+  return { verdict: kept, writeProblem };
+}
+
+/** `runGate`, and why the ledger line could not be written: the run is then
+ * missing from the ledger, so the engine cannot count the loop (e09s02). */
+export async function runLoggedGate(request: GateRequest, signal?: AbortSignal): Promise<LoggedVerdict> {
+  return record(request.cwd, await decide(request, signal));
 }
 
 /**
@@ -218,5 +233,5 @@ async function record(cwd: string, verdict: Verdict): Promise<Verdict> {
  * runs, the whole process group is killed and the reason is `killed`.
  */
 export async function runGate(request: GateRequest, signal?: AbortSignal): Promise<Verdict> {
-  return record(request.cwd, await decide(request, signal));
+  return (await runLoggedGate(request, signal)).verdict;
 }

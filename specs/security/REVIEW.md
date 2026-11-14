@@ -1556,3 +1556,167 @@ an unknown key, the alias-bomb throw) is cut to 200 code points by
 warnings no longer reach stderr. No new input, sink or dependency. Ten
 review rounds of live probes (five per reviewer) found no security
 defect. Verdict unchanged: PASS. A1 and A2 owned by e10.
+
+## F5 status after e09s02 (2026-11-14, develop-tdd)
+
+Owner decision at plan-work, 2026-11-14 (recommended option): with
+`maxRuns` set, an unreadable ledger fails the loop closed.
+
+- With `maxRuns` set, F5 is closed. Before a run, a ledger that exists
+  and cannot be read answers `exhausted` and the command does not run
+  (`ceilingStop` in `src/engine.ts`). After a failed run, an unreadable
+  ledger also answers `exhausted`. Tests: `src/engine.loop.test.ts` (the
+  ledger made a directory before the run, and by the command during the
+  run) and `src/cli.loop.test.ts` (exit 5, nothing runs).
+- Without `maxRuns`, F5 stays as it was: the stop rules are off for that
+  call (AC-e06s04-28). `maxRuns` is off by default, so a default
+  repository keeps this LOW residual. docs/BUDGET.md tells the owner to
+  set `maxRuns` to close it.
+- New residual, LOW: the loop count reads the 1 MiB ledger tail. When the
+  tail is cut and holds no `done`, only the runs in it count. An agent
+  can cut it with long commands or with junk lines (F1 of the e09s02
+  review below). Same class as T3: the agent can also delete the
+  ledger.
+- A forged `done` run line opens a new loop: the T3 class, as erasing
+  failures resets the failure ceiling. `done` itself still never comes
+  from the ledger (C4).
+
+The security review of the e09s02 diff runs at verify-work.
+
+# Security review for branch e09s02-loop-ceiling (e09s02, verify-work step 5)
+
+Reviewed 2026-11-14 at c0a86ca. Diff `main...e09s02-loop-ceiling`:
+src/breaker.ts, src/gate.ts, src/budget.ts, src/engine.ts, their tests,
+docs/BUDGET.md. No new dependency, no new spawn, no new file write. The
+one new input is the `maxRuns` key, in the request and the setting files.
+
+## Scope and trust boundaries
+
+- The agent writes the request (CLI) and can edit files in the tree and
+  under `.git` (T3). The owner writes `weftwork.yaml` and the user file.
+- The ceiling exists to bound an agent loop, so the threat is the agent
+  defeating it: raising or removing the limit, or hiding runs from the
+  count. `done` is not in scope of the ledger (C4) and stays so.
+
+## Checks and probes
+
+- Precedence (CWE-284): `lowered` uses a request value only when the
+  limit is unset or the value is lower. `null`, `"2"`, `1001`, `1e400`
+  and `-1` in the request exit 2 (probe P5). The hook builds its request
+  from the command only, so through the hook the agent cannot set
+  `maxRuns` at all. A request can turn the ceiling on but not off.
+- Fail closed (CWE-754, T7), F5 with `maxRuns` set: a ledger that is a
+  FIFO (P2), has mode 000 (P3), or is a directory (tests) answers
+  `exhausted`, exit 5, and the command does not run. Outside a git
+  repository the run is `no-tree` and nothing runs. After a failed run
+  whose ledger became a directory, the answer is `exhausted` (test).
+  `done` comes only from `runGate`; a passing run whose ledger write
+  fails is `no-ledger`.
+- Order (T7): the failure ceiling, then the loop ceiling, both before
+  `blocked` and before the run, as in e06s04. The override (e06s05) is
+  offered only to `failed` and `stalled`, never to `exhausted`.
+- Output (CWE-117, CWE-150): the new detail texts hold numbers only. The
+  ledger read error in the stderr note is the existing text.
+
+## Findings
+
+### F1. Junk lines in the ledger hide runs from the loop ceiling — LOW — CWE-754 — confidence 8
+
+src/engine.ts `readEntries` and src/breaker.ts `checkLoopCeiling`. The
+count reads the last 1 MiB of the ledger and skips lines it cannot
+parse. Probe P4: with `maxRuns: 3`, three failed runs, then the fourth
+call is refused (`exhausted`, `not-run`). After appending 1.1 MB of junk
+lines to `.git/weftwork/ledger.jsonl`, the next call runs and answers
+`failed`: the tail is cut and holds no run entries, so the count is 0.
+
+- Why LOW: the agent can already reset the count by deleting the ledger
+  (probe: `rm` of the ledger, the next call answers `failed`) or by
+  appending a forged `done` line. All three are T3: the agent can write
+  the ledger. Effect: a longer loop, never a false `done`.
+- Possible narrow fix: with `maxRuns` set, a cut tail that holds no
+  `done` answers `exhausted`. An honest ledger reaches this only after
+  some 3000 runs without a `done`, past any `maxRuns` (at most 1000). It
+  would not stop deletion or a forged `done`.
+- Recommendation: accept as residual and own it with T3 in e10
+  (protected paths), which is the fix for all three ways. The owner
+  decides.
+
+## Observations below the 8/10 reporting threshold
+
+- A symlinked ledger is still followed (e06s03 F1, owned by e10).
+- The detail says `1 runs since the last done` for a count of 1, as the
+  failure ceiling says `1 failed runs`. Text only.
+
+## Verdict
+
+PASS for the security gate: no HIGH or MEDIUM finding. F1 is LOW and
+does not block.
+
+F1 accepted (owner decision 2026-11-14, recommended option A): residual,
+owned with T3 by e10 (protected paths), which also covers deleting the
+ledger and a forged `done` line. No code change in e09s02.
+
+## Addendum for e09s02 after request-review round 1 (2026-11-14)
+
+Two fresh reviewers found two fail-open paths that the scan above missed.
+Owner decisions 2026-11-14 (recommended options):
+
+- **Fixed: a run that cannot be written is not counted (should-fix, both
+  reviewers).** With the ledger readable but not writable (mode 0400, a
+  full disk, EIO), failed runs were never counted, so `maxRuns` never
+  tripped. The gate now reports a failed write (`runLoggedGate`); with
+  `maxRuns` set, a run that is not `done` and not `killed` answers
+  `exhausted`. Test AC-e09s02-11 (read-only ledger).
+- **Fixed: a cut tail hides the loop (consider, reviewer A; extends F1).**
+  Commands of about 120 KB, which the request allows, leave about 8 runs
+  in the 1 MiB tail, so `maxRuns` of 9 or more never tripped, with no
+  ledger edit. With `maxRuns` set, a cut tail with no `done` and fewer
+  runs than `maxRuns` now answers `exhausted` and does not run. This also
+  closes the junk-line case of F1. Test AC-e09s02-12.
+- **Documented, not changed: any `done` opens a new loop (should-fix,
+  reviewer B).** On the engine CLI the agent writes the request, so a
+  command that always passes (`true`) between failures starts the count
+  again. This is owner decision 1 and the T1 limit: on the CLI the agent
+  picks the command. Through the Claude Code hook the owner fixes the
+  command. Written in docs/BUDGET.md, Limits of this setting.
+
+F1 now: the cut-tail case fails closed. What stays open is T3 only:
+deleting the ledger or forging a `done` line still starts a new loop
+(owned by e10). Verdict unchanged: PASS.
+
+## Addendum for e09s02 after request-review round 2 (2026-11-14)
+
+No new fail-open path. Changes: docs/BUDGET.md now says how the owner
+resets the loop ceiling (raise or remove `maxRuns`, or move the ledger
+aside) and that a passing run whose line cannot be written answers
+`exhausted` with reason `no-ledger` when `maxRuns` is set (owner decision
+2026-11-14: kept on purpose, so the hook does not block the stop forever).
+Tests guard that answer and that `done` stays false (C4). The stderr note
+for an unreadable ledger now names what happens with and without
+`maxRuns`. Verdict unchanged: PASS.
+
+## Addendum for e09s02 after request-review round 3 (2026-11-14)
+
+Round 3 passed the dual-blind gate (both reviewers: 0 must-fix, 0
+should-fix). Owner decision 2026-11-14 (recommended option) on the
+consider items, applied after the pass and checked by the second audit,
+not re-reviewed:
+
+- Fixed: the stderr notes no longer claim `exhausted` for a run that ends
+  `done` or `killed`; the cut-tail note says what follows with `maxRuns`
+  set. docs/BUDGET.md: a pass whose line cannot be written is not `done`;
+  parallel CLI calls just under the ceiling can all run (T1; the hook
+  runs one call at a time). Tests now pin: the loop ceiling before
+  `stalled`, an override record left unspent at the ceiling, a pass that
+  stays `done` when the read after it fails, and a request-only
+  `maxRuns` through the CLI.
+- Declined, reasons recorded: (a) the ledger path is resolved twice, in
+  the engine and in the gate, so a command that runs `git init` in a
+  subdirectory could split the write and the count; this needs the agent
+  to pick the command and cwd (T1, T3), and a fix would change the gate
+  interface for a case those risks already cover. (b) Merging
+  `failureStop` and `stallStop` saves about three lines and hides the
+  rules. (c) The `chmod` tests do not fail as root, like the existing
+  tests.
+
+Verdict unchanged: PASS.

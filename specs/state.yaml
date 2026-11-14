@@ -471,92 +471,96 @@ waivers:
     option), as for e08s04.
   date: 2026-11-14
   scope: e09s01 only
+- what: gate-trace FAIL (rule R4 with the oracle downgrade) for the e09s02 release
+  why: 17 of 40 stories carry code tags; the untagged are the research epics e01 to
+    e05, which shipped docs, not code, and 61 percent of links are heuristic. Every
+    story that shipped code is tagged, e09s02 included. The owner chose to waive it
+    for e09s02 only on 2026-11-14 (answer to a release-branch question, recommended
+    option), as for e09s01.
+  date: 2026-11-14
+  scope: e09s02 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e09s02
+  next_story: e09s03
   next_epic: "e09"
   branch: main
-  written_at: "2026-11-14T19:46:56Z"
+  written_at: "2026-11-14T21:18:57Z"
   files:
     - specs/epics/e09-budget-and-ceilings/epic.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s02-tasks.yaml
-    - specs/security/REVIEW.md
+    - specs/epics/e09-budget-and-ceilings/e09s03-tasks.yaml
     - docs/BUDGET.md
+    - src/engine.ts
     - src/breaker.ts
     - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
   uncommitted:
-    - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/epic.yaml
     - specs/execution-status.yaml
-    - specs/metrics/cycle-times.md
-    - specs/security/REVIEW.md
-  note: "e09s01 (budget setting file, 5 BCPs) is released on 2026-11-14 by
-    squash-merged PR from branch e09s01-budget-setting: weftwork.yaml at the
-    repository root and $XDG_CONFIG_HOME/weftwork/config.yaml set maxFailures
-    and stallAfter for the engine CLI and the Claude Code hook (src/budget.ts,
-    docs/BUDGET.md). Status is reconciled: e09s01 done in its tasks file,
-    epic.yaml and execution-status.yaml; e09 in_progress. Start the next session
-    with node src/resume-cli.ts in the repository root. Next: e09s02, the engine
-    stops the whole loop at a counted ceiling (maxRuns, off by default), 5 BCPs;
-    run kickoff-branch on main with git checkout -b in this checkout (not a
-    worktree), then plan-work. Owner decision needed before e09s02 code:
-    residual F5 (specs/security/REVIEW.md): an unreadable ledger turns the stop
-    rules off; recommendation in e09s02-tasks.yaml: with maxRuns set, an
-    unreadable ledger answers exhausted. The e09-only waivers in state.yaml
-    (missing later specs; gate-trace R1) still cover e09s02 to e09s04; the
-    gate-trace R4 waiver was for e09s01 only, so put it to the owner again at
-    the next release. Open: BUG-008 (a second SIGTERM once ended the hook by
-    signal; not reproduced in 182 runs). Lessons from e09s01: every test that
-    starts a CLI must isolate XDG_CONFIG_HOME (grep spawn sites and env helpers,
-    not just the diff); the yaml package only warns for many bad inputs, so
-    check doc.warnings. Owned by e10: the agent can edit or delete weftwork.yaml
-    (A2), accepted risk A1, the e08s01 path risks, GIT_DIR and GIT_INDEX_FILE
-    inherited by git. Deferred to e11: calling the resume check from the entry
-    command. Write the handoff only with node src/handoff-cli.ts and state
-    fields with node src/state-cli.ts. Tell request-review reviewers to guard
-    every cd and check pwd before any write. Pushes, PRs and merges need an
-    explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh. After
-    the last bp-timing.sh call run python3 tools/restore-yaml-style.py
-    specs/state.yaml --base HEAD."
+  note: "e09s02 (loop ceiling maxRuns, 5 BCPs) is released on 2026-11-14 by
+    squash-merged PR from branch e09s02-loop-ceiling: maxRuns (1 to 1000, off by
+    default) in weftwork.yaml, the user file or the request (a request only
+    lowers it, or turns it on) counts every run of any command since the last
+    done and answers exhausted at the ceiling; with maxRuns set, a loop that
+    cannot be counted (unreadable ledger, unwritten run line, cut tail with no
+    done) answers exhausted (src/breaker.ts, src/engine.ts, docs/BUDGET.md).
+    Status is reconciled: e09s02 done in its tasks file, epic.yaml and
+    execution-status.yaml; e09 in_progress. Start the next session with node
+    src/resume-cli.ts in the repository root. Next: e09s03, the engine keeps a
+    reserve so a hard stop leaves a handoff (reserveRuns), 3 BCPs; run
+    kickoff-branch on main with git checkout -b in this checkout (not a
+    worktree), then plan-work, which puts the open choices at the top of
+    e09s03-tasks.yaml to the owner. The e09-only waivers in state.yaml (missing
+    later specs; gate-trace R1) still cover e09s03 and e09s04; the gate-trace R4
+    waiver was for e09s02 only, so put it to the owner again at the next
+    release. Open: BUG-008 (a second SIGTERM once ended the hook by signal; not
+    reproduced). Owned by e10: the agent can edit or delete weftwork.yaml and
+    the ledger, or forge a done line (A2, T3, rest of F1); the ledger path is
+    resolved twice (engine and gate). Lessons from e09s02: two-reviewer rounds
+    found two fail-open paths that self-review missed (an unwritable ledger, a
+    cut tail); probe fail-closed rules from both the read and the write side.
+    Every test that starts a CLI must isolate XDG_CONFIG_HOME. Write the handoff
+    only with node src/handoff-cli.ts and state fields with node
+    src/state-cli.ts. Tell request-review reviewers to guard every cd and check
+    pwd before any write. Pushes, PRs and merges need an explicit go-ahead each.
+    Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
+    call run python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 31
-      total_seconds: 509.0
-      avg_seconds: 16.419354838709676
+      calls: 32
+      total_seconds: 528.0
+      avg_seconds: 16.5
     plan-work:
-      calls: 33
-      total_seconds: 18534.0
-      avg_seconds: 561.6363636363636
+      calls: 34
+      total_seconds: 18638.0
+      avg_seconds: 548.1764705882352
     develop-tdd:
-      calls: 32
-      total_seconds: 13449.0
-      avg_seconds: 420.28125
-    verify-work:
-      calls: 32
-      total_seconds: 6922.0
-      avg_seconds: 216.3125
-    audit-code:
-      calls: 26
-      total_seconds: 2688.0
-      avg_seconds: 103.38461538461539
-    release-branch:
       calls: 33
-      total_seconds: 5759.0
-      avg_seconds: 174.5151515151515
+      total_seconds: 13790.0
+      avg_seconds: 417.8787878787879
+    verify-work:
+      calls: 33
+      total_seconds: 7547.0
+      avg_seconds: 228.6969696969697
+    audit-code:
+      calls: 28
+      total_seconds: 2789.0
+      avg_seconds: 99.60714285714286
+    release-branch:
+      calls: 34
+      total_seconds: 5892.0
+      avg_seconds: 173.2941176470588
     request-review:
-      calls: 14
-      total_seconds: 29024.0
-      avg_seconds: 2073.1428571428573
+      calls: 15
+      total_seconds: 30223.0
+      avg_seconds: 2014.8666666666666
     kickoff-branch:
-      calls: 2
-      total_seconds: 55.0
-      avg_seconds: 27.5
+      calls: 3
+      total_seconds: 95.0
+      avg_seconds: 31.666666666666668
     respond-review:
-      calls: 7
-      total_seconds: 1079.0
-      avg_seconds: 154.14285714285714
+      calls: 8
+      total_seconds: 1858.0
+      avg_seconds: 232.25
     commit-message:
       calls: 8
       total_seconds: 403.0
