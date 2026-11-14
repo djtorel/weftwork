@@ -1204,7 +1204,7 @@ closed with one JSON line.
 
 | Check | Result |
 |-------|--------|
-| Write outside the root | Narrower than e08s01: the file is fixed, and the write path keeps the e08s01 root, `.git` and symlink checks. Tested (state-file.write.test.ts). |
+| Write outside the root | Narrower than e08s01: the file is fixed, and the write path keeps the e08s01 root, `.git` and symlink checks. Tested (state-file.write.test.ts, renamed state-write.test.ts in e08s03). |
 | Read outside the root | **F1 below**, fixed. |
 | Alias expansion on read | **F2 below**, fixed. |
 | Key injection (`__proto__`, dotted paths) | Refused: only the five table keys pass; the read walk uses `Object.hasOwn`. |
@@ -1249,3 +1249,119 @@ closed with one JSON line.
 
 PASS for the security gate: no HIGH finding at confidence 8 or more. F1 and
 F2 are LOW and are fixed in the verify-work gaps loop.
+
+# Security review for branch e08s03-handoff-note (e08s03, verify-work step 5)
+
+review_date: 2026-11-13
+branch: e08s03-handoff-note
+head: bf224b9
+base: main (6722344)
+scope: git diff 6722344..HEAD -- src docs. Focus: the mapping edit of the
+  state writer (setMapping, writeStateMapping in src/state-file.ts, now
+  src/state-mapping.ts), the
+  handoff writer (src/handoff.ts), its CLI (src/handoff-cli.ts) and the
+  git status listing (uncommittedPaths in src/tree.ts).
+method: security-review 5-phase scan, reviewed inline; nine attack paths
+  probed live in the scratchpad against the real modules.
+
+## Executable surface
+
+1. `src/handoff-cli.ts` reads one JSON object from stdin (capped at 1 MiB,
+   strict UTF-8) and writes the `handoff` block of `specs/state.yaml` under
+   the repository root. The file name and the key are fixed.
+2. `src/handoff.ts` checks the caller's fields, including `files`, a list
+   of paths it only tests for existence (lstat, never read or followed).
+3. `uncommittedPaths` runs `git status --porcelain=v1 -z` through the one
+   git helper of `tree.ts` (`execFile`, `-c core.fsmonitor=false`).
+
+As in e08s01 and e08s02, the CLI is not a privilege boundary: it runs as
+the user who starts it. It must not read, test or write outside the root,
+must not run programs a repository's config names, and must fail closed
+with one JSON line.
+
+## Vulnerability assessment
+
+| Check | Result |
+|-------|--------|
+| Write outside the root | Unchanged: writeStateMapping shares writeStateEdit, the e08s01 root, `.git`, symlink, size and atomic-write path. Tested. |
+| `files` path outside the root (`..`, absolute, symlinked folder) | Refused by `insideRoot` before lstat. Probed: `out/hosts` with `out -> /etc` refused. Tested for `..` and absolute. |
+| `files` path inside `.git` | Refused. Probed. |
+| Existence oracle | Only for paths inside the root and outside `.git`, which the caller can already list. Not a finding. |
+| Key injection (`__proto__`, unknown keys) | Refused: only the six caller keys pass; `written_at` and `uncommitted` are dropped. Probed. |
+| YAML structure injection through the note or paths | None: the block is rendered by the yaml package with the 1.2 core schema (or a JSON-style form, request-review round 2), checked to read back as the same data under 1.1 and in place, and every string passes the e08s01 PyYAML check. Tested with quotes, `#`, line breaks, NEL and control characters. |
+| Edits that change other data (an alias into the block, duplicate keys, an explicit `? handoff` key) | Refused by the read-back check or by the parser. Probed; the file is unchanged. |
+| Alias bomb in the state file | Refused by `parseOne` (e08s01 F1 fix applies). Probed. |
+| Program execution through repository config | `git status` runs with `core.fsmonitor=false`; `-c` reaches submodule children through `GIT_CONFIG_PARAMETERS`. Probed: an fsmonitor program set in the repository did not run. A clean filter does run: see accepted risk A1 below (found by request-review round 2, B2). |
+| Command or shell injection | None: `execFile` with fixed arguments, no shell. |
+| Non-UTF-8 paths from git | Refused with an error, not written as replacement characters. Tested. |
+| Secrets in the diff | None. |
+| Outbound requests | None. |
+
+## Findings
+
+None at confidence 8 or more in the scan at bf224b9.
+
+## Accepted risk (owner decision, 2026-11-13)
+
+### A1. `git status` runs a clean filter that the repository config names — CWE-78 (program execution through configuration)
+
+- Found by request-review round 2 (reviewer B), after this scan, and
+  reproduced: a `.gitattributes` line `*.txt filter=x` and
+  `git config filter.x.clean "sh -c 'touch …; cat'"`, then a tracked file
+  with a changed mtime. `uncommittedPaths` (`src/tree.ts`) ran the
+  program. `-c core.fsmonitor=false` does not stop a filter. The e06
+  fingerprint runs only `git ls-files`, which runs no filter, so this path
+  is new in e08s03.
+- Why it is accepted: the filter program must be defined in `.git/config`
+  (or the user's or system config). A clone never brings `.git/config`.
+  A process that can write `.git/config` can already set hooks, which run
+  on the `git commit` the agent makes in every story, and `core.pager` or
+  aliases. A filter adds no access that such a writer does not have.
+- Not chosen: rebuilding the status from `git diff-files`,
+  `git diff-index --cached` and `git ls-files --others` without refresh,
+  which runs no filter but lists a file whose mtime changed and whose
+  content did not, so e08s04 would see a false fault.
+- Owner: e10 (security baseline) may revisit it, with the other repository
+  config risks (hooks, pager, aliases).
+
+## Observations below the 8/10 reporting threshold (recorded, not blocking)
+
+- The note and the `uncommitted` paths become context for the next
+  session. A file name in the repository (from a clone or a tool the agent
+  ran) is copied into `uncommitted` as is, so it can carry text aimed at
+  the next agent. This is the prompt-injection surface of e10 (B6); the
+  resume check (e08s04) and the entry command (e11) decide how the block
+  is shown. Not new in kind: the agent already reads file names.
+- `files` has no count limit. The 1 MiB stdin cap bounds it; each path
+  costs one realpath and one lstat. Local only, no finding.
+- The e08s01 deferred risks (parent swap race, fstat-then-read-to-EOF)
+  apply to the mapping write as they do to the scalar write. They stay
+  with e10.
+
+## Verdict
+
+PASS for the security gate: no finding at confidence 8 or more. A1 is an
+accepted risk (owner decision, 2026-11-13), owned by e10.
+
+## Addendum for e08s03 after request-review rounds 1 to 5 (2026-11-13)
+
+The scan above covers bf224b9. Five dual-blind request-review rounds then
+changed the code; each reviewer ran a security pass, and the re-run of
+audit-code checked the final working tree against this section.
+
+- New git arguments: `--no-optional-locks`, `--untracked-files=normal`, and
+  the pathspecs `:(top)` and `:(top,exclude,literal)specs/state.yaml` after
+  `--`. They are fixed strings, passed through `execFile` with no shell; the
+  excluded path is the engine's own constant, not caller input.
+- `files` checks are stricter: absolute paths, non-normal forms, duplicates
+  and whitespace-only text are refused; `insideRoot` failures carry a
+  `cause`, and the handoff names a missing, unresolvable or outside path
+  without the OS text or the absolute root.
+- The writer now builds a JSON-style form as its last candidate. Strings go
+  through `JSON.stringify` or stay plain only where `staysPlain` proves they
+  read back as themselves under YAML 1.1 and 1.2; each candidate is checked
+  in place before it is written. No new sink.
+- A1 (a clean filter from `.git/config` runs during `git status`) is
+  unchanged and still accepted; `--no-optional-locks` does not stop it.
+
+Verdict: PASS. No finding at confidence 8 or more; no new risk beyond A1.

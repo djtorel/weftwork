@@ -427,36 +427,68 @@ waivers:
     question, recommended option), as for e01, e03s06 and e05s01.
   date: 2026-11-13
   scope: e08 only
+- what: request-review dual-blind AND-gate for e08s03 (cap reached at round 5)
+  why: Five rounds ran (the skill's cap). Scores A/B were 72/83, 78/67, 91/88, 96/90
+    and 95/92; no must-fix in rounds 3 to 5. Every round found real defects (PyYAML-unreadable
+    output, a crash, wrong rename paths, U+FFFD from a split surrogate, lost comments,
+    yamllint-red writes, an unbounded list), and each was reproduced, fixed and pinned
+    by a test. Round 5 left one wording error in a doc comment and REVIEW.md, one
+    dead branch, and small consider items; all were fixed after round 5 and were not
+    re-reviewed. The owner chose to fix them and waive the gate (2026-11-13, option
+    1 of 3), as for e03s02 and e03s03.
+  date: 2026-11-13
+  scope: e08s03 only
 handoff:
-  next_skill: develop-tdd
+  next_skill: release-branch
   next_story: e08s03
-  next_epic: e08
-  note: 'kickoff-branch done 2026-11-13: branch e08s03-handoff-note from main at 6722344,
-    Preflight green. plan-work done: spec e08s03-handoff.md, 7 BCPs; the owner took
-    all five recommendations (decision 5: setMapping in src/state-file.ts replaces
-    one top-level mapping). Next: develop-tdd for e08s03 task 1. Build on e08s02:
-    src/state-fields.ts owns active_flow, active_epic, active_story, phase and vcs.branch
-    (stateFields, checkStateField, setStateField, readStateFields) and docs/STATE.md
-    lists who writes each key; the state CLI takes {op: set, key, value} or {op: get}
-    and refuses handoff.* until e08s03 adds it, so edit the handoff block by hand
-    until then. Review notes left for e08s03 or later (not defects): get returns values
-    that set would refuse (a block scalar, over 200 characters), so decide whether
-    readStateFields applies the same value check; the root, regular-file and does-not-exist
-    preamble is in both readStateData (state-fields.ts) and writeStateField (state-file.ts),
-    and one shared readStateText would keep them in step; stateFields could be a union
-    type of the five keys; a value that checkStateField accepts but the writer refuses
-    (NEL, LS, PS) gives an error that does not name the key. e08 waivers in this file
-    stay until e08 closes (missing specs for e08s03 and e08s04, gate-trace R1, the
-    MED status-ledger finding). Residual F5 belongs to e09 (owner decision 2026-11-13).
-    e10 owns the e08s01 spec section 6 path risks. Run request-review (dual-blind)
-    after audit-code and before commit-message; e08s02 missed it at first and went
-    back. Start in a fresh session. Pushes, PRs and merges need an explicit go-ahead
-    each. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
-    call run tools/restore-yaml-style.py --base HEAD on specs/state.yaml. specs/metrics/cycle-times.md
-    has no e07s04 row; ask the owner whether to backfill it. Deferred: CLAUDE_PROJECT_DIR
-    in the record, resolved adapter paths. Declined: a staleness limit, sharing one
-    git rev-parse. The pi wrapper for e07 was left out; add it as a later story only
-    if the owner asks.'
+  next_epic: "e08"
+  branch: e08s03-handoff-note
+  written_at: "2026-11-14T01:33:55Z"
+  files:
+    - specs/verifications/e08s03-verify.yaml
+    - specs/verifications/AUDIT-e08-e08s03.md
+    - specs/security/REVIEW.md
+    - specs/epics/e08-state-and-handoff/e08s03-tasks.yaml
+  uncommitted:
+    - specs/AUDIT_LATEST.md
+    - specs/security/REVIEW.md
+    - specs/verifications/AUDIT-e08-e08s03.md
+    - specs/verifications/e08s03-verify.yaml
+  note: "request-review for e08s03 ran five dual-blind rounds (the cap). Scores
+    A/B: 72/83, 78/67, 91/88, 96/90, 95/92; no must-fix in rounds 3 to 5. The
+    owner chose option 1 on 2026-11-13: fix the round-5 items and waive the
+    gate; the waiver is in state.yaml (scope e08s03 only). All findings were
+    reproduced, fixed and pinned by tests; the round-5 fixes were not
+    re-reviewed. Main changes since the audit: setMapping now quotes strings no
+    reader can take plain, checks each candidate in place (whole-file read-back
+    and no new yamllint fault), falls back to a JSON-style form, keeps comments
+    for the next key and the final line break; uncommitted uses git
+    --no-optional-locks status --untracked-files=normal with a literal exclude
+    for specs/state.yaml (decision 6); files must be relative, normal-form,
+    unique and existing; insideRoot failures carry a cause; both CLIs share
+    src/cli-io.ts; test files renamed to state-mapping.test.ts and
+    state-write.test.ts. Accepted risk A1 (git status runs a clean filter from
+    .git/config) is in specs/security/REVIEW.md, owned by e10. Preflight green,
+    636 tests; fuzz with PyYAML and yamllint clean. audit-code ran again on
+    2026-11-13 and passes (specs/verifications/AUDIT-e08-e08s03.md,
+    specs/AUDIT_LATEST.md, assert-audit-story PASS); it made three cli-io.ts
+    exports private. A security addendum for the final code is in
+    specs/security/REVIEW.md. Committed on 2026-11-14: 1798669 (fix(engine), the
+    code and docs) and the specs commit that follows it (audit, security
+    addendum, refreshed verify record at 1798669 with 636 tests, waiver, this
+    handoff). Not pushed. Next: release-branch for e08s03. It must reconcile
+    e08s03 to done in the tasks file, epic.yaml and execution-status.yaml,
+    record cycle time through tools/record-cycle-time.sh (take the branch SHA
+    range before the squash merge), name every gate in the PR body
+    (request-review waived at round 5, gate-trace waived for e08, audit PASS,
+    security PASS with accepted risk A1), and write the handoff for e08s04
+    (kickoff-branch). Each commit, push, PR and merge needs the owner's
+    go-ahead. Do not run scripts/sync-status-from-epics.sh. After the last
+    bp-timing.sh call run python3 tools/restore-yaml-style.py specs/state.yaml
+    --base HEAD. Carried over: e08 waivers stay until e08 closes; residual F5
+    belongs to e09; e10 owns the e08s01 section 6 path risks and A1;
+    specs/metrics/cycle-times.md has no e07s04 row (ask the owner). e08s04 must
+    read git status the same way (note in e08s04-tasks.yaml)."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -469,38 +501,37 @@ metrics:
       total_seconds: 16498.0
       avg_seconds: 532.1935483870968
     develop-tdd:
-      calls: 30
-      total_seconds: 12345.0
-      avg_seconds: 411.5
-      _start: '2026-11-13T22:32:25Z'
+      calls: 31
+      total_seconds: 12895.0
+      avg_seconds: 415.96774193548384
     verify-work:
-      calls: 30
-      total_seconds: 5178.0
-      avg_seconds: 172.6
+      calls: 31
+      total_seconds: 5843.0
+      avg_seconds: 188.48387096774192
     audit-code:
-      calls: 23
-      total_seconds: 2125.0
-      avg_seconds: 92.3913043478261
+      calls: 25
+      total_seconds: 2589.0
+      avg_seconds: 103.56
     release-branch:
       calls: 30
       total_seconds: 4279.0
       avg_seconds: 142.63333333333333
     request-review:
-      calls: 12
-      total_seconds: 19595.0
-      avg_seconds: 1632.9166666666667
+      calls: 13
+      total_seconds: 27131.0
+      avg_seconds: 2087.0
     kickoff-branch:
       calls: 2
       total_seconds: 55.0
       avg_seconds: 27.5
     respond-review:
-      calls: 6
-      total_seconds: 931.0
-      avg_seconds: 155.16666666666666
+      calls: 7
+      total_seconds: 1079.0
+      avg_seconds: 154.14285714285714
     commit-message:
-      calls: 6
-      total_seconds: 57.0
-      avg_seconds: 9.5
+      calls: 7
+      total_seconds: 386.0
+      avg_seconds: 55.142857142857146
     change-request:
       calls: 1
       total_seconds: 70.0
