@@ -200,9 +200,9 @@ function note(text: string): void {
   process.stderr.write(`weftwork: ${text}\n`);
 }
 
-/** A verdict, and whether writing its ledger line failed. With no git
- * working tree there is no ledger, which is not a failed write. */
-export type LoggedVerdict = { verdict: Verdict; writeFailed: boolean };
+/** A verdict, and why its ledger line was not written (null when it was).
+ * With no git working tree there is no ledger, which is not a failed write. */
+export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
 
 /**
  * Log the verdict, whatever it is. A `passed` verdict that cannot be logged
@@ -213,15 +213,16 @@ async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
   const path = await ledgerPath(cwd);
   const result = path === null ? null : await appendEntry(path, verdict, new Date());
   if (result?.ok) {
-    return { verdict, writeFailed: false };
+    return { verdict, writeProblem: null };
   }
   note(`ledger not written: ${result === null ? 'no git working tree' : result.error}`);
   const kept = verdict.reason === 'passed' ? { ...verdict, done: false, reason: 'no-ledger' as const } : verdict;
-  return { verdict: kept, writeFailed: result !== null };
+  const writeProblem = result === null ? null : 'the run could not be written to the ledger';
+  return { verdict: kept, writeProblem };
 }
 
-/** `runGate`, and whether the ledger line could not be written: the engine
- * needs it to count the loop (e09s02). */
+/** `runGate`, and why the ledger line could not be written: the run is then
+ * missing from the ledger, so the engine cannot count the loop (e09s02). */
 export async function runLoggedGate(request: GateRequest, signal?: AbortSignal): Promise<LoggedVerdict> {
   return record(request.cwd, await decide(request, signal));
 }
