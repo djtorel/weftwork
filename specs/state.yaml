@@ -479,49 +479,62 @@ waivers:
     option), as for e09s01.
   date: 2026-11-14
   scope: e09s02 only
+- what: gate-trace FAIL (rule R4 with the oracle downgrade) for the BUG-008 fix
+  why: 18 of 40 stories carry code tags; the untagged are the research epics e01
+    to e05, which shipped docs, not code, and about 61 percent of links are heuristic.
+    Every story that shipped code is tagged. R1 (e09s04 has no code yet) is covered
+    by the e09-only waiver. The owner chose to waive R4 for the BUG-008 fix only on
+    2026-11-14 (answer to a fix-bug question, recommended option), as for e09s02.
+  date: 2026-11-14
+  scope: BUG-008 fix only
 handoff:
   next_skill: kickoff-branch
   next_story: e09s03
   next_epic: "e09"
   branch: main
-  written_at: "2026-11-14T21:18:57Z"
+  written_at: "2026-11-14T21:38:57Z"
   files:
     - specs/epics/e09-budget-and-ceilings/epic.yaml
     - specs/epics/e09-budget-and-ceilings/e09s03-tasks.yaml
     - docs/BUDGET.md
     - src/engine.ts
-    - src/breaker.ts
     - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
+    - src/claude-hook-cli.ts
   uncommitted:
-    - specs/execution-status.yaml
-  note: "e09s02 (loop ceiling maxRuns, 5 BCPs) is released on 2026-11-14 by
-    squash-merged PR from branch e09s02-loop-ceiling: maxRuns (1 to 1000, off by
-    default) in weftwork.yaml, the user file or the request (a request only
-    lowers it, or turns it on) counts every run of any command since the last
-    done and answers exhausted at the ceiling; with maxRuns set, a loop that
-    cannot be counted (unreadable ledger, unwritten run line, cut tail with no
-    done) answers exhausted (src/breaker.ts, src/engine.ts, docs/BUDGET.md).
-    Status is reconciled: e09s02 done in its tasks file, epic.yaml and
-    execution-status.yaml; e09 in_progress. Start the next session with node
-    src/resume-cli.ts in the repository root. Next: e09s03, the engine keeps a
-    reserve so a hard stop leaves a handoff (reserveRuns), 3 BCPs; run
-    kickoff-branch on main with git checkout -b in this checkout (not a
-    worktree), then plan-work, which puts the open choices at the top of
-    e09s03-tasks.yaml to the owner. The e09-only waivers in state.yaml (missing
-    later specs; gate-trace R1) still cover e09s03 and e09s04; the gate-trace R4
-    waiver was for e09s02 only, so put it to the owner again at the next
-    release. Open: BUG-008 (a second SIGTERM once ended the hook by signal; not
-    reproduced). Owned by e10: the agent can edit or delete weftwork.yaml and
-    the ledger, or forge a done line (A2, T3, rest of F1); the ledger path is
-    resolved twice (engine and gate). Lessons from e09s02: two-reviewer rounds
-    found two fail-open paths that self-review missed (an unwritable ledger, a
-    cut tail); probe fail-closed rules from both the read and the write side.
-    Every test that starts a CLI must isolate XDG_CONFIG_HOME. Write the handoff
-    only with node src/handoff-cli.ts and state fields with node
-    src/state-cli.ts. Tell request-review reviewers to guard every cd and check
-    pwd before any write. Pushes, PRs and merges need an explicit go-ahead each.
-    Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
-    call run python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
+    - specs/AUDIT_LATEST.md
+    - specs/security/REVIEW.md
+    - specs/verifications/AUDIT-bug-BUG-008.md
+  note: "BUG-008 (the Stop hook could end by signal when a second SIGTERM arrived
+    while Node shut down, a fail-open path; it failed on main CI in runs
+    43623813256 and 43642367057) is fixed on 2026-11-14 by squash-merged PR from
+    branch fix-bug-008-second-sigterm: src/claude-hook-cli.ts now ends every
+    answer through leave (a synchronous write and process.exit); a new test
+    sends the second SIGTERM when the block text arrives (60 of 60 probe runs
+    ended by signal before the fix, 400 of 400 end in exit 2 after it). Root
+    cause, evidence and fix: specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md.
+    e09s02 (maxRuns, PR #61) was already released; with this fix CI on main is
+    green again. Start the next session with node src/resume-cli.ts in the
+    repository root. Next: e09s03, the engine keeps a reserve so a hard stop
+    leaves a handoff (reserveRuns), 3 BCPs; run kickoff-branch on main with git
+    checkout -b in this checkout (not a worktree), then plan-work, which puts
+    the open choices at the top of e09s03-tasks.yaml to the owner. The e09-only
+    waivers in state.yaml (missing later specs; gate-trace R1) still cover
+    e09s03 and e09s04; the gate-trace R4 waivers were per release (e09s01,
+    e09s02, the BUG-008 fix), so put R4 to the owner again at the next release.
+    Owned by e10: the agent can edit or delete weftwork.yaml and the ledger, or
+    forge a done line (A2, T3, rest of F1); the ledger path is resolved twice
+    (engine and gate). Observation: src/cli.ts (the engine CLI) still ends by
+    letting the event loop drain, so a signal in the shutdown stretch ends it by
+    signal; that is not fail-open (done needs exit 0) and was not changed.
+    Lessons: a flaky test on CI is evidence, not noise, so read the failed run
+    before re-running it; probe a timing bug with a sweep of delays and an event
+    trigger, not one fixed delay. Every test that starts a CLI must isolate
+    XDG_CONFIG_HOME. Write the handoff only with node src/handoff-cli.ts and
+    state fields with node src/state-cli.ts. Tell request-review reviewers to
+    guard every cd and check pwd before any write. Pushes, PRs and merges need
+    an explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh.
+    After the last bp-timing.sh call run python3 tools/restore-yaml-style.py
+    specs/state.yaml --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -569,3 +582,7 @@ metrics:
       calls: 1
       total_seconds: 70.0
       avg_seconds: 70.0
+    fix-bug:
+      calls: 1
+      total_seconds: 479.0
+      avg_seconds: 479.0

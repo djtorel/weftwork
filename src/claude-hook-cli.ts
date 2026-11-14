@@ -12,9 +12,13 @@
 // directory, input that is too large, empty, unreadable or never ends, a
 // throw, an error nobody handles, SIGTERM or SIGINT (which kill the command's
 // process group first), and a run that has not finished by `hookDeadlineMs`
-// after the start. The last two leave through `leave`, because work that
-// cannot be aborted (a ledger read stuck on a FIFO) would otherwise keep the
-// process alive until the host's own timeout, which lets the stop go ahead.
+// after the start. Every answer leaves through `leave`. The deadline and the
+// signal path need it, because work that cannot be aborted (a ledger read
+// stuck on a FIFO) would otherwise keep the process alive until the host's
+// own timeout, which lets the stop go ahead. The normal path needs it too
+// (BUG-008): if the event loop is left to end, Node takes its signal handlers
+// away while it shuts down, and a SIGTERM in that stretch gets the default
+// action and ends the process by signal, which the host reads as "go ahead".
 //
 // Fail-open residual: the host treats any exit code but 2 (an uncaught error
 // before the handlers are installed is exit 1) as a non-blocking error, and
@@ -150,7 +154,4 @@ async function run(args: string[]): Promise<HookOutput> {
   return controller.signal.aborted ? terminated() : hookAnswer(answer);
 }
 
-const output = await failClosed(() => run(process.argv.slice(2)));
-process.stdout.write(output.stdout);
-process.stderr.write(output.stderr);
-process.exitCode = output.exitCode;
+leave(await failClosed(() => run(process.argv.slice(2))));
