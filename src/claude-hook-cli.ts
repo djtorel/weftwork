@@ -45,6 +45,7 @@ import {
   type HookOutput,
 } from './claude-hook.ts';
 import { applyBudget } from './budget.ts';
+import { terminalSafe } from './cli-io.ts';
 import { runEngine } from './engine.ts';
 import { lastCallPath, writeLastCall } from './last-call.ts';
 
@@ -139,7 +140,9 @@ async function run(args: string[]): Promise<HookOutput> {
   // bad file still counts as a call for the live check; a bad file blocks.
   const budgeted = await applyBudget(request.request, process.env);
   if (!budgeted.ok) {
-    return blockStop(budgeted.error);
+    // The error holds text from the file the agent can write (security
+    // review F2, CWE-150).
+    return blockStop(terminalSafe(budgeted.error));
   }
   const answer = await runEngine(budgeted.request, controller.signal);
   // An aborted run answers `killed`, which allows the stop. A signal is not a

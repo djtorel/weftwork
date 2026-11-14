@@ -42,7 +42,13 @@ function readBudget(file: SettingFile): Parsed {
   if (first !== undefined) {
     return fail(`not valid YAML: ${first.message}`);
   }
-  const data: unknown = doc.toJS();
+  let data: unknown;
+  try {
+    data = doc.toJS();
+  } catch (error) {
+    // The yaml package throws for an alias bomb (security review F1).
+    return fail(`not valid YAML: ${error instanceof Error ? error.message : String(error)}`);
+  }
   if (data === null || data === undefined) {
     return { ok: true, budget: {} };
   }

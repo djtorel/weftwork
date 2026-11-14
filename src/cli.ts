@@ -35,6 +35,7 @@
 // stored on disk. Do not put secrets in a command. A passing run that
 // cannot be logged is not done, with the reason "no-ledger".
 import { applyBudget } from './budget.ts';
+import { terminalSafe } from './cli-io.ts';
 import { runEngine } from './engine.ts';
 import { parseRequest } from './gate.ts';
 import { badInputExitCode, exitCodes } from './states.ts';
@@ -108,8 +109,10 @@ function readInput(signal: AbortSignal): Promise<Read> {
   });
 }
 
+/** One JSON line. JSON.stringify escapes C0 only, and an error can hold text
+ * from a setting file the agent can write (security review F2, CWE-150). */
 function print(line: object): void {
-  process.stdout.write(`${JSON.stringify(line)}\n`);
+  process.stdout.write(`${terminalSafe(JSON.stringify(line))}\n`);
 }
 
 /** Unreadable input: one JSON line with the reason, exit 2. */
