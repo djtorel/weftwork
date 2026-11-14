@@ -19,9 +19,11 @@ export type CliResult = {
   timedOut: boolean;
 };
 
-/** The CLI's environment: only `project` can say where the command runs. */
+/** The CLI's environment: only `project` can say where the command runs, and
+ * XDG_CONFIG_HOME is an empty directory, so the real user budget file is never
+ * read (e09s01, spec R6). */
 export function cliEnv(project: string | null): NodeJS.ProcessEnv {
-  const env = { ...process.env };
+  const env: NodeJS.ProcessEnv = { ...process.env, XDG_CONFIG_HOME: makeTempDir() };
   delete env.CLAUDE_PROJECT_DIR;
   if (project !== null) {
     env.CLAUDE_PROJECT_DIR = project;
