@@ -49,7 +49,7 @@ tasks:
       node --test src/tree.test.ts src/resume.test.ts
       src/resume-cli.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:

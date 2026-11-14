@@ -1,4 +1,4 @@
-// story: e06s02, e07s02, e08s01, e08s03
+// story: e06s02, e07s02, e08s01, e08s03, e08s04
 // A fingerprint of a git working tree: the files that git lists as tracked
 // or as untracked and not ignored, with their contents. The gate takes it
 // before and after a command, so a command that edits the tree is not done.
@@ -48,6 +48,23 @@ async function gitOutput(cwd: string, args: string[]): Promise<Buffer> {
 export async function repositoryRoot(cwd: string): Promise<Buffer> {
   const output = await gitOutput(cwd, ['rev-parse', '--show-toplevel']);
   return output.subarray(0, output.length - 1);
+}
+
+/** The short name of the branch HEAD points to (`git symbolic-ref --quiet
+ * --short HEAD`), also before the first commit, or null on a detached HEAD
+ * (git exits 1 then). Not ok when `cwd` is not in a repository, git fails
+ * otherwise, or the name is not UTF-8. Never rejects. */
+export async function currentBranch(cwd: string): Promise<{ ok: true; branch: string | null } | { ok: false; error: string }> {
+  let output: Buffer;
+  try {
+    output = await gitOutput(cwd, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 1) return { ok: true, branch: null };
+    return { ok: false, error: messageOf(error) };
+  }
+  const text = strictUtf8(output);
+  if (text === null) return { ok: false, error: 'the branch name is not UTF-8' };
+  return { ok: true, branch: text.replace(/\n$/, '') };
 }
 
 /** The status letters after which porcelain v1 -z gives a second, old path. */
