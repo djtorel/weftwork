@@ -153,7 +153,7 @@ test('BUG-008 a signal right after the block is written still ends in exit 2', a
       child.kill('SIGTERM');
       const out = await result;
       assert.equal(out.timedOut, false);
-      assert.equal(out.status, 2, `round ${round}: a signal after the answer must not end the hook by signal`);
+      assert.equal(out.status, 2, `round ${round}: a late signal must not end the hook by signal`);
       assert.match(out.stderr, /terminated before it could check/);
     } finally {
       killIfAlive(pid);
