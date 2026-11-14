@@ -1544,3 +1544,15 @@ probes re-run at 87f6221: exit 2 with one JSON line, and one stderr line
 with `\u001b` and `\u000a`. Preflight 737 of 737.
 
 Verdict: PASS. No open finding; A1 and A2 owned by e10.
+
+## Addendum for e09s01 after request-review (2026-11-14, release-branch step 2a)
+
+Re-read `git diff 87f6221..70d3397 -- src` against the scan above. Every
+change narrows the input or the output: a YAML warning, a second `%YAML`
+line, an unresolved tag, a non-plain mapping and a non-1.2 version now
+refuse the file; every piece of file text in an error (a YAML message,
+an unknown key, the alias-bomb throw) is cut to 200 code points by
+`clip` before `terminalSafe`/`printAnswer` escape it; the yaml package's
+warnings no longer reach stderr. No new input, sink or dependency. Ten
+review rounds of live probes (five per reviewer) found no security
+defect. Verdict unchanged: PASS. A1 and A2 owned by e10.

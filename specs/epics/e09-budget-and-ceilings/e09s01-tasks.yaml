@@ -20,7 +20,7 @@
 # class in specs/security/REVIEW.md). Protected paths are e10's job.
 story_id: e09s01
 title: The owner sets the engine's limits in a budget setting file
-status: todo
+status: done
 bcps: 5
 type: feat
 context: engine
