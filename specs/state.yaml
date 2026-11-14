@@ -1,12 +1,12 @@
 workflow_mode: solo-git
-active_flow: null
+active_flow: build_epic
 active_epic: e08
-active_story: null
+active_story: e08s04
 phase: planning
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e08s04-handoff-check
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -439,51 +439,46 @@ waivers:
   date: 2026-11-13
   scope: e08s03 only
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e08s04
-  next_epic: "e08"
-  branch: main
-  written_at: "2026-11-14T01:42:01Z"
+  next_epic: e08
+  branch: e08s04-handoff-check
+  written_at: '2026-11-14T15:59:41Z'
   files:
-    - specs/epics/e08-state-and-handoff/e08s04-tasks.yaml
-    - docs/STATE.md
-    - src/handoff.ts
-    - src/tree.ts
-    - src/state-mapping.test.ts
+  - specs/epics/e08-state-and-handoff/e08s04-resume-check.md
+  - specs/epics/e08-state-and-handoff/e08s04-tasks.yaml
+  - src/claude-live.ts
+  - src/tree.ts
+  - src/state-fields.ts
+  - src/handoff.ts
   uncommitted:
-    - specs/epics/e08-state-and-handoff/e08s03-tasks.yaml
-    - specs/epics/e08-state-and-handoff/epic.yaml
-    - specs/execution-status.yaml
-    - specs/metrics/cycle-times.md
-  note: "e08s03 (the engine writes the handoff note) is released by PR (squash
-    merge) from branch e08s03-handoff-note. Next: kickoff-branch for e08s04 from
-    main with git checkout -b (not a worktree), then plan-work; e08s04 has a
-    tasks file but no story spec. e08s04 checks the handoff against the
-    repository at resume. Its tasks file opens with the e08s03 notes it depends
-    on and five open choices with a recommendation each; put them to the owner
-    at plan-work. Build on e08s03: docs/STATE.md (section The handoff block)
-    lists the eight keys. Write the block only with node src/handoff-cli.ts
-    (JSON on stdin) and the state fields with node src/state-cli.ts.
-    uncommittedPaths(cwd, exclude) in src/tree.ts runs git --no-optional-locks
-    status --untracked-files=normal; reuse it with exclude [stateFile] so both
-    sides read the status the same way. files names a folder without a slash
-    (build); uncommitted lists it as build/. Lessons from e08s03: check written
-    YAML with PyYAML itself, not only the yaml package (see the PyYAML test in
-    src/state-mapping.test.ts); request-review hit its 5-round cap and the owner
-    waived the gate for e08s03, so run request-review early. Accepted risk A1
-    (git status runs a clean filter named in .git/config) is owned by e10.
-    Carried over: e08 waivers stay until e08 closes (missing spec for e08s04,
-    gate-trace R1, the MED status-ledger finding). Residual F5 belongs to e09.
-    e10 owns the e08s01 spec section 6 path risks. Run request-review
-    (dual-blind) after audit-code and before commit-message. Start in a fresh
-    session. Pushes, PRs and merges need an explicit go-ahead each. Do not run
-    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
-    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD.
-    specs/metrics/cycle-times.md has no e07s04 row; ask the owner whether to
-    backfill it. Deferred: CLAUDE_PROJECT_DIR in the record, resolved adapter
-    paths. Declined: a staleness limit, sharing one git rev-parse. The pi
-    wrapper for e07 was left out; add it as a later story only if the owner
-    asks."
+  - specs/epics/e08-state-and-handoff/e08s04-resume-check.md
+  - specs/epics/e08-state-and-handoff/e08s04-tasks.yaml
+  - specs/epics/e08-state-and-handoff/epic.yaml
+  - specs/execution-status.yaml
+  note: 'e08s04 (the engine checks the handoff against the repository at resume) is
+    planned on branch e08s04-handoff-check: spec specs/epics/e08-state-and-handoff/e08s04-resume-check.md,
+    tasks e08s04-tasks.yaml. The owner took all seven plan-work recommendations (spec
+    section 1): answers ready, stale, unverifiable, missing; stale lists every reason
+    (wrong or detached branch, a files path gone, a path uncommitted now that the
+    block did not list; specs/state.yaml left out); a path uncommitted then and clean
+    now is a note; the check never writes; no commit hash; nothing calls it in this
+    story; exit 0 ready, 1 not ready, 2 fault; a separate CLI, node src/resume-cli.ts,
+    no arguments. Next: develop-tdd, task 1 (src/resume.test.ts first, record RED,
+    then src/resume.ts as a pure report like liveReport in src/claude-live.ts). Task
+    2 adds currentBranch to src/tree.ts through gitOutput, exports readStateData from
+    src/state-fields.ts and writes src/resume-cli.ts; its tests start the real CLI
+    after a real handoff-cli write. files and uncommitted are never compared with
+    each other. Branch commits so far: 43d821e (state checkpoint before kickoff) and
+    the plan commit, if the owner approved it. Lessons from e08s03: check written
+    YAML with PyYAML; run request-review (dual-blind) early, after audit-code and
+    before commit-message; it hit its 5-round cap last time. e08 waivers stay until
+    e08 closes (gate-trace R1, the MED status-ledger finding; plan-consistency-check
+    shows it for e08s01 to e08s03). Accepted risk A1 is owned by e10. Every commit
+    needs a Story: e08s04 trailer. Pushes, PRs and merges need an explicit go-ahead
+    each. Do not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh
+    call run python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD. Owner
+    declined a backfill of the e07s04 cycle-time row.'
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -492,9 +487,9 @@ metrics:
       total_seconds: 492.0
       avg_seconds: 16.4
     plan-work:
-      calls: 31
-      total_seconds: 16498.0
-      avg_seconds: 532.1935483870968
+      calls: 32
+      total_seconds: 18244.0
+      avg_seconds: 570.125
     develop-tdd:
       calls: 31
       total_seconds: 12895.0

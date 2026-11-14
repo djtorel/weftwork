@@ -7,30 +7,15 @@
 # resume. The check follows the shape of the live check in
 # src/claude-live.ts: a pure report function over facts, a thin CLI,
 # and an exit code that is 0 only when the answer is good.
-# From e08s03 (2026-11-13): uncommitted comes from git status with
-# --untracked-files=normal (e08s03 decision 6), so read the status the same
-# way here; an untracked folder is `dir/` there, while files names a
-# folder without the slash (docs/STATE.md).
-# Open for plan-work (recommendation first):
-#   1. Answers: ready, stale, unverifiable (an old-style handoff with
-#      no branch to check) and missing (no handoff block). Only ready
-#      exits 0. A stale answer lists every reason, not only the first.
-#   2. Stale means one of: the current branch is not the handoff
-#      branch; a named file does not exist; a path is uncommitted now
-#      that the handoff did not list as uncommitted (the state file
-#      itself is left out). A path that was uncommitted at write time
-#      and is clean now is only a note.
-#   3. The check never writes. GSD deletes its handoff after a good
-#      resume. Here a failed or interrupted resume must not lose the
-#      note, and the next handoff overwrites the block anyway.
-#   4. No commit hash is compared (see e08s03, decision 3).
-#   5. Calling the check is not in this story. The entry command (e11)
-#      or a SessionStart hook that re-injects the note after compaction
-#      (R12 implications) calls the CLI. Add a story for that hook only
-#      if the owner asks, as for the pi wrapper in e07.
+# Owner decisions (plan-work 2026-11-14; all seven recommendations
+# taken): see e08s04-resume-check.md section 1. Four answers (ready,
+# stale, unverifiable, missing); stale lists every reason; the check
+# never writes; no commit hash; no caller in this story; exit 0 ready,
+# 1 not ready, 2 fault; a separate CLI, node src/resume-cli.ts.
+spec: e08s04-resume-check.md
 story_id: e08s04
 title: The engine checks the handoff against the repository at resume
-status: todo
+status: in_progress
 bcps: 5
 type: feat
 context: engine
@@ -39,14 +24,10 @@ tasks:
   - id: 1
     description: >-
       RED, then GREEN. Write src/resume.test.ts first and record the
-      failure. The report function takes the handoff block and the
-      facts (branch, paths now uncommitted, which named files exist)
-      and returns an answer, the reasons and notes. Cases: ready; wrong
-      branch; a missing named file; an unexpected uncommitted path;
-      two faults at once give two reasons; a path uncommitted then and
-      clean now is a note and not a fault; a handoff with no branch is
-      unverifiable; no handoff block is missing. Then write
-      src/resume.ts
+      failure (spec AC-01 to AC-05). resumeReport takes the handoff
+      value and the facts (branch or null, paths uncommitted now,
+      exists) and returns the answer, the reasons, the notes and
+      next_skill. Then write src/resume.ts
     verify: >-
       node --test src/resume.test.ts && npm run typecheck
     risk: P1
@@ -58,20 +39,15 @@ tasks:
         - "e08 B2"
   - id: 2
     description: >-
-      RED, then GREEN. Write src/resume-cli.test.ts first. It starts
-      the real CLI in makeTestRepo() repositories. The cases build the
-      handoff with the e08s03 "handoff write" command, then change the
-      repository: switch branch, delete a named file, add an untracked
-      file, leave it alone. It checks each answer, the exit code and
-      that the state file was not touched. Then write src/resume-cli.ts
-      as a thin shell: "handoff check", run in the repository root,
-      reads the state file, gathers the facts, prints the report as one
-      JSON line and a short text on stderr that names the next step.
-      A state file that cannot be read or parsed is a failure with its
-      own exit code, never ready
+      RED, then GREEN. Add currentBranch tests to src/tree.test.ts
+      (AC-06) and write src/resume-cli.test.ts (AC-07, AC-08), which
+      starts the real CLI in makeTestRepo() repositories after a real
+      handoff-cli write. Record the failure. Then add currentBranch to
+      src/tree.ts, export readStateData from src/state-fields.ts and
+      write src/resume-cli.ts. The state file is never written
     verify: >-
-      node --test src/resume.test.ts src/resume-cli.test.ts
-      && npm run typecheck
+      node --test src/tree.test.ts src/resume.test.ts
+      src/resume-cli.test.ts && npm run typecheck
     risk: P1
     status: todo
     allure:
@@ -81,12 +57,12 @@ tasks:
         - "e08 B2"
   - id: 3
     description: >-
-      Update the AGENTS.md Architecture section and the AGENTS.md
-      Commands table so the resume check resolves in this repository
-      (CONVENTIONS.md: every command in AGENTS.md must resolve). Then
-      run the AGENTS.md Preflight line
+      Name resume.ts and resume-cli.ts in the AGENTS.md Architecture
+      section and give the check command in docs/STATE.md (section The
+      handoff block). Then run the AGENTS.md Preflight line
     verify: >-
-      grep -q 'resume' AGENTS.md
+      grep -q 'resume-cli' AGENTS.md
+      && grep -q 'resume-cli' docs/STATE.md
       && yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
