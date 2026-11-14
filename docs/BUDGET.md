@@ -60,14 +60,14 @@ The engine refuses a file that:
 - declares a YAML version other than 1.2 (`%YAML 1.0`, `1.1`, `2.0`), more
   than one `%YAML` line, or a directive other than `%YAML` and `%TAG`
 - uses a tag the YAML parser cannot resolve (`!custom`, `!!seq` on a
-  mapping, `!foo 2`)
+  mapping, `!foo 2`, and a tag made with a `%TAG` handle too)
 - has a top level that is not a plain mapping
 - has a `budget` that is not a plain mapping (an empty `budget:`, a
   `!!set` and an `!!omap` too)
 - has a key under `budget` other than `maxFailures` and `stallAfter` (a
   long key is cut to 200 characters in the error)
 - has a value out of its range, or a value that is not an integer
-  (`"2"` and `2.5` are refused; a plain YAML 1.2 number that is whole,
+  (an untagged `"2"` and `2.5` are refused; a plain YAML 1.2 number that is whole,
   such as `2.0` or `0x2`, counts as that number)
 
 An empty file, or one with only comments, sets nothing.
