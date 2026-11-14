@@ -67,7 +67,7 @@ async function checkRepository(cwd: string): Promise<Checked> {
 /** `text` with each C0, DEL and C1 control character written as `\uXXXX`, so
  * a file name or a block value cannot drive the terminal (security review
  * F1, CWE-150). Only the stderr text needs it: JSON already escapes C0. */
-function shown(text: string): string {
+function terminalSafe(text: string): string {
   return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
@@ -77,7 +77,7 @@ function nextStep(report: ResumeReport): string {
     case 'ready':
       return report.next_skill === null
         ? 'Next: the handoff names no next skill; read its note.'
-        : `Next: read the note in ${stateFile}, then run ${shown(report.next_skill)}.`;
+        : `Next: read the note in ${stateFile}, then run ${terminalSafe(report.next_skill)}.`;
     case 'stale':
       return 'Next: fix the repository so it matches the handoff, or write a new handoff with node src/handoff-cli.ts.';
     default:
@@ -87,8 +87,8 @@ function nextStep(report: ResumeReport): string {
 
 /** The report for a person: the answer, each reason and note, the next step. */
 function stderrText(report: ResumeReport): string {
-  const reasons = report.reasons.map((reason) => `- ${shown(reason)}\n`).join('');
-  const notes = report.notes.length === 0 ? '' : `Notes:\n${report.notes.map((note) => `- ${shown(note)}\n`).join('')}`;
+  const reasons = report.reasons.map((reason) => `- ${terminalSafe(reason)}\n`).join('');
+  const notes = report.notes.length === 0 ? '' : `Notes:\n${report.notes.map((note) => `- ${terminalSafe(note)}\n`).join('')}`;
   return `weftwork resume check: ${report.answer}\n${reasons}${notes}${nextStep(report)}\n`;
 }
 
@@ -99,7 +99,7 @@ async function main(args: string[]): Promise<void> {
   }
   const checked = await checkRepository(process.cwd());
   if (!checked.ok) {
-    process.stderr.write(`weftwork resume check: ${shown(checked.error)}\n`);
+    process.stderr.write(`weftwork resume check: ${terminalSafe(checked.error)}\n`);
     return printAnswer(checked, 2);
   }
   process.stderr.write(stderrText(checked.report));

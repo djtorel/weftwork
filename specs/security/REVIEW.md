@@ -1433,7 +1433,7 @@ unchanged: the check reuses `uncommittedPaths`. Owned by e10.
 PASS for the security gate: no HIGH finding at confidence 8 or more. F1 is
 LOW and does not block; fix recommended before audit-code.
 
-F1 fixed (owner decision 2026-11-14): `shown` in `src/resume-cli.ts`
+F1 fixed (owner decision 2026-11-14): `terminalSafe` in `src/resume-cli.ts`
 writes each C0, DEL and C1 control character as `\uXXXX` in the stderr
 text (reasons, notes, the next skill and the fault message). Pinned by a
 test in `src/resume-cli.test.ts` that names a file with ESC, CR and
