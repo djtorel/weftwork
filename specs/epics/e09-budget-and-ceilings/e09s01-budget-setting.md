@@ -79,7 +79,8 @@ recommendations:
   64 KiB, not valid UTF-8, not YAML (duplicate keys count), a top-level
   value that is not a mapping, a `budget` that is not a mapping, a key
   under `budget` that is not known, or a value out of its range. The
-  error names the file and, where there is one, the key.
+  error names the file and, where there is one, the key. An empty file,
+  or one with only comments, sets nothing (found at develop-tdd).
 - **ADDED R4.** Top-level keys other than `budget` are ignored, since
   later stories add them.
 - **ADDED R5.** The repository file must be a regular file and not a
