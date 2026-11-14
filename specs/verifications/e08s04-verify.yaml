@@ -1,0 +1,113 @@
+---
+# verify-work 2026-11-14. The owner's manual run (UAT) was at 73928d7.
+# The F1 fix after it (5cd6d68 RED, 6651d64 GREEN) changes only the
+# stderr text and is covered by a test, not by a new manual run. The
+# mechanical gates were re-run at the head below.
+story_id: e08s04
+verified_at: "2026-11-14T16:42:31Z"
+verifier: verify-work
+risk: P1
+branch: e08s04-handoff-check
+head: 6651d64
+phases:
+  smoke:
+    passed: null
+    note: "N/A. CLI library with no server process."
+  build:
+    passed: null
+    note: "No build step. Node runs .ts directly (CLAUDE.md)."
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+    exit_code: 0
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  tests:
+    passed: true
+    command: "npm test"
+    tests: 666
+    pass: 666
+    fail: 0
+    skipped: 0
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-14T16:42:31Z"
+    note: >-
+      Single run at 6651d64, 666 of 666 tests, none skipped. The first
+      run, at 73928d7, gave 665 of 665.
+  task_verifies:
+    passed: true
+    note: "All three verify: commands in e08s04-tasks.yaml exit 0."
+  red_evidence:
+    passed: true
+    note: >-
+      scripts/verify-tdd-red-commit.sh skips feat work, so each test-only
+      commit (723132e, da51c1a) was run on a clean git archive copy of
+      itself: each fails (missing module or export); HEAD passes. The F1
+      RED (5cd6d68) failed on the unescaped escape code.
+  security_review:
+    passed: true
+    report: >-
+      specs/security/REVIEW.md (section e08s04-handoff-check)
+    high_findings_at_8_or_more: 0
+    low_findings: ["F1, file names reached stderr unescaped, CWE-150, fixed"]
+    accepted_risk: "A1, owned by e10 (unchanged)"
+    note: >-
+      Seven attack paths probed live (paths outside the root, .git, a
+      symlinked folder, a FIFO, a NUL byte, __proto__, a symlinked state
+      file); each is does-not-exist, unverifiable or exit 2, never ready.
+  blind_spots:
+    passed: true
+    high: 0
+    medium: 51
+    low: 14
+    note: "MEDIUM entries are double-tags on files several stories touch."
+  completeness_critic:
+    passed: true
+    blocker: 0
+    warning: 0
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    exit_code: 0
+  manual:
+    status: passed
+    verified_by: owner, 2026-11-14, scratch repository from mktemp -d
+    head_at_run: 73928d7
+    steps:
+      - step: "Step 1 — ready, and nothing written"
+        expected: "ready, next step names develop-tdd, exit=0, same sha256"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 2 — wrong branch"
+        expected: "stale, reason names other and main, exit=1"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 3 — named file gone"
+        expected: "stale with two reasons for tracked.txt, exit=1"
+        actual: "Owner reported pass"
+        passed: true
+      - step: >-
+          Step 4 — a path that was uncommitted and is clean now is only a
+          note
+        expected: "ready with a note for tracked.txt, exit=0"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 5 — no handoff block"
+        expected: "missing, next step names handoff-cli, exit=1"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 6 — no state file"
+        expected: "one JSON line with ok false, exit=2"
+        actual: "Owner reported pass"
+        passed: true
+  gaps:
+    closed: true
+    note: >-
+      No gap between the spec and the behaviour. F1 (LOW) is fixed in
+      6651d64 (owner decision 2026-11-14).
