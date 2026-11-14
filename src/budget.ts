@@ -31,53 +31,57 @@ export type LimitsResult = { ok: true; limits: Limits } | { ok: false; error: st
 
 const builtIn: Limits = { maxFailures: defaultMaxFailures, stallAfter: defaultStallAfter };
 
-type Parsed = { ok: true; budget: Partial<Limits> } | { ok: false; error: string };
+type BudgetCheck = { ok: true; budget: Partial<Limits> } | Failure;
 
-/** The `budget` mapping of one file, checked. An empty file, or one with no
- * `budget` key, sets nothing; other top-level keys are left for later stories. */
-function readBudget(file: SettingFile): Parsed {
-  const fail = (problem: string): Parsed => ({ ok: false, error: `${file.path}: ${problem}` });
+/** The YAML in `file` as plain data, or why it is not valid YAML. The yaml
+ * package throws for an alias bomb (security review F1). */
+function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
   const doc = parseDocument(file.text);
   const first = doc.errors[0];
   if (first !== undefined) {
-    return fail(`not valid YAML: ${first.message}`);
+    return { ok: false, error: `not valid YAML: ${first.message}` };
   }
-  let data: unknown;
   try {
-    data = doc.toJS();
+    return { ok: true, data: doc.toJS() };
   } catch (error) {
-    // The yaml package throws for an alias bomb (security review F1).
-    return fail(`not valid YAML: ${error instanceof Error ? error.message : String(error)}`);
+    return { ok: false, error: `not valid YAML: ${error instanceof Error ? error.message : String(error)}` };
   }
-  if (data === null || data === undefined) {
-    return { ok: true, budget: {} };
-  }
-  if (!isRecord(data)) {
-    return fail('the top level must be a mapping');
-  }
-  if (!('budget' in data)) {
-    return { ok: true, budget: {} };
-  }
+}
+
+/** The `budget` mapping in `data`, an empty one when the file is empty or has
+ * no `budget` key (other top-level keys are left for later stories). */
+function budgetMapping(data: unknown): { ok: true; budget: Record<string, unknown> } | Failure {
+  if (data === null || data === undefined) return { ok: true, budget: {} };
+  if (!isRecord(data)) return { ok: false, error: 'the top level must be a mapping' };
+  if (!('budget' in data)) return { ok: true, budget: {} };
   const budget = data['budget'];
-  if (!isRecord(budget)) {
-    return fail('budget must be a mapping of limits');
-  }
+  return isRecord(budget) ? { ok: true, budget } : { ok: false, error: 'budget must be a mapping of limits' };
+}
+
+/** The limits in `budget`, or the first unknown key or bad value. */
+function checkLimits(budget: Record<string, unknown>): BudgetCheck {
   const known: readonly string[] = limitKeys;
   const unknown = Object.keys(budget).find((key) => !known.includes(key));
   if (unknown !== undefined) {
-    return fail(`budget.${unknown} is not a known key (known: ${limitKeys.join(', ')})`);
+    return { ok: false, error: `budget.${unknown} is not a known key (known: ${limitKeys.join(', ')})` };
   }
-  const result: Partial<Limits> = {};
+  const limits: Partial<Limits> = {};
   for (const key of limitKeys) {
     const value = budget[key];
     if (value === undefined) continue;
     const problem = limitProblem(key, value);
-    if (problem !== null) {
-      return fail(`budget.${key}: ${problem}`);
-    }
-    result[key] = value as number; // limitProblem accepted it: an integer in range
+    if (problem !== null) return { ok: false, error: `budget.${key} ${problem}` };
+    limits[key] = value as number; // limitProblem accepted it: an integer in range
   }
-  return { ok: true, budget: result };
+  return { ok: true, budget: limits };
+}
+
+/** The checked `budget` of one file; every error names the file. */
+function readBudget(file: SettingFile): BudgetCheck {
+  const parsed = yamlData(file);
+  const mapping = parsed.ok ? budgetMapping(parsed.data) : parsed;
+  const checked = mapping.ok ? checkLimits(mapping.budget) : mapping;
+  return checked.ok ? checked : { ok: false, error: `${file.path}: ${checked.error}` };
 }
 
 /** The limits for one run, or the first problem with a setting file. */
@@ -99,13 +103,13 @@ export function resolveLimits(sources: BudgetSources): LimitsResult {
 }
 
 /** Neither file may be larger than this. */
-export const settingMaxBytes = 64 * 1024;
+const settingMaxBytes = 64 * 1024;
 
 /** The user file: $XDG_CONFIG_HOME/weftwork/config.yaml, or
  * $HOME/.config/weftwork/config.yaml when XDG_CONFIG_HOME is unset, empty or
  * relative (the XDG Base Directory spec says to ignore a relative one). Null
  * when neither gives an absolute directory. */
-export function userSettingPath(env: NodeJS.ProcessEnv): string | null {
+function userSettingPath(env: NodeJS.ProcessEnv): string | null {
   const xdg = env['XDG_CONFIG_HOME'];
   const home = env['HOME'];
   if (xdg !== undefined && isAbsolute(xdg)) return join(xdg, 'weftwork', 'config.yaml');
@@ -123,12 +127,12 @@ async function repoSettingPath(cwd: string): Promise<string | null> {
   }
 }
 
-type Read = { ok: true; file: SettingFile | null } | Failure;
+type BudgetFileRead = { ok: true; file: SettingFile | null } | Failure;
 
 /** One setting file under the file rules: a regular file of at most 64 KiB,
  * valid UTF-8. The repository file may not be a symlink, since the agent can
  * place one; the user file may be, since dotfile managers link it. */
-function readSetting(path: string | null, follow: boolean): Read {
+function readBudgetFile(path: string | null, follow: boolean): BudgetFileRead {
   if (path === null) return { ok: true, file: null };
   const read = readRegularFile(path, { follow, maxBytes: settingMaxBytes });
   if (!read.ok) return read;
@@ -138,9 +142,9 @@ function readSetting(path: string | null, follow: boolean): Read {
 /** `request` with both limits set from the setting files, or the first
  * problem with a file. Resolves, never rejects. */
 export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv): Promise<ParseResult> {
-  const user = readSetting(userSettingPath(env), true);
+  const user = readBudgetFile(userSettingPath(env), true);
   if (!user.ok) return user;
-  const repo = readSetting(await repoSettingPath(request.cwd), false);
+  const repo = readBudgetFile(await repoSettingPath(request.cwd), false);
   if (!repo.ok) return repo;
   const asked: Partial<Limits> = {};
   for (const key of limitKeys) {

@@ -68,11 +68,12 @@ export const limitKeys = ['stallAfter', 'maxFailures'] as const;
 export type LimitKey = (typeof limitKeys)[number];
 const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1 };
 
-/** Why `value` is not a valid `key` limit, or null when it is. */
+/** The rule `value` breaks as a `key` limit ("must be ..."), or null when it
+ * is valid. Each caller names the key its own way. */
 export function limitProblem(key: LimitKey, value: unknown): string | null {
   const min = limitMin[key];
   const valid = isInteger(value) && value >= min && value <= maxThreshold;
-  return valid ? null : `"${key}" must be an integer from ${min} to ${maxThreshold}`;
+  return valid ? null : `must be an integer from ${min} to ${maxThreshold}`;
 }
 
 function isBlocked(value: unknown): value is string {
@@ -109,7 +110,7 @@ function optionalError(data: Record<string, unknown>): string | null {
   }
   for (const [key, value] of [['stallAfter', stallAfter], ['maxFailures', maxFailures]] as const) {
     const problem = value === undefined ? null : limitProblem(key, value);
-    if (problem !== null) return problem;
+    if (problem !== null) return `"${key}" ${problem}`;
   }
   return null;
 }
