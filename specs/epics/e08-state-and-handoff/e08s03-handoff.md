@@ -20,7 +20,8 @@ start on, the files the note names). The engine adds the facts it can
 measure itself (when it wrote the block, and which paths were uncommitted
 then), so e08s04 can check the block against the repository at resume.
 
-Owner decisions (2026-11-13, plan-work; all five recommendations taken):
+Decisions recorded at plan-work (commit 6bb3791, 2026-11-13). The owner
+took all five recommendations:
 
 1. **The block holds** `next_skill`, `next_epic`, `next_story`, `note`,
    `branch` and `files`, given by the caller, and `written_at` and
@@ -47,19 +48,29 @@ Owner decisions (2026-11-13, plan-work; all five recommendations taken):
    (fragile to read), and a separate handoff file (bigpowers skills read
    `handoff.next_skill` from `specs/state.yaml`). This raised the story
    from 5 to 7 BCPs.
+6. **An untracked folder is one entry in `uncommitted`** (owner decision
+   2026-11-13, request-review round 3). `git status` runs with
+   `--untracked-files=normal`, the way plain `git status` shows it, so a
+   build or vendor folder that is not ignored cannot make the list
+   unbounded. The writer's 1 MiB limit stays as the backstop. e08s04 must
+   read the status the same way.
 
 ## 2. Zoom-out
 
 - **`src/state-file.ts`** (e08s01). Purpose: set one scalar field of a
   YAML file and keep every other byte (CST edit, re-parse check,
-  refusals). Callers: `src/state-fields.ts` (`writeStateField`,
-  `insideRoot`, `parseOne`) and its tests. Contracts: `setField` returns
-  the new text or a failure and never adds a key; `writeStateField`
-  writes atomically under the root and returns every failure as a value.
-  This story adds `setMapping` and `writeStateMapping` beside them and
-  changes no existing behaviour. Reason for depth: lists and new keys
-  cannot go through a scalar edit, and the byte-keeping checks must stay
-  in the one module that owns them.
+  refusals). Contract: `setField` returns the new text or a failure and
+  never adds a key. This story exports the data checks it shares.
+- **`src/state-write.ts`** (moved from `state-file.ts` at audit). Purpose:
+  the file half of the writer (root check, read, atomic write). Contract:
+  `writeStateField` and `writeStateEdit` return every failure as a value.
+- **`src/state-mapping.ts`** (new). Purpose: `setMapping` replaces one
+  top-level mapping and keeps every other byte; `writeStateMapping` writes
+  it. Reason for depth: lists and new keys cannot go through a scalar
+  edit, and the byte-keeping checks stay in the modules that own them.
+- **`src/cli-io.ts`** (new, from `state-cli.ts` at audit and request-review
+  round 3). Purpose: the bounded, strict UTF-8 JSON stdin read and the
+  one-line JSON answer that both thin CLIs share.
 - **`src/state-fields.ts`** (e08s02). Purpose: the table of fields the
   engine writes. Callers: `src/state-cli.ts`. Contract: `setStateField`
   refuses every key outside `stateFields`. This story keeps that and adds
@@ -78,35 +89,51 @@ an export and keeps its contracts; the existing suites of `state-file`,
 
 ## 3. Requirements
 
-#### ADDED: replace one mapping, `src/state-file.ts`
+#### ADDED: replace one mapping, `src/state-mapping.ts`
 
 - `setMapping(text, key, value)` takes a top-level key and a mapping of
   plain data (strings, null, and lists of strings). The key must exist; a
   missing key is a failure that names it (the writer never adds a
   top-level key). Its old value, of any style, is replaced by the new
   mapping in block style. Every other byte stays.
+- A one-line string is written plain only when it holds printable ASCII
+  with no space at either end, is not `=` or `<<`, and reads back as the
+  same string under YAML 1.1 and 1.2; otherwise it is double-quoted. A
+  string of several lines is a block scalar, or double-quoted when a block
+  scalar cannot hold it (review round 1: a tab, `=`, `<<` and `0o17` were
+  written plain).
 - The result is kept only when it parses as one document, its data equals
-  the old data with that key replaced, no new warning appears, and every
-  string passes the PyYAML check of `refusalForValue`. Otherwise it is a
-  failure and no text comes back.
+  the old data with that key replaced, no new warning appears, every
+  string passes the PyYAML check of `refusalForValue`, and the text is
+  well-formed UTF-16 (a long string folded inside a surrogate pair would be
+  U+FFFD on disk; a form that is not folded is used then). Otherwise it is
+  a failure and no text comes back.
 - `writeStateMapping(root, file, key, value)` reads, edits and writes as
   `writeStateField` does (inside the root, regular file, 1 MiB, atomic,
   `written` or `unchanged`).
 
 #### ADDED: the handoff writer, `src/handoff.ts`
 
-- `checkHandoff(input)` returns the caller's part of the block or a
+- `checkHandoff(root, input)` returns the caller's part of the block or a
   failure that names the field: `next_skill` and `branch` one line of 200
   code points or fewer; `next_epic` and `next_story` the same or null;
   `note` text of 1 to 4000 code points; `files` a list of repository
-  paths. A path is refused when it is absolute, leaves the root (`..`),
-  holds a line break, or does not exist. A key the block does not have is
+  paths. A path is refused when it is absolute, is not in normal form
+  (`./x`, `a/../x`, `a//b` or a trailing `/`; the error names the normal
+  form), leaves the root, is inside `.git`, holds a line break, or does
+  not exist. A symlink is a name in the repository: it is checked with
+  lstat and never followed, so one that points outside or nowhere is
+  accepted (review round 1). A key the block does not have is
   refused and named, so a typo such as `next_stroy` is not read as null.
 - `writeHandoff(root, input)` checks the input, then sets `written_at` to
   the time now (ISO 8601, UTC, to the second) and `uncommitted` to the
-  paths `git status` lists, sorted, without `specs/state.yaml`, and writes
-  the block with
-  `writeStateMapping`. A refused input writes nothing.
+  paths `git status --untracked-files=normal` lists, sorted, without
+  `specs/state.yaml` (left out by git with a literal exclude pathspec), and
+  writes the block with `writeStateMapping`. An untracked folder is one
+  entry, `dir/` (decision 6). A refused input writes nothing. An
+  uncommitted file whose name PyYAML cannot hold (a control character) makes
+  the write fail, and the error names the file: the caller must rename or
+  remove it, since leaving it out would hide it from e08s04.
 
 #### ADDED: the handoff CLI, `src/handoff-cli.ts`
 
@@ -204,11 +231,11 @@ Feature: The engine writes the handoff note
 
 ## Steps
 
-1. RED then GREEN (ref: §1 decision 5): write the `setMapping` tests in
-   `src/state-file.mapping.test.ts` for AC-01 and AC-02 and record the
-   failure; then add `setMapping` and `writeStateMapping` to
-   `src/state-file.ts` → verify: `node --test src/state-file*.test.ts &&
-   npm run typecheck`
+1. RED then GREEN (ref: §1 decision 5): write the `setMapping` tests
+   (now `src/state-mapping.test.ts`) for AC-01 and AC-02 and record the
+   failure; then add `setMapping` and `writeStateMapping` (now in
+   `src/state-mapping.ts`) → verify: `node --test src/state-file.test.ts
+   src/state-mapping.test.ts src/state-write.test.ts && npm run typecheck`
 2. RED then GREEN (ref: §1 decisions 1 to 3): write `src/handoff.test.ts`
    for AC-03 to AC-06 in `makeTestRepo()` repositories and record the
    failure; then write `src/handoff.ts` and export the uncommitted-paths
@@ -250,13 +277,17 @@ the block, so it stays out.
 
 ## 6. Risks
 
-- **The new edit is the riskiest code in e08.** It edits the CST like
-  `setField` does. The same read-back check guards it: text whose data is
-  not the old data with one key replaced never reaches the disk (AC-01,
-  AC-02).
+- **The new edit is the riskiest code in e08.** It finds the entry in the
+  CST like `setField` does, then splices in new text built by the yaml
+  package (or the JSON-style fallback). The same read-back check guards it,
+  in place in the whole file: text whose data is not the old data with one
+  key replaced, or that adds a yamllint fault, never reaches the disk
+  (AC-01, AC-02). A test reads the written layouts with PyYAML itself
+  (request-review round 4).
 - **`git status` paths in odd encodings.** Paths are read with `-z`, so
   spaces and newlines in names are kept; a path that is not valid UTF-8
-  is refused with an error that names it, not written as broken text.
+  is refused with an error, not written as broken text. The error does not
+  show the path, which cannot be printed faithfully (review round 1, A8).
 - **The note is free text in YAML.** It may hold line breaks and quotes.
   The yaml package picks the scalar style, and the read-back and PyYAML
   checks refuse any text that would read back differently.

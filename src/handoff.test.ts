@@ -7,7 +7,7 @@
 // own specs/state.yaml.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { checkHandoff, maxNoteLength, writeHandoff } from './handoff.ts';
@@ -63,10 +63,25 @@ for (const [name, change, says] of [
   ['no branch', { branch: undefined }, /branch/],
   ['a branch of two lines', { branch: 'a\nb' }, /branch/],
   ['a next_story that is a number', { next_story: 3 }, /next_story/],
-  ['a note of 4001 code points', { note: 'é'.repeat(maxNoteLength + 1) }, /note.*4000/],
+  // An astral character is one code point and two UTF-16 units, so a cap on
+  // .length would fail these (review round 1, A6, B10).
+  ['a note of 4001 code points', { note: '😀'.repeat(maxNoteLength + 1) }, /note.*4000/],
   ['a file path that does not exist', { files: ['no-such-file.txt'] }, /no-such-file\.txt/],
   ['a file path outside the repository', { files: ['../outside.txt'] }, /outside/],
-  ['an absolute file path', { files: ['/etc/hosts'] }, /\/etc\/hosts/],
+  ['an absolute file path outside the repository', { files: ['/etc/hosts'] }, /\/etc\/hosts/],
+  ['a path with ./', { files: ['./tracked.txt'] }, /written as tracked\.txt/],
+  ['a path with ..', { files: ['specs/../tracked.txt'] }, /written as tracked\.txt/],
+  ['a path with //', { files: ['specs//state.yaml'] }, /written as specs\/state\.yaml/],
+  ['a path with a trailing /', { files: ['specs/'] }, /written as specs/],
+  ['a path named twice', { files: ['tracked.txt', 'tracked.txt'] }, /"tracked\.txt" is named more than once/],
+  // Review round 4, A13: only whitespace is empty.
+  ['a next_skill of only spaces', { next_skill: '   ' }, /next_skill must not be empty or only whitespace/],
+  ['a branch of only a tab', { branch: '\t' }, /branch must not be empty or only whitespace/],
+  ['a note of only whitespace', { note: ' \n\t\n' }, /note must be text that is not empty or only whitespace/],
+  // Review round 3, A3: the old text match read this as a missing file.
+  ['a path outside whose name says it cannot be resolved', { files: ['../cannot be resolved'] }, /is outside the repository$/],
+  // Review round 5, B5: a type error comes before the duplicate check.
+  ['a list of numbers named twice', { files: [1, 1] }, /files must hold only non-empty text/],
   ['a file path with a newline', { files: ['tracked\n.txt'] }, /line/],
   ['files that is not a list', { files: 'tracked.txt' }, /files/],
   ['a key the block does not have', { next_stroy: 'e08s04' }, /next_stroy/],
@@ -80,6 +95,70 @@ for (const [name, change, says] of [
   });
 }
 
+test('an absolute path inside the repository is refused, not stored as given', async () => {
+  // Spec section 3: a path is refused when it is absolute (review round 1, A3, B3, B4).
+  const { repo, state } = makeStateRepo(fixture);
+  const result = await writeHandoff(repo, { ...input, files: [join(repo, 'tracked.txt')] }, now);
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && /relative to the repository root/.test(result.error), result.ok ? '' : result.error);
+  assert.equal(readFileSync(state, 'utf8'), fixture);
+});
+
+test('a symlink is a name: one that points outside or nowhere is accepted, never followed', async () => {
+  const { repo, state } = makeStateRepo(fixture);
+  symlinkSync('/etc/passwd', join(repo, 'out-link'));
+  symlinkSync(join(repo, 'no-such-target'), join(repo, 'dangling'));
+  assert.ok((await writeHandoff(repo, { ...input, files: ['out-link', 'dangling'] }, now)).ok);
+  assert.deepEqual((handoffOf(state) as Record<string, unknown>)['files'], ['out-link', 'dangling']);
+});
+
+test('a path in a folder that does not exist is a missing file, not a realpath error', async () => {
+  // Review round 2, A6.
+  const { repo } = makeStateRepo(fixture);
+  const result = await writeHandoff(repo, { ...input, files: ['no-dir/x.txt'] }, now);
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && /no-dir\/x\.txt does not exist in the repository/.test(result.error), result.ok ? '' : result.error);
+  assert.ok(!result.ok && !result.error.includes(repo), 'the error does not show the absolute path');
+});
+
+test('a path through a symlink loop is named without the OS text or absolute path', async () => {
+  // Review round 4, A14: ELOOP came back with the realpath message and the full path.
+  const { repo, state } = makeStateRepo(fixture);
+  symlinkSync('loop2', join(repo, 'loop1'));
+  symlinkSync('loop1', join(repo, 'loop2'));
+  const result = await writeHandoff(repo, { ...input, files: ['loop1/x'] }, now);
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && result.error === 'files: loop1/x cannot be resolved', result.ok ? '' : result.error);
+  assert.equal(readFileSync(state, 'utf8'), fixture);
+});
+
+test('a path outside the repository is refused without the absolute root', async () => {
+  // Review round 5, A3, B4: the outside message held the real root path.
+  const { repo } = makeStateRepo(fixture);
+  symlinkSync('/etc', join(repo, 'link'));
+  const result = await writeHandoff(repo, { ...input, files: ['link/passwd'] }, now);
+  assert.ok(!result.ok && result.error === 'files: link/passwd is outside the repository', result.ok ? '' : result.error);
+});
+
+test('files: null is refused, not read as an empty list', async () => {
+  // Review round 2, B7.
+  const { repo, state } = makeStateRepo(fixture);
+  const result = await writeHandoff(repo, { ...input, files: null }, now);
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && /files must be a list/.test(result.error), result.ok ? '' : result.error);
+  assert.equal(readFileSync(state, 'utf8'), fixture);
+});
+
+test('an uncommitted file whose name PyYAML cannot hold is named in the refusal', async () => {
+  // Review round 2, B5: the caller cannot fix it through the input, so the error must name it.
+  const { repo, state } = makeStateRepo(fixture);
+  writeFileSync(join(repo, 'bad\u0001name'), 'x\n');
+  const result = await writeHandoff(repo, input, now);
+  assert.equal(result.ok, false);
+  assert.ok(!result.ok && result.error.includes(JSON.stringify('bad\u0001name')), result.ok ? '' : result.error);
+  assert.equal(readFileSync(state, 'utf8'), fixture);
+});
+
 test('an input that is not an object is refused', () => {
   const { repo } = makeStateRepo(fixture);
   for (const value of [null, [], 'text', 3]) assert.equal(checkHandoff(repo, value).ok, false);
@@ -88,7 +167,7 @@ test('an input that is not an object is refused', () => {
 // AC-e08s03-05
 test('a note of exactly 4000 code points is accepted', async () => {
   const { repo, state } = makeStateRepo(fixture);
-  const note = 'é'.repeat(maxNoteLength);
+  const note = '😀'.repeat(maxNoteLength);
   assert.ok((await writeHandoff(repo, { ...input, note }, now)).ok);
   assert.equal((handoffOf(state) as Record<string, unknown>)['note'], note);
 });

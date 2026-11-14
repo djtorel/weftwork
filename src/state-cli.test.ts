@@ -4,7 +4,7 @@
 // AC-06 to AC-08): "set" changes one documented field of specs/state.yaml
 // through the field table and keeps every other byte, "get" prints the
 // documented fields, and the exit codes of e08s01 stay. The writer's file
-// refusals are tested on writeStateField itself (state-file.write.test.ts).
+// refusals are tested on writeStateField itself (state-write.test.ts).
 // No test touches this repository's own specs/state.yaml.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';

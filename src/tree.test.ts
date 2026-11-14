@@ -7,6 +7,7 @@ import {
   appendFileSync,
   chmodSync,
   mkdirSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   utimesSync,
@@ -171,7 +172,49 @@ test('uncommittedPaths lists changed, staged, renamed and untracked paths', asyn
   writeFileSync(join(repo, 'dir', 'line\nbreak.txt'), 'u\n');
   const result = await uncommittedPaths(repo);
   assert.ok(result.ok, result.ok ? '' : result.error);
-  assert.deepEqual([...result.paths].sort(), ['dir/line\nbreak.txt', 'new name.txt', 'tracked.txt']);
+  // dir/ holds only untracked files, so git status lists the folder once.
+  assert.deepEqual([...result.paths].sort(), ['dir/', 'new name.txt', 'tracked.txt']);
+});
+
+test('uncommittedPaths gives the new path of a rename in the work tree', async () => {
+  // git add -N makes the rename a work-tree one: " R new\0old\0" (review round 1, A2, B2).
+  const repo = makeTestRepo({ 'old.txt': 'x\n' });
+  execFileSync('mv', [join(repo, 'old.txt'), join(repo, 'new.txt')]);
+  git(repo, 'add', '-N', 'new.txt');
+  const status = execFileSync('git', ['status', '--porcelain=v1', '-z'], { cwd: repo, encoding: 'utf8' });
+  assert.equal(status, ' R new.txt\0old.txt\0', 'git reports the rename in the Y column');
+  assert.deepEqual(await uncommittedPaths(repo), { ok: true, paths: ['new.txt'] });
+});
+
+test('uncommittedPaths lists an untracked folder once, however many files it holds', async () => {
+  // Review round 3, B3: one entry per file made the list unbounded.
+  const repo = makeTestRepo();
+  mkdirSync(join(repo, 'build'));
+  for (let index = 0; index < 50; index++) writeFileSync(join(repo, 'build', `f${index}.txt`), 'x\n');
+  writeFileSync(join(repo, 'a name\nwith a newline.txt'), 'x\n');
+  assert.deepEqual(await uncommittedPaths(repo), { ok: true, paths: ['a name\nwith a newline.txt', 'build/'] });
+});
+
+test('uncommittedPaths leaves out an excluded path, and a folder that holds only it', async () => {
+  const repo = makeTestRepo();
+  mkdirSync(join(repo, 'specs'));
+  writeFileSync(join(repo, 'specs', 'state.yaml'), 's\n');
+  assert.deepEqual(await uncommittedPaths(repo, ['specs/state.yaml']), { ok: true, paths: [] });
+  writeFileSync(join(repo, 'specs', 'other.txt'), 'o\n');
+  assert.deepEqual(await uncommittedPaths(repo, ['specs/state.yaml']), { ok: true, paths: ['specs/'] });
+  assert.deepEqual(await uncommittedPaths(join(repo, 'specs'), ['specs/state.yaml']), { ok: true, paths: ['specs/'] }, 'from a subdirectory');
+});
+
+test('uncommittedPaths does not rewrite the index, so it takes no index.lock', async () => {
+  // Review round 4, A15: a plain git status refreshes the index after a stat
+  // change and writes it under .git/index.lock, which a user's own git commit
+  // could hit at the same moment. --no-optional-locks reads only.
+  const repo = makeTestRepo();
+  const later = new Date(Date.now() + 60_000);
+  utimesSync(join(repo, 'tracked.txt'), later, later);
+  const index = readFileSync(join(repo, '.git', 'index'));
+  assert.deepEqual(await uncommittedPaths(repo), { ok: true, paths: [] });
+  assert.deepEqual(readFileSync(join(repo, '.git', 'index')), index);
 });
 
 test('uncommittedPaths gives an empty list for a clean tree', async () => {

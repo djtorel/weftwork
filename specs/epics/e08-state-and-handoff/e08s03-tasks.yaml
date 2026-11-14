@@ -21,15 +21,16 @@ risk: P1
 tasks:
   - id: 1
     description: >-
-      RED, then GREEN. Write src/state-file.mapping.test.ts first and
+      RED, then GREEN. Write src/state-mapping.test.ts first and
       record the failure (spec AC-01, AC-02): setMapping replaces the
       value of one existing top-level key with a block-style mapping
       and keeps every other byte; it refuses a missing key, a nested
       mapping in the value and a string the PyYAML check refuses. Then
-      add setMapping and writeStateMapping to src/state-file.ts, with
+      add setMapping and writeStateMapping in src/state-mapping.ts, with
       the same read-back checks as setField
     verify: >-
-      node --test src/state-file*.test.ts && npm run typecheck
+      node --test src/state-file.test.ts src/state-mapping.test.ts
+      src/state-write.test.ts && npm run typecheck
     risk: P1
     status: done
     allure:

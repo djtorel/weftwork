@@ -7,7 +7,8 @@
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
-import { insideRoot, maxStateBytes, parseOne, writeStateField, type WriteField } from './state-file.ts';
+import { maxStateBytes, parseOne, type WriteField } from './state-file.ts';
+import { insideRoot, writeStateField } from './state-write.ts';
 
 /** The state file, named from the repository root. */
 export const stateFile = 'specs/state.yaml';
@@ -23,7 +24,7 @@ export type StateFields = { ok: true; fields: Record<string, string | null> } | 
 /** Why the value cannot be set, or null when it can. A value is null or text
  * of one line, at most maxValueLength code points. Only the type is checked:
  * id patterns and phase names are workflow naming, not engine rules. */
-function valueProblem(value: unknown): string | null {
+export function valueProblem(value: unknown): string | null {
   if (value === null) return null;
   if (typeof value !== 'string') return 'must be text or null';
   if (/[\n\r]/.test(value)) return 'must be one line';

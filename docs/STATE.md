@@ -43,15 +43,22 @@ echo '{"next_skill":"verify-work","branch":"e08s03-handoff-note","note":"..."}' 
 
 | Key | Given by | Rule |
 | --- | -------- | ---- |
-| `next_skill` | caller, required | one line, 200 characters or fewer |
-| `branch` | caller, required | the branch the next session starts on; one line |
-| `note` | caller, required | 1 to 4000 characters; a longer note is refused, not cut |
-| `next_epic` | caller, may be null | one line |
-| `next_story` | caller, may be null | one line |
-| `files` | caller, may be empty | paths the note names; each must exist in the repository |
+| `next_skill` | caller, required | one line, not empty or only whitespace, 200 characters or fewer |
+| `branch` | caller, required | the branch the next session starts on; one line, not empty or only whitespace, 200 characters or fewer |
+| `note` | caller, required | 1 to 4000 characters, not only whitespace; a longer note is refused, not cut |
+| `next_epic` | caller, may be null | one line, not empty or only whitespace, 200 characters or fewer |
+| `next_story` | caller, may be null | one line, not empty or only whitespace, 200 characters or fewer |
+| `files` | caller, may be empty | relative paths in normal form that the note names, each once; each must exist in the repository (a symlink is named, not followed) |
 | `written_at` | engine | the write time, UTC, to the second |
-| `uncommitted` | engine | `git status` paths at write time, sorted, without `specs/state.yaml` |
+| `uncommitted` | engine | `git status` paths at write time, sorted, without `specs/state.yaml`; an untracked folder is one entry, `dir/` |
 
 The engine ignores `written_at` and `uncommitted` from the caller and
-refuses any other key. No commit hash is kept, because PRs are
-squash-merged and a branch hash does not exist on `main`.
+refuses any other key. A file in the working tree whose name holds a
+character PyYAML cannot read (a control character, NEL, LS, PS, U+FFFE or
+U+FFFF) makes the write fail with an error that names it; rename or remove
+the file. No commit hash is kept, because PRs are squash-merged and a
+branch hash does not exist on `main`.
+
+`files` names a folder without a trailing slash (`build`), while
+`uncommitted` lists an untracked folder as git does (`build/`). A check
+that compares the two lists (e08s04) must allow for that.

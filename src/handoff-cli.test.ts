@@ -63,6 +63,7 @@ for (const [name, stdin, code] of [
   ['a file that does not exist', JSON.stringify({ ...JSON.parse(input), files: ['nope.txt'] }), 1],
   ['text that is not JSON', 'not json', 2],
   ['a JSON list, not an object', '[]', 2],
+  ['a request with an ok key, which is an unknown key', JSON.stringify({ ...JSON.parse(input), ok: true }), 1],
   ['bytes that are not UTF-8', Buffer.from([0x7b, 0xff, 0x7d]), 2],
 ] as [string, string | Buffer, number][]) {
   test(`${name} exits ${code} and leaves the file as it was`, () => {
@@ -73,6 +74,15 @@ for (const [name, stdin, code] of [
     assert.equal(readFileSync(state, 'utf8'), fixture);
   });
 }
+
+test('a note the yaml package cannot write as a block scalar still gives one JSON line and exit 0', () => {
+  // Review round 2, B1: this note made setMapping throw, and the CLI print a stack trace.
+  const { repo, state } = makeStateRepo(fixture);
+  // Whitespace-only lines first, as in the crash; the note itself is not only whitespace.
+  const run = runCli(repo, JSON.stringify({ ...JSON.parse(input), note: ' \n\t\nx' }));
+  assert.equal(run.status, 0, JSON.stringify(run.result));
+  assert.equal((parse(readFileSync(state, 'utf8')) as Record<string, Record<string, unknown>>)['handoff']?.['note'], ' \n\t\nx');
+});
 
 test('outside a git repository the CLI exits 2', () => {
   const run = runCli(makeTempDir(), input);

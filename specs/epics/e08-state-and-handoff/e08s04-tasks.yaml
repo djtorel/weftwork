@@ -7,6 +7,10 @@
 # resume. The check follows the shape of the live check in
 # src/claude-live.ts: a pure report function over facts, a thin CLI,
 # and an exit code that is 0 only when the answer is good.
+# From e08s03 (2026-11-13): uncommitted comes from git status with
+# --untracked-files=normal (e08s03 decision 6), so read the status the same
+# way here; an untracked folder is `dir/` there, while files names a
+# folder without the slash (docs/STATE.md).
 # Open for plan-work (recommendation first):
 #   1. Answers: ready, stale, unverifiable (an old-style handoff with
 #      no branch to check) and missing (no handoff block). Only ready

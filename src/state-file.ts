@@ -5,23 +5,18 @@
 // syntax tree, then parses the result: it is kept only when the data equals the
 // old data with that one field set, no new warning appears, and PyYAML (which
 // this repository's tools use) would read the value the same way.
-import { realpathSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { CST, isMap, isScalar, parse, Parser, parseAllDocuments, parseDocument, stringify, type Document, type Scalar } from 'yaml';
+import { CST, isCollection, isMap, isScalar, Parser, parseAllDocuments, parseDocument, visit, type Document, type Scalar } from 'yaml';
 import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
-import { readRegularFile, writeAtomic } from './regular-file.ts';
 
 /** The most writeStateField reads. A state file is a few tens of KiB. */
 export const maxStateBytes = 1024 * 1024;
 
 export type FieldValue = string | number | boolean | null;
-/** The value setMapping writes: a flat mapping of text, null and lists of text. */
-export type MappingValue = Readonly<Record<string, string | null | readonly string[]>>;
 export type SetField = { ok: true; text: string } | Failure;
 export type WriteField = { ok: true; action: 'written' | 'unchanged'; file: string } | Failure;
-type Reading = { data: unknown; warnings: number };
+export type Reading = { data: unknown; warnings: number };
 type Parsed = ({ ok: true; doc: Document } & Reading) | Failure;
 type Found = { ok: true; token: CST.FlowScalar | CST.BlockScalar } | Failure;
 
@@ -42,6 +37,7 @@ export function parseOne(text: string): Parsed {
   if (doc === undefined) return { ok: false, error: 'the text must be exactly one YAML document' };
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: `the text is not valid YAML: ${first.message}` };
+  if (hasCollectionKey(doc)) return { ok: false, error: 'the text has a key that is a mapping or a list, which a state file never holds' };
   let data: unknown;
   try {
     data = doc.toJS();
@@ -54,11 +50,24 @@ export function parseOne(text: string): Parsed {
   return { ok: true, doc, data, warnings: doc.warnings.length };
 }
 
+/** True when a mapping in `doc` has a key that is a mapping or a list (`? [a]`).
+ * toJS turns such a key into a string and prints a process warning, which
+ * reaches the CLI's stderr (request-review round 2, A5). */
+function hasCollectionKey(doc: Document): boolean {
+  let found = false;
+  visit(doc, {
+    Pair(_, pair) {
+      if (isCollection(pair.key)) found = true;
+    },
+  });
+  return found;
+}
+
 /** True when `data` is only plain objects, arrays, strings, numbers, booleans
  * and null. A %YAML 1.1 directive or a tag such as !!binary gives Dates, bytes,
  * Maps or Sets, which the data check cannot copy or compare, so every edit
  * would fail with the wrong reason (review round 3, A4). */
-function isPlainData(data: unknown): boolean {
+export function isPlainData(data: unknown): boolean {
   if (Array.isArray(data)) return data.every(isPlainData);
   if (typeof data !== 'object' || data === null) return true;
   return Object.getPrototypeOf(data) === Object.prototype && Object.values(data).every(isPlainData);
@@ -90,7 +99,7 @@ function dataKeyOf(key: unknown): string | null {
 /** A refusal when a mapping on `path` has two keys that become one property in
  * the data: the syntax tree finds the first, the data keeps the last, and the
  * writer could answer "unchanged" without writing (review round 5, A1). */
-function keysCollide(doc: Document, path: readonly string[]): Failure | null {
+export function keysCollide(doc: Document, path: readonly string[]): Failure | null {
   let node: unknown = doc.contents;
   for (const [index, key] of path.entries()) {
     if (!isMap(node)) return null;
@@ -115,7 +124,7 @@ function sourceOf(value: FieldValue): string {
 /** Printable ASCII with no space at either end: the strings a plain scalar can
  * hold for every reader. PyYAML refuses a plain tab and reads NEL, LS and PS as
  * line breaks (review 2, B1). */
-const plainSafe = /^[\x21-\x7E](?:[\x20-\x7E]*[\x21-\x7E])?$/;
+export const plainSafe = /^[\x21-\x7E](?:[\x20-\x7E]*[\x21-\x7E])?$/;
 
 /** False when `token` is a plain scalar holding a string that PyYAML would
  * refuse or read as something else: characters outside plainSafe, `=` and `<<`
@@ -158,7 +167,7 @@ function editScalar(text: string, path: readonly string[], value: FieldValue, ty
  * object as its anchor, and structuredClone keeps that sharing, so setting a
  * field on the copy would set the alias too and hide its change (review 2, A3,
  * B3). The core schema gives only objects, arrays and scalars. */
-function unsharedCopy(data: unknown): unknown {
+export function unsharedCopy(data: unknown): unknown {
   if (Array.isArray(data)) return data.map(unsharedCopy);
   if (isRecord(data)) return Object.fromEntries(Object.entries(data).map(([key, item]) => [key, unsharedCopy(item)]));
   return data;
@@ -184,7 +193,7 @@ function expectedReading(old: Reading, path: readonly string[], value: FieldValu
 
 /** True when `text` reads as `want`, with no more warnings than the old text
  * had: a tag that no longer fits its value only warns (review A2, B3). */
-function holdsData(text: string, want: Reading): boolean {
+export function holdsData(text: string, want: Reading): boolean {
   const read = parseOne(text);
   return read.ok && read.warnings <= want.warnings && isDeepStrictEqual(read.data, want.data);
 }
@@ -218,7 +227,7 @@ const notPyYamlPrintable = /[^\t\n\r\x20-\x7E\xA0-\uD7FF\uE000-\uFFFD\u{10000}-\
 /** Why `value` cannot be written at `path` at all, or null. setScalarValue
  * writes NEL, LS and PS unescaped, and YAML 1.1 reads them as line breaks, so
  * PyYAML would read another string (review 2, B1). */
-function refusalForValue(path: readonly string[], value: unknown): string | null {
+export function refusalForValue(path: readonly string[], value: unknown): string | null {
   if (path.length === 0) return 'the key path is empty';
   if (!isFieldValue(value)) return 'the value must be a string, a finite number, a boolean or null';
   if (typeof value !== 'string') return null;
@@ -251,127 +260,4 @@ export function setField(text: string, path: readonly string[], value: FieldValu
   // key that YAML reads as a number or a boolean (review 4, B1).
   if (isDeepStrictEqual(want.data, parsed.data)) return { ok: true, text };
   return firstEditThatHolds(text, path, normalised, want);
-}
-
-/** Why `value` cannot be written as the mapping at `key`, or null. Each entry
- * is text, null or a list of text, and every string passes refusalForValue. */
-function refusalForMapping(key: string, value: unknown): string | null {
-  if (key === '') return 'the key path is empty';
-  if (!isRecord(value) || !isPlainData(value)) return `${key}: the value must be a mapping of plain data`;
-  for (const [field, item] of Object.entries(value)) {
-    const items: unknown[] = Array.isArray(item) ? item : [item];
-    if (Array.isArray(item) && item.some((entry) => typeof entry !== 'string')) return `${key}.${field}: a list must hold only text`;
-    if (!Array.isArray(item) && item !== null && typeof item !== 'string') return `${key}.${field}: must be text, null or a list of text`;
-    for (const entry of items) {
-      const refusal = entry === null ? null : refusalForValue([key, field], entry);
-      if (refusal !== null) return `${key}.${field}: ${refusal}`;
-    }
-  }
-  return null;
-}
-
-/** The start and end offsets of the entry for top-level `key` in `text`: from
- * its key to the end of its value. Comments before the next key are outside. */
-function entrySpan(text: string, key: string): { ok: true; start: number; end: number } | Failure {
-  const doc = [...new Parser().parse(text)].find((token) => token.type === 'document');
-  const map = doc?.type === 'document' ? doc.value : undefined;
-  if (map?.type !== 'block-map') return { ok: false, error: 'the document is not a block mapping' };
-  const item = map.items.find((entry) => CST.isScalar(entry.key) && CST.resolveAsScalar(entry.key)?.value === key);
-  if (item === undefined || item.key === null || item.key === undefined) return { ok: false, error: `there is no key ${key}` };
-  const last = item.value ?? item.sep?.at(-1) ?? item.key;
-  return { ok: true, start: item.key.offset, end: last.offset + CST.stringify(last).length };
-}
-
-/** Replace the value of the top-level `key` in the YAML `text` with the flat
- * mapping `value`, in block style, and keep every byte outside that entry. The
- * key must exist; the writer never adds a top-level key. The new entry is
- * written with the YAML 1.1 schema, so PyYAML reads it as the same data, and
- * the new text is kept only when it reads as the old data with that one key
- * replaced. Otherwise no text comes back. */
-export function setMapping(text: string, key: string, value: MappingValue): SetField {
-  const refusal = refusalForMapping(key, value);
-  if (refusal !== null) return { ok: false, error: refusal };
-  const parsed = parseOne(text);
-  if (!parsed.ok) return parsed;
-  const span = entrySpan(text, key);
-  if (!span.ok) return span;
-  const collision = keysCollide(parsed.doc, [key]);
-  if (collision !== null) return collision;
-  if (!isRecord(parsed.data) || !Object.hasOwn(parsed.data, key)) {
-    return { ok: false, error: `${key} does not read back as written: YAML reads the key as another value` };
-  }
-  const data = { ...parsed.data, [key]: unsharedCopy(value) };
-  if (isDeepStrictEqual(data, parsed.data)) return { ok: true, text };
-  let entry = stringify({ [key]: value }, { version: '1.1' });
-  if (!isDeepStrictEqual(parse(entry, { version: '1.1' }), { [key]: value })) {
-    return { ok: false, error: `${key}: PyYAML would not read the new value back` };
-  }
-  if (!text.slice(span.start, span.end).endsWith('\n')) entry = entry.replace(/\n$/, '');
-  if (text.includes('\r\n')) entry = entry.replaceAll('\n', '\r\n');
-  const edited = text.slice(0, span.start) + entry + text.slice(span.end);
-  if (!holdsData(edited, { data, warnings: parsed.warnings })) {
-    return { ok: false, error: `${key} could not be replaced so that the file reads back as the old data with this key replaced` };
-  }
-  return { ok: true, text: edited };
-}
-
-/** The real path `file` names, when it lies inside `root` and outside `.git`:
- * `file` is resolved against `root`, and its directory after resolving
- * symlinks must be `root` or below it. The file name itself is not resolved:
- * readRegularFile refuses a symlink there. */
-export function insideRoot(root: string, file: string): { ok: true; path: string } | Failure {
-  try {
-    const realRoot = realpathSync(root);
-    const target = resolve(realRoot, file);
-    if (target === realRoot) return { ok: false, error: `${file} names the repository root, not a file` };
-    const parent = realpathSync(dirname(target));
-    const rel = relative(realRoot, parent);
-    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
-      return { ok: false, error: `${file} is outside the repository root ${realRoot}` };
-    }
-    const path = join(parent, basename(target));
-    // A case-insensitive disk (macOS by default) reads .GIT as .git (review 4, A2).
-    if (relative(realRoot, path).split(sep).some((segment) => segment.toLowerCase() === '.git')) {
-      return { ok: false, error: `${file} is inside .git, which the engine does not edit` };
-    }
-    return { ok: true, path };
-  } catch (error) {
-    return { ok: false, error: `${file} cannot be resolved: ${messageOf(error)}` };
-  }
-}
-
-/** Set the scalar at `path` in the state file `file` (named from `root`) to
- * `value`, keeping every other byte. The file must be a regular file inside
- * the repository root and outside `.git`, not a symlink, of at most
- * maxStateBytes. It is written through a temp file and a rename with its old
- * mode, and only when the text changes. A file that cannot be read, parsed or
- * checked is never written. */
-export function writeStateField(root: string, file: string, path: readonly string[], value: FieldValue): WriteField {
-  return writeStateEdit(root, file, (text) => setField(text, path, value));
-}
-
-/** Replace the value of the top-level `key` of the state file `file` with the
- * mapping `value` (setMapping), with the same checks and atomic write as
- * writeStateField. */
-export function writeStateMapping(root: string, file: string, key: string, value: MappingValue): WriteField {
-  return writeStateEdit(root, file, (text) => setMapping(text, key, value));
-}
-
-/** Read the state file `file` under `root`, apply `edit`, and write the result
- * when the text changes; the shared body of writeStateField and
- * writeStateMapping. */
-function writeStateEdit(root: string, file: string, edit: (text: string) => SetField): WriteField {
-  const inside = insideRoot(root, file);
-  if (!inside.ok) return inside;
-  const read = readRegularFile(inside.path, { follow: false, maxBytes: maxStateBytes });
-  if (!read.ok) return read;
-  if (read.file === null) return { ok: false, error: `${file} does not exist` };
-  const result = edit(read.file.text);
-  if (!result.ok) return { ok: false, error: `${file}: ${result.error}` };
-  if (result.text === read.file.text) return { ok: true, action: 'unchanged', file };
-  if (Buffer.byteLength(result.text) > maxStateBytes) {
-    return { ok: false, error: `${file}: the new text would be larger than ${maxStateBytes} bytes, which the writer could not read again` };
-  }
-  const failed = writeAtomic(inside.path, result.text, read.file.mode);
-  return failed ?? { ok: true, action: 'written', file };
 }
