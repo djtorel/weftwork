@@ -58,6 +58,14 @@ function yamlError(error: YAMLError): string {
   return `holds more than one YAML document${at === undefined ? '' : ` at line ${at.line}, column ${at.col}`}`;
 }
 
+/** The %YAML lines before the first `---`. The yaml package keeps only the
+ * last one without a word, so `%YAML 1.1` then `%YAML 1.2` would pass as 1.2;
+ * the YAML spec makes a second one an error (review round 4). */
+function yamlDirectiveCount(text: string): number {
+  const head = text.replace(/^\uFEFF/, '').split(/^---/m)[0] ?? '';
+  return head.match(/^%YAML[ \t]/gm)?.length ?? 0;
+}
+
 /** The YAML in `file` as plain data, or why it is not valid YAML 1.2. The
  * yaml package throws for an alias bomb (security review F1), and its
  * warnings would reach stderr, so they are off. */
@@ -65,10 +73,11 @@ function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
   const doc = parseDocument(file.text, { logLevel: 'error' });
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: yamlError(first) };
-  // The yaml package only warns for %YAML 1.0, 2.0 or an unknown directive,
-  // and reads the file as 1.2; refuse them, as %YAML 1.1 (review round 3).
-  const directive = doc.warnings.find((warning) => warning.code === 'BAD_DIRECTIVE');
-  if (directive !== undefined) return { ok: false, error: `${firstLine(directive.message)}; use YAML 1.2` };
+  // The yaml package only warns for %YAML 1.0 or 2.0, an unknown directive or
+  // a tag it cannot resolve, and reads on; each is refused (review rounds 3, 4).
+  const warning = doc.warnings[0];
+  if (warning !== undefined) return { ok: false, error: `${firstLine(warning.message)}; use plain YAML 1.2` };
+  if (yamlDirectiveCount(file.text) > 1) return { ok: false, error: 'holds more than one %YAML line' };
   const version = doc.directives.yaml.version;
   if (version !== '1.2') return { ok: false, error: `YAML ${version} is not supported; use YAML 1.2` };
   try {
