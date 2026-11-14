@@ -8,14 +8,14 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { countsFor } from './ledger.ts';
 import { fingerprintTree } from './tree.ts';
-import { cleanupTempDirs, makeTestRepo, readRepoLedger } from './test-helpers.ts';
+import { cleanupTempDirs, makeTestRepo, readRepoLedger, isolatedEnv } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const cliPath = join(import.meta.dirname, 'cli.ts');
 
 function runCli(input: string, cwd: string) {
-  const result = spawnSync(process.execPath, [cliPath], { input, cwd, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [cliPath], { input, cwd, encoding: 'utf8', env: isolatedEnv() });
   return { status: result.status, stdout: result.stdout };
 }
 

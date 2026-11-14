@@ -8,22 +8,14 @@ import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { exitCodes, type State } from './states.ts';
-import {
-  cleanupTempDirs,
-  makeTempDir,
-  makeTestRepo,
-  readRepoLedger,
-  readRepoStates,
-  waitForFile,
-  waitUntilGone,
-} from './test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo, readRepoLedger, readRepoStates, waitForFile, waitUntilGone, isolatedEnv } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const cliPath = join(import.meta.dirname, 'cli.ts');
 
 function runCli(input: string, cwd: string) {
-  const result = spawnSync(process.execPath, [cliPath], { input, cwd, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [cliPath], { input, cwd, encoding: 'utf8', env: isolatedEnv() });
   return { status: result.status, stdout: result.stdout };
 }
 
@@ -83,7 +75,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   test(`AC-e06s04-31 a real ${signal} kills the run`, { timeout: 20000 }, async () => {
     const repo = makeTestRepo();
     const pidFile = join(makeTempDir(), 'pid');
-    const child = spawn(process.execPath, [cliPath], { cwd: repo, stdio: ['pipe', 'pipe', 'ignore'] });
+    const child = spawn(process.execPath, [cliPath], { cwd: repo, stdio: ['pipe', 'pipe', 'ignore'], env: isolatedEnv() });
     let stdout = '';
     child.stdout.on('data', (chunk) => {
       stdout += String(chunk);

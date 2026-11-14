@@ -5,7 +5,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
-import { cleanupTempDirs, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTestRepo, isolatedEnv } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -14,7 +14,7 @@ const cliPath = join(import.meta.dirname, 'cli.ts');
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   test(`F4 ${signal} with stdin still open exits 6 at once`, { timeout: 10000 }, async () => {
     const repo = makeTestRepo();
-    const child = spawn(process.execPath, [cliPath], { cwd: repo, stdio: ['pipe', 'pipe', 'ignore'] });
+    const child = spawn(process.execPath, [cliPath], { cwd: repo, stdio: ['pipe', 'pipe', 'ignore'], env: isolatedEnv() });
     let stdout = '';
     child.stdout.on('data', (chunk) => {
       stdout += String(chunk);
