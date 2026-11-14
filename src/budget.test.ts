@@ -126,3 +126,33 @@ test('an alias bomb is refused as an error value, not a throw (security review F
   assert.match(error, /\/repo\/weftwork\.yaml/);
   assert.match(error, /YAML/);
 });
+
+test('a YAML error is one line with its position, without the file excerpt (review round 1)', () => {
+  const error = errorOf({ repo: repo('budget:\n  maxFailures: 2\n  maxFailures: 3\n') });
+  assert.doesNotMatch(error, /\n/);
+  assert.match(error, /Map keys must be unique at line 3, column 3$/);
+});
+
+const notPlain: [string, string, string][] = [
+  ['a budget that is a !!set', 'budget: !!set {maxFailures}\n', 'budget'],
+  ['a budget that is a !!omap', 'budget: !!omap [{maxFailures: 2}]\n', 'budget'],
+  ['a top level that is a !!set', '!!set {budget}\n', 'mapping'],
+  ['a %YAML 1.1 document', '%YAML 1.1\n---\nbudget:\n  maxFailures: 010\n', 'YAML 1.1'],
+];
+
+for (const [name, text, key] of notPlain) {
+  test(`the repository file is refused with ${name} (review round 1)`, () => {
+    const error = errorOf({ repo: repo(text) });
+    assert.match(error, /\/repo\/weftwork\.yaml/);
+    assert.ok(error.includes(key), error);
+  });
+}
+
+test('an explicit %YAML 1.2 document is read', () => {
+  assert.equal(limitsOf({ repo: repo('%YAML 1.2\n---\nbudget:\n  maxFailures: 2\n') }).maxFailures, 2);
+});
+
+test('any YAML 1.2 form of a whole number is accepted', () => {
+  assert.equal(limitsOf({ repo: repo('budget:\n  maxFailures: 2.0\n') }).maxFailures, 2);
+  assert.equal(limitsOf({ repo: repo('budget:\n  maxFailures: 0x2\n') }).maxFailures, 2);
+});

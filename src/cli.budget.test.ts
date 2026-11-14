@@ -96,3 +96,10 @@ test('control characters from weftwork.yaml are escaped in the CLI line (securit
   assert.doesNotMatch(result.stdout, /[\u001b\r\u009b]/u);
   assert.match(result.stdout, /\\u009b/);
 });
+
+test('a collection used as a key is refused with no Node warning on stderr (review round 1)', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  ? [a]\n  : 1\n' });
+  const result = spawnSync(process.execPath, [cliPath], { input: failing, cwd: repo, encoding: 'utf8', env: isolatedEnv() });
+  assert.equal(result.status, 2);
+  assert.equal(result.stderr, '');
+});
