@@ -169,3 +169,32 @@ test('a long YAML error is cut to 200 characters (review round 2)', () => {
   assert.ok(reason.length <= 200, `reason is ${reason.length} characters`);
   assert.match(reason, /…$/);
 });
+
+const badDirectives: [string, string][] = [
+  ['%YAML 1.0\n---\nbudget: {maxFailures: 3}\n', 'YAML version 1.0'],
+  ['%YAML 2.0\n---\nbudget: {maxFailures: 3}\n', 'YAML version 2.0'],
+  ['%FOO bar\n---\nbudget: {maxFailures: 3}\n', '%FOO'],
+];
+
+for (const [text, named] of badDirectives) {
+  test(`a file with ${text.split('\n')[0]} is refused, naming it (review round 3)`, () => {
+    const error = errorOf({ repo: repo(text) });
+    assert.match(error, /\/repo\/weftwork\.yaml/);
+    assert.ok(error.includes(named), error);
+  });
+}
+
+test('a long unknown key is cut to 200 characters in the error (review round 3)', () => {
+  const error = errorOf({ repo: repo(`budget:\n  "${'k'.repeat(5000)}": 1\n`) });
+  const key = error.slice(error.indexOf('budget.') + 'budget.'.length, error.indexOf(' is not a known key'));
+  assert.ok(key.length <= 200, `key is ${key.length} characters`);
+  assert.match(key, /…$/);
+});
+
+test('the cut never splits a character in two (review round 3)', () => {
+  const error = errorOf({ repo: repo(`budget: {maxFailures: *${'😀'.repeat(150)}}\n`) });
+  // Without the u flag the regex sees code units, so it finds a lone half.
+  const loneSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+  assert.doesNotMatch(error, loneSurrogate);
+  assert.match(error, /…$/);
+});
