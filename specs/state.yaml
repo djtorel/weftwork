@@ -479,6 +479,14 @@ waivers:
     option), as for e09s01.
   date: 2026-11-14
   scope: e09s02 only
+- what: gate-trace FAIL (rule R4 with the oracle downgrade) for the BUG-008 fix
+  why: 18 of 40 stories carry code tags; the untagged are the research epics e01
+    to e05, which shipped docs, not code, and about 61 percent of links are heuristic.
+    Every story that shipped code is tagged. R1 (e09s04 has no code yet) is covered
+    by the e09-only waiver. The owner chose to waive R4 for the BUG-008 fix only on
+    2026-11-14 (answer to a fix-bug question, recommended option), as for e09s02.
+  date: 2026-11-14
+  scope: BUG-008 fix only
 handoff:
   next_skill: kickoff-branch
   next_story: e09s03

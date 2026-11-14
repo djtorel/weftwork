@@ -380,18 +380,17 @@ stories:
     bcp_per_hour: 6.7
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-14T21:40:00Z"
+  generated_at: "2026-11-14T22:30:00Z"
   rationale: >-
-    Release of e09s02. R1 fails for the undone e09s03 and e09s04, which
-    have no code yet; the owner's e09-only waiver of 2026-11-14 covers it.
-    R2 and R3 pass: e09s02 carries explicit tags in src/breaker.ts,
-    src/engine.ts, src/gate.ts, src/budget.ts and its test files; every
-    done story has verify evidence. R4 gives CONCERNS (17 of 40 stories
-    tagged): the untagged stories are the research epics e01 to e05,
-    which shipped docs, not code. The oracle downgrade (170 of 280 links,
-    61 percent, from heuristics) turns it into FAIL. trace-stories.sh,
-    the completeness critic (0 blockers) and the blind-spot check (0 HIGH)
-    ran at acafc2d. Owner waiver in state.yaml, 2026-11-14, for e09s02
-    only.
+    Release of the BUG-008 fix (branch fix-bug-008-second-sigterm). R1
+    fails for the undone e09s04, which has no code yet; the owner's
+    e09-only waiver covers it. R2 and R3 pass: every done story has verify
+    evidence. R4 gives CONCERNS (18 of 40 stories tagged): the untagged
+    stories are the research epics e01 to e05, which shipped docs, not
+    code. The oracle downgrade (about 61 percent heuristic links) turns
+    it into FAIL. trace-stories.sh, the completeness critic (0 blockers,
+    1 warning: BUG-008 is not a story in the matrix) and the blind-spot
+    check (0 HIGH) ran at fb61429. Owner waiver in state.yaml,
+    2026-11-14, for the BUG-008 fix only.
   heuristic_ratio: 0.61
   downgrade_applied: true
