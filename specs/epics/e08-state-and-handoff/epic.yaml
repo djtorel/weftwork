@@ -9,7 +9,7 @@ depends_on:
 done_when: >-
   Workflow state is plain files written only by the engine through a
   format-preserving writer, and the handoff note is checked at resume
-total_bcps: 19
+total_bcps: 21
 stories:
   - id: e08s01
     title: A caller sets one field of a state file and nothing else changes
@@ -25,8 +25,8 @@ stories:
     delta: ADDED
   - id: e08s03
     title: The engine writes the handoff note for a session with no memory
-    bcps: 5
-    status: todo
+    bcps: 7
+    status: done
     tasks: e08s03-tasks.yaml
     delta: ADDED
   - id: e08s04

@@ -1,4 +1,4 @@
-// story: e06s02, e07s02, e08s01
+// story: e06s02, e07s02, e08s01, e08s03
 // A fingerprint of a git working tree: the files that git lists as tracked
 // or as untracked and not ignored, with their contents. The gate takes it
 // before and after a command, so a command that edits the tree is not done.
@@ -14,6 +14,8 @@ import { constants } from 'node:fs';
 import type { Stats } from 'node:fs';
 import { lstat, open, readlink } from 'node:fs/promises';
 import { promisify } from 'node:util';
+import { messageOf } from './errors.ts';
+import { strictUtf8 } from './regular-file.ts';
 
 const run = promisify(execFile);
 
@@ -46,6 +48,52 @@ async function gitOutput(cwd: string, args: string[]): Promise<Buffer> {
 export async function repositoryRoot(cwd: string): Promise<Buffer> {
   const output = await gitOutput(cwd, ['rev-parse', '--show-toplevel']);
   return output.subarray(0, output.length - 1);
+}
+
+/** The status letters after which porcelain v1 -z gives a second, old path. */
+const renamed = new Set(['R', 'C']);
+
+/** The paths `git status` lists in the working tree that holds `cwd`: changed
+ * and staged files, and untracked files and folders that are not ignored (a
+ * folder once, as `dir/`), with a rename or copy given by its new path. Each
+ * path in `exclude` (from the root, taken literally) is left out by git, so a
+ * folder whose only untracked file it is is not listed either. Not ok when
+ * `cwd` is not in a repository, git fails, or a path is not UTF-8. Never
+ * rejects. git status runs a clean filter that the repository's config names;
+ * that is an accepted risk (A1 in specs/security/REVIEW.md, owner decision
+ * 2026-11-13). */
+export async function uncommittedPaths(cwd: string, exclude: readonly string[] = []): Promise<{ ok: true; paths: string[] } | { ok: false; error: string }> {
+  let output: Buffer;
+  try {
+    // normal: an untracked folder is one entry (`dir/`), so a build or vendor
+    // folder that is not ignored cannot grow the list without bound
+    // (request-review round 3, B3; owner decision 2026-11-13).
+    const pathspecs = [':(top)', ...exclude.map((path) => `:(top,exclude,literal)${path}`)];
+    // --no-optional-locks: no index refresh, so no .git/index.lock that a user's own
+    // git commit could trip over at the same moment (request-review round 4, A15).
+    output = await gitOutput(cwd, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=normal', '--', ...pathspecs]);
+  } catch (error) {
+    return { ok: false, error: messageOf(error) };
+  }
+  const text = strictUtf8(output);
+  if (text === null) return { ok: false, error: 'git status lists a path that is not UTF-8' };
+  return { ok: true, paths: statusPaths(text) };
+}
+
+/** The paths of `git status --porcelain=v1 -z` output: each entry is two
+ * status letters, a space and a path. */
+function statusPaths(text: string): string[] {
+  const entries = text.split('\0');
+  const paths: string[] = [];
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index] as string;
+    if (entry === '') continue;
+    paths.push(entry.slice(3));
+    // A rename or copy in the index (X) or the work tree (Y, after git add -N)
+    // is followed by its old path, which is not listed (review round 1, A2, B2).
+    if (renamed.has(entry[0] ?? '') || renamed.has(entry[1] ?? '')) index++;
+  }
+  return paths;
 }
 
 /** Tracked files and untracked files that are not ignored, as bytes. */

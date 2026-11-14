@@ -1,5 +1,5 @@
 // story: e08s01
-// The file half of the state writer (e08s01 AC-07, AC-08), called directly in
+// The file half of the state writer, state-write.ts (e08s01 AC-07, AC-08), called directly in
 // temporary repositories: writeStateField writes one field, keeps the mode,
 // leaves no temp file, and refuses a symlink, a FIFO, a file outside the
 // repository or inside .git, invalid YAML, a missing key and an oversized file,
@@ -11,7 +11,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
-import { setField, writeStateField } from './state-file.ts';
+import { setField } from './state-file.ts';
+import { writeStateField } from './state-write.ts';
 import { cleanupTempDirs, git, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);

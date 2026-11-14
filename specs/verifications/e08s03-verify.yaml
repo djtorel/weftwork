@@ -1,0 +1,144 @@
+---
+# verify-work 2026-11-13, refreshed 2026-11-14 after request-review and
+# the second audit. Mechanical gates and the security review pass at the
+# head below. The owner's manual run (UAT) was at bf224b9; UAT step 3 first
+# failed on a wrong pass criterion (a hunk count) and the corrected check
+# passed. The changes after bf224b9 (review rounds 1 to 5, audit fixes) are
+# covered by tests, not by a new manual run.
+story_id: e08s03
+verified_at: "2026-11-14T01:33:10Z"
+verifier: verify-work
+risk: P1
+branch: e08s03-handoff-note
+head: 1798669
+phases:
+  smoke:
+    passed: null
+    note: "N/A. CLI library with no server process."
+  build:
+    passed: null
+    note: "No build step. Node runs .ts directly (CLAUDE.md)."
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+    exit_code: 0
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  tests:
+    passed: true
+    command: "npm test"
+    tests: 636
+    pass: 636
+    fail: 0
+    skipped: 0
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-14T01:33:10Z"
+    note: >-
+      Single run at 1798669, 636 of 636 tests, none skipped (the PyYAML
+      cross-check ran). The first run, at bf224b9, gave 583 of 583.
+  task_verifies:
+    passed: true
+    note: "All four verify: commands in e08s03-tasks.yaml exit 0."
+  red_evidence:
+    passed: true
+    note: >-
+      scripts/verify-tdd-red-commit.sh skips feat work, so each test-only
+      commit (cd4cee2, 37eba9d, 6560336) was run on a clean git archive
+      copy of itself: each fails (missing export or module); HEAD passes.
+  security_review:
+    passed: true
+    report: >-
+      specs/security/REVIEW.md (section e08s03-handoff-note and its
+      addendum after the request-review rounds)
+    high_findings_at_8_or_more: 0
+    accepted_risk: >-
+      A1, git status runs a clean filter named in .git/config (owner
+      decision 2026-11-13, owned by e10)
+    note: >-
+      Nine attack paths probed live (symlinked folder, .git, __proto__,
+      alias into the block, duplicate key, explicit key, alias bomb, a
+      repository fsmonitor program); all refused or not run. Three
+      observations below the threshold go to e10, e08s04 and e11.
+  blind_spots:
+    passed: true
+    high: 0
+    medium: 52
+    low: 13
+    note: "MEDIUM entries are double-tags on files several stories touch."
+  completeness_critic:
+    passed: true
+    blocker: 0
+    warning: 0
+    note: >-
+      The first run gave a BLOCKER (no story-tag links for e08s03), because
+      the matrix was stale; scripts/trace-stories.sh rebuilt it.
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    exit_code: 0
+  request_review:
+    passed: false
+    waived: true
+    rounds: 5
+    scores_a_b: ["72/83", "78/67", "91/88", "96/90", "95/92"]
+    note: >-
+      The dual-blind AND-gate (both at 94 or more, no must-fix) did not pass
+      within the cap of five rounds; no must-fix in rounds 3 to 5. Every
+      finding was reproduced, fixed and pinned by a test. The owner waived
+      the gate for e08s03 (waiver in specs/state.yaml); the round-5 fixes
+      were checked by the second audit and the gates, not re-reviewed.
+  audit:
+    passed: true
+    report: specs/verifications/AUDIT-e08-e08s03.md
+    note: "Second audit after request-review; assert-audit-story PASS."
+  manual:
+    status: passed
+    verified_by: owner, 2026-11-13, scratch repository from mktemp -d
+    head_at_run: bf224b9
+    steps:
+      - step: "Step 1: write a handoff"
+        expected: "ok true, action written, exit=0"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 2: read the block"
+        expected: "eight keys, written_at now in UTC, metrics follows"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 3: nothing else in the file changed"
+        expected: "every changed line inside the handoff block"
+        actual: >-
+          First check (hunk count = 1) gave 3: the copied state.yaml
+          already held an engine-written block, so lines that match in
+          both blocks split the change into several -U0 hunks. The
+          criterion was wrong, not the code. Corrected check (each hunk
+          inside the block): block lines 430 to 438, hunks at 432 and
+          438, no OUTSIDE line. A YAML comparison showed only the handoff
+          key changed.
+        passed: true
+      - step: "Step 4: PyYAML reads it the same"
+        expected: "the note, the branch and the same written_at"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 5: the engine records uncommitted files itself"
+        expected: "uncommitted lists only new.txt; made-up.txt ignored"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 6: refusals leave the file alone"
+        expected: "exit 1, 1 and 2; the same md5sum before and after"
+        actual: "Owner reported pass"
+        passed: true
+      - step: "Step 7: this repository's own handoff"
+        expected: "the engine-written block for verify-work"
+        actual: "Owner reported pass"
+        passed: true
+  gaps:
+    closed: true
+    note: >-
+      No gap between the spec and the result. The step 3 failure was in
+      the UAT script; the corrected check passed.

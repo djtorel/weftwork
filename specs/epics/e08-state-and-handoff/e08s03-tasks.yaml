@@ -5,32 +5,40 @@
 # keep it bounded, and have it carry what resume can verify. The
 # facts the engine can know (when it was written, which paths were
 # uncommitted) it fills itself, so the agent cannot get them wrong.
-# Open for plan-work (recommendation first):
-#   1. The handoff block holds next_skill, next_epic, next_story, note
-#      and branch (the branch the next session should start on), and
-#      files (paths the note names). The engine adds written_at and
-#      uncommitted (git status paths at write time, without the state
-#      file itself). Required from the caller: next_skill, note and
-#      branch. next_epic and next_story may be null.
-#   2. The note is capped at 4000 characters. The existing notes run
-#      1300 to 1700. The one handoff study put 10k characters of
-#      structured notes in the first prompt (R12, S36), so 4000 is
-#      inside what was tested. A longer note is refused, not cut.
-#   3. No commit hash is recorded. This repository squash-merges every
-#      PR, so a hash written on a story branch does not exist on main
-#      where the next session starts. e08s04 checks the branch and the
-#      files instead.
-#   4. One file, not two. R12 calls HANDOFF.json plus a .continue-here
-#      file ceremony until one file is shown to be not enough.
+# Owner decisions (plan-work 2026-11-13; all five recommendations
+# taken): see e08s03-handoff.md section 1. Fields, a 4000-character
+# note cap, no commit hash, one file, and a new writer edit that
+# replaces one top-level mapping (the e08s01 writer cannot add keys or
+# lists). Decision 5 raised the story from 5 to 7 BCPs.
+spec: e08s03-handoff.md
 story_id: e08s03
 title: The engine writes the handoff note for a session with no memory
-status: todo
-bcps: 5
+status: done
+bcps: 7
 type: feat
 context: engine
 risk: P1
 tasks:
   - id: 1
+    description: >-
+      RED, then GREEN. Write src/state-mapping.test.ts first and
+      record the failure (spec AC-01, AC-02): setMapping replaces the
+      value of one existing top-level key with a block-style mapping
+      and keeps every other byte; it refuses a missing key, a nested
+      mapping in the value and a string the PyYAML check refuses. Then
+      add setMapping and writeStateMapping in src/state-mapping.ts, with
+      the same read-back checks as setField
+    verify: >-
+      node --test src/state-file.test.ts src/state-mapping.test.ts
+      src/state-write.test.ts && npm run typecheck
+    risk: P1
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 2
     description: >-
       RED, then GREEN. Write src/handoff.test.ts first and record the
       failure. Cases: a complete input gives a handoff block with
@@ -42,32 +50,13 @@ tasks:
       sends written_at or uncommitted has them ignored. Then write
       src/handoff.ts. The git facts come from the same git helper
       style as src/tree.ts (git run with core.fsmonitor=false); do not
-      add a second way to call git
+      add a second way to call git; export the uncommitted-paths
+      function from src/tree.ts. Write the block with writeStateMapping
     verify: >-
-      node --test src/handoff.test.ts && npm run typecheck
-    risk: P1
-    status: todo
-    allure:
-      severity: high
-      categories:
-        - "engine"
-        - "e08 B2"
-  - id: 2
-    description: >-
-      RED, then GREEN. Write src/handoff-cli.test.ts first. It starts
-      the real CLI in makeTestRepo() repositories, runs "handoff write"
-      with JSON on stdin, and checks the state file: the block is
-      there, the other keys and the comments are byte-identical, and a
-      refused input leaves the file as it was. Then write
-      src/handoff-cli.ts as a thin shell on the state writer of
-      e08s01. Exit codes as in e08s01. The old four-key handoff block
-      of this repository's specs/state.yaml still parses, so a repository
-      that has not written a new-style handoff is not an error
-    verify: >-
-      node --test src/handoff.test.ts src/handoff-cli.test.ts
+      node --test src/handoff.test.ts src/tree.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
@@ -75,16 +64,38 @@ tasks:
         - "e08 B2"
   - id: 3
     description: >-
-      Add the handoff fields to docs/STATE.md and to the field table
-      (the e08s02 drift test must stay green). Update the AGENTS.md
+      RED, then GREEN. Write src/handoff-cli.test.ts first. It starts
+      the real CLI in makeTestRepo() repositories, runs "handoff write"
+      with JSON on stdin, and checks the state file: the block is
+      there, the other keys and the comments are byte-identical, and a
+      refused input leaves the file as it was. Then write
+      src/handoff-cli.ts as a thin shell on writeHandoff. Exit codes
+      as in the state CLI. It replaces the old four-key handoff block
+      of this repository's specs/state.yaml, so a repository that has
+      not written a new-style handoff is not an error
+    verify: >-
+      node --test src/handoff.test.ts src/handoff-cli.test.ts
+      && npm run typecheck
+    risk: P1
+    status: done
+    allure:
+      severity: high
+      categories:
+        - "engine"
+        - "e08 B2"
+  - id: 4
+    description: >-
+      List the handoff keys in docs/STATE.md and set the handoff row
+      to "engine (handoff CLI)"; stateFields does not change, and the
+      e08s02 drift test must stay green. Update the AGENTS.md
       Architecture section. Then run the AGENTS.md Preflight line
     verify: >-
-      grep -q 'handoff' AGENTS.md && grep -q 'written_at' docs/STATE.md
+      grep -q 'handoff-cli' AGENTS.md && grep -q 'written_at' docs/STATE.md
       && yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh
       && npm run typecheck && npm test
     risk: P3
-    status: todo
+    status: done
     allure:
       severity: minor
       categories:
