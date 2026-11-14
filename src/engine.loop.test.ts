@@ -226,3 +226,57 @@ test('AC-e09s02-13 an overridden run counts once, as the failed run it is', asyn
   assert.equal((await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 })).state, 'failed');
   assert.equal((await runEngine({ command: 'exit 2', cwd: repo, maxRuns: 3 })).state, 'exhausted');
 });
+
+// Review round 2 (2026-11-14).
+
+async function stderrOf(body: () => Promise<unknown>): Promise<string> {
+  const write = mock.method(process.stderr, 'write', () => true);
+  try {
+    await body();
+    return write.mock.calls.map((call) => String(call.arguments[0])).join('');
+  } finally {
+    write.mock.restore();
+  }
+}
+
+test('AC-e09s02-11 with maxRuns set, a passing run that cannot be written answers exhausted, not done', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a']);
+  chmodSync((await ledgerPath(repo)) as string, 0o400);
+  const answer = await quietly(() => runEngine({ command: 'true', cwd: repo, maxRuns: 5 }));
+  assert.equal(answer.state, 'exhausted');
+  assert.equal(answer.reason, 'no-ledger');
+  assert.equal(answer.done, false);
+});
+
+test('AC-e09s02-04 a refusal at the loop ceiling writes one state line with the loop threshold', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a', 'b', 'c']);
+  await runEngine({ command: 'exit 4', cwd: repo, maxRuns: 3 });
+  const lines = await readRepoStates(repo);
+  assert.equal(lines.length, 1);
+  const [line] = lines;
+  assert.deepEqual(
+    [line?.state, line?.command, line?.threshold, line?.runs, line?.failStreak],
+    ['exhausted', 'exit 4', 3, 0, 0],
+  );
+  assert.match(line?.detail ?? '', /3 runs since the last done, the loop ceiling is 3/);
+});
+
+test('AC-e09s02-12 a cut tail whose runs already reach maxRuns gives the count, not the cut', async () => {
+  const repo = makeTestRepo();
+  await seedLong(repo, 12);
+  const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 }));
+  assert.equal(answer.state, 'exhausted');
+  assert.match(answer.detail ?? '', /runs since the last done, the loop ceiling is 3/);
+});
+
+test('the note for an unreadable ledger says what happens, with and without maxRuns', async () => {
+  const repo = makeTestRepo();
+  mkdirSync((await ledgerPath(repo)) as string, { recursive: true });
+  const off = await stderrOf(() => runEngine({ command: 'exit 1', cwd: repo }));
+  assert.match(off, /ledger not read, stop rules off for this call/);
+  const on = await stderrOf(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 4 }));
+  assert.match(on, /ledger not read, the loop ceiling of 4 answers exhausted/);
+  assert.doesNotMatch(on, /stop rules off/);
+});
