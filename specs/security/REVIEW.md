@@ -1720,3 +1720,49 @@ not re-reviewed:
   tests.
 
 Verdict unchanged: PASS.
+
+# Security review for branch fix-bug-008-second-sigterm (BUG-008, fix-bug step 5)
+
+Reviewed 2026-11-14 at the branch head. Diff `main...fix-bug-008-second-sigterm`:
+src/claude-hook-cli.ts (the last four lines and the header comment),
+src/claude-hook-cli.signal.test.ts, the bug file. No new input, sink,
+dependency or spawn.
+
+## What changed
+
+The Stop hook used to write its answer with `process.stdout.write` and
+`process.stderr.write`, set `process.exitCode` and let the event loop end.
+It now ends through `leave`, as the deadline, signal and fault paths
+already did: `writeSync` of both streams, then `process.exit`.
+
+## The defect it closes (fail-open, CWE-754, T7)
+
+Node removes its signal handlers while it shuts down. A SIGTERM in that
+stretch got the default action and ended the hook by signal, not by exit
+2. The host reads a signal death as a non-blocking error, so the stop went
+ahead. Probe before the fix: a second SIGTERM sent 8 to 10 ms after the
+first ended the hook by signal in up to 25 of 25 runs, and 60 of 60 when
+sent as the block text arrived. After the fix: 400 of 400 runs ended in
+exit 2.
+
+## Checks
+
+- Output text is unchanged and still goes through the same `terminalSafe`
+  paths (F2 of e09s01). `writeSync` is the call the fault path already used.
+- A closed pipe: `leave` swallows the write error and still exits with the
+  answer's code, as before.
+- A large answer: `writeSync` to a full non-blocking pipe can throw
+  `EAGAIN`, and `leave` would then drop the text and still exit with the
+  code. Answers are one or two short lines, far below the 64 KiB pipe, so
+  this does not apply. Not tested.
+
+## Findings
+
+None at confidence 8 or more. Observation below the threshold: the engine
+CLI (`src/cli.ts`) still ends by letting the event loop drain, so a signal
+in the same stretch ends it by signal. That is not fail-open: its answer
+is `done` only with exit 0, and a signal death is not exit 0.
+
+## Verdict
+
+PASS. BUG-008 is closed by this fix.
