@@ -45,7 +45,8 @@ function note(text: string): void {
 }
 
 /** The ledger as read for the stop rules. `problem` says why the runs cannot
- * all be seen (null when they can); a missing ledger, or no git working
+ * all be seen (null when they can): the ledger cannot be read, or, after a
+ * run, the run's line was not written. A missing ledger, or no git working
  * tree, is an empty one. `truncated`: the tail was cut at the read cap. */
 type LedgerForRules = { entries: LedgerEntry[]; problem: string | null; truncated: boolean };
 
@@ -58,14 +59,17 @@ async function readEntries(path: string | null, maxRuns: number | undefined): Pr
     return { entries: [], problem: null, truncated: false };
   }
   const read = await readLedgerTail(path, ledgerReadCap);
+  // The notes run before the answer is known, so they say what follows for a
+  // run that is not done or killed, which a done or killed run is not.
+  const loop = `the loop ceiling of ${maxRuns} answers exhausted unless the run is done or killed`;
   if (!read.ok) {
-    const effect =
-      maxRuns === undefined ? 'stop rules off for this call' : `the loop ceiling of ${maxRuns} answers exhausted`;
-    note(`ledger not read, ${effect}: ${read.error}`);
+    note(`ledger not read, ${maxRuns === undefined ? 'stop rules off for this call' : loop}: ${read.error}`);
     return { entries: [], problem: 'the ledger cannot be read', truncated: false };
   }
   if (read.truncated) {
-    note('ledger tail was cut at the read cap, so older runs are not counted');
+    const hidden = read.entries.some((entry) => entry.done) || maxRuns === undefined;
+    const effect = hidden ? '' : `; with no done in it, ${loop}`;
+    note(`ledger tail was cut at the read cap, so older runs are not counted${effect}`);
   }
   return { entries: read.entries, problem: null, truncated: read.truncated };
 }
