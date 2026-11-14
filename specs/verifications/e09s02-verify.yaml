@@ -116,6 +116,24 @@ phases:
         expected: "the clone is gone"
         actual: "removed"
         passed: true
+  request_review:
+    passed: true
+    rounds: 3
+    scores_a_b: ["85.7/66.7", "50/66.7", "100/100"]
+    note: >-
+      Dual-blind AND-gate passed in round 3. Round 1: an unwritable ledger
+      and a cut tail hid runs from the count (fixed: both fail closed with
+      maxRuns set); the any-done reset documented as T1 (owner decision).
+      Round 2: docs (how to reset, the unlogged pass answers exhausted on
+      purpose) and tests. Round 3 consider items fixed after the pass and
+      checked by the second audit, not re-reviewed; three declined with
+      reasons in specs/security/REVIEW.md. specs/state.yaml was backed up
+      and its hash checked after every round: unchanged.
+  audit_second_run:
+    passed: true
+    head: 9c277da
+    tests: 818
+    note: "specs/verifications/AUDIT-e09-e09s02.md, second run section."
   gaps:
     closed: true
     note: >-

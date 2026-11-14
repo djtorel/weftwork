@@ -91,3 +91,24 @@ Preflight after the fixes: 799 of 799, exit 0.
   named in REVIEW.md.
 
 VERDICT: PASS
+
+## Second run, after request-review (2026-11-14, head 9c277da)
+
+Diff `e51df7d..9c277da`: the round 1 to round 3 fixes (src/engine.ts,
+src/gate.ts, src/budget.ts, tests, docs/BUDGET.md, the spec and
+REVIEW.md).
+
+- ✓ No new dependency, secret, `any`, `@ts-ignore`, `eslint-disable` or
+  `as unknown as`.
+- ✓ Functions at most 22 lines (`readEntries`, with its two notes, is
+  the longest); files under 300 (engine.ts 281, gate.ts 237).
+- ✓ New names are specific: `LedgerForRules`, `TrippedRule`,
+  `uncountedReason`, `runLoggedGate`, `LoggedVerdict`, `writeProblem`.
+- ✓ Every new rule has a test (AC-e09s02-11 to 13 and the round 3
+  pins); the gate's `runGate` keeps its contract and its tests.
+- ✓ All 20 commits carry `Story: e09s02`; no AI attribution.
+- ✓ Preflight 818 of 818, exit 0.
+- Declined review items and their reasons are in REVIEW.md (round 3
+  addendum).
+
+VERDICT: PASS
