@@ -62,8 +62,17 @@ function isTimeout(value: unknown): value is number {
 const maxBlockedLength = 1000;
 const maxThreshold = 1000;
 
-function isCount(value: unknown, min: number): value is number {
-  return isInteger(value) && value >= min && value <= maxThreshold;
+/** The engine's two stop-rule limits. The request and the budget setting
+ * files (e09s01) check them by the same rule. */
+export const limitKeys = ['stallAfter', 'maxFailures'] as const;
+export type LimitKey = (typeof limitKeys)[number];
+const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1 };
+
+/** Why `value` is not a valid `key` limit, or null when it is. */
+export function limitProblem(key: LimitKey, value: unknown): string | null {
+  const min = limitMin[key];
+  const valid = isInteger(value) && value >= min && value <= maxThreshold;
+  return valid ? null : `"${key}" must be an integer from ${min} to ${maxThreshold}`;
 }
 
 function isBlocked(value: unknown): value is string {
@@ -98,11 +107,9 @@ function optionalError(data: Record<string, unknown>): string | null {
   if (blocked !== undefined && !isBlocked(blocked)) {
     return `"blocked" must be text of 1 to ${maxBlockedLength} characters`;
   }
-  if (stallAfter !== undefined && !isCount(stallAfter, 2)) {
-    return `"stallAfter" must be an integer from 2 to ${maxThreshold}`;
-  }
-  if (maxFailures !== undefined && !isCount(maxFailures, 1)) {
-    return `"maxFailures" must be an integer from 1 to ${maxThreshold}`;
+  for (const [key, value] of [['stallAfter', stallAfter], ['maxFailures', maxFailures]] as const) {
+    const problem = value === undefined ? null : limitProblem(key, value);
+    if (problem !== null) return problem;
   }
   return null;
 }

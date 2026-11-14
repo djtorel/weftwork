@@ -38,7 +38,7 @@ tasks:
     verify: >-
       node --test src/budget.test.ts && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:
