@@ -120,9 +120,7 @@ export function resolveLimits(sources: BudgetSources): LimitsResult {
   }
   for (const key of limitKeys) {
     const asked = sources.request[key];
-    if (asked !== undefined && asked < limits[key]) {
-      limits[key] = asked;
-    }
+    if (asked !== undefined && asked < limits[key]) limits[key] = asked;
   }
   return { ok: true, limits };
 }
@@ -174,12 +172,7 @@ export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv):
   if (!user.ok) return user;
   const repo = readBudgetFile(await repoSettingPath(request.cwd), false);
   if (!repo.ok) return repo;
-  const asked: Partial<Limits> = {};
-  for (const key of limitKeys) {
-    const value = request[key];
-    if (value !== undefined) asked[key] = value;
-  }
-  const resolved = resolveLimits({ user: user.file, repo: repo.file, request: asked });
+  const resolved = resolveLimits({ user: user.file, repo: repo.file, request });
   if (!resolved.ok) return resolved;
   return { ok: true, request: { ...request, ...resolved.limits } };
 }

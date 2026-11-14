@@ -94,16 +94,6 @@ function readObject(text: string): Record<string, unknown> | string {
   return isRecord(data) ? data : 'input must be one JSON object';
 }
 
-/**
- * Read one JSON object with a non-empty string `command`, an optional
- * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
- * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
- * spaces), an integer `stallAfter` from 2 to 1000 and an integer
- * `maxFailures` from 1 to 1000. The budget setting files (docs/BUDGET.md)
- * then set the limits, and a request value is used only when it is lower
- * (e09s01). Other keys are ignored, since later stories
- * add keys. Returns a value for bad input, never throws.
- */
 /** The first problem with an optional engine key, or null when all are fine. */
 function optionalError(data: Record<string, unknown>): string | null {
   const { timeoutMs, blocked } = data;
@@ -129,6 +119,16 @@ function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
   );
 }
 
+/**
+ * Read one JSON object with a non-empty string `command`, an optional
+ * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
+ * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
+ * spaces), an integer `stallAfter` from 2 to 1000 and an integer
+ * `maxFailures` from 1 to 1000. The budget setting files (docs/BUDGET.md)
+ * then set the limits, and a request value is used only when it is lower
+ * (e09s01). Other keys are ignored, since later stories
+ * add keys. Returns a value for bad input, never throws.
+ */
 export function parseRequest(text: string, defaultCwd: string): ParseResult {
   const data = readObject(text);
   if (typeof data === 'string') {
