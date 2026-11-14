@@ -4,11 +4,11 @@
 # stderr text and is covered by a test, not by a new manual run. The
 # mechanical gates were re-run at the head below.
 story_id: e08s04
-verified_at: "2026-11-14T16:42:31Z"
+verified_at: "2026-11-14T18:05:00Z"
 verifier: verify-work
 risk: P1
 branch: e08s04-handoff-check
-head: 6651d64
+head: 5b0e6f7
 phases:
   smoke:
     passed: null
@@ -27,8 +27,8 @@ phases:
   tests:
     passed: true
     command: "npm test"
-    tests: 666
-    pass: 666
+    tests: 683
+    pass: 683
     fail: 0
     skipped: 0
   terminal_verdict:
@@ -36,10 +36,10 @@ phases:
       yamllint specs && bash tools/validate-specs-yaml.sh
       && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
     exit_code: 0
-    captured_at: "2026-11-14T16:42:31Z"
+    captured_at: "2026-11-14T18:05:00Z"
     note: >-
-      Single run at 6651d64, 666 of 666 tests, none skipped. The first
-      run, at 73928d7, gave 665 of 665.
+      Single run at 5b0e6f7, 683 of 683 tests, none skipped. Earlier runs:
+      665 at 73928d7, 666 at 6651d64.
   task_verifies:
     passed: true
     note: "All three verify: commands in e08s04-tasks.yaml exit 0."
@@ -75,6 +75,25 @@ phases:
     passed: true
     command: "bash scripts/verify-adversarial.sh"
     exit_code: 0
+  request_review:
+    passed: true
+    rounds: 3
+    scores_a_b: ["90.5/90.5", "88.9/95", "95.5/100"]
+    note: >-
+      Dual-blind AND-gate passed in round 3 (both at 94 or more, no
+      must-fix). Round 1 closed a false ready for a block without its
+      lists; round 2 completed the terminal escaping and the deleted
+      working directory; round 3's one should-fix (a deleted, already
+      uncommitted file is a documented limit) and four consider items
+      were fixed after the pass in 049ea57 and 5b0e6f7, checked by the
+      second audit and Preflight, not re-reviewed. In round 2 a reviewer
+      overwrote specs/state.yaml by accident; it was restored from HEAD
+      and the handoff re-applied; only uncommitted timing counters were
+      lost.
+  audit:
+    passed: true
+    report: specs/verifications/AUDIT-e08-e08s04.md
+    note: "Second run after request-review; assert-audit-story PASS."
   manual:
     status: passed
     verified_by: owner, 2026-11-14, scratch repository from mktemp -d

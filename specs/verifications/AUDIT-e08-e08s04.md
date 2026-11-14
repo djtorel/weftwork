@@ -97,3 +97,22 @@ The rule says 20, so it was split.
 
 Preflight at 98788f3: yamllint, validate-specs-yaml, check-gate-ignores,
 typecheck, and 667 of 667 tests, exit 0.
+
+## Second run after request-review (2026-11-14, at 5b0e6f7)
+
+Three dual-blind rounds changed the code after the first audit (round 1:
+dc031b7, 889e9cf; round 2: 6d8e034, d042966; round 3: 049ea57, 5b0e6f7).
+The checklist was run again on `git diff a9cdd43..5b0e6f7`:
+
+- ✓ Functions 20 lines or fewer (longest: `checkRepository`, 20); files
+  under 300 lines (`resume.ts` 97, `resume-cli.ts` 115, `cli-io.ts` 62,
+  `tree.ts` 201).
+- ✓ No `any`, `@ts-ignore`, `eslint-disable`, `as unknown as` or secrets.
+- ✓ Every fix has a test written first (RED commits above).
+- ✓ `terminalSafe` moved to `src/cli-io.ts` and is exported for every thin
+  CLI; its 8 non-test hits are uses, like `resumeReport`.
+- ✓ The `existsIn` and `fileProblem` duplication noted in the first run is
+  still accepted, for the same reason.
+- ✓ Preflight at 5b0e6f7: 683 of 683 tests, exit 0.
+
+Result: PASS.
