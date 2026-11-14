@@ -7,7 +7,7 @@
 // be used is an error value that names the file and the key, never a silent
 // fall back to the defaults.
 import { isAbsolute, join } from 'node:path';
-import { parseDocument } from 'yaml';
+import { parseDocument, type YAMLError } from 'yaml';
 import { defaultMaxFailures, defaultStallAfter } from './breaker.ts';
 import type { Failure } from './errors.ts';
 import { isLimit, limitKeys, limitRule, type GateRequest, type LimitKey, type ParseResult } from './gate.ts';
@@ -33,10 +33,23 @@ const builtIn: Limits = { maxFailures: defaultMaxFailures, stallAfter: defaultSt
 
 type BudgetCheck = { ok: true; budget: Partial<Limits> } | Failure;
 
+const maxReasonLength = 200;
+
 /** The first line of a yaml package message, without the file excerpt that
- * follows it: the reason stays one readable line and echoes less file text. */
+ * follows it and cut to 200 characters: the reason stays one readable line
+ * and echoes little file text (an alias name can be as long as the file). */
 function firstLine(message: string): string {
-  return (message.split('\n')[0] ?? '').replace(/:$/, '');
+  const line = (message.split('\n')[0] ?? '').replace(/:$/, '');
+  return line.length <= maxReasonLength ? line : `${line.slice(0, maxReasonLength - 1)}…`;
+}
+
+/** Why the YAML in a file is not valid, in the owner's words. The yaml
+ * package's text for a second document tells a programmer to call
+ * parseAllDocuments(), which the owner cannot act on. */
+function yamlError(error: YAMLError): string {
+  if (error.code !== 'MULTIPLE_DOCS') return `not valid YAML: ${firstLine(error.message)}`;
+  const at = error.linePos?.[0];
+  return `holds more than one YAML document${at === undefined ? '' : ` at line ${at.line}, column ${at.col}`}`;
 }
 
 /** The YAML in `file` as plain data, or why it is not valid YAML 1.2. The
@@ -45,7 +58,7 @@ function firstLine(message: string): string {
 function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
   const doc = parseDocument(file.text, { logLevel: 'error' });
   const first = doc.errors[0];
-  if (first !== undefined) return { ok: false, error: `not valid YAML: ${firstLine(first.message)}` };
+  if (first !== undefined) return { ok: false, error: yamlError(first) };
   const version = doc.directives.yaml.version;
   if (version !== '1.2') return { ok: false, error: `YAML ${version} is not supported; use YAML 1.2` };
   try {
