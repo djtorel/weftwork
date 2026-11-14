@@ -10,7 +10,7 @@ import { isAbsolute, join } from 'node:path';
 import { parseDocument, type YAMLError } from 'yaml';
 import { defaultMaxFailures, defaultStallAfter } from './breaker.ts';
 import type { Failure } from './errors.ts';
-import { isLimit, limitKeys, limitRule, type GateRequest, type LimitKey, type ParseResult } from './gate.ts';
+import { isLimit, limitKeys, limitRule, type GateRequest, type ParseResult } from './gate.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { repositoryRoot } from './tree.ts';

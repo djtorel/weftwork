@@ -46,13 +46,13 @@ function note(text: string): void {
 /** The ledger as read for the stop rules. `readable` is false only when the
  * ledger exists and cannot be read; a missing ledger, or no git working tree,
  * is an empty one. */
-type Read = { entries: LedgerEntry[]; readable: boolean };
+type LedgerForRules = { entries: LedgerEntry[]; readable: boolean };
 
 /** The entries in the capped tail of the ledger. A ledger that cannot be read
  * is no entries and a note: the stop rules are off for this call unless
  * maxRuns is set (F5), and done is not affected (a passing run still needs
  * the e06s03 write). */
-async function readEntries(path: string | null): Promise<Read> {
+async function readEntries(path: string | null): Promise<LedgerForRules> {
   if (path === null) {
     return { entries: [], readable: true };
   }
@@ -68,32 +68,36 @@ async function readEntries(path: string | null): Promise<Read> {
 }
 
 /** A tripped rule and the text the answer gives for it. */
-type Stop = { trip: Trip; detail: string };
+type TrippedRule = { trip: Trip; detail: string };
 
-/** The failure ceiling, then the loop ceiling; null when neither is reached.
- * With maxRuns set and the ledger unreadable, the loop cannot be counted, so
- * it is reached (F5). */
-function ceilingStop(read: Read, request: GateRequest): Stop | null {
-  const { entries } = read;
-  const failures = checkCeiling(entries, request.command, request.maxFailures ?? defaultMaxFailures);
-  if (failures !== null) {
-    return { trip: failures, detail: `${failures.count} failed runs in a row, the ceiling is ${failures.threshold}` };
-  }
-  const { maxRuns } = request;
+/** The failure ceiling, then the loop ceiling; null when neither is reached. */
+function ceilingStop(read: LedgerForRules, request: GateRequest): TrippedRule | null {
+  return failureStop(read.entries, request) ?? loopStop(read, request.maxRuns);
+}
+
+/** The failure ceiling of one command, or null. */
+function failureStop(entries: LedgerEntry[], request: GateRequest): TrippedRule | null {
+  const trip = checkCeiling(entries, request.command, request.maxFailures ?? defaultMaxFailures);
+  return trip === null ? null : { trip, detail: `${trip.count} failed runs in a row, the ceiling is ${trip.threshold}` };
+}
+
+/** The loop ceiling (e09s02), or null. With maxRuns set and the ledger
+ * unreadable the loop cannot be counted, so it is reached (F5). */
+function loopStop(read: LedgerForRules, maxRuns: number | undefined): TrippedRule | null {
   if (maxRuns !== undefined && !read.readable) {
     return {
       trip: { state: 'exhausted', threshold: maxRuns, count: 0 },
       detail: `the ledger cannot be read, so the loop ceiling of ${maxRuns} cannot be counted`,
     };
   }
-  const loop = checkLoopCeiling(entries, maxRuns);
-  return loop === null
+  const trip = checkLoopCeiling(read.entries, maxRuns);
+  return trip === null
     ? null
-    : { trip: loop, detail: `${loop.count} runs since the last done, the loop ceiling is ${loop.threshold}` };
+    : { trip, detail: `${trip.count} runs since the last done, the loop ceiling is ${trip.threshold}` };
 }
 
-/** The stall rule as a Stop, or null. */
-function stallStop(entries: LedgerEntry[], request: GateRequest): Stop | null {
+/** The stall rule, or null. */
+function stallStop(entries: LedgerEntry[], request: GateRequest): TrippedRule | null {
   const trip = checkStall(entries, request.command, request.stallAfter ?? defaultStallAfter);
   return trip === null
     ? null
@@ -152,7 +156,7 @@ function refused(request: GateRequest, state: State, detail: string): Answer {
 }
 
 /** Which state a finished run ends in, and the rule that tripped, if any. */
-function classify(verdict: Verdict, read: Read, request: GateRequest): [Answer, number | null] {
+function classify(verdict: Verdict, read: LedgerForRules, request: GateRequest): [Answer, number | null] {
   if (verdict.done) {
     return [{ ...verdict, state: 'done' }, null];
   }
