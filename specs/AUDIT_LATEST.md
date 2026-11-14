@@ -1,9 +1,9 @@
 # Audit (latest)
 
-Story: e09s01
-Branch: e09s01-budget-setting
-Full report: specs/verifications/AUDIT-e09-e09s01.md
-Mode: default (full checklist), second run after request-review (99ea55e)
-Result: PASS (first run four fixes; second run clean)
+Story: e09s02
+Branch: e09s02-loop-ceiling
+Full report: specs/verifications/AUDIT-e09-e09s02.md
+Mode: default (full checklist), first run after verify-work (a8cc9fe)
+Result: PASS (three fixes made in this audit)
 
 VERDICT: PASS
