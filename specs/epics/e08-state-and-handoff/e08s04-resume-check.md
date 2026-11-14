@@ -127,7 +127,11 @@ gain one export each and keep their contracts; their suites cover them.
   `next_skill`; `stale`: fix the repository or write a new handoff;
   `unverifiable` and `missing`: write a handoff with
   `node src/handoff-cli.ts`).
-- Exit codes as decision 6. The state file is never written.
+- Exit codes as decision 6. The state file is never written. A working
+  directory deleted under the process is exit 2 with one JSON line.
+- stdout and stderr write control characters, bidi controls and line
+  separators as `\uXXXX` (`terminalSafe` in `src/cli-io.ts`; security
+  review F1, request-review rounds 1 and 2).
 
 #### MODIFIED: the AGENTS.md Architecture section
 

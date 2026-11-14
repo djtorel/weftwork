@@ -1411,8 +1411,9 @@ against the author.
 - Exploit: a file in a cloned repository named with `\r`, cursor or
   erase-line sequences can redraw the terminal so a human sees
   `weftwork resume check: ready` over a `stale` answer.
-- Not affected: the exit code and the stdout JSON (`JSON.stringify` escapes
-  C0 controls). Agents and scripts that read those get the true answer.
+- Not affected: the exit code. The stdout JSON was only partly safe:
+  `JSON.stringify` escapes C0 controls but not C1 or bidi characters
+  (request-review round 2); see the addendum below.
 - Fix: print a path through `JSON.stringify` (or escape C0, DEL and C1) in
   the stderr text when it holds a control character.
 
@@ -1433,8 +1434,27 @@ unchanged: the check reuses `uncommittedPaths`. Owned by e10.
 PASS for the security gate: no HIGH finding at confidence 8 or more. F1 is
 LOW and does not block; fix recommended before audit-code.
 
-F1 fixed (owner decision 2026-11-14): `terminalSafe` in `src/resume-cli.ts`
+F1 fixed (owner decision 2026-11-14): `terminalSafe` (now in `src/cli-io.ts`)
 writes each C0, DEL and C1 control character as `\uXXXX` in the stderr
 text (reasons, notes, the next skill and the fault message). Pinned by a
 test in `src/resume-cli.test.ts` that names a file with ESC, CR and
 U+009B.
+
+## Addendum for e08s04 after request-review rounds 1 and 2 (2026-11-14)
+
+- `terminalSafe` moved to `src/cli-io.ts`. It now escapes every `\p{Cc}`
+  character (C0, DEL, C1), every `\p{Bidi_Control}` character (including
+  U+061C, U+200E and U+200F, which round 2 found missing) and U+2028 and
+  U+2029. `printAnswer` passes each JSON line through it, so the stdout of
+  every thin CLI is terminal-safe too; the line is the same JSON.
+- A working directory deleted under the process gave a stack trace and
+  exit 1; it is now exit 2 with one JSON line.
+- `currentBranch` no longer uses `--short` (a same-name tag gave
+  `heads/main`); a ref outside `refs/heads/` is not a branch.
+- A block without `files` or `uncommitted`, or with null lists, is
+  `unverifiable`, closing a false `ready` on a clean tree.
+- CLI tests now pin the `existsIn` refusals: a path outside the root, a
+  path under a symlinked folder that points outside, `.git/HEAD`; and a
+  dangling symlink counts as there.
+
+Verdict: PASS. No finding at confidence 8 or more; no new risk beyond A1.

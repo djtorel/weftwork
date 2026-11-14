@@ -9,7 +9,7 @@
 // an argument, the working directory is not in a git repository, git fails,
 // or the state file cannot be read or parsed (owner decision 6).
 import { lstatSync } from 'node:fs';
-import { printAnswer } from './cli-io.ts';
+import { printAnswer, terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { resumeReport, type ResumeReport } from './resume.ts';
@@ -64,14 +64,6 @@ async function checkRepository(cwd: string): Promise<Checked> {
   return { ok: true, report };
 }
 
-/** `text` with each C0, DEL and C1 control character, each bidi control and
- * the line and paragraph separators written as `\uXXXX`, so a file name or a
- * block value cannot drive or reorder the terminal (security review F1,
- * CWE-150; request-review round 1). Only the stderr text needs it. */
-function terminalSafe(text: string): string {
-  return text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`);
-}
-
 /** The next step for an answer. */
 function nextStep(report: ResumeReport): string {
   switch (report.answer) {
@@ -93,12 +85,23 @@ function stderrText(report: ResumeReport): string {
   return `weftwork resume check: ${report.answer}\n${reasons}${notes}${nextStep(report)}\n`;
 }
 
+/** The working directory, or a failure when it was deleted under the
+ * process: process.cwd() throws then (request-review round 2). */
+function workingDirectory(): string | Failure {
+  try {
+    return process.cwd();
+  } catch (error) {
+    return { ok: false, error: `the working directory cannot be read: ${messageOf(error)}` };
+  }
+}
+
 async function main(args: string[]): Promise<void> {
   if (args.length !== 0) {
     process.stderr.write('usage: node resume-cli.ts (no arguments)\n');
     return printAnswer({ ok: false, error: 'the resume check takes no arguments' }, 2);
   }
-  const checked = await checkRepository(process.cwd());
+  const cwd = workingDirectory();
+  const checked = typeof cwd === 'string' ? await checkRepository(cwd) : cwd;
   if (!checked.ok) {
     process.stderr.write(`weftwork resume check: ${terminalSafe(checked.error)}\n`);
     return printAnswer(checked, 2);

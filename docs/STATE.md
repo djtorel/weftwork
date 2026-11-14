@@ -79,17 +79,27 @@ run, and the next step on stderr. It never writes. The answer is one of:
 | Answer | Meaning | Exit |
 | ------ | ------- | ---- |
 | `ready` | the branch, the named files and git status match the block | 0 |
-| `stale` | the current branch is not `branch` (or HEAD is detached), a path in `files` does not exist, or a path is uncommitted now that `uncommitted` does not list; every reason is listed | 1 |
-| `unverifiable` | the block has no `branch`, `files` or `uncommitted`, or one of them is null or of the wrong type | 1 |
+| `stale` | HEAD is not on `branch` (another branch, detached, or a ref outside `refs/heads/`), a path in `files` is not found inside the repository, or a path is uncommitted now that `uncommitted` does not list; every reason is listed | 1 |
+| `unverifiable` | the block is not a mapping, has no `branch`, `files` or `uncommitted`, or one of them is null or of the wrong type | 1 |
 | `missing` | the state file has no `handoff` block | 1 |
 
 A path that `uncommitted` lists and that git status no longer lists is a
 note, not a reason.
 
 `ready` means the same paths are uncommitted, not the same content. It
-cannot see a new file inside an untracked folder that `uncommitted`
-already lists (`out/`), more edits to a file that was already uncommitted,
-ignored files, or commits made on the branch since the handoff. `specs/state.yaml` is always left out. Exit 2 means the check could
-not run: an argument was given, the folder is not in a git repository, git
-failed, or the state file cannot be read. After `kickoff-branch` the branch
-is the story branch, so the check answers `stale`; that is expected.
+sees only what `git status` lists. It cannot see a new file inside an
+untracked folder that `uncommitted` already lists (`out/`), more edits to
+a file that was already uncommitted, ignored files, files marked
+`assume-unchanged` or `skip-worktree`, a submodule set to `ignore = all`,
+or commits made on the branch since the handoff. It does not check the
+note or `next_skill`.
+
+`specs/state.yaml` is always left out. Exit 2 means the check could not
+run: an argument was given, the working directory is gone or not in a git
+repository, git failed, or the state file cannot be read. After
+`kickoff-branch` the branch is the story branch, so the check answers
+`stale`; that is expected.
+
+Every CLI line on stdout and the check's stderr text write control
+characters, bidi controls and line separators as `\uXXXX`
+(`terminalSafe` in `src/cli-io.ts`).

@@ -1,4 +1,4 @@
-// story: e08s01, e08s03
+// story: e08s01, e08s03, e08s04
 // Input and output for the thin JSON CLIs (state-cli.ts, handoff-cli.ts): all
 // of stdin up to a byte limit, read as strict UTF-8 and parsed as one JSON
 // object, and one JSON line on stdout with the exit code. A limit is a
@@ -45,8 +45,18 @@ export async function readJsonObject(): Promise<JsonRequest> {
   return isRecord(input) ? { kind: 'input', input } : { kind: 'refused', error: 'stdin must be a JSON object' };
 }
 
-/** Print `result` as one JSON line and set the exit code. */
+/** `text` with each control character (C0, DEL, C1), each bidi control and
+ * the line and paragraph separators written as `\uXXXX`, so a file name in
+ * a CLI's output cannot drive or reorder the terminal (e08s04 security
+ * review F1, CWE-150; request-review rounds 1 and 2). In a JSON line the
+ * result is still the same JSON: these characters occur only in strings. */
+export function terminalSafe(text: string): string {
+  return text.replace(/[\p{Cc}\p{Bidi_Control}\u2028\u2029]/gu, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
+/** Print `result` as one JSON line and set the exit code. JSON.stringify
+ * escapes C0 only, so the line also goes through terminalSafe. */
 export function printAnswer(result: object, exitCode: number): void {
-  process.stdout.write(`${JSON.stringify(result)}\n`);
+  process.stdout.write(`${terminalSafe(JSON.stringify(result))}\n`);
   process.exitCode = exitCode;
 }

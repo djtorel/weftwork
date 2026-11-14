@@ -15,7 +15,8 @@ import { isRecord } from './json.ts';
 
 /** What the repository says now. `uncommitted` leaves out specs/state.yaml. */
 export type ResumeFacts = {
-  /** The branch HEAD points to, or null for a detached HEAD. */
+  /** The branch HEAD points to, or null when it is on none: detached, or a
+   * ref outside refs/heads/. */
   branch: string | null;
   uncommitted: readonly string[];
   /** True when the path, relative to the root, exists (not followed). */
@@ -52,7 +53,7 @@ function checkable(handoff: Record<string, unknown>): { ok: true; block: Checkab
 function staleReasons(block: Checkable, facts: ResumeFacts): string[] {
   const reasons: string[] = [];
   if (facts.branch === null) {
-    reasons.push(`HEAD is detached; the handoff starts on branch ${block.branch}`);
+    reasons.push(`HEAD is not on a branch (detached, or a ref outside refs/heads/); the handoff starts on branch ${block.branch}`);
   } else if (facts.branch !== block.branch) {
     reasons.push(`the current branch is ${facts.branch}; the handoff starts on branch ${block.branch}`);
   }
