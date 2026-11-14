@@ -73,7 +73,7 @@ tasks:
       src/cli.ledger.test.ts src/cli.states.test.ts
       && npm run typecheck
     risk: P1
-    status: todo
+    status: done
     allure:
       severity: high
       categories:

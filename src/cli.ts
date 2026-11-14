@@ -7,7 +7,8 @@
 // cannot tell a real check from `true` (threat model T1, C1).
 //
 // One exit code per state (src/states.ts): 0 done, 1 failed (not done, no stop
-// rule tripped, a retry is allowed), 2 input it cannot read, 3 blocked, 4
+// rule tripped, a retry is allowed), 2 input it cannot read (or a budget
+// setting file it cannot use, docs/BUDGET.md), 3 blocked, 4
 // stalled, 5 exhausted, 6 killed, 7 overridden. Only 0 means done. The JSON
 // line holds the "state", the verdict ("done", "exitCode", "reason",
 // "command" and the "fingerprint" of the tree taken before the run) and, for
@@ -33,6 +34,7 @@
 // ledger stores the command string, so a secret in a declared command is
 // stored on disk. Do not put secrets in a command. A passing run that
 // cannot be logged is not done, with the reason "no-ledger".
+import { applyBudget } from './budget.ts';
 import { runEngine } from './engine.ts';
 import { parseRequest } from './gate.ts';
 import { badInputExitCode, exitCodes } from './states.ts';
@@ -124,12 +126,14 @@ for (const name of ['SIGTERM', 'SIGINT'] as const) {
 const read = await readInput(controller.signal);
 if (read.ok) {
   const parsed = parseRequest(read.text, process.cwd());
-  if (parsed.ok) {
-    const answer = await runEngine(parsed.request, controller.signal);
+  // The budget setting files set the limits (e09s01); a bad file is bad input.
+  const budgeted = parsed.ok ? await applyBudget(parsed.request, process.env) : parsed;
+  if (budgeted.ok) {
+    const answer = await runEngine(budgeted.request, controller.signal);
     print(answer);
     process.exitCode = exitCodes[answer.state];
   } else {
-    failUnreadable(parsed.error);
+    failUnreadable(budgeted.error);
   }
 } else if (read.reason === 'aborted') {
   // Nothing ran and no command is known, so nothing is logged.
