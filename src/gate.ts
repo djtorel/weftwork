@@ -68,12 +68,15 @@ export const limitKeys = ['stallAfter', 'maxFailures'] as const;
 export type LimitKey = (typeof limitKeys)[number];
 const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1 };
 
-/** The rule `value` breaks as a `key` limit ("must be ..."), or null when it
- * is valid. Each caller names the key its own way. */
-export function limitProblem(key: LimitKey, value: unknown): string | null {
-  const min = limitMin[key];
-  const valid = isInteger(value) && value >= min && value <= maxThreshold;
-  return valid ? null : `must be an integer from ${min} to ${maxThreshold}`;
+/** True when `value` is a valid `key` limit: an integer in its range. */
+export function isLimit(key: LimitKey, value: unknown): value is number {
+  return isInteger(value) && value >= limitMin[key] && value <= maxThreshold;
+}
+
+/** The rule a `key` limit must meet ("must be ..."), for error text. Each
+ * caller names the key its own way. */
+export function limitRule(key: LimitKey): string {
+  return `must be an integer from ${limitMin[key]} to ${maxThreshold}`;
 }
 
 function isBlocked(value: unknown): value is string {
@@ -101,16 +104,16 @@ function readObject(text: string): Record<string, unknown> | string {
  */
 /** The first problem with an optional engine key, or null when all are fine. */
 function optionalError(data: Record<string, unknown>): string | null {
-  const { timeoutMs, blocked, stallAfter, maxFailures } = data;
+  const { timeoutMs, blocked } = data;
   if (timeoutMs !== undefined && !isTimeout(timeoutMs)) {
     return `"timeoutMs" must be an integer from 1 to ${maxTimeoutMs}`;
   }
   if (blocked !== undefined && !isBlocked(blocked)) {
     return `"blocked" must be text of 1 to ${maxBlockedLength} characters`;
   }
-  for (const [key, value] of [['stallAfter', stallAfter], ['maxFailures', maxFailures]] as const) {
-    const problem = value === undefined ? null : limitProblem(key, value);
-    if (problem !== null) return `"${key}" ${problem}`;
+  for (const key of limitKeys) {
+    const value = data[key];
+    if (value !== undefined && !isLimit(key, value)) return `"${key}" ${limitRule(key)}`;
   }
   return null;
 }

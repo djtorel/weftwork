@@ -35,7 +35,7 @@
 // stored on disk. Do not put secrets in a command. A passing run that
 // cannot be logged is not done, with the reason "no-ledger".
 import { applyBudget } from './budget.ts';
-import { terminalSafe } from './cli-io.ts';
+import { printAnswer } from './cli-io.ts';
 import { runEngine } from './engine.ts';
 import { parseRequest } from './gate.ts';
 import { badInputExitCode, exitCodes } from './states.ts';
@@ -109,16 +109,11 @@ function readInput(signal: AbortSignal): Promise<Read> {
   });
 }
 
-/** One JSON line. JSON.stringify escapes C0 only, and an error can hold text
- * from a setting file the agent can write (security review F2, CWE-150). */
-function print(line: object): void {
-  process.stdout.write(`${terminalSafe(JSON.stringify(line))}\n`);
-}
-
-/** Unreadable input: one JSON line with the reason, exit 2. */
+/** Unreadable input: one JSON line with the reason, exit 2. printAnswer
+ * escapes control characters, since an error can hold text from a setting
+ * file the agent can write (security review F2, CWE-150). */
 function failUnreadable(error: string): void {
-  print({ done: false, error });
-  process.exitCode = badInputExitCode;
+  printAnswer({ done: false, error }, badInputExitCode);
 }
 
 const controller = new AbortController();
@@ -133,15 +128,13 @@ if (read.ok) {
   const budgeted = parsed.ok ? await applyBudget(parsed.request, process.env) : parsed;
   if (budgeted.ok) {
     const answer = await runEngine(budgeted.request, controller.signal);
-    print(answer);
-    process.exitCode = exitCodes[answer.state];
+    printAnswer(answer, exitCodes[answer.state]);
   } else {
     failUnreadable(budgeted.error);
   }
 } else if (read.reason === 'aborted') {
   // Nothing ran and no command is known, so nothing is logged.
-  print({ done: false, exitCode: null, reason: 'killed', state: 'killed' });
-  process.exitCode = exitCodes.killed;
+  printAnswer({ done: false, exitCode: null, reason: 'killed', state: 'killed' }, exitCodes.killed);
 } else {
   failUnreadable(
     read.reason === 'too-large'

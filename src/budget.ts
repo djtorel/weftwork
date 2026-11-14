@@ -10,7 +10,7 @@ import { isAbsolute, join } from 'node:path';
 import { parseDocument } from 'yaml';
 import { defaultMaxFailures, defaultStallAfter } from './breaker.ts';
 import type { Failure } from './errors.ts';
-import { limitKeys, limitProblem, type GateRequest, type LimitKey, type ParseResult } from './gate.ts';
+import { isLimit, limitKeys, limitRule, type GateRequest, type LimitKey, type ParseResult } from './gate.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { repositoryRoot } from './tree.ts';
@@ -82,9 +82,8 @@ function checkLimits(budget: Record<string, unknown>): BudgetCheck {
   for (const key of limitKeys) {
     const value = budget[key];
     if (value === undefined) continue;
-    const problem = limitProblem(key, value);
-    if (problem !== null) return { ok: false, error: `budget.${key} ${problem}` };
-    limits[key] = value as number; // limitProblem accepted it: an integer in range
+    if (!isLimit(key, value)) return { ok: false, error: `budget.${key} ${limitRule(key)}` };
+    limits[key] = value;
   }
   return { ok: true, budget: limits };
 }
