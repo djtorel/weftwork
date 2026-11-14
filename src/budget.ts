@@ -193,7 +193,7 @@ function readBudgetFile(path: string | null, follow: boolean): BudgetFileRead {
   return { ok: true, file: read.file === null ? null : { path, text: read.file.text } };
 }
 
-/** `request` with both limits set from the setting files, or the first
+/** `request` with its limits set from the setting files, or the first
  * problem with a file. Resolves, never rejects. */
 export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv): Promise<ParseResult> {
   const user = readBudgetFile(userSettingPath(env), true);

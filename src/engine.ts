@@ -5,12 +5,13 @@
 // Order, first match wins: exhausted (counted from the ledger, before the
 // run, so no later pass can undo it: the failure ceiling, then the loop
 // ceiling of e09s02), blocked (the worker's own word), then the run. After a
-// run: done, killed, exhausted, stalled, failed. With maxRuns set, a ledger
-// that cannot be read is exhausted, since the loop cannot be counted (F5). A failed or
-// stalled run may then take the owner's override record and answer overridden
-// (e06s05); no other state looks at the record.
+// run: done, killed, exhausted, stalled, failed. With maxRuns set, a loop
+// that cannot be counted is exhausted: a ledger that cannot be read (F5), a
+// run line that cannot be written, or a cut tail with no done. A failed or
+// stalled run may then take the owner's override record and answer
+// overridden (e06s05); no other state looks at the record.
 //
-// `done` comes only from runGate, which never reads the ledger (C4). The
+// `done` comes only from the gate, which never reads the ledger (C4). The
 // ledger only decides which not-done state a run ends in. The agent can edit
 // the ledger, so it can erase failures to defeat a stop rule, or add failures
 // to force one; it cannot make `done` (threat model T3).
@@ -23,7 +24,7 @@ import {
   checkStall,
   type Trip,
 } from './breaker.ts';
-import { runGate, type GateRequest, type Verdict } from './gate.ts';
+import { runLoggedGate, type GateRequest, type Verdict } from './gate.ts';
 import {
   appendState,
   failingRun,
@@ -43,10 +44,10 @@ function note(text: string): void {
   process.stderr.write(`weftwork: ${text}\n`);
 }
 
-/** The ledger as read for the stop rules. `readable` is false only when the
- * ledger exists and cannot be read; a missing ledger, or no git working tree,
- * is an empty one. */
-type LedgerForRules = { entries: LedgerEntry[]; readable: boolean };
+/** The ledger as read for the stop rules. `problem` says why the runs cannot
+ * all be seen (null when they can); a missing ledger, or no git working
+ * tree, is an empty one. `truncated`: the tail was cut at the read cap. */
+type LedgerForRules = { entries: LedgerEntry[]; problem: string | null; truncated: boolean };
 
 /** The entries in the capped tail of the ledger. A ledger that cannot be read
  * is no entries and a note: the stop rules are off for this call unless
@@ -54,21 +55,25 @@ type LedgerForRules = { entries: LedgerEntry[]; readable: boolean };
  * the e06s03 write). */
 async function readEntries(path: string | null): Promise<LedgerForRules> {
   if (path === null) {
-    return { entries: [], readable: true };
+    return { entries: [], problem: null, truncated: false };
   }
   const read = await readLedgerTail(path, ledgerReadCap);
   if (!read.ok) {
-    note(`ledger not read, so the stop rules cannot count this call: ${read.error}`);
-    return { entries: [], readable: false };
+    note(`ledger not read, stop rules off for this call unless maxRuns is set: ${read.error}`);
+    return { entries: [], problem: 'the ledger cannot be read', truncated: false };
   }
   if (read.truncated) {
     note('ledger tail was cut at the read cap, so older runs are not counted');
   }
-  return { entries: read.entries, readable: true };
+  return { entries: read.entries, problem: null, truncated: read.truncated };
 }
 
-/** A tripped rule and the text the answer gives for it. */
-type TrippedRule = { trip: Trip; detail: string };
+/** A tripped rule: its state, its threshold, and the text the answer gives. */
+type TrippedRule = Pick<Trip, 'state' | 'threshold'> & { detail: string };
+
+function tripped(trip: Trip, detail: string): TrippedRule {
+  return { state: trip.state, threshold: trip.threshold, detail };
+}
 
 /** The failure ceiling, then the loop ceiling; null when neither is reached. */
 function ceilingStop(read: LedgerForRules, request: GateRequest): TrippedRule | null {
@@ -78,30 +83,35 @@ function ceilingStop(read: LedgerForRules, request: GateRequest): TrippedRule | 
 /** The failure ceiling of one command, or null. */
 function failureStop(entries: LedgerEntry[], request: GateRequest): TrippedRule | null {
   const trip = checkCeiling(entries, request.command, request.maxFailures ?? defaultMaxFailures);
-  return trip === null ? null : { trip, detail: `${trip.count} failed runs in a row, the ceiling is ${trip.threshold}` };
+  return trip === null ? null : tripped(trip, `${trip.count} failed runs in a row, the ceiling is ${trip.threshold}`);
 }
 
-/** The loop ceiling (e09s02), or null. With maxRuns set and the ledger
- * unreadable the loop cannot be counted, so it is reached (F5). */
+/** The loop ceiling (e09s02), or null. A loop that cannot be counted is
+ * reached: the ledger cannot be read (F5), the run line was not written, or
+ * the tail was cut with no done in it, so older runs of the loop are hidden. */
 function loopStop(read: LedgerForRules, maxRuns: number | undefined): TrippedRule | null {
-  if (maxRuns !== undefined && !read.readable) {
-    return {
-      trip: { state: 'exhausted', threshold: maxRuns, count: 0 },
-      detail: `the ledger cannot be read, so the loop ceiling of ${maxRuns} cannot be counted`,
-    };
+  if (maxRuns === undefined) {
+    return null;
   }
   const trip = checkLoopCeiling(read.entries, maxRuns);
-  return trip === null
-    ? null
-    : { trip, detail: `${trip.count} runs since the last done, the loop ceiling is ${trip.threshold}` };
+  const problem = read.problem ?? (trip === null ? cutWithNoDone(read) : null);
+  if (problem !== null) {
+    const detail = `${problem}, so the loop ceiling of ${maxRuns} cannot be counted`;
+    return { state: 'exhausted', threshold: maxRuns, detail };
+  }
+  return trip === null ? null : tripped(trip, `${trip.count} runs since the last done, the loop ceiling is ${trip.threshold}`);
+}
+
+/** Why the tail hides runs of this loop, or null: it was cut and holds no done,
+ * so the loop began before the tail. */
+function cutWithNoDone(read: LedgerForRules): string | null {
+  return read.truncated && !read.entries.some((entry) => entry.done) ? 'the ledger tail was cut with no done in it' : null;
 }
 
 /** The stall rule, or null. */
 function stallStop(entries: LedgerEntry[], request: GateRequest): TrippedRule | null {
   const trip = checkStall(entries, request.command, request.stallAfter ?? defaultStallAfter);
-  return trip === null
-    ? null
-    : { trip, detail: `${trip.count} failed runs in a row on the same tree with the same failure` };
+  return trip === null ? null : tripped(trip, `${trip.count} failed runs in a row on the same tree with the same failure`);
 }
 
 /** One state line to write: the answer, the ledger as read, and the number
@@ -167,7 +177,7 @@ function classify(verdict: Verdict, read: LedgerForRules, request: GateRequest):
   if (stop === null) {
     return [{ ...verdict, state: 'failed' }, null];
   }
-  return [{ ...verdict, state: stop.trip.state, detail: stop.detail }, stop.trip.threshold];
+  return [{ ...verdict, state: stop.state, detail: stop.detail }, stop.threshold];
 }
 
 /** The answer for a run that must not start: a ceiling is reached or the
@@ -177,7 +187,7 @@ async function refusedBeforeRun(path: string | null, request: GateRequest): Prom
   const stop = ceilingStop(before, request);
   if (stop !== null) {
     const answer = refused(request, 'exhausted', stop.detail);
-    await logState({ path, entries: before.entries, answer, threshold: stop.trip.threshold });
+    await logState({ path, entries: before.entries, answer, threshold: stop.threshold });
     return answer;
   }
   if (request.blocked !== undefined) {
@@ -186,6 +196,12 @@ async function refusedBeforeRun(path: string | null, request: GateRequest): Prom
     return answer;
   }
   return null;
+}
+
+/** The ledger as read after a run whose line could not be written: the run
+ * is missing from it, so the loop cannot be counted (e09s02 review). */
+function withWriteProblem(read: LedgerForRules, writeFailed: boolean): LedgerForRules {
+  return writeFailed ? { ...read, problem: read.problem ?? 'the run could not be written to the ledger' } : read;
 }
 
 /**
@@ -198,8 +214,8 @@ export async function runEngine(request: GateRequest, signal?: AbortSignal): Pro
   if (refusal !== null) {
     return refusal;
   }
-  const verdict = await runGate(request, signal);
-  const after = await readEntries(path);
+  const { verdict, writeFailed } = await runLoggedGate(request, signal);
+  const after = withWriteProblem(await readEntries(path), writeFailed);
   const [answer, threshold] = classify(verdict, after, request);
   const overridden = await overrideAnswer({ path, entries: after.entries, answer, threshold }, verdict);
   if (overridden !== null) {

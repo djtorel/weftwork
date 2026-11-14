@@ -126,10 +126,11 @@ function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
  * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
  * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
  * spaces), an integer `stallAfter` from 2 to 1000, an integer
- * `maxFailures` from 1 to 1000 and an integer `maxRuns` from 1 to 1000. The budget setting files (docs/BUDGET.md)
- * then set the limits, and a request value is used only when it is lower
- * (e09s01). Other keys are ignored, since later stories
- * add keys. Returns a value for bad input, never throws.
+ * `maxFailures` from 1 to 1000 and an integer `maxRuns` from 1 to 1000.
+ * The budget setting files (docs/BUDGET.md) then set the limits, and a
+ * request value is used only when it is lower (e09s01). Other keys are
+ * ignored, since later stories add keys. Returns a value for bad input,
+ * never throws.
  */
 export function parseRequest(text: string, defaultCwd: string): ParseResult {
   const data = readObject(text);
@@ -199,19 +200,30 @@ function note(text: string): void {
   process.stderr.write(`weftwork: ${text}\n`);
 }
 
+/** A verdict, and whether writing its ledger line failed. With no git
+ * working tree there is no ledger, which is not a failed write. */
+export type LoggedVerdict = { verdict: Verdict; writeFailed: boolean };
+
 /**
  * Log the verdict, whatever it is. A `passed` verdict that cannot be logged
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(cwd: string, verdict: Verdict): Promise<Verdict> {
+async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
   const path = await ledgerPath(cwd);
   const result = path === null ? null : await appendEntry(path, verdict, new Date());
   if (result?.ok) {
-    return verdict;
+    return { verdict, writeFailed: false };
   }
   note(`ledger not written: ${result === null ? 'no git working tree' : result.error}`);
-  return verdict.reason === 'passed' ? { ...verdict, done: false, reason: 'no-ledger' } : verdict;
+  const kept = verdict.reason === 'passed' ? { ...verdict, done: false, reason: 'no-ledger' as const } : verdict;
+  return { verdict: kept, writeFailed: result !== null };
+}
+
+/** `runGate`, and whether the ledger line could not be written: the engine
+ * needs it to count the loop (e09s02). */
+export async function runLoggedGate(request: GateRequest, signal?: AbortSignal): Promise<LoggedVerdict> {
+  return record(request.cwd, await decide(request, signal));
 }
 
 /**
@@ -220,5 +232,5 @@ async function record(cwd: string, verdict: Verdict): Promise<Verdict> {
  * runs, the whole process group is killed and the reason is `killed`.
  */
 export async function runGate(request: GateRequest, signal?: AbortSignal): Promise<Verdict> {
-  return record(request.cwd, await decide(request, signal));
+  return (await runLoggedGate(request, signal)).verdict;
 }
