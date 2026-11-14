@@ -449,64 +449,53 @@ waivers:
   date: 2026-11-14
   scope: e08s04 only
 handoff:
-  next_skill: slice-tasks
-  next_story: null
+  next_skill: kickoff-branch
+  next_story: e09s01
   next_epic: "e09"
   branch: main
-  written_at: "2026-11-14T17:27:24Z"
+  written_at: "2026-11-14T17:51:43Z"
   files:
     - specs/epics/e09-budget-and-ceilings/epic.yaml
-    - specs/release-plan.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
+    - specs/security/REVIEW.md
     - docs/STATE.md
-    - docs/research/SYNTHESIS.md
   uncommitted:
-    - specs/epics/archive/e08-state-and-handoff/e08s01-state-writer.md
-    - specs/epics/archive/e08-state-and-handoff/e08s01-tasks.yaml
-    - specs/epics/archive/e08-state-and-handoff/e08s02-state-fields.md
-    - specs/epics/archive/e08-state-and-handoff/e08s02-tasks.yaml
-    - specs/epics/archive/e08-state-and-handoff/e08s03-handoff.md
-    - specs/epics/archive/e08-state-and-handoff/e08s03-tasks.yaml
-    - specs/epics/archive/e08-state-and-handoff/e08s04-resume-check.md
-    - specs/epics/archive/e08-state-and-handoff/e08s04-tasks.yaml
-    - specs/epics/archive/e08-state-and-handoff/epic.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s02-tasks.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s03-tasks.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s04-tasks.yaml
+    - specs/epics/e09-budget-and-ceilings/epic.yaml
     - specs/execution-status.yaml
-    - specs/metrics/cycle-times.md
     - specs/release-plan.yaml
-  note: "e08 (state and handoff, B2) is closed on 2026-11-14 with e08s04, the
-    resume check, released by squash-merged PR from branch e08s04-handoff-check.
-    All four e08 stories are done, the capsule is archived in
-    specs/epics/archive/e08-state-and-handoff, and the status is reconciled in
-    epic.yaml, execution-status.yaml and release-plan.yaml. Start the next
-    session with node src/resume-cli.ts in the repository root: on main it
-    should answer ready (exit 0); read docs/STATE.md section Checking the
-    handoff at resume for what ready cannot see. Next in execution order (owner
-    decision 2026-11-14): e09 (B5, budget and ceilings). e09 has only its
-    epic.yaml, so start in a fresh session with slice-tasks, on a new branch
-    made with git checkout -b in this checkout (not a worktree). The e08 waivers
-    in specs/state.yaml are history and need no renewal: no e08 story is undone.
-    The gate-trace waiver for e08s04 (R4 and the oracle downgrade: the research
-    epics e01 to e05 carry no code tags) was for that story only, so the next
-    release will meet the same FAIL; put it to the owner again. Write the
-    handoff only with node src/handoff-cli.ts and the state fields with node
-    src/state-cli.ts. Owned by e09: residual F5. Owned by e10: accepted risk A1
-    (git status runs a clean filter named in .git/config), the e08s01 spec
-    section 6 path risks, GIT_DIR and GIT_INDEX_FILE inherited by git, the
-    symlinked git-dir directory and the size caps checked by fstat then read to
-    EOF. Deferred to e11: calling the resume check from the entry command; a
-    SessionStart hook only if the owner asks. Lesson from e08s04: tell
-    request-review reviewers to guard every cd and check pwd before any command
-    that writes; a reviewer overwrote specs/state.yaml in round 2. Pushes, PRs
-    and merges need an explicit go-ahead each. Do not run
+  note: "e09 (budget and ceilings, B5) was sliced on 2026-11-14 into four stories
+    of 18 BCPs, on branch e09-slice: e09s01 budget setting file (tracer, 5),
+    e09s02 loop ceiling over the whole loop, off by default (5), e09s03 handover
+    reserve (3), e09s04 always-on budget and token report (5). Read
+    specs/epics/e09-budget-and-ceilings/epic.yaml and the e09s01 tasks file;
+    each tasks file lists its open choices with a recommendation at the top, and
+    plan-work puts them to the owner. Start in a fresh session on main with
+    kickoff-branch for e09s01, then plan-work; make the branch with git checkout
+    -b in this checkout (not a worktree). Owner decision needed before e09s02:
+    the residual F5 answer (recommendation: with maxRuns set, an unreadable
+    ledger answers exhausted). The gate-trace waiver of e08s04 was for that
+    story only; the next release meets the same R4 FAIL from the untagged
+    research epics e01 to e05, so put it to the owner again. Owned by e10:
+    accepted risk A1, the e08s01 spec section 6 path risks, GIT_DIR and
+    GIT_INDEX_FILE inherited by git, the symlinked git-dir directory, the fstat
+    size caps, and protecting weftwork.yaml from the agent. Deferred to e11:
+    calling the resume check from the entry command. Write the handoff only with
+    node src/handoff-cli.ts and state fields with node src/state-cli.ts. Tell
+    request-review reviewers to guard every cd and check pwd before any write.
+    Pushes, PRs and merges need an explicit go-ahead each. Do not run
     scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
-    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD. Owner
-    declined a backfill of the e07s04 cycle-time row."
+    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
     survey-context:
-      calls: 30
-      total_seconds: 492.0
-      avg_seconds: 16.4
+      calls: 31
+      total_seconds: 509.0
+      avg_seconds: 16.419354838709676
     plan-work:
       calls: 32
       total_seconds: 18244.0

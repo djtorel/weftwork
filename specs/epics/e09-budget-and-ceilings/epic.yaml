@@ -10,7 +10,46 @@ done_when: >-
   A per-repository budget setting with a user-level default, engine
   counted ceilings over the whole loop, a handover reserve and
   always-on cost reporting
-stories: []
+total_bcps: 18
+stories:
+  - id: e09s01
+    title: The owner sets the engine's limits in a budget setting file
+    bcps: 5
+    status: todo
+    tasks: e09s01-tasks.yaml
+    delta: MODIFIED
+  - id: e09s02
+    title: The engine stops the whole loop at a counted ceiling
+    bcps: 5
+    status: todo
+    tasks: e09s02-tasks.yaml
+    delta: ADDED
+  - id: e09s03
+    title: The engine keeps a reserve so a hard stop leaves a handoff
+    bcps: 3
+    status: todo
+    tasks: e09s03-tasks.yaml
+    delta: ADDED
+  - id: e09s04
+    title: Every answer shows the budget used, and Claude Code shows tokens
+    bcps: 5
+    status: todo
+    tasks: e09s04-tasks.yaml
+    delta: MODIFIED
 # Candidate epic B5 in docs/research/SYNTHESIS.md [S15][S9].
 # The per-repository budget setting is a candidate requirement of the
 # owner; its defaults are untested. The spend cap stays deferred.
+# Sliced 2026-11-14 (slice-tasks). Order e09s01 to e09s04, one story
+# at a time. e09s01 is the tracer: the owner writes a setting file and
+# the engine's answer changes. e09s02 adds the ceiling over the whole
+# loop, off by default, and owns residual F5. e09s03 adds the handover
+# reserve on top of that ceiling. e09s04 adds the always-on report,
+# which shows the counts of s01 and s02. Each story lists its own open
+# choices, with a recommendation, at the top of its tasks file;
+# plan-work puts them to the owner.
+# WSJF stays 2.6; its size term is the planner's estimate, not BCPs.
+# Owner decisions needed before e09s01 starts: none that block it.
+# Before e09s02: the F5 answer (an unreadable ledger with maxRuns set).
+# Out of scope here: a dollar spend cap (deferred with B7), dollar
+# prices, ceilings on wall-clock time or turns, and protecting the
+# setting file from the agent (e10, protected paths).

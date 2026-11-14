@@ -1,0 +1,70 @@
+---
+# Status uses CONVENTIONS.md values: todo, in_progress, done.
+# slice-tasks 2026-11-14. A ceiling over the whole loop. Today the
+# only ceiling is maxFailures: failures in a row of one exact command
+# string, so an agent that changes the command, or passes once, starts
+# again from zero. R15 asks for a ceiling the engine counts over the
+# whole loop, the outer cycle as well as each attempt, and not one
+# that relies on a host cap or the model's judgment [S3][S5][S18].
+# After this story an optional loop ceiling counts every gate run,
+# for any command, since the loop started, and answers exhausted when
+# it is reached. It is off by default: stopping a run on a budget is
+# off by default (SYNTHESIS, budget setting), so only an owner setting
+# turns it on.
+# delta ADDED.
+# Open choices for plan-work, each with a recommendation:
+#   1. When a loop starts. Recommend: after the last done verdict in
+#      the ledger (or the start of the ledger), so each done opens a
+#      new loop. Counted from the ledger, which the engine already
+#      writes for every verdict.
+#   2. The key name and range. Recommend maxRuns, an integer from 1
+#      to 1000, in the e09s01 budget setting; absent means off.
+#   3. Residual F5 (specs/security/REVIEW.md): an unreadable ledger
+#      turns every stop rule off. Recommend: when maxRuns is set and
+#      the ledger cannot be read, answer exhausted and do not run,
+#      because the ceiling cannot be counted. Without maxRuns the
+#      behaviour stays as it is (AC-28 of e06). The owner decides.
+story_id: e09s02
+title: The engine stops the whole loop at a counted ceiling
+status: todo
+bcps: 5
+type: feat
+context: engine
+risk: P1
+tasks:
+  - id: 1
+    description: >-
+      RED, then GREEN. Write the tests first and record the failure:
+      checkLoopCeiling counts the runs since the last done for every
+      command, trips at maxRuns, and never trips when maxRuns is
+      absent. Add it to src/breaker.ts next to checkCeiling
+    verify: >-
+      node --test src/breaker.test.ts && npm run typecheck
+    risk: P1
+    status: todo
+  - id: 2
+    description: >-
+      RED, then GREEN. Check the loop ceiling in the engine before a
+      run, as the failure ceiling is checked, and log the exhausted
+      state with its threshold. A CLI test changes the command on
+      each call and still meets exhausted at maxRuns; a done verdict
+      starts a new loop. Apply the owner's F5 answer, with a test
+      that makes the ledger a directory
+    verify: >-
+      node --test src/breaker.test.ts src/engine.test.ts
+      src/cli.budget.test.ts src/cli.ledger.test.ts
+      && npm run typecheck
+    risk: P1
+    status: todo
+  - id: 3
+    description: >-
+      Document maxRuns and the F5 answer in docs/ and record F5's new
+      status in specs/security/REVIEW.md. Then run the AGENTS.md
+      Preflight line
+    verify: >-
+      grep -q 'maxRuns' docs/*.md
+      && yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh
+      && npm run typecheck && npm test
+    risk: P3
+    status: todo
