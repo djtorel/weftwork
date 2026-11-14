@@ -17,10 +17,11 @@ const checkCli = join(import.meta.dirname, 'claude-live-cli.ts');
 const installCli = join(import.meta.dirname, 'claude-install-cli.ts');
 const hookCli = join(import.meta.dirname, 'claude-hook-cli.ts');
 
-/** An environment with a fresh, empty home and no CLAUDE_CONFIG_DIR, unless
- * `configDir` names one. */
+/** An environment with a fresh, empty home and config home (so the hook never
+ * reads the real user budget file, e09s01 spec R6) and no CLAUDE_CONFIG_DIR,
+ * unless `configDir` names one. */
 function cleanEnv(configDir: string | null = null): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, HOME: makeTempDir() };
+  const env: NodeJS.ProcessEnv = { ...process.env, HOME: makeTempDir(), XDG_CONFIG_HOME: makeTempDir() };
   delete env.CLAUDE_CONFIG_DIR;
   delete env.CLAUDE_PROJECT_DIR;
   if (configDir !== null) {
