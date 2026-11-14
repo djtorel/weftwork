@@ -1,4 +1,4 @@
-// story: e06s02, e08s03
+// story: e06s02, e08s03, e08s04
 // Tests for the working-tree fingerprint (e06s02, AC-01 to AC-05).
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { fingerprintTree, uncommittedPaths } from './tree.ts';
+import { currentBranch, fingerprintTree, uncommittedPaths } from './tree.ts';
 import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -231,5 +231,30 @@ test('uncommittedPaths refuses a path that is not UTF-8', async () => {
 
 test('uncommittedPaths fails outside a repository', async () => {
   const result = await uncommittedPaths(makeTempDir());
+  assert.equal(result.ok, false);
+});
+
+// e08s04: the branch the resume check compares with the handoff (AC-e08s04-06).
+test('currentBranch gives the branch HEAD points to', async () => {
+  const repo = makeTestRepo();
+  assert.deepEqual(await currentBranch(repo), { ok: true, branch: 'main' });
+  git(repo, 'checkout', '-q', '-b', 'e08s04-handoff-check');
+  assert.deepEqual(await currentBranch(repo), { ok: true, branch: 'e08s04-handoff-check' });
+});
+
+test('currentBranch gives null on a detached HEAD', async () => {
+  const repo = makeTestRepo();
+  git(repo, 'checkout', '-q', '--detach');
+  assert.deepEqual(await currentBranch(repo), { ok: true, branch: null });
+});
+
+test('currentBranch gives the branch of a repository with no commit yet', async () => {
+  const repo = makeTempDir();
+  git(repo, 'init', '-q', '-b', 'main');
+  assert.deepEqual(await currentBranch(repo), { ok: true, branch: 'main' });
+});
+
+test('currentBranch fails outside a repository', async () => {
+  const result = await currentBranch(makeTempDir());
   assert.equal(result.ok, false);
 });
