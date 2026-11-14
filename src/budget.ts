@@ -33,29 +33,42 @@ const builtIn: Limits = { maxFailures: defaultMaxFailures, stallAfter: defaultSt
 
 type BudgetCheck = { ok: true; budget: Partial<Limits> } | Failure;
 
-/** The YAML in `file` as plain data, or why it is not valid YAML. The yaml
- * package throws for an alias bomb (security review F1). */
+/** The first line of a yaml package message, without the file excerpt that
+ * follows it: the reason stays one readable line and echoes less file text. */
+function firstLine(message: string): string {
+  return (message.split('\n')[0] ?? '').replace(/:$/, '');
+}
+
+/** The YAML in `file` as plain data, or why it is not valid YAML 1.2. The
+ * yaml package throws for an alias bomb (security review F1), and its
+ * warnings would reach stderr, so they are off. */
 function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
-  const doc = parseDocument(file.text);
+  const doc = parseDocument(file.text, { logLevel: 'error' });
   const first = doc.errors[0];
-  if (first !== undefined) {
-    return { ok: false, error: `not valid YAML: ${first.message}` };
-  }
+  if (first !== undefined) return { ok: false, error: `not valid YAML: ${firstLine(first.message)}` };
+  const version = doc.directives.yaml.version;
+  if (version !== '1.2') return { ok: false, error: `YAML ${version} is not supported; use YAML 1.2` };
   try {
     return { ok: true, data: doc.toJS() };
   } catch (error) {
-    return { ok: false, error: `not valid YAML: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, error: `not valid YAML: ${firstLine(error instanceof Error ? error.message : String(error))}` };
   }
+}
+
+/** A plain YAML mapping. A !!set or !!omap is a Set or Map, which would
+ * pass a record check with no own keys and set nothing without a word. */
+function isMapping(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && Object.getPrototypeOf(value) === Object.prototype;
 }
 
 /** The `budget` mapping in `data`, an empty one when the file is empty or has
  * no `budget` key (other top-level keys are left for later stories). */
 function budgetMapping(data: unknown): { ok: true; budget: Record<string, unknown> } | Failure {
   if (data === null || data === undefined) return { ok: true, budget: {} };
-  if (!isRecord(data)) return { ok: false, error: 'the top level must be a mapping' };
+  if (!isMapping(data)) return { ok: false, error: 'the top level must be a mapping' };
   if (!('budget' in data)) return { ok: true, budget: {} };
   const budget = data['budget'];
-  return isRecord(budget) ? { ok: true, budget } : { ok: false, error: 'budget must be a mapping of limits' };
+  return isMapping(budget) ? { ok: true, budget } : { ok: false, error: 'budget must be a mapping of limits' };
 }
 
 /** The limits in `budget`, or the first unknown key or bad value. */
