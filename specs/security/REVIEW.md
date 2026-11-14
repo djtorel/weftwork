@@ -1573,12 +1573,85 @@ Owner decision at plan-work, 2026-11-14 (recommended option): with
   repository keeps this LOW residual. docs/BUDGET.md tells the owner to
   set `maxRuns` to close it.
 - New residual, LOW: the loop count reads the 1 MiB ledger tail. When the
-  tail is cut and holds no `done`, only the runs in it count. With
-  `maxRuns` at most 1000 a cut needs long command strings (about 1 KiB
-  each); an agent that pads its commands can keep the count under the
-  ceiling. Same class as T3: the agent can also erase lines. Not tested.
+  tail is cut and holds no `done`, only the runs in it count. An agent
+  can cut it with long commands or with junk lines (F1 of the e09s02
+  review below). Same class as T3: the agent can also delete the
+  ledger.
 - A forged `done` run line opens a new loop: the T3 class, as erasing
   failures resets the failure ceiling. `done` itself still never comes
   from the ledger (C4).
 
 The security review of the e09s02 diff runs at verify-work.
+
+# Security review for branch e09s02-loop-ceiling (e09s02, verify-work step 5)
+
+Reviewed 2026-11-14 at c0a86ca. Diff `main...e09s02-loop-ceiling`:
+src/breaker.ts, src/gate.ts, src/budget.ts, src/engine.ts, their tests,
+docs/BUDGET.md. No new dependency, no new spawn, no new file write. The
+one new input is the `maxRuns` key, in the request and the setting files.
+
+## Scope and trust boundaries
+
+- The agent writes the request (CLI) and can edit files in the tree and
+  under `.git` (T3). The owner writes `weftwork.yaml` and the user file.
+- The ceiling exists to bound an agent loop, so the threat is the agent
+  defeating it: raising or removing the limit, or hiding runs from the
+  count. `done` is not in scope of the ledger (C4) and stays so.
+
+## Checks and probes
+
+- Precedence (CWE-284): `lowered` uses a request value only when the
+  limit is unset or the value is lower. `null`, `"2"`, `1001`, `1e400`
+  and `-1` in the request exit 2 (probe P5). The hook builds its request
+  from the command only, so through the hook the agent cannot set
+  `maxRuns` at all. A request can turn the ceiling on but not off.
+- Fail closed (CWE-754, T7), F5 with `maxRuns` set: a ledger that is a
+  FIFO (P2), has mode 000 (P3), or is a directory (tests) answers
+  `exhausted`, exit 5, and the command does not run. Outside a git
+  repository the run is `no-tree` and nothing runs. After a failed run
+  whose ledger became a directory, the answer is `exhausted` (test).
+  `done` comes only from `runGate`; a passing run whose ledger write
+  fails is `no-ledger`.
+- Order (T7): the failure ceiling, then the loop ceiling, both before
+  `blocked` and before the run, as in e06s04. The override (e06s05) is
+  offered only to `failed` and `stalled`, never to `exhausted`.
+- Output (CWE-117, CWE-150): the new detail texts hold numbers only. The
+  ledger read error in the stderr note is the existing text.
+
+## Findings
+
+### F1. Junk lines in the ledger hide runs from the loop ceiling — LOW — CWE-754 — confidence 8
+
+src/engine.ts `readEntries` and src/breaker.ts `checkLoopCeiling`. The
+count reads the last 1 MiB of the ledger and skips lines it cannot
+parse. Probe P4: with `maxRuns: 3`, three failed runs, then the fourth
+call is refused (`exhausted`, `not-run`). After appending 1.1 MB of junk
+lines to `.git/weftwork/ledger.jsonl`, the next call runs and answers
+`failed`: the tail is cut and holds no run entries, so the count is 0.
+
+- Why LOW: the agent can already reset the count by deleting the ledger
+  (probe: `rm` of the ledger, the next call answers `failed`) or by
+  appending a forged `done` line. All three are T3: the agent can write
+  the ledger. Effect: a longer loop, never a false `done`.
+- Possible narrow fix: with `maxRuns` set, a cut tail that holds no
+  `done` answers `exhausted`. An honest ledger reaches this only after
+  some 3000 runs without a `done`, past any `maxRuns` (at most 1000). It
+  would not stop deletion or a forged `done`.
+- Recommendation: accept as residual and own it with T3 in e10
+  (protected paths), which is the fix for all three ways. The owner
+  decides.
+
+## Observations below the 8/10 reporting threshold
+
+- A symlinked ledger is still followed (e06s03 F1, owned by e10).
+- The detail says `1 runs since the last done` for a count of 1, as the
+  failure ceiling says `1 failed runs`. Text only.
+
+## Verdict
+
+PASS for the security gate: no HIGH or MEDIUM finding. F1 is LOW and
+does not block.
+
+F1 accepted (owner decision 2026-11-14, recommended option A): residual,
+owned with T3 by e10 (protected paths), which also covers deleting the
+ledger and a forged `done` line. No code change in e09s02.
