@@ -1365,3 +1365,76 @@ audit-code checked the final working tree against this section.
   unchanged and still accepted; `--no-optional-locks` does not stop it.
 
 Verdict: PASS. No finding at confidence 8 or more; no new risk beyond A1.
+
+# Security review for branch e08s04-handoff-check (e08s04, verify-work step 5)
+
+Scope: `git diff ada1fb3..73928d7 -- src` (merge-base with `main`):
+`src/resume.ts`, `src/resume-cli.ts`, `currentBranch` in `src/tree.ts`, and
+the `readStateData` export in `src/state-fields.ts`. Reviewed 2026-11-14.
+
+## Executable surface
+
+- `node src/resume-cli.ts`, no arguments. It reads `specs/state.yaml` at the
+  repository root through `readStateData` (regular file, not a symlink,
+  1 MiB, one document, alias bombs refused), runs `git symbolic-ref` and
+  `git status` through `gitOutput` (`execFile`, no shell,
+  `core.fsmonitor=false`), and runs `insideRoot` plus `lstat` on each path
+  in `handoff.files`. It writes nothing.
+- Untrusted input: the handoff block (anyone who can edit the file) and the
+  file names in the working tree (a clone, or a tool the agent ran).
+
+## Vulnerability assessment (probed live in a scratch repository)
+
+| Attack | Result |
+| ------ | ------ |
+| `files` holds `../../../../etc/passwd` or `/etc/passwd` | refused by `insideRoot`, reported as does not exist; no existence oracle outside the root |
+| `files` holds `.git/config` | refused by `insideRoot`, reported as does not exist |
+| `files` holds `outlink/passwd`, `outlink` a symlink to `/etc` | parent resolves outside the root, reported as does not exist |
+| `files` holds a FIFO | `lstat` only, never opened; no hang |
+| `files` holds a NUL byte | `realpathSync` throws, caught, reported as does not exist |
+| `handoff` holds `__proto__: {branch: main}` | no prototype read; answer `unverifiable` |
+| `specs/state.yaml` is a symlink | refused (`ELOOP`), exit 2, never ready |
+
+Every fault path exits non-zero, so a crafted block cannot turn a fault
+into `ready`. The block's own author can write a matching block, but that
+author can already write the note; the check guards against staleness, not
+against the author.
+
+## Findings
+
+### F1. File names reach stderr unescaped — LOW — CWE-150 — confidence 9
+
+- `src/resume-cli.ts` `describe`: reasons and notes hold paths from
+  `handoff.files`, `handoff.uncommitted` and `git status`, and are written
+  to stderr as is. A file named `esc\033[31mRED` printed the raw escape
+  sequence (probe above).
+- Exploit: a file in a cloned repository named with `\r`, cursor or
+  erase-line sequences can redraw the terminal so a human sees
+  `weftwork resume check: ready` over a `stale` answer.
+- Not affected: the exit code and the stdout JSON (`JSON.stringify` escapes
+  C0 controls). Agents and scripts that read those get the true answer.
+- Fix: print a path through `JSON.stringify` (or escape C0, DEL and C1) in
+  the stderr text when it holds a control character.
+
+## Accepted risk
+
+A1 (a clean filter named in `.git/config` runs during `git status`) is
+unchanged: the check reuses `uncommittedPaths`. Owned by e10.
+
+## Observations below the 8/10 reporting threshold
+
+- Paths and reasons become context for the next agent, the prompt-injection
+  surface noted for e08s03; the entry command (e11) and e10 decide how the
+  block is shown.
+- The fault message names the absolute path of the state file; local only.
+
+## Verdict
+
+PASS for the security gate: no HIGH finding at confidence 8 or more. F1 is
+LOW and does not block; fix recommended before audit-code.
+
+F1 fixed (owner decision 2026-11-14): `shown` in `src/resume-cli.ts`
+writes each C0, DEL and C1 control character as `\uXXXX` in the stderr
+text (reasons, notes, the next skill and the fault message). Pinned by a
+test in `src/resume-cli.test.ts` that names a file with ESC, CR and
+U+009B.

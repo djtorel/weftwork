@@ -112,7 +112,7 @@ test('control characters in a path are escaped on stderr', () => {
   const run = runResume(repo);
   assert.equal(run.status, 1);
   assert.doesNotMatch(run.stderr, /[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
-  assert.match(run.stderr, /esc\\u001b\[2K\\rfake ready\\u009b\.txt/);
+  assert.match(run.stderr, /esc\\u001b\[2K\\u000dfake ready\\u009b\.txt/);
   // stdout keeps the true path, JSON-escaped.
   assert.deepEqual(run.result['reasons'], [
     'esc\u001b[2K\rfake ready\u009b.txt is uncommitted now and was not when the handoff was written',
