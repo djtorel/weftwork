@@ -130,7 +130,10 @@ function userSettingPath(env: NodeJS.ProcessEnv): string | null {
 }
 
 /** weftwork.yaml at the root of the repository that holds `cwd`, or null
- * outside a repository. */
+ * when git cannot name one. Skipping the file then is safe only because the
+ * engine needs the same git call to fingerprint the tree: without it the run
+ * answers `no-tree` and the command never runs (request-review round 1). A
+ * later story that runs without a tree must refuse here instead. */
 async function repoSettingPath(cwd: string): Promise<string | null> {
   try {
     return join((await repositoryRoot(cwd)).toString(), 'weftwork.yaml');

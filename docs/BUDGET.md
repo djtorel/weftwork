@@ -29,8 +29,9 @@ The engine ignores other top-level keys. Later stories add them.
 
 The engine reads both files on every run: from the engine CLI
 (`node src/cli.ts`) and from the Claude Code Stop hook
-(`node src/claude-hook-cli.ts`). Outside a git repository, only the user
-file applies.
+(`node src/claude-hook-cli.ts`). Outside a git repository there is no
+repository file, and the engine runs no command there either: it cannot
+fingerprint the tree, so it answers `no-tree` (not done).
 
 ## Which value wins
 
@@ -53,12 +54,16 @@ The engine refuses a file that:
 - cannot be read, is not a regular file, or is larger than 64 KiB
   (65536 bytes)
 - is not valid UTF-8, or not valid YAML (duplicate keys and more than one
-  document count)
-- has a top level that is not a mapping
-- has a `budget` that is not a mapping (an empty `budget:` too)
+  document count); the error is the first line of the YAML error, with its
+  line and column
+- declares a YAML version other than 1.2 (`%YAML 1.1`)
+- has a top level that is not a plain mapping
+- has a `budget` that is not a plain mapping (an empty `budget:`, a
+  `!!set` and an `!!omap` too)
 - has a key under `budget` other than `maxFailures` and `stallAfter`
 - has a value out of its range, or a value that is not an integer
-  (`"2"` and `2.5` are refused)
+  (`"2"` and `2.5` are refused; any YAML 1.2 form of a whole number, such
+  as `2.0` or `0x2`, counts as that number)
 
 An empty file, or one with only comments, sets nothing.
 
