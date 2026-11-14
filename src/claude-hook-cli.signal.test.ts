@@ -133,3 +133,30 @@ test('AC-e07s02-13 a second signal right after the first still ends in exit 2', 
     killIfAlive(pid);
   }
 });
+
+// BUG-008: the answer is written, then Node ends the process. A signal in that
+// stretch must not end it by signal: the host reads a signal death as "go
+// ahead". The test sends the second SIGTERM when the block text arrives, which
+// is inside that stretch every time; the older test above only hit it by luck
+// of a 5 ms delay, and failed on CI twice.
+test('BUG-008 a signal right after the block is written still ends in exit 2', async () => {
+  for (let round = 1; round <= 5; round += 1) {
+    const { child, result, pid } = await startSleeper(cliEnv(makeTestRepo()));
+    try {
+      const written = new Promise<void>((resolve) => {
+        child.stderr.on('data', (chunk) => {
+          if (String(chunk).includes('terminated before it could check')) resolve();
+        });
+      });
+      child.kill('SIGTERM');
+      await Promise.race([written, result]);
+      child.kill('SIGTERM');
+      const out = await result;
+      assert.equal(out.timedOut, false);
+      assert.equal(out.status, 2, `round ${round}: a signal after the answer must not end the hook by signal`);
+      assert.match(out.stderr, /terminated before it could check/);
+    } finally {
+      killIfAlive(pid);
+    }
+  }
+});
