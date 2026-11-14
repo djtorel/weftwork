@@ -94,6 +94,8 @@ test('AC-04 a path uncommitted then and clean now is a note, not a reason', () =
   assert.deepEqual(report.reasons, []);
   assert.equal(report.notes.length, 1);
   assert.match(report.notes[0] ?? '', /notes\.txt/);
+  // True after a rename or a partial add too: git no longer lists it.
+  assert.match(report.notes[0] ?? '', /no longer listed by git status/);
 });
 
 test('AC-05 no handoff block, or a null one, is missing', () => {
@@ -112,6 +114,10 @@ test('AC-05 a block that cannot be checked is unverifiable, and the reason names
     ['files is text', block({ files: 'docs/a.md' }), /files/],
     ['files holds a number', block({ files: ['docs/a.md', 1] }), /files/],
     ['uncommitted is a mapping', block({ uncommitted: { a: 1 } }), /uncommitted/],
+    ['files is null', block({ files: null }), /files/],
+    ['uncommitted is null', block({ uncommitted: null }), /uncommitted/],
+    ['no files', block({ files: undefined }), /files/],
+    ['no uncommitted', block({ uncommitted: undefined }), /uncommitted/],
     ['a list', ['main'], /mapping/],
     ['text', 'main', /mapping/],
   ];
@@ -123,13 +129,18 @@ test('AC-05 a block that cannot be checked is unverifiable, and the reason names
   }
 });
 
-test('AC-05 a block without files or uncommitted reads them as empty lists', () => {
+test('AC-05 a block without its lists is unverifiable even on a clean tree (review round 1)', () => {
+  // The engine always writes files and uncommitted; without them nothing in
+  // the note can be checked, so a clean tree must not make it ready.
   const handoff = block();
   delete handoff['files'];
   delete handoff['uncommitted'];
-  assert.equal(resumeReport(handoff, facts({ uncommitted: [] })).answer, 'ready');
-  // Errs toward stale: with no list, any dirty path is unexpected.
-  assert.equal(resumeReport(handoff, facts()).answer, 'stale');
+  assert.equal(resumeReport(handoff, facts({ uncommitted: [] })).answer, 'unverifiable');
+});
+
+test('a successful report says ok', () => {
+  assert.equal(resumeReport(block(), facts()).ok, true);
+  assert.equal(resumeReport(undefined, facts()).ok, true);
 });
 
 test('next_skill is null when the block holds no text for it', () => {

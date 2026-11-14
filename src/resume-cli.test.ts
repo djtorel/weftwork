@@ -53,6 +53,7 @@ for (const [name, change, code, answer] of [
     const run = runResume(repo);
     assert.equal(run.status, code, JSON.stringify(run.result));
     assert.equal(run.result['answer'], answer);
+    assert.equal(run.result['ok'], true);
     assert.deepEqual(readFileSync(state), before);
   });
 }
@@ -120,9 +121,37 @@ test('control characters in a path are escaped on stderr', () => {
 });
 
 test('a ready block with no next skill says to read its note', () => {
-  const { repo } = makeStateRepo('handoff:\n  branch: main\n');
+  const { repo } = makeStateRepo('handoff:\n  branch: main\n  files: []\n  uncommitted: []\n');
   const run = runResume(repo);
   assert.equal(run.status, 0, JSON.stringify(run.result));
   assert.equal(run.result['next_skill'], null);
   assert.match(run.stderr, /names no next skill; read its note/);
+});
+
+test('bidi controls and line separators in a path are escaped on stderr (review round 1)', () => {
+  const { repo } = handedOff();
+  writeFileSync(join(repo, 'a\u202eTXT\u2028.exe'), 'x\n');
+  const run = runResume(repo);
+  assert.doesNotMatch(run.stderr, /[\u202a-\u202e\u2066-\u2069\u2028\u2029]/);
+  assert.match(run.stderr, /a\\u202eTXT\\u2028\.exe/);
+});
+
+test('a detached HEAD is stale at the CLI', () => {
+  const { repo } = handedOff();
+  git(repo, 'checkout', '-q', '--detach');
+  const run = runResume(repo);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /detached/);
+});
+
+test('known limit: a new file inside an untracked folder the block lists is not seen', () => {
+  // git status lists the folder once (dir/), then and now, so ready means the
+  // same paths are uncommitted, not the same content (docs/STATE.md).
+  const made = makeStateRepo(fixture);
+  mkdirSync(join(made.repo, 'out'));
+  writeFileSync(join(made.repo, 'out', 'a.txt'), 'x\n');
+  const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', note: 'Task 1.' });
+  assert.equal(spawnSync('node', [handoffCli], { cwd: made.repo, input, encoding: 'utf8' }).status, 0);
+  writeFileSync(join(made.repo, 'out', 'b.txt'), 'x\n');
+  assert.equal(runResume(made.repo).result['answer'], 'ready');
 });

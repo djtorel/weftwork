@@ -258,3 +258,16 @@ test('currentBranch fails outside a repository', async () => {
   const result = await currentBranch(makeTempDir());
   assert.equal(result.ok, false);
 });
+
+test('currentBranch gives the full branch name when a tag has the same name (review round 1)', async () => {
+  const repo = makeTestRepo();
+  git(repo, 'tag', 'main');
+  assert.deepEqual(await currentBranch(repo), { ok: true, branch: 'main' });
+});
+
+test('currentBranch gives null when HEAD names a ref that is not a branch', async () => {
+  const repo = makeTestRepo();
+  git(repo, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
+  git(repo, 'symbolic-ref', 'HEAD', 'refs/remotes/origin/main');
+  assert.deepEqual(await currentBranch(repo), { ok: true, branch: null });
+});
