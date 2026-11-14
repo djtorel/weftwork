@@ -200,3 +200,28 @@ test('the cut never splits a character in two (review round 3)', () => {
   assert.doesNotMatch(error, loneSurrogate);
   assert.match(error, /…$/);
 });
+
+test('two %YAML lines are refused, even when the last says 1.2 (review round 4)', () => {
+  const error = errorOf({ repo: repo('%YAML 1.1\n%YAML 1.2\n---\nbudget: {maxFailures: 010}\n') });
+  assert.match(error, /\/repo\/weftwork\.yaml/);
+  assert.match(error, /more than one %YAML line/);
+});
+
+const unresolvedTags: [string, string][] = [
+  ['budget: !!seq {maxFailures: 2}\n', 'tag:yaml.org,2002:seq'],
+  ['budget: !custom {maxFailures: 2}\n', '!custom'],
+  ['budget:\n  maxFailures: !foo 2\n', '!foo'],
+];
+
+for (const [text, tag] of unresolvedTags) {
+  test(`a tag the parser cannot resolve is refused, naming it: ${tag} (review round 4)`, () => {
+    const error = errorOf({ repo: repo(text) });
+    assert.match(error, /Unresolved tag/);
+    assert.ok(error.includes(tag), error);
+  });
+}
+
+test('a %TAG directive is still accepted', () => {
+  const text = '%TAG !e! tag:example.com,2000:\n---\nbudget: {maxFailures: 2}\n';
+  assert.equal(limitsOf({ repo: repo(text) }).maxFailures, 2);
+});
