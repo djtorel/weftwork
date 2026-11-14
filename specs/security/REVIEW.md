@@ -1694,3 +1694,29 @@ aside) and that a passing run whose line cannot be written answers
 Tests guard that answer and that `done` stays false (C4). The stderr note
 for an unreadable ledger now names what happens with and without
 `maxRuns`. Verdict unchanged: PASS.
+
+## Addendum for e09s02 after request-review round 3 (2026-11-14)
+
+Round 3 passed the dual-blind gate (both reviewers: 0 must-fix, 0
+should-fix). Owner decision 2026-11-14 (recommended option) on the
+consider items, applied after the pass and checked by the second audit,
+not re-reviewed:
+
+- Fixed: the stderr notes no longer claim `exhausted` for a run that ends
+  `done` or `killed`; the cut-tail note says what follows with `maxRuns`
+  set. docs/BUDGET.md: a pass whose line cannot be written is not `done`;
+  parallel CLI calls just under the ceiling can all run (T1; the hook
+  runs one call at a time). Tests now pin: the loop ceiling before
+  `stalled`, an override record left unspent at the ceiling, a pass that
+  stays `done` when the read after it fails, and a request-only
+  `maxRuns` through the CLI.
+- Declined, reasons recorded: (a) the ledger path is resolved twice, in
+  the engine and in the gate, so a command that runs `git init` in a
+  subdirectory could split the write and the count; this needs the agent
+  to pick the command and cwd (T1, T3), and a fix would change the gate
+  interface for a case those risks already cover. (b) Merging
+  `failureStop` and `stallStop` saves about three lines and hides the
+  rules. (c) The `chmod` tests do not fail as root, like the existing
+  tests.
+
+Verdict unchanged: PASS.

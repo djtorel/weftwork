@@ -89,7 +89,8 @@ opens a new loop.
   pass. The failure ceiling is checked first.
 - After a run: when the run is not `done` and not `killed`, and the count
   is `maxRuns` or more, the answer is `exhausted`. A run that passes is
-  `done`.
+  `done`, unless its ledger line cannot be written (see A loop that
+  cannot be counted).
 - The detail names the ceiling: `3 runs since the last done, the loop
   ceiling is 3`. The state line has `maxRuns` as its threshold. Its
   `runs` and `failStreak` fields count the one command of that call, not
@@ -157,5 +158,10 @@ no command there: it answers `no-tree` (not done).
   limit as T1: on the CLI the agent picks the command, so the engine cannot
   judge whether it is a good check. Through the Claude Code hook you fix
   the command, so the agent cannot do this.
+- Calls that run at the same time are checked at the same time. On the
+  engine CLI, several calls made together just under the ceiling can all
+  run before any of them is counted; each then answers `exhausted`. The
+  Claude Code hook runs one call at a time, so it is not affected. On the
+  CLI the agent picks the command anyway (T1).
 - There is no `timeoutMs` key. The hook sets its timeout to fit the
   host's hook deadline.
