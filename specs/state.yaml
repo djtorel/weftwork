@@ -1,12 +1,12 @@
 workflow_mode: solo-git
-active_flow: null
-active_epic: null
-active_story: null
-phase: planning
+active_flow: build_epic
+active_epic: e09
+active_story: e09s01
+phase: execute
 test_plan: lite
 vcs:
   kind: git
-  branch: main
+  branch: e09s01-budget-setting
 waivers:
 - what: security-review threat model for e01 (build-epic step 0)
   why: No product code. The only executable surface is check-brief.sh, which runs
@@ -448,47 +448,59 @@ waivers:
     the traceability matrix.
   date: 2026-11-14
   scope: e08s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e09s02
+    to e09s04
+  why: Those three stories get their specs when each is planned. e09s02 to e09s04
+    build on what e09s01 learns, so planning them now would be paperwork. e09s01 itself
+    is clear. The owner chose to waive it for e09, as for e02 to e08, on 2026-11-14
+    (answer to a plan-work question, recommended option).
+  date: 2026-11-14
+  scope: e09 only (e09s02 to e09s04 specs)
+- what: gate-trace FAIL (rule R1) for undone e09 stories with no code tags
+  why: R1 fails any undone story with 0 code tags. e09s02 to e09s04 have no code until
+    each ships, so none can carry a tag. The owner chose to waive it for e09 only
+    on 2026-11-14 (answer to a plan-work question, recommended option), as for e08.
+  date: 2026-11-14
+  scope: e09 only; drop it when e09 closes, or as soon as every undone e09 story could
+    carry a code tag
 handoff:
-  next_skill: kickoff-branch
+  next_skill: develop-tdd
   next_story: e09s01
   next_epic: "e09"
-  branch: main
-  written_at: "2026-11-14T17:51:43Z"
+  branch: e09s01-budget-setting
+  written_at: "2026-11-14T18:04:48Z"
   files:
-    - specs/epics/e09-budget-and-ceilings/epic.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md
     - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
-    - specs/security/REVIEW.md
-    - docs/STATE.md
+    - src/gate.ts
+    - src/engine.ts
+    - src/cli.ts
+    - src/claude-hook-cli.ts
+    - src/regular-file.ts
+    - src/tree.ts
   uncommitted:
+    - specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md
     - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s02-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s03-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s04-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/epic.yaml
-    - specs/execution-status.yaml
-    - specs/release-plan.yaml
-  note: "e09 (budget and ceilings, B5) was sliced on 2026-11-14 into four stories
-    of 18 BCPs, on branch e09-slice: e09s01 budget setting file (tracer, 5),
-    e09s02 loop ceiling over the whole loop, off by default (5), e09s03 handover
-    reserve (3), e09s04 always-on budget and token report (5). Read
-    specs/epics/e09-budget-and-ceilings/epic.yaml and the e09s01 tasks file;
-    each tasks file lists its open choices with a recommendation at the top, and
-    plan-work puts them to the owner. Start in a fresh session on main with
-    kickoff-branch for e09s01, then plan-work; make the branch with git checkout
-    -b in this checkout (not a worktree). Owner decision needed before e09s02:
-    the residual F5 answer (recommendation: with maxRuns set, an unreadable
-    ledger answers exhausted). The gate-trace waiver of e08s04 was for that
-    story only; the next release meets the same R4 FAIL from the untagged
-    research epics e01 to e05, so put it to the owner again. Owned by e10:
-    accepted risk A1, the e08s01 spec section 6 path risks, GIT_DIR and
-    GIT_INDEX_FILE inherited by git, the symlinked git-dir directory, the fstat
-    size caps, and protecting weftwork.yaml from the agent. Deferred to e11:
-    calling the resume check from the entry command. Write the handoff only with
-    node src/handoff-cli.ts and state fields with node src/state-cli.ts. Tell
-    request-review reviewers to guard every cd and check pwd before any write.
-    Pushes, PRs and merges need an explicit go-ahead each. Do not run
-    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
-    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
+  note: "e09s01 (the owner sets the engine's limits in a budget setting file, 5
+    BCPs) is planned on branch e09s01-budget-setting (plan-work 2026-11-14).
+    Spec: specs/epics/e09-budget-and-ceilings/e09s01-budget-setting.md; tasks:
+    e09s01-tasks.yaml, five tasks. Owner decisions (all four recommendations
+    taken): weftwork.yaml at the repository root with a top-level budget
+    mapping, user default $XDG_CONFIG_HOME/weftwork/config.yaml (or ~/.config);
+    built-in < user < repository, a request value is used only when lower; a bad
+    file is refused (CLI exit 2, hook blocks the stop) naming the file and key;
+    camelCase keys maxFailures and stallAfter. Owner waived for e09 only: the
+    plan-consistency-check missing-spec findings for e09s02 to e09s04, and the
+    gate-trace R1 FAIL for undone e09 stories. Next: develop-tdd, task 1 (RED
+    first in src/budget.test.ts). Every test that starts a CLI must set
+    XDG_CONFIG_HOME to an empty temporary directory (spec R6). The owner decides
+    F5 before e09s02. The owner said this session is fresh enough: do not
+    suggest a fresh session until e09s01 is released. Write the handoff only
+    with node src/handoff-cli.ts and state fields with node src/state-cli.ts.
+    Tell request-review reviewers to guard every cd and check pwd before any
+    write. Commits, pushes, PRs and merges need an explicit go-ahead each. Do
+    not run scripts/sync-status-from-epics.sh. After the last bp-timing.sh call
+    run python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -497,9 +509,9 @@ metrics:
       total_seconds: 509.0
       avg_seconds: 16.419354838709676
     plan-work:
-      calls: 32
-      total_seconds: 18244.0
-      avg_seconds: 570.125
+      calls: 33
+      total_seconds: 18534.0
+      avg_seconds: 561.6363636363636
     develop-tdd:
       calls: 31
       total_seconds: 12895.0
