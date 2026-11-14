@@ -258,3 +258,9 @@ for (const value of ['0', '1001', '2.5', '"3"']) {
     assert.match(error, /\/repo\/weftwork\.yaml: budget\.maxRuns must be an integer from 1 to 1000/);
   });
 }
+
+test('AC-e09s02-07 a request maxRuns is checked against the user file as well', () => {
+  const file = user('budget:\n  maxRuns: 4\n');
+  assert.equal(limitsOf({ user: file, request: { maxRuns: 2 } }).maxRuns, 2);
+  assert.equal(limitsOf({ user: file, request: { maxRuns: 9 } }).maxRuns, 4);
+});

@@ -5,11 +5,19 @@
 // command runs in a temporary git repository. Only process.stderr is mocked.
 import { after, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { appendFileSync, chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { runEngine } from './engine.ts';
 import { appendEntry, ledgerPath } from './ledger.ts';
-import { cleanupTempDirs, makeTestRepo, readRepoLedger, readRepoStates } from './test-helpers.ts';
+import { fingerprintTree } from './tree.ts';
+import {
+  cleanupTempDirs,
+  makeTempDir,
+  makeTestRepo,
+  readRepoLedger,
+  readRepoStates,
+  waitForFile,
+} from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -116,4 +124,105 @@ test('AC-e09s02-09 with no maxRuns, an unreadable ledger still turns the rules o
   mkdirSync((await ledgerPath(repo)) as string, { recursive: true });
   const answer = await quietly(() => runEngine({ command: 'exit 7', cwd: repo }));
   assert.equal(answer.state, 'failed');
+});
+
+// Review round 1 (2026-11-14).
+
+test('AC-e09s02-11 with maxRuns set, a failed run that cannot be written to the ledger answers exhausted', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a']);
+  chmodSync((await ledgerPath(repo)) as string, 0o400);
+  const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 5 }));
+  assert.equal(answer.state, 'exhausted');
+  assert.equal(answer.reason, 'exit-nonzero', 'the run did happen');
+  assert.match(answer.detail ?? '', /could not be written to the ledger, so the loop ceiling of 5 cannot be counted/);
+});
+
+test('AC-e09s02-11 with no maxRuns, a failed run that cannot be written stays failed', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a']);
+  chmodSync((await ledgerPath(repo)) as string, 0o400);
+  const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo }));
+  assert.equal(answer.state, 'failed');
+});
+
+/** `count` run lines of about 120 KB each: long commands that the request
+ * allows, so the 1 MiB tail holds only a few of them. */
+async function seedLong(repo: string, count: number): Promise<void> {
+  await seed(repo, Array.from({ length: count }, (_, index) => `false # ${String(index).repeat(120_000)}`));
+}
+
+test('AC-e09s02-12 with maxRuns set, a cut tail with no done answers exhausted without running', async () => {
+  const repo = makeTestRepo();
+  await seedLong(repo, 12);
+  const answer = await quietly(() => runEngine({ command: 'touch ran.txt', cwd: repo, maxRuns: 20 }));
+  assert.equal(answer.state, 'exhausted');
+  assert.equal(answer.reason, 'not-run');
+  assert.match(answer.detail ?? '', /ledger tail was cut with no done in it, so the loop ceiling of 20 cannot be counted/);
+  assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
+});
+
+test('AC-e09s02-12 junk lines that cut the tail answer exhausted as well (F1)', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a']);
+  appendFileSync((await ledgerPath(repo)) as string, `${'x'.repeat(100)}\n`.repeat(11_000));
+  const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 }));
+  assert.equal(answer.state, 'exhausted');
+  assert.equal(answer.reason, 'not-run');
+});
+
+test('AC-e09s02-12 a cut tail with a done in it is counted as usual', async () => {
+  const repo = makeTestRepo();
+  await seedLong(repo, 12);
+  await seed(repo, ['pass']);
+  const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 }));
+  assert.equal(answer.state, 'failed');
+});
+
+test('AC-e09s02-12 with no maxRuns, a cut tail with no done changes nothing', async () => {
+  const repo = makeTestRepo();
+  await seedLong(repo, 12);
+  const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo }));
+  assert.equal(answer.state, 'failed');
+});
+
+test('AC-e09s02-13 a run killed at the ceiling answers killed, not exhausted', { timeout: 15000 }, async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a', 'b']);
+  const pidFile = join(makeTempDir(), 'pid');
+  const controller = new AbortController();
+  const running = runEngine(
+    { command: `sleep 30 & echo $! > "${pidFile}"; wait`, cwd: repo, maxRuns: 3 },
+    controller.signal,
+  );
+  assert.ok(await waitForFile(pidFile, 5000));
+  controller.abort();
+  assert.equal((await running).state, 'killed');
+});
+
+test('AC-e09s02-13 at the ceiling, exhausted comes before blocked', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a', 'b']);
+  const answer = await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 2, blocked: 'need a key' });
+  assert.equal(answer.state, 'exhausted');
+});
+
+test('AC-e09s02-13 a blocked refusal is not counted as a run', async () => {
+  const repo = makeTestRepo();
+  await seed(repo, ['a']);
+  assert.equal((await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3, blocked: 'need a key' })).state, 'blocked');
+  assert.equal((await runEngine({ command: 'exit 2', cwd: repo, maxRuns: 3 })).state, 'failed');
+});
+
+test('AC-e09s02-13 an overridden run counts once, as the failed run it is', async () => {
+  const repo = makeTestRepo();
+  const ledger = (await ledgerPath(repo)) as string;
+  mkdirSync(dirname(ledger), { recursive: true });
+  const before = await fingerprintTree(repo);
+  assert.ok(before.ok);
+  const record = { command: 'exit 9', fingerprint: before.fingerprint, reason: 'flaky', author: 'dom', kind: 'override' };
+  writeFileSync(join(dirname(ledger), 'override.json'), JSON.stringify(record));
+  assert.equal((await runEngine({ command: 'exit 9', cwd: repo, maxRuns: 3 })).state, 'overridden');
+  assert.equal((await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 })).state, 'failed');
+  assert.equal((await runEngine({ command: 'exit 2', cwd: repo, maxRuns: 3 })).state, 'exhausted');
 });
