@@ -58,7 +58,7 @@ function staleReasons(block: Checkable, facts: ResumeFacts): string[] {
     reasons.push(`the current branch is ${facts.branch}; the handoff starts on branch ${block.branch}`);
   }
   for (const file of [...block.files].sort()) {
-    if (!facts.exists(file)) reasons.push(`${file} is named in the handoff and was not found inside the repository`);
+    if (!facts.exists(file)) reasons.push(`${file} is named in the handoff and was not found, or cannot be checked, inside the repository`);
   }
   const then = new Set(block.uncommitted);
   for (const path of [...facts.uncommitted].sort()) {

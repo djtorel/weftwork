@@ -37,7 +37,9 @@ function existsIn(root: string, file: string): boolean {
  * when the key is absent, read with the writer's checks. */
 function readHandoff(root: string): HandoffRead {
   const read = readStateData(root, stateFile);
-  if (!read.ok) return read;
+  // Only ok and error: insideRoot's cause is not part of the CLI answer
+  // (request-review round 3).
+  if (!read.ok) return { ok: false, error: read.error };
   if (!isRecord(read.data)) return { ok: false, error: `${stateFile} is not a mapping` };
   return { ok: true, handoff: Object.hasOwn(read.data, 'handoff') ? read.data['handoff'] : undefined };
 }
