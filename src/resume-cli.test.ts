@@ -214,3 +214,45 @@ test('a HEAD that names a ref outside refs/heads is not called detached (review 
   assert.equal(run.status, 1);
   assert.match(run.stderr, /HEAD is not on a branch/);
 });
+
+test('a refused files path says it cannot be checked, not only that it is missing (review round 3)', () => {
+  const { repo } = makeStateRepo('handoff: {branch: main, files: [.git/HEAD], uncommitted: []}\n');
+  const reasons = runResume(repo).result['reasons'] as string[];
+  assert.match(reasons[0] ?? '', /\.git\/HEAD .*cannot be checked/);
+});
+
+test('a state file that cannot be resolved is {ok: false, error} and no more (review round 3)', () => {
+  const run = runResume(makeTestRepo());
+  assert.equal(run.status, 2);
+  assert.deepEqual(Object.keys(run.result).sort(), ['error', 'ok']);
+});
+
+test('a HEAD git cannot read is exit 2, never ready (review round 3)', () => {
+  const { repo } = handedOff();
+  writeFileSync(join(repo, '.git', 'HEAD'), 'ref: refs/heads/\n');
+  const run = runResume(repo);
+  assert.equal(run.status, 2, JSON.stringify(run.result));
+  assert.equal(run.result['ok'], false);
+});
+
+test('a handoff written over a dirty tree is ready while the tree stays as it was', () => {
+  const made = makeStateRepo(fixture);
+  writeFileSync(join(made.repo, 'tracked.txt'), 'two\n');
+  writeFileSync(join(made.repo, 'null'), 'x\n');
+  const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', files: ['tracked.txt'], note: 'Task 1.' });
+  assert.equal(spawnSync('node', [handoffCli], { cwd: made.repo, input, encoding: 'utf8' }).status, 0);
+  const run = runResume(made.repo);
+  assert.equal(run.status, 0, JSON.stringify(run.result));
+  assert.equal(run.result['answer'], 'ready');
+});
+
+test('known limit: a file uncommitted at the handoff and deleted since is not seen', () => {
+  // ready compares paths, not their status: the path is listed then and now
+  // (docs/STATE.md). files is the only existence check.
+  const made = makeStateRepo(fixture);
+  writeFileSync(join(made.repo, 'tracked.txt'), 'two\n');
+  const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', note: 'Keep editing tracked.txt.' });
+  assert.equal(spawnSync('node', [handoffCli], { cwd: made.repo, input, encoding: 'utf8' }).status, 0);
+  rmSync(join(made.repo, 'tracked.txt'));
+  assert.equal(runResume(made.repo).result['answer'], 'ready');
+});
