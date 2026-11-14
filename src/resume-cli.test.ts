@@ -9,7 +9,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, git, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
@@ -154,4 +154,63 @@ test('known limit: a new file inside an untracked folder the block lists is not 
   assert.equal(spawnSync('node', [handoffCli], { cwd: made.repo, input, encoding: 'utf8' }).status, 0);
   writeFileSync(join(made.repo, 'out', 'b.txt'), 'x\n');
   assert.equal(runResume(made.repo).result['answer'], 'ready');
+});
+
+test('implicit bidi marks are escaped on stderr and stdout carries no raw C1 or bidi (review round 2)', () => {
+  const { repo } = handedOff();
+  writeFileSync(join(repo, 'b\u200f\u061c\u200e\u009b.txt'), 'x\n');
+  const out = spawnSync('node', [resumeCli], { cwd: repo, encoding: 'utf8', timeout: 20000 });
+  const raw = /[\u0080-\u009f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/;
+  assert.doesNotMatch(out.stderr, raw);
+  assert.doesNotMatch(out.stdout, raw);
+  const reasons = (JSON.parse(out.stdout) as { reasons: string[] }).reasons;
+  assert.ok(reasons[0]?.startsWith('b\u200f\u061c\u200e\u009b.txt '), 'the JSON still holds the true path');
+});
+
+test('a working directory that was deleted exits 2 with one JSON line (review round 2)', () => {
+  const { repo } = handedOff();
+  const gone = join(repo, 'gone');
+  mkdirSync(gone);
+  const script = 'cd "$1" && rmdir "$1" && exec node "$2"';
+  const out = spawnSync('sh', ['-c', script, 'sh', gone, resumeCli], { encoding: 'utf8', timeout: 20000 });
+  assert.equal(out.status, 2, out.stderr);
+  const lines = out.stdout.split('\n').filter((line) => line !== '');
+  assert.equal(lines.length, 1, out.stdout);
+  assert.equal((JSON.parse(lines[0] as string) as { ok: boolean }).ok, false);
+});
+
+test('files outside the root, under a symlinked folder or in .git are stale; a dangling symlink exists (review round 2)', () => {
+  const outside = makeTempDir();
+  writeFileSync(join(outside, 'secret.txt'), 'x\n');
+  const { repo } = makeStateRepo('handoff: null\n');
+  symlinkSync(outside, join(repo, 'up'));
+  symlinkSync(join(repo, 'nowhere'), join(repo, 'dangle'));
+  git(repo, 'add', 'up', 'dangle');
+  git(repo, 'commit', '-q', '-m', 'links');
+  const rel = join('..', outside.split('/').pop() as string, 'secret.txt');
+  const block = { branch: 'main', files: [rel, 'up/secret.txt', '.git/HEAD', 'dangle'], uncommitted: [] };
+  writeFileSync(join(repo, 'specs', 'state.yaml'), `handoff: ${JSON.stringify(block)}\n`);
+  const run = runResume(repo);
+  assert.equal(run.status, 1, JSON.stringify(run.result));
+  assert.equal(run.result['answer'], 'stale');
+  const reasons = run.result['reasons'] as string[];
+  assert.equal(reasons.length, 3, JSON.stringify(reasons));
+  for (const file of [rel, 'up/secret.txt', '.git/HEAD']) {
+    assert.ok(reasons.some((reason) => reason.startsWith(`${file} `)), file);
+  }
+});
+
+test('a block with no lists is unverifiable at the CLI, exit 1', () => {
+  const { repo } = makeStateRepo('handoff:\n  branch: main\n');
+  const run = runResume(repo);
+  assert.equal(run.status, 1);
+  assert.equal(run.result['answer'], 'unverifiable');
+});
+
+test('a HEAD that names a ref outside refs/heads is not called detached (review round 2)', () => {
+  const { repo } = handedOff();
+  git(repo, 'symbolic-ref', 'HEAD', 'refs/tags/v0');
+  const run = runResume(repo);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /HEAD is not on a branch/);
 });
