@@ -62,8 +62,21 @@ function isTimeout(value: unknown): value is number {
 const maxBlockedLength = 1000;
 const maxThreshold = 1000;
 
-function isCount(value: unknown, min: number): value is number {
-  return isInteger(value) && value >= min && value <= maxThreshold;
+/** The engine's two stop-rule limits. The request and the budget setting
+ * files (e09s01) check them by the same rule. */
+export const limitKeys = ['stallAfter', 'maxFailures'] as const;
+export type LimitKey = (typeof limitKeys)[number];
+const limitMin: Record<LimitKey, number> = { stallAfter: 2, maxFailures: 1 };
+
+/** True when `value` is a valid `key` limit: an integer in its range. */
+export function isLimit(key: LimitKey, value: unknown): value is number {
+  return isInteger(value) && value >= limitMin[key] && value <= maxThreshold;
+}
+
+/** The rule a `key` limit must meet ("must be ..."), for error text. Each
+ * caller names the key its own way. */
+export function limitRule(key: LimitKey): string {
+  return `must be an integer from ${limitMin[key]} to ${maxThreshold}`;
 }
 
 function isBlocked(value: unknown): value is string {
@@ -81,28 +94,18 @@ function readObject(text: string): Record<string, unknown> | string {
   return isRecord(data) ? data : 'input must be one JSON object';
 }
 
-/**
- * Read one JSON object with a non-empty string `command`, an optional
- * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
- * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
- * spaces), an integer `stallAfter` from 2 to 1000 and an integer
- * `maxFailures` from 1 to 1000. Other keys are ignored, since later stories
- * add keys. Returns a value for bad input, never throws.
- */
 /** The first problem with an optional engine key, or null when all are fine. */
 function optionalError(data: Record<string, unknown>): string | null {
-  const { timeoutMs, blocked, stallAfter, maxFailures } = data;
+  const { timeoutMs, blocked } = data;
   if (timeoutMs !== undefined && !isTimeout(timeoutMs)) {
     return `"timeoutMs" must be an integer from 1 to ${maxTimeoutMs}`;
   }
   if (blocked !== undefined && !isBlocked(blocked)) {
     return `"blocked" must be text of 1 to ${maxBlockedLength} characters`;
   }
-  if (stallAfter !== undefined && !isCount(stallAfter, 2)) {
-    return `"stallAfter" must be an integer from 2 to ${maxThreshold}`;
-  }
-  if (maxFailures !== undefined && !isCount(maxFailures, 1)) {
-    return `"maxFailures" must be an integer from 1 to ${maxThreshold}`;
+  for (const key of limitKeys) {
+    const value = data[key];
+    if (value !== undefined && !isLimit(key, value)) return `"${key}" ${limitRule(key)}`;
   }
   return null;
 }
@@ -116,6 +119,16 @@ function pickOptional(data: Record<string, unknown>): Record<string, unknown> {
   );
 }
 
+/**
+ * Read one JSON object with a non-empty string `command`, an optional
+ * string `cwd`, an optional integer `timeoutMs` from 1 to 2147483647, and the
+ * engine's optional keys: a `blocked` text (1 to 1000 characters, not only
+ * spaces), an integer `stallAfter` from 2 to 1000 and an integer
+ * `maxFailures` from 1 to 1000. The budget setting files (docs/BUDGET.md)
+ * then set the limits, and a request value is used only when it is lower
+ * (e09s01). Other keys are ignored, since later stories
+ * add keys. Returns a value for bad input, never throws.
+ */
 export function parseRequest(text: string, defaultCwd: string): ParseResult {
   const data = readObject(text);
   if (typeof data === 'string') {

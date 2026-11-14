@@ -1458,3 +1458,101 @@ U+009B.
   dangling symlink counts as there.
 
 Verdict: PASS. No finding at confidence 8 or more; no new risk beyond A1.
+
+# Security review for branch e09s01-budget-setting (e09s01, verify-work step 5)
+
+review_date: 2026-11-14
+branch: e09s01-budget-setting
+head: 9ca599a
+scope: `git diff main...HEAD -- src` without tests: src/budget.ts (new),
+src/gate.ts, src/cli.ts, src/claude-hook-cli.ts.
+
+## Scope and trust boundaries
+
+New input: `weftwork.yaml` at the repository root and the user file
+(`$XDG_CONFIG_HOME/weftwork/config.yaml` or `~/.config/...`), parsed with
+yaml 2.9.1 and read on every engine CLI and Stop-hook run. The agent can
+write `weftwork.yaml` (T3). The user file is the owner's.
+
+Held by design: `readRegularFile` (no symlink for the repository file, no
+FIFO, regular file, 64 KiB, strict UTF-8); every key under `budget` and
+every value checked (`__proto__` is refused as an unknown key, probed);
+deep nesting (30,000 levels) comes back as a YAML error value, exit 2; a
+request can only lower a limit.
+
+## Findings
+
+### F1. A YAML alias bomb crashes the engine CLI — LOW — CWE-248 — confidence 9
+
+- `src/budget.ts` `readBudget`: `doc.toJS()` throws `ReferenceError:
+  Excessive alias count` for a 572-byte file of nested aliases. The yaml
+  package's own guard (maxAliasCount) works, but the throw is not caught,
+  so `applyBudget` rejects although it says it never does.
+- Effect: `node src/cli.ts` dies with a stack trace and exit 1, which the
+  caller reads as `failed` (retry allowed), not exit 2 (bad input). The
+  command does not run and nothing is logged, so the stop rules never trip
+  while the file is there: the F5 effect, by a new path. The hook fails
+  closed (`adapter fault`, exit 2).
+- Fix: catch the throw in `readBudget` and return `not valid YAML: ...` as
+  an error value. Test: an alias bomb gives exit 2 from the CLI.
+
+### F2. Text from the setting file reaches the hook's stderr unescaped — LOW — CWE-150 — confidence 9
+
+- `src/claude-hook-cli.ts` passes the budget error to `blockStop`, which
+  writes it to stderr as is. The error holds text from `weftwork.yaml`: an
+  unknown key's name, and the yaml package's error context (the offending
+  lines). A key with ESC sequences and a newline printed raw colour codes
+  and a forged second line (probe 1); a broken line with ESC printed it in
+  the error context (probe 2).
+- Exploit: the same as e07s04 F2 and e08s04 F1. The agent that writes the
+  file controls part of the reason the host shows and feeds back.
+- The engine CLI's stdout is a JSON line, so C0 controls are escaped, but
+  `src/cli.ts` prints with its own `JSON.stringify`, not `printAnswer`, so
+  C1 and bidi characters pass.
+- Fix: pass the error through `terminalSafe` (`src/cli-io.ts`) in the hook,
+  and print the CLI's bad-input line through it too. Test: a key with ESC,
+  CR and U+009B is escaped in both outputs.
+
+## Accepted risk
+
+- A2: the agent can raise the limits or delete `weftwork.yaml` (T3), so
+  the setting binds an agent only while the file is protected. Owned by
+  e10 (protected paths); stated in docs/BUDGET.md.
+- A1 and the inherited GIT_DIR (e08) are unchanged: `repositoryRoot` runs
+  git to find the file. Owned by e10.
+
+## Observations below the 8/10 reporting threshold
+
+- The error names the absolute path of the file; local only.
+- BUG-008 (a second SIGTERM once ended the hook by signal) was seen during
+  this verify-work; it is in the signal path, not in this diff.
+
+## Verdict
+
+PASS for the security gate: no HIGH finding at confidence 8 or more. F1
+and F2 are LOW and do not block; fixing both in e09s01 is recommended.
+
+F1 and F2 fixed (owner decision 2026-11-14), RED 9607d02, GREEN 87f6221.
+F1: `readBudget` catches the throw from `toJS` and returns `not valid
+YAML: Excessive alias count ...`; the CLI exits 2 (test in
+src/cli.budget.test.ts and src/budget.test.ts). F2: the hook passes the
+error through `terminalSafe`, and `src/cli.ts` prints every JSON line
+through it, as `printAnswer` does for the other thin CLIs; a key with
+ESC, CR, U+009B and a newline gives one escaped line (tests in
+src/cli.budget.test.ts and src/claude-hook-cli.budget.test.ts). Both
+probes re-run at 87f6221: exit 2 with one JSON line, and one stderr line
+with `\u001b` and `\u000a`. Preflight 737 of 737.
+
+Verdict: PASS. No open finding; A1 and A2 owned by e10.
+
+## Addendum for e09s01 after request-review (2026-11-14, release-branch step 2a)
+
+Re-read `git diff 87f6221..70d3397 -- src` against the scan above. Every
+change narrows the input or the output: a YAML warning, a second `%YAML`
+line, an unresolved tag, a non-plain mapping and a non-1.2 version now
+refuse the file; every piece of file text in an error (a YAML message,
+an unknown key, the alias-bomb throw) is cut to 200 code points by
+`clip` before `terminalSafe`/`printAnswer` escape it; the yaml package's
+warnings no longer reach stderr. No new input, sink or dependency. Ten
+review rounds of live probes (five per reviewer) found no security
+defect. Verdict unchanged: PASS. A1 and A2 owned by e10.

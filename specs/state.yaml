@@ -448,47 +448,76 @@ waivers:
     the traceability matrix.
   date: 2026-11-14
   scope: e08s04 only
+- what: plan-consistency-check CRITICAL/HIGH findings (missing story specs) for e09s02
+    to e09s04
+  why: Those three stories get their specs when each is planned. e09s02 to e09s04
+    build on what e09s01 learns, so planning them now would be paperwork. e09s01 itself
+    is clear. The owner chose to waive it for e09, as for e02 to e08, on 2026-11-14
+    (answer to a plan-work question, recommended option).
+  date: 2026-11-14
+  scope: e09 only (e09s02 to e09s04 specs)
+- what: gate-trace FAIL (rule R1) for undone e09 stories with no code tags
+  why: R1 fails any undone story with 0 code tags. e09s02 to e09s04 have no code until
+    each ships, so none can carry a tag. The owner chose to waive it for e09 only
+    on 2026-11-14 (answer to a plan-work question, recommended option), as for e08.
+  date: 2026-11-14
+  scope: e09 only; drop it when e09 closes, or as soon as every undone e09 story could
+    carry a code tag
+- what: gate-trace FAIL (rule R4 with the oracle downgrade) for the e09s01 release
+  why: 16 of 40 stories carry code tags; the 21 untagged are the research epics e01
+    to e05, which shipped docs, not code, and 61 percent of links are heuristic. Every
+    story that shipped code is tagged, e09s01 included. The owner chose to waive it
+    for e09s01 only on 2026-11-14 (answer to a release-branch question, recommended
+    option), as for e08s04.
+  date: 2026-11-14
+  scope: e09s01 only
 handoff:
   next_skill: kickoff-branch
-  next_story: e09s01
+  next_story: e09s02
   next_epic: "e09"
   branch: main
-  written_at: "2026-11-14T17:51:43Z"
+  written_at: "2026-11-14T19:46:56Z"
   files:
     - specs/epics/e09-budget-and-ceilings/epic.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s02-tasks.yaml
     - specs/security/REVIEW.md
-    - docs/STATE.md
+    - docs/BUDGET.md
+    - src/breaker.ts
+    - specs/bugs/BUG-008-second-sigterm-at-exit-flaky.md
   uncommitted:
     - specs/epics/e09-budget-and-ceilings/e09s01-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s02-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s03-tasks.yaml
-    - specs/epics/e09-budget-and-ceilings/e09s04-tasks.yaml
     - specs/epics/e09-budget-and-ceilings/epic.yaml
     - specs/execution-status.yaml
-    - specs/release-plan.yaml
-  note: "e09 (budget and ceilings, B5) was sliced on 2026-11-14 into four stories
-    of 18 BCPs, on branch e09-slice: e09s01 budget setting file (tracer, 5),
-    e09s02 loop ceiling over the whole loop, off by default (5), e09s03 handover
-    reserve (3), e09s04 always-on budget and token report (5). Read
-    specs/epics/e09-budget-and-ceilings/epic.yaml and the e09s01 tasks file;
-    each tasks file lists its open choices with a recommendation at the top, and
-    plan-work puts them to the owner. Start in a fresh session on main with
-    kickoff-branch for e09s01, then plan-work; make the branch with git checkout
-    -b in this checkout (not a worktree). Owner decision needed before e09s02:
-    the residual F5 answer (recommendation: with maxRuns set, an unreadable
-    ledger answers exhausted). The gate-trace waiver of e08s04 was for that
-    story only; the next release meets the same R4 FAIL from the untagged
-    research epics e01 to e05, so put it to the owner again. Owned by e10:
-    accepted risk A1, the e08s01 spec section 6 path risks, GIT_DIR and
-    GIT_INDEX_FILE inherited by git, the symlinked git-dir directory, the fstat
-    size caps, and protecting weftwork.yaml from the agent. Deferred to e11:
-    calling the resume check from the entry command. Write the handoff only with
-    node src/handoff-cli.ts and state fields with node src/state-cli.ts. Tell
-    request-review reviewers to guard every cd and check pwd before any write.
-    Pushes, PRs and merges need an explicit go-ahead each. Do not run
-    scripts/sync-status-from-epics.sh. After the last bp-timing.sh call run
-    python3 tools/restore-yaml-style.py specs/state.yaml --base HEAD."
+    - specs/metrics/cycle-times.md
+    - specs/security/REVIEW.md
+  note: "e09s01 (budget setting file, 5 BCPs) is released on 2026-11-14 by
+    squash-merged PR from branch e09s01-budget-setting: weftwork.yaml at the
+    repository root and $XDG_CONFIG_HOME/weftwork/config.yaml set maxFailures
+    and stallAfter for the engine CLI and the Claude Code hook (src/budget.ts,
+    docs/BUDGET.md). Status is reconciled: e09s01 done in its tasks file,
+    epic.yaml and execution-status.yaml; e09 in_progress. Start the next session
+    with node src/resume-cli.ts in the repository root. Next: e09s02, the engine
+    stops the whole loop at a counted ceiling (maxRuns, off by default), 5 BCPs;
+    run kickoff-branch on main with git checkout -b in this checkout (not a
+    worktree), then plan-work. Owner decision needed before e09s02 code:
+    residual F5 (specs/security/REVIEW.md): an unreadable ledger turns the stop
+    rules off; recommendation in e09s02-tasks.yaml: with maxRuns set, an
+    unreadable ledger answers exhausted. The e09-only waivers in state.yaml
+    (missing later specs; gate-trace R1) still cover e09s02 to e09s04; the
+    gate-trace R4 waiver was for e09s01 only, so put it to the owner again at
+    the next release. Open: BUG-008 (a second SIGTERM once ended the hook by
+    signal; not reproduced in 182 runs). Lessons from e09s01: every test that
+    starts a CLI must isolate XDG_CONFIG_HOME (grep spawn sites and env helpers,
+    not just the diff); the yaml package only warns for many bad inputs, so
+    check doc.warnings. Owned by e10: the agent can edit or delete weftwork.yaml
+    (A2), accepted risk A1, the e08s01 path risks, GIT_DIR and GIT_INDEX_FILE
+    inherited by git. Deferred to e11: calling the resume check from the entry
+    command. Write the handoff only with node src/handoff-cli.ts and state
+    fields with node src/state-cli.ts. Tell request-review reviewers to guard
+    every cd and check pwd before any write. Pushes, PRs and merges need an
+    explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh. After
+    the last bp-timing.sh call run python3 tools/restore-yaml-style.py
+    specs/state.yaml --base HEAD."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:
@@ -497,29 +526,29 @@ metrics:
       total_seconds: 509.0
       avg_seconds: 16.419354838709676
     plan-work:
-      calls: 32
-      total_seconds: 18244.0
-      avg_seconds: 570.125
+      calls: 33
+      total_seconds: 18534.0
+      avg_seconds: 561.6363636363636
     develop-tdd:
-      calls: 31
-      total_seconds: 12895.0
-      avg_seconds: 415.96774193548384
-    verify-work:
-      calls: 31
-      total_seconds: 5843.0
-      avg_seconds: 188.48387096774192
-    audit-code:
-      calls: 25
-      total_seconds: 2589.0
-      avg_seconds: 103.56
-    release-branch:
       calls: 32
-      total_seconds: 4699.0
-      avg_seconds: 146.84375
+      total_seconds: 13449.0
+      avg_seconds: 420.28125
+    verify-work:
+      calls: 32
+      total_seconds: 6922.0
+      avg_seconds: 216.3125
+    audit-code:
+      calls: 26
+      total_seconds: 2688.0
+      avg_seconds: 103.38461538461539
+    release-branch:
+      calls: 33
+      total_seconds: 5759.0
+      avg_seconds: 174.5151515151515
     request-review:
-      calls: 13
-      total_seconds: 27131.0
-      avg_seconds: 2087.0
+      calls: 14
+      total_seconds: 29024.0
+      avg_seconds: 2073.1428571428573
     kickoff-branch:
       calls: 2
       total_seconds: 55.0

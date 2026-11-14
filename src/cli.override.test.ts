@@ -9,15 +9,17 @@ import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:
 import { dirname, join } from 'node:path';
 import { countsFor, ledgerPath, overrideCounts } from './ledger.ts';
 import { exitCodes } from './states.ts';
-import { cleanupTempDirs, makeTestRepo, readRepoLedger, readRepoStates } from './test-helpers.ts';
+import { cleanupTempDirs, makeTestRepo, readRepoLedger, readRepoStates, isolatedEnv } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const cliPath = join(import.meta.dirname, 'cli.ts');
 const input = '{"command":"exit 9","stallAfter":9,"maxFailures":20}';
+// A request can only lower a limit (e09s01), so the repository raises them.
+const raised = { 'tracked.txt': 'one\n', 'weftwork.yaml': 'budget:\n  stallAfter: 9\n  maxFailures: 20\n' };
 
 function runCli(cwd: string, text: string = input) {
-  const result = spawnSync(process.execPath, [cliPath], { input: text, cwd, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [cliPath], { input: text, cwd, encoding: 'utf8', env: isolatedEnv() });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -45,7 +47,7 @@ function record(fingerprint: string, over: Record<string, unknown> = {}): string
 }
 
 test('AC-e06s05-19 a failed run never names the hatch', async () => {
-  const repo = makeTestRepo();
+  const repo = makeTestRepo(raised);
   const baseline = runCli(repo);
   assert.equal(baseline.status, exitCodes.failed);
   const fingerprint = lineOf(baseline.stdout).fingerprint as string;
@@ -68,7 +70,7 @@ test('AC-e06s05-19 a failed run never names the hatch', async () => {
 });
 
 test('AC-e06s05-20 the real CLI overrides once', async () => {
-  const repo = makeTestRepo();
+  const repo = makeTestRepo(raised);
   const first = runCli(repo);
   assert.equal(first.status, 1);
   const fingerprint = lineOf(first.stdout).fingerprint as string;
@@ -93,7 +95,7 @@ test('AC-e06s05-20 the real CLI overrides once', async () => {
 });
 
 test('AC-e06s05-21 the counts through the real CLI', async () => {
-  const repo = makeTestRepo();
+  const repo = makeTestRepo(raised);
   const first = runCli(repo);
   const fingerprint = lineOf(first.stdout).fingerprint as string;
   await writeRecord(repo, record(fingerprint));
@@ -129,7 +131,7 @@ const notRegular: ReadonlyArray<[string, (path: string) => void]> = [
 ];
 
 test('AC-e06s05-19 a record that is not a regular file never names the hatch', async () => {
-  const repo = makeTestRepo();
+  const repo = makeTestRepo(raised);
   const baseline = runCli(repo);
   for (const [name, make] of notRegular) {
     const path = await recordPath(repo);
@@ -144,11 +146,11 @@ test('AC-e06s05-19 a record that is not a regular file never names the hatch', a
 
 test('AC-e06s05-19 a matching record on an exhausted run is kept and never named', async () => {
   const limited = '{"command":"exit 9","maxFailures":2}';
-  const plain = makeTestRepo();
+  const plain = makeTestRepo(raised);
   runCli(plain, limited);
   const baseline = runCli(plain, limited);
   assert.equal(baseline.status, exitCodes.exhausted);
-  const repo = makeTestRepo();
+  const repo = makeTestRepo(raised);
   const first = runCli(repo, limited);
   await writeRecord(repo, record(lineOf(first.stdout).fingerprint as string));
   const result = runCli(repo, limited);

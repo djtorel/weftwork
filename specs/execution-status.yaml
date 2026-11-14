@@ -44,8 +44,8 @@ development_status:
   e08s02: done
   e08s03: done
   e08s04: done
-  e09: todo
-  e09s01: todo
+  e09: in_progress
+  e09s01: done
   e09s02: todo
   e09s03: todo
   e09s04: todo
@@ -93,7 +93,7 @@ epics:
     wsjf: 3.8
     total_bcps: 21
   e09:
-    status: todo
+    status: in_progress
     title: Budget and ceilings (B5)
     wsjf: 2.6
     total_bcps: 18
@@ -370,19 +370,24 @@ stories:
     effort_hours: 2.0306
     lead_time_minutes: 133
     bcp_per_hour: 2.5
+  e09s01:
+    effort_hours: 1.2975
+    lead_time_minutes: 99
+    bcp_per_hour: 3.9
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-14T17:26:54Z"
+  generated_at: "2026-11-14T19:46:37Z"
   rationale: >-
-    Release of e08s04, which closes e08. R1, R2 and R3 pass: e08s04, the
-    only undone story, carries explicit tags in src/resume.ts,
-    src/resume-cli.ts and their tests; every done story has verify
-    evidence. R4 gives CONCERNS (15 of 36 stories tagged): the 21 untagged
-    stories are the research epics e01 to e05, which shipped docs, not
-    code; every story that shipped code is tagged. The oracle downgrade
-    (150 of 251 links, 60 percent, from heuristics) turns it into FAIL.
-    trace-stories.sh, the completeness critic (0 blockers) and the
-    blind-spot check (0 HIGH) ran at f9331d7. Owner waiver in state.yaml,
-    2026-11-14, for e08s04 only.
-  heuristic_ratio: 0.6
+    Release of e09s01. R1 fails for the undone e09s02 to e09s04, which
+    have no code yet; the owner's e09-only waiver of 2026-11-14 covers it.
+    R2 and R3 pass: e09s01 carries explicit tags in src/budget.ts, its
+    four test files and docs/BUDGET.md; every done story has verify
+    evidence. R4 gives CONCERNS (16 of 40 stories tagged): the 21
+    untagged stories are the research epics e01 to e05, which shipped
+    docs, not code; every story that shipped code is tagged. The oracle
+    downgrade (169 of 276 links, 61 percent, from heuristics) turns it
+    into FAIL. trace-stories.sh, the completeness critic (0 blockers) and
+    the blind-spot check (0 HIGH) ran at 70d3397. Owner waiver in
+    state.yaml, 2026-11-14, for e09s01 only.
+  heuristic_ratio: 0.61
   downgrade_applied: true

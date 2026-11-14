@@ -20,7 +20,8 @@ const cliPath = join(import.meta.dirname, 'claude-hook-cli.ts');
  * CLAUDE_PROJECT_DIR (`project`, or unset when null) can say where the
  * command runs. */
 function runHook(input: string, args: string[], project: string | null) {
-  const env = { ...process.env };
+  // An empty XDG_CONFIG_HOME: never the real user budget file (e09s01, R6).
+  const env: NodeJS.ProcessEnv = { ...process.env, XDG_CONFIG_HOME: makeTempDir() };
   delete env.CLAUDE_PROJECT_DIR;
   if (project !== null) {
     env.CLAUDE_PROJECT_DIR = project;

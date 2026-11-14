@@ -6,7 +6,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo, isolatedEnv } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -14,7 +14,7 @@ const cliPath = join(import.meta.dirname, 'cli.ts');
 const repo = makeTestRepo();
 
 function runCli(input: string, cwd: string = repo) {
-  const result = spawnSync(process.execPath, [cliPath], { input, cwd, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [cliPath], { input, cwd, encoding: 'utf8', env: isolatedEnv() });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 

@@ -156,3 +156,19 @@ export function inChild(module: string, expression: string, setup = '') {
   });
   return { finished: out.status === 0, stdout: out.stdout, stderr: out.stderr };
 }
+
+/** This process's environment with XDG_CONFIG_HOME set to a new empty
+ * directory, so a CLI started with it never reads the real user budget file
+ * (e09s01, spec R6). */
+export function isolatedEnv(): NodeJS.ProcessEnv {
+  return { ...process.env, XDG_CONFIG_HOME: makeTempDir() };
+}
+
+/** Nested aliases that expand past the yaml package's alias limit. */
+export function aliasBomb(): string {
+  const lines = ['a0: &a0 [x, x, x, x, x, x, x, x, x]'];
+  for (let i = 1; i < 12; i++) {
+    lines.push(`a${i}: &a${i} [${Array(9).fill(`*a${i - 1}`).join(', ')}]`);
+  }
+  return `${lines.join('\n')}\nbudget: {maxFailures: 2}\n`;
+}

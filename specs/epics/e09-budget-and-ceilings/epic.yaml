@@ -3,7 +3,7 @@ id: e09
 title: Budget and ceilings (B5)
 wsjf: 2.6
 risk: P2
-status: todo
+status: in_progress
 depends_on:
   - e06
 done_when: >-
@@ -15,7 +15,7 @@ stories:
   - id: e09s01
     title: The owner sets the engine's limits in a budget setting file
     bcps: 5
-    status: todo
+    status: done
     tasks: e09s01-tasks.yaml
     delta: MODIFIED
   - id: e09s02
