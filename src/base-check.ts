@@ -48,7 +48,12 @@ export async function checkOnBase(input: { cwd: string; proof: ProofSetting; bas
   const tests = await changedTests(root, input.base, input.proof.tests);
   if (!tests.ok) return tests;
   if (tests.files.length === 0) return { kind: 'none' };
-  const dir = await mkdtemp(join(tmpdir(), 'weftwork-base-'));
+  let dir: string;
+  try {
+    dir = await mkdtemp(join(tmpdir(), 'weftwork-base-'));
+  } catch (error) {
+    return { ok: false, error: `the base worktree failed: ${messageOf(error)}` };
+  }
   const tree = join(dir, 'tree');
   try {
     // core.hooksPath=/dev/null: a post-checkout hook must not run here.
@@ -75,7 +80,7 @@ export async function checkOnBase(input: { cwd: string; proof: ProofSetting; bas
   } finally {
     await gitOutput(root, ['worktree', 'remove', '--force', tree]).catch(() => undefined);
     // No `worktree prune`: it acts on every worktree of the clone.
-    await rm(dir, { recursive: true, force: true });
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 

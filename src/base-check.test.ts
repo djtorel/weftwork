@@ -16,8 +16,8 @@ after(cleanupTempDirs);
 const cli = join(import.meta.dirname, 'base-check-cli.ts');
 const file = (text: string) => ({ path: '/repo/weftwork.yaml', text });
 
-function run(cwd: string, input: object = {}) {
-  const out = spawnSync(process.execPath, [cli], { cwd, input: JSON.stringify(input), env: isolatedEnv(), encoding: 'utf8', timeout: 30000 });
+function run(cwd: string, input: object = {}, env: NodeJS.ProcessEnv = {}) {
+  const out = spawnSync(process.execPath, [cli], { cwd, input: JSON.stringify(input), env: { ...isolatedEnv(), ...env }, encoding: 'utf8', timeout: 30000 });
   return { status: out.status, stdout: out.stdout, stderr: out.stderr };
 }
 
@@ -73,15 +73,16 @@ test('a test that fails on the base shows the change; one that passes there does
   mkdirSync(join(dir, 'tests'), { recursive: true });
   writeFileSync(join(dir, 'tests', 'new.test.sh'), '. ./lib.sh; [ "$(answer)" = 2 ]\n');
   writeFileSync(join(dir, 'tests', 'weak.test.sh'), 'true\n');
+  writeFileSync(join(dir, 'tests', 'old.test.sh'), '. ./lib.sh; [ "$(answer)" = 2 ]\n');
   git(dir, 'add', 'tests/weak.test.sh');
   git(dir, 'commit', '-q', '-m', 'weak test');
   const out = run(dir);
   assert.equal(out.status, 0, out.stderr);
-  assert.match(out.stdout, /^weftwork base check: 1 of 2 changed test files fail on the base$/m);
+  assert.match(out.stdout, /^weftwork base check: 2 of 3 changed test files fail on the base$/m);
+  assert.match(out.stdout, /^fails on base: tests\/old\.test\.sh$/m);
   assert.match(out.stdout, new RegExp(`^base: ${base}$`, 'm'));
   assert.match(out.stdout, /^fails on base: tests\/new\.test\.sh$/m);
   assert.match(out.stdout, /^passes on base: tests\/weak\.test\.sh \(it does not show the change\)$/m);
-  assert.doesNotMatch(out.stdout, /old\.test\.sh/);
 });
 
 test('the base worktree is removed, the working tree and index are left as they were, and no git hook runs', () => {
@@ -125,4 +126,13 @@ test('a base that is not a commit: exit 2, the reason on stderr', () => {
   assert.match(out.stderr, /^base check: the base is not a commit: nope$/m);
   const worktrees = join(dir, '.git', 'worktrees');
   assert.equal(existsSync(worktrees) ? readdirSync(worktrees).length : 0, 0);
+});
+
+test('a temporary folder it cannot make: exit 2, the reason on stderr (review round 1)', () => {
+  const { dir } = repo();
+  writeFileSync(join(dir, 'tests', 'new.test.sh'), 'false\n');
+  const out = run(dir, {}, { TMPDIR: join(makeTempDir(), 'missing') });
+  assert.equal(out.status, 2, out.stderr);
+  assert.equal(out.stdout, '');
+  assert.match(out.stderr, /^base check: the base worktree failed: /m);
 });
