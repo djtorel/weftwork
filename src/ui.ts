@@ -227,6 +227,8 @@ const designAudit = [
   '- states (hover, focus, disabled, error, empty, loading), where the screenshots show them',
   'A screenshot name may give its screen, viewport and state: <screen>.<viewport>.<state>.png.',
   'Severity: MUST-FIX only for an objective break: the change breaks the design reference, text fails WCAG 2 AA contrast, or the layout is broken at a viewport the screenshots show.',
+  'A design MUST-FIX names its evidence: the rule of the design reference and the value that breaks it, the two colours and their ratio, or the screenshot and the element that is broken.',
+  'A contrast or exact-colour finding seen only in a screenshot is SHOULD-FIX: a model cannot measure colour from pixels reliably, so name the programmatic check that would settle it.',
   'A design judgement call is SHOULD-FIX; it is listed in the pull request and does not block.',
 ];
 

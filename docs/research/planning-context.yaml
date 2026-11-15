@@ -182,6 +182,13 @@ research_stories:
       Code, Aug to Nov 2026) get agents to finish, review and merge work
       without him, and how does that practice line up with R1 to R16?
       Read his published skills as the primary source'
+  - id: R18
+    wave: 5
+    title: Vision models as design judges
+    question: 'How well do vision models judge the visual design of a
+      UI from screenshots, and how much weight should the review
+      council''s design findings get? Revisit the e11s06 severity rule
+      against the answer'
 waves:
   1:
     - R0
@@ -206,6 +213,7 @@ waves:
     - R16
   5:
     - R17
+    - R18
 hypotheses:
   - id: H1
     claim: 'Evidence over claims: done = declared command the
@@ -413,6 +421,16 @@ hypotheses:
       - R10
     tested_by:
       - B7
+  # H30 added by plan-work for e11s07 on 2026-11-15 (e11s06 left the
+  # weight of design findings to a brief). Like H28 and H29 it is
+  # outside the H1-H27 success criterion above.
+  - id: H30
+    claim: 'A vision-model reviewer''s design findings are reliable
+      enough to block a change only for an objective break it names
+      evidence for; judgement calls and scores are advisory, and checks
+      a program can make belong in the verify command'
+    tested_by:
+      - R18
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing

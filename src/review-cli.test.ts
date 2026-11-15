@@ -220,6 +220,16 @@ test('a UI change is reviewed as a design audit: the checklist and the severity 
   for (const line of [/^- hierarchy/m, /^- colour and contrast$/m, /^- states \(hover, focus, disabled, error, empty, loading\)/m, /^Severity: MUST-FIX only for an objective break/m, /judgement call is SHOULD-FIX/, /there is no design reference/]) assert.match(text, line);
 });
 
+test('a design MUST-FIX names its evidence, and contrast seen only in a screenshot is SHOULD-FIX (e11s07, R18)', () => {
+  const brief = join(makeTempDir(), 'brief');
+  const repo = uiChangedRepo(`cat > ${brief}; echo 'VERDICT: APPROVE'`);
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  assert.equal(review(repo).status, 0);
+  const text = readFileSync(brief, 'utf8');
+  assert.match(text, /^A design MUST-FIX names its evidence: /m);
+  assert.match(text, /^A contrast or exact-colour finding seen only in a screenshot is SHOULD-FIX/m);
+});
+
 test('ui.design adds the design reference to the brief (e11s06)', () => {
   const repo = uiChangedRepo("grep -q 'Primary colour is #0055ff' && echo 'VERDICT: APPROVE'", '  design: DESIGN.md\n');
   writeFileSync(join(repo, 'DESIGN.md'), '# Design\nPrimary colour is #0055ff.\n');
