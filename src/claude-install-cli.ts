@@ -1,6 +1,7 @@
-// story: e07s03, e07s04
+// story: e07s03, e07s04, e11s01
 // Thin shell for the install: run in the root of a project, it registers the
-// Stop hook in that project's .claude/settings.json. The declared command is
+// Stop hook and the guard (a PreToolUse hook) in that project's
+// .claude/settings.json. The declared command is
 // the one argument after `--`, as claude-hook-cli.ts reads it. Logic lives in
 // claude-install.ts and claude-settings-file.ts. Exit 0 on success and 1 on
 // any error; this is not a hook, so exit 2 means nothing here.
@@ -12,14 +13,16 @@ import { installInProject } from './claude-settings-file.ts';
 
 const usage = "usage: node claude-install-cli.ts -- '<declared command>'";
 const adapter = join(import.meta.dirname, 'claude-hook-cli.ts');
+const guard = join(import.meta.dirname, 'guard-cli.ts');
 
 /** What the owner does next, printed after a successful install. */
-function nextSteps(path: string): string {
+function nextSteps(path: string, guardChanged: boolean): string {
   return [
     `Stop hook in ${path}`,
+    `${guardChanged ? 'added' : 'unchanged'}: PreToolUse guard in ${path}`,
     '',
     'Next:',
-    `- The entry names ${adapter}, so it works on this machine only.`,
+    `- The entries name ${adapter} and ${guard}, so they work on this machine only.`,
     '- If Claude Code shows the workspace trust dialog, accept it. Until you do,',
     '  it does not run the hook.',
     '- Start a new Claude Code session. A session that is already running may not',
@@ -36,12 +39,12 @@ function main(args: string[]): number {
     process.stderr.write(`${usage}\n`);
     return 1;
   }
-  const result = installInProject(process.cwd(), adapter, command);
+  const result = installInProject(process.cwd(), { stop: adapter, guard }, command);
   if (!result.ok) {
     process.stderr.write(`weftwork install: ${result.error}\n`);
     return 1;
   }
-  process.stdout.write(`${result.action}: ${nextSteps(result.path)}`);
+  process.stdout.write(`${result.action}: ${nextSteps(result.path, result.guardChanged)}`);
   return 0;
 }
 

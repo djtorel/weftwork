@@ -1,4 +1,4 @@
-// story: e07s03, e07s04, e08s01
+// story: e07s03, e07s04, e08s01, e11s01
 // The file half of the install: read .claude/settings.json without blocking and
 // only as a regular file, and write it back through a temp file and a rename.
 // Split out of claude-install.ts in e07s04 to keep both files under the
@@ -10,6 +10,7 @@
 // edit it. Text of the wrong shape is refused, never repaired or overwritten.
 import { lstatSync } from 'node:fs';
 import { join } from 'node:path';
+import { installGuardHook } from './claude-guard-install.ts';
 import { installStopHook, type Action } from './claude-install.ts';
 import { isMissing, type Failure } from './errors.ts';
 import { readRegularFile, writeAtomic, type ReadRegular, type RegularFile } from './regular-file.ts';
@@ -18,7 +19,7 @@ import { readRegularFile, writeAtomic, type ReadRegular, type RegularFile } from
  * check follows symlinks, so the file may be any file the agent links. */
 export const maxSettingsBytes = 1024 * 1024;
 
-export type InstallInProject = { ok: true; action: Action; path: string } | Failure;
+export type InstallInProject = { ok: true; action: Action; path: string; guardChanged: boolean } | Failure;
 export type SettingsFile = RegularFile;
 export type Read = ReadRegular;
 
@@ -73,18 +74,27 @@ function refusalFor(dir: string, claudeDir: string): string | null {
   return null;
 }
 
-/** Register the Stop hook in `dir`'s .claude/settings.json. `dir` must be the
- * root of a git repository. Writes only when the text changes. Returns an
- * error value, and writes nothing, for anything it will not edit. */
-export function installInProject(dir: string, cliPath: string, command: string): InstallInProject {
+/** The adapter files the install names: the Stop hook and the guard. */
+export type HookClis = { stop: string; guard: string };
+
+/** Register the Stop hook and the guard (a PreToolUse hook, e11s01) in
+ * `dir`'s .claude/settings.json. `dir` must be the root of a git repository.
+ * Writes only when the text changes. Returns an error value, and writes
+ * nothing, for anything it will not edit. `action` is the Stop entry's;
+ * `guardChanged` says whether the guard entry was added or replaced. */
+export function installInProject(dir: string, clis: HookClis, command: string): InstallInProject {
   const claudeDir = join(dir, '.claude');
   const path = join(claudeDir, 'settings.json');
   const refusal = refusalFor(dir, claudeDir);
   if (refusal !== null) return { ok: false, error: refusal };
   const read = readSettings(path);
   if (!read.ok) return read;
-  const result = installStopHook(read.file?.text ?? null, cliPath, command);
-  if (!result.ok) return { ok: false, error: `${path}: ${result.error}` };
-  const failed = result.changed ? writeAtomic(path, result.text, read.file?.mode) : null;
-  return failed ?? { ok: true, action: result.action, path };
+  const text = read.file?.text ?? null;
+  const stop = installStopHook(text, clis.stop, command);
+  if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
+  const guard = installGuardHook(stop.text, clis.guard);
+  if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
+  const changed = guard.text !== text;
+  const failed = changed ? writeAtomic(path, guard.text, read.file?.mode) : null;
+  return failed ?? { ok: true, action: stop.action, path, guardChanged: guard.changed };
 }

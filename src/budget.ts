@@ -174,7 +174,7 @@ const settingMaxBytes = 64 * 1024;
  * $HOME/.config/weftwork/config.yaml when XDG_CONFIG_HOME is unset, empty or
  * relative (the XDG Base Directory spec says to ignore a relative one). Null
  * when neither gives an absolute directory. */
-function userSettingPath(env: NodeJS.ProcessEnv): string | null {
+export function userSettingPath(env: NodeJS.ProcessEnv): string | null {
   const xdg = env['XDG_CONFIG_HOME'];
   const home = env['HOME'];
   if (xdg !== undefined && isAbsolute(xdg)) return join(xdg, 'weftwork', 'config.yaml');
