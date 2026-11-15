@@ -24,7 +24,7 @@ test('AC-e11s04-11 a decision needs a question, a choice and a reason, each shor
 
 test('AC-e11s04-12 decisions are written and read back per branch, oldest first', async () => {
   const path = join(makeTempDir(), 'weftwork', 'decisions.jsonl');
-  assert.deepEqual(await readDecisions(path), { ok: true, decisions: [] });
+  assert.deepEqual(await readDecisions(path), { ok: true, decisions: [], truncated: false });
   assert.deepEqual(await appendDecision(path, { ...input, branch: 'feat/a' }, new Date(0)), { ok: true });
   assert.deepEqual(await appendDecision(path, { ...input, choice: 'two', branch: 'feat/b' }, new Date(1)), { ok: true });
   assert.deepEqual(await appendDecision(path, { ...input, choice: 'three', branch: 'feat/a' }, new Date(2)), { ok: true });
@@ -45,4 +45,8 @@ test('AC-e11s04-14 the Decisions text is one line each, or None', () => {
   assert.equal(decisionsText([]), 'None\n');
   const text = decisionsText([{ at: 'x', branch: 'b', ...input, reason: 'two\nlines \u001b[31m' }]);
   assert.equal(text, '- Which file holds the log? Choice: A new decisions.jsonl. Reason: two lines \\u001b[31m\n');
+});
+
+test('AC-e11s04-19 a log cut to its last 1 MiB says older decisions were left out', () => {
+  assert.equal(decisionsText([], true), 'None\n(older decisions were left out: the log is over 1 MiB)\n');
 });

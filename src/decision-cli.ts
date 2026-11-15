@@ -29,7 +29,7 @@ async function main(args: string[]): Promise<void> {
   if (args[0] === 'list') {
     const read = await readDecisions(path);
     if (!read.ok) return fail(`the decision log cannot be read: ${read.error}`);
-    process.stdout.write(decisionsText(read.decisions.filter((entry) => entry.branch === branch.branch)));
+    process.stdout.write(decisionsText(read.decisions.filter((entry) => entry.branch === branch.branch), read.truncated));
     return;
   }
   const request = await readJsonObject();

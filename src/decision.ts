@@ -47,11 +47,13 @@ export async function appendDecision(path: string, entry: Decision & { branch: s
 
 /** Every decision in the last 1 MiB of the file, oldest first. A missing file
  * has none. Never throws. */
-export async function readDecisions(path: string): Promise<{ ok: true; decisions: DecisionEntry[] } | { ok: false; error: string }> {
+export async function readDecisions(
+  path: string,
+): Promise<{ ok: true; decisions: DecisionEntry[]; truncated: boolean } | { ok: false; error: string }> {
   let handle: FileHandle | undefined;
   try {
     handle = await openRegular(path, constants.O_RDONLY);
-    const { text } = await tailText(handle, ledgerReadCap);
+    const { text, truncated } = await tailText(handle, ledgerReadCap);
     const decisions = text.split('\n').flatMap((line) => {
       try {
         const entry = toEntry(JSON.parse(line));
@@ -60,9 +62,9 @@ export async function readDecisions(path: string): Promise<{ ok: true; decisions
         return [];
       }
     });
-    return { ok: true, decisions };
+    return { ok: true, decisions, truncated };
   } catch (error) {
-    return isMissing(error) ? { ok: true, decisions: [] } : { ok: false, error: messageOf(error) };
+    return isMissing(error) ? { ok: true, decisions: [], truncated: false } : { ok: false, error: messageOf(error) };
   } finally {
     await handle?.close().catch(ignoreCloseError);
   }
@@ -70,10 +72,11 @@ export async function readDecisions(path: string): Promise<{ ok: true; decisions
 
 const oneLine = (text: string) => terminalSafe(text.trim().replace(/\s+/g, ' '));
 
-/** The PR's Decisions section: one line per decision, or None. */
-export function decisionsText(decisions: DecisionEntry[]): string {
-  if (decisions.length === 0) return 'None\n';
+/** The PR's Decisions section: one line per decision, or None, and a note
+ * when the log was cut to its last 1 MiB (review round 1). */
+export function decisionsText(decisions: DecisionEntry[], truncated = false): string {
   const line = (d: DecisionEntry) =>
     `- ${oneLine(d.question)} Choice: ${oneLine(d.choice).replace(/\.$/, '')}. Reason: ${oneLine(d.reason)}`;
-  return `${decisions.map(line).join('\n')}\n`;
+  const body = decisions.length === 0 ? 'None\n' : `${decisions.map(line).join('\n')}\n`;
+  return truncated ? `${body}(older decisions were left out: the log is over 1 MiB)\n` : body;
 }

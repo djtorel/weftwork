@@ -42,6 +42,8 @@ function gitArgs(words: string[]): { sub: string; args: string[] } | null {
 /** The branch a refspec updates on the remote, given the current branch. */
 function destination(refspec: string, branch: string | null): string | null {
   const spec = refspec.replace(/^\+/, '');
+  // A matching (`:`) or wildcard refspec may update main: read it as main.
+  if (spec === ':' || spec.includes('*')) return 'main';
   const colon = spec.lastIndexOf(':');
   const dst = colon === -1 ? spec : spec.slice(colon + 1);
   const name = dst.replace(/^refs\/heads\//, '');
@@ -68,6 +70,20 @@ function pushReason(args: string[], branch: string | null): string | null {
   return target === undefined || target === null ? null : `the push updates ${target}`;
 }
 
+/** Options of checkout and switch that make a new branch, named next. */
+const newBranch = new Set(['-b', '-B', '-c', '-C']);
+
+/** The branch after a checkout or switch with `args`. Only a new branch
+ * (`-b name`) or a main branch by name moves it: a checkout that restores
+ * files, or of a name the guard cannot tell from a file, keeps the branch, so
+ * a doubt stays on the side that blocks (review round 1). */
+function afterCheckout(args: string[], branch: string | null): string | null {
+  const flag = args.findIndex((word) => newBranch.has(word));
+  if (flag !== -1) return args[flag + 1] ?? branch;
+  const name = args.find((word) => !word.startsWith('-'));
+  return name !== undefined && mainBranches.has(name) && !args.includes('--') ? name : branch;
+}
+
 /** Why `command` pushes to main or master, or null when it does not.
  * `branch` is the current branch (null on a detached HEAD); a `git checkout`
  * or `git switch` earlier in the command changes it for the parts after. */
@@ -77,8 +93,7 @@ export function pushToMain(command: string, branch: string | null): string | nul
     const git = gitArgs(words);
     if (git === null) continue;
     if (git.sub === 'checkout' || git.sub === 'switch') {
-      const name = git.args.find((word) => !word.startsWith('-'));
-      if (name !== undefined) current = name;
+      current = afterCheckout(git.args, current);
     } else if (git.sub === 'push') {
       const reason = pushReason(git.args, current);
       if (reason !== null) return reason;

@@ -53,3 +53,16 @@ test('AC-e11s04-04 each command of a chain is checked', () => {
   assert.notEqual(pushToMain('git commit -m x && git push origin main || true', 'feat/x'), null);
   assert.notEqual(pushToMain('true\ngit push origin main', 'feat/x'), null);
 });
+
+test('AC-e11s04-17 a checkout that restores files does not change the branch', () => {
+  assert.notEqual(pushToMain('git checkout -- src/guard.ts && git push', 'main'), null);
+  assert.notEqual(pushToMain('git checkout src/guard.ts && git push', 'main'), null);
+  assert.equal(pushToMain('git checkout -b feat/y && git push -u origin HEAD', 'main'), null);
+  assert.equal(pushToMain('git switch -c feat/y && git push', 'main'), null);
+  assert.notEqual(pushToMain('git switch main && git push', 'feat/x'), null);
+});
+
+test('AC-e11s04-18 a matching or wildcard refspec may update main', () => {
+  assert.notEqual(pushToMain('git push origin :', 'feat/x'), null);
+  assert.notEqual(pushToMain("git push origin 'refs/heads/*:refs/heads/*'", 'feat/x'), null);
+});

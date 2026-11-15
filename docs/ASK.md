@@ -41,8 +41,8 @@ a git worktree. Outside a repository they are off.
   and newlines, and quotes are dropped. A part that starts with `git` (after
   `VAR=value` words and git's own options such as `-C`) and runs `push` is
   blocked when a refspec updates `main` or `master` (`main`, `HEAD:main`,
-  `+x:refs/heads/main`, `--delete main`), when it has `--all` or
-  `--mirror`, or when it has no refspec, or pushes `HEAD`, from `main` or
+  `+x:refs/heads/main`, `--delete main`, the matching refspec `:` or a
+  wildcard), when it has `--all` or `--mirror`, or when it has no refspec, or pushes `HEAD`, from `main` or
   `master`. A `git checkout` or `git switch` earlier in the same command
   changes the branch for the parts after it.
 
@@ -73,7 +73,9 @@ for the Decisions section of the pull request, or `None`:
 - Split engine.ts? Choice: Yes, into two files. Reason: It passed 300 lines.
 ```
 
-Each field is required and at most 500 characters. On a detached HEAD the
+Each field is required and at most 500 characters. `list` reads the
+last 1 MiB of the log; when the log is longer it says older decisions
+were left out. On a detached HEAD the
 CLI refuses: a decision belongs to a branch. Exit 0 done, 2 when it cannot
 run, with the reason on stderr. The file is in the engine's folder, so the
 guard blocks a tool call that writes it, and the CLI writes it from its own
