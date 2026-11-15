@@ -5,11 +5,26 @@ to a pull request that is ready to merge, and the engine holds it to the parts
 prose cannot (a done gate it cannot fake, counted ceilings, a handoff on a hard
 stop).
 
-Status: the engine core, the Claude Code Stop-hook adapter, the state and
-handoff files, and the budget setting are built. Next is the auto run, one
-command from a task to a ready PR. Start with [`AGENTS.md`](AGENTS.md); the
-research is in [`docs/research/`](docs/research/), with the synthesis in
+Status: the engine, the Claude Code adapter and the auto run ("full stop",
+one request to a ready PR) are built, and so are setting up a new project and
+converting a bigpowers one. Converting GSD, spec-kit and BMAD comes next. To
+work on weftwork itself, start with [`AGENTS.md`](AGENTS.md); the research is
+in [`docs/research/`](docs/research/), with the synthesis in
 [`SYNTHESIS.md`](docs/research/SYNTHESIS.md).
+
+## Getting started
+
+```bash
+git clone https://github.com/djtorel/weftwork.git
+cd weftwork
+bash tools/setup.sh
+```
+
+Then open Claude Code in this checkout and say "Set up weftwork in
+/path/to/project", or "Convert /path/to/project to weftwork" for a bigpowers
+project. In that project, name a task and add "Full stop."
+[`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) has each step, what you
+need installed, and how to undo it.
 
 Plans, tasks and agent state are local and untracked; see "Where things are" in
 `AGENTS.md`. The bigpowers-era planning tree is at the tag `bigpowers-era`.
