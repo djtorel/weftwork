@@ -40,14 +40,19 @@ deleting data, or anything outside this repository.
 4. **Prove.** Run the task's check, then Preflight through the engine, so its
    done gate decides and the ledger counts the budget:
    `echo '{"command":"<Preflight>"}' | node src/cli.ts` (Preflight is in
-   `AGENTS.md`). For UI or runtime behaviour, also run it and look; green
-   mocked tests do not prove a user-facing change. For a UI change, then run
+   `AGENTS.md`). When `weftwork.yaml` sets `proof`, run the base check,
+   `echo '{}' | node src/base-check-cli.ts` (`docs/BASE-CHECK.md`): a
+   changed test that passes on the base does not show the change; make it
+   fail without the change, or say why in the PR. For UI or runtime
+   behaviour, also run it and look; green mocked tests do not prove a
+   user-facing change. For a UI change, then run
    `echo '{"phase":"after"}' | node src/ui-cli.ts`; the review needs it.
 5. **Review.** Use the `review-loop` skill. Fix what it finds, prove each fix.
 6. **File.** Rebase onto the latest `main`, run Preflight through the engine
    again, then get the proof block with the same command string:
    `echo '{"command":"<Preflight>"}' | node src/pr-proof-cli.ts`
-   (`docs/PR-PROOF.md`). Paste its output into the PR's Proof block as it is,
+   (`docs/PR-PROOF.md`). Paste its output, and the base check's, into the
+   PR's Proof block as it is,
    and the output of `node src/decision-cli.ts list` into its Decisions.
    Exit 0: push and open the PR with the `file-pr` skill. Exit 1: the gate
    says draft; fix it and run the engine again, or stop early (below).
