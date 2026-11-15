@@ -7,7 +7,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, git, isolatedEnv, makeTempDir, makeTestRepo, writePng } from './test-helpers.ts';
 import { ledgerPath } from './ledger.ts';
@@ -18,8 +18,8 @@ const engineCli = join(import.meta.dirname, 'cli.ts');
 const reviewCli = join(import.meta.dirname, 'review-cli.ts');
 const verify = 'true';
 
-function node(script: string, cwd: string, input: object) {
-  const out = spawnSync(process.execPath, [script], { cwd, input: JSON.stringify(input), env: isolatedEnv(), encoding: 'utf8', timeout: 30000 });
+function node(script: string, cwd: string, input: object, env: NodeJS.ProcessEnv = {}) {
+  const out = spawnSync(process.execPath, [script], { cwd, input: JSON.stringify(input), env: { ...isolatedEnv(), ...env }, encoding: 'utf8', timeout: 30000 });
   return { status: out.status, stdout: out.stdout, stderr: out.stderr };
 }
 
@@ -250,6 +250,21 @@ test('each reviewer gets the screenshots in WEFTWORK_IMAGES, comma-separated, be
 test('a change that is not a UI change: WEFTWORK_IMAGES is not set (e11s06)', () => {
   const seen = join(makeTempDir(), 'images');
   const repo = readyRepo(council(`printf '%s' "\${WEFTWORK_IMAGES-unset}" > ${seen}; echo 'VERDICT: APPROVE'`));
-  assert.equal(review(repo).status, 0);
+  // One the engine's own caller set is not passed on (review round 1).
+  assert.equal(node(reviewCli, repo, { command: verify, brief: 'Review the diff.' }, { WEFTWORK_IMAGES: '/stale.png' }).status, 0);
   assert.equal(readFileSync(seen, 'utf8'), 'unset');
+});
+
+test('a ui.design path through a symlinked folder outside the repository: exit 2 (e11s06, review round 1)', () => {
+  const outside = makeTempDir();
+  writeFileSync(join(outside, 'DESIGN.md'), 'secret\n');
+  const marker = join(makeTempDir(), 'ran');
+  const repo = uiChangedRepo(`touch ${marker}; echo 'VERDICT: APPROVE'`, '  design: out/DESIGN.md\n');
+  symlinkSync(outside, join(repo, 'out'));
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  const out = review(repo);
+  assert.equal(out.status, 2, out.stdout);
+  assert.match(out.stderr, /ui\.design: .* is outside the repository/);
+  assert.equal(existsSync(marker), false);
 });

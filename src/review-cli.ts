@@ -73,7 +73,13 @@ async function main(): Promise<void> {
   }
 
   const prompt = ready === null ? brief : `${brief.replace(/\n*$/, '')}\n\n${uiPrompt(weftwork, ready, design)}`;
-  const env = ready === null ? undefined : { ...process.env, WEFTWORK_IMAGES: imagesValue(weftwork, ready) };
+  // Only a UI change sets WEFTWORK_IMAGES; one from the caller is dropped (review round 1).
+  const { WEFTWORK_IMAGES: _inherited, ...env } = process.env;
+  if (ready !== null) {
+    const images = imagesValue(weftwork, ready);
+    if (!images.ok) return fail(images.error);
+    env['WEFTWORK_IMAGES'] = images.value;
+  }
   const results = await runCouncil(setting.review, cwd, reviewPrompt(prompt), env);
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;

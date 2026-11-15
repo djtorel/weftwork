@@ -8,8 +8,8 @@
 // each reviewer gets the images in WEFTWORK_IMAGES (e11s06).
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { join, matchesGlob } from 'node:path';
+import { lstat, mkdir, open, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { join, matchesGlob, relative } from 'node:path';
 import { terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
 import { runCommand } from './process.ts';
@@ -179,13 +179,23 @@ export async function uiForReview(request: { cwd: string; weftwork: string; ui: 
 }
 
 /** The design reference ui.design names, read under the setting file rules:
- * a regular file, not a symlink, UTF-8, at most 64 KiB. */
+ * a regular file, not a symlink, UTF-8, at most 64 KiB, and inside the
+ * repository after its folders are resolved, since the brief goes to a
+ * reviewer (review round 1). */
 export async function readDesign(cwd: string, design: string): Promise<{ ok: true; design: Design } | Failure> {
   let path: string;
+  let root: string;
   try {
-    path = join((await repositoryRoot(cwd)).toString(), design);
+    root = await realpath((await repositoryRoot(cwd)).toString());
+    path = join(root, design);
   } catch (error) {
     return { ok: false, error: `ui.design: no repository root: ${messageOf(error)}` };
+  }
+  try {
+    const folder = relative(root, await realpath(join(path, '..')));
+    if (folder === '..' || folder.startsWith('../')) return { ok: false, error: `ui.design: ${path} is outside the repository` };
+  } catch {
+    return { ok: false, error: `ui.design: ${path} does not exist` };
   }
   const read = readRegularFile(path, { follow: false, maxBytes: maxDesignBytes });
   if (!read.ok) return { ok: false, error: `ui.design: ${read.error}` };
@@ -197,10 +207,14 @@ export type Design = { path: string; text: string };
 const maxDesignBytes = 64 * 1024;
 
 /** The screenshots as one value for WEFTWORK_IMAGES: absolute paths, before
- * then after, joined by commas (`codex exec --image` takes this form). */
-export function imagesValue(weftwork: string, ready: { before: Shots | null; after: Shots }): string {
+ * then after, joined by commas (`codex exec --image` takes this form). A
+ * path with a comma of its own is an error (review round 1). */
+export function imagesValue(weftwork: string, ready: { before: Shots | null; after: Shots }): { ok: true; value: string } | Failure {
   const paths = (shots: Shots | null) => (shots === null ? [] : shots.files.map((file) => join(shotsDir(weftwork, shots.phase), file.name)));
-  return [...paths(ready.before), ...paths(ready.after)].join(',');
+  const all = [...paths(ready.before), ...paths(ready.after)];
+  const comma = all.find((path) => path.includes(','));
+  if (comma !== undefined) return { ok: false, error: `the screenshot path ${terminalSafe(comma)} has a comma, so WEFTWORK_IMAGES cannot hold it` };
+  return { ok: true, value: all.join(',') };
 }
 
 const designAudit = [

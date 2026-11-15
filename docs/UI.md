@@ -99,8 +99,8 @@ at a viewport the screenshots show. A judgement call is SHOULD-FIX: it is
 listed in the pull request and does not block.
 
 When `ui.design` is set, the engine reads that file and puts it in the brief
-between two marker lines. It must be a regular file (not a symlink), valid
-UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
+between two marker lines. It must be a regular file (not a symlink), inside
+the repository once its folders are resolved, valid UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
 review with exit 2, and no reviewer runs. Without `ui.design`, the brief says
 there is no design reference, and the council judges consistency against the
 existing screens.
@@ -118,7 +118,9 @@ codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGE
 
 `${WEFTWORK_IMAGES:+...}` adds `--image` only for a UI change. Write a
 council entry in `weftwork.yaml` the same way. For a change that is not a UI
-change, `WEFTWORK_IMAGES` is not set.
+change, `WEFTWORK_IMAGES` is not set, even when the caller had set it. A
+screenshot path with a comma of its own (in the git directory's path, say)
+stops the review with exit 2.
 
 ## A programmatic check wins
 
