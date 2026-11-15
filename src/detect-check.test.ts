@@ -43,3 +43,28 @@ test('AC-e12s01-09 run, deploy and publish commands are skipped, never run', asy
   const { existsSync } = await import('node:fs');
   assert.equal(existsSync(marker), false);
 });
+
+test('AC-e12s01-13 a deploy behind an npm hook, a called script, a make prerequisite or an inline recipe is skipped', async () => {
+  const { mkdtempSync, writeFileSync, existsSync, rmSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { detectProject } = await import('./detect.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'weftwork-detect-'));
+  const marker = join(dir, 'shipped');
+  const scripts = { build: 'echo build', prebuild: `touch ${marker}; npm publish`, test: 'npm run ship', ship: `touch ${marker}; npm publish` };
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts }));
+  writeFileSync(join(dir, 'Makefile'), `test: ship\n\techo test\n\nship:\n\ttouch ${marker}; ./deploy.sh\n\nlint: ; touch ${marker}; npm publish\n`);
+  const detected = await detectProject(dir);
+  assert.ok(detected.ok);
+  const checked = await checkCommands(detected.report.commands, dir, 20000);
+  assert.deepEqual(
+    checked.map((found) => [found.command, found.check.status]),
+    [
+      ['npm run test', 'skipped'],
+      ['npm run build', 'skipped'],
+      ['make test', 'skipped'],
+      ['make lint', 'skipped'],
+    ],
+  );
+  assert.equal(existsSync(marker), false);
+  rmSync(dir, { recursive: true, force: true });
+});

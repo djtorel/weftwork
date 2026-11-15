@@ -111,7 +111,7 @@ test('AC-e12s01-03 a Go project: go.mod, Gin, the go commands, Makefile targets,
       { kind: 'lint', command: 'go vet ./...', source: 'go.mod' },
       { kind: 'build', command: 'go build ./...', source: 'go.mod' },
       { kind: 'lint', command: 'make lint', source: 'Makefile', body: 'golangci-lint run' },
-      { kind: 'test', command: 'make test', source: 'Makefile', body: 'go test -race ./...' },
+      { kind: 'test', command: 'make test', source: 'Makefile', body: 'go test -race ./...\n# build' },
     ],
     planning: [{ system: 'spec-kit', path: '.specify' }],
   });

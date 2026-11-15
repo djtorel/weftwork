@@ -60,6 +60,11 @@ Each command gets a `check`:
 | `skipped` | Not run, with `why` | not checked |
 
 Run commands are skipped, since a server does not exit. A command whose
-name, text or script body says `deploy` or `publish` is skipped too. The
+name, text or `body` says `deploy` or `publish` is skipped too. The `body`
+is the command's own script or recipe, then, each under a `# name` line,
+every script or target it can reach: npm's `pre` and `post` hooks and
+scripts it names, or a target's prerequisites and their recipes. The match
+is on text, so it is a partial guard: a deploy hidden in a shell script, an
+`include`d Makefile or a variable is not seen. The
 commands run one at a time in the project folder, in their own process
 group, with stdin empty and `CI=1`, so watch-mode test runners exit.

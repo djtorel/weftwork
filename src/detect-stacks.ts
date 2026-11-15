@@ -37,6 +37,21 @@ const nodeFrameworks: [string, string][] = [
   ['express', 'Express'], ['fastify', 'Fastify'], ['@nestjs/core', 'NestJS'], ['vite', 'Vite'],
 ];
 
+/** The text of `start`, then each name it reaches through `next`, under a
+ * `# name` line, so the checker sees everything the command can run. */
+function withReached(start: string, next: (name: string) => string[], textOf: (name: string) => string): string {
+  const seen = new Set([start]);
+  const queue = next(start);
+  const parts = [textOf(start)];
+  for (let name = queue.shift(); name !== undefined; name = queue.shift()) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    parts.push(`# ${name}`, textOf(name));
+    queue.push(...next(name));
+  }
+  return parts.filter((part) => part !== '').join('\n');
+}
+
 function stack(part: Partial<Stack>): Stack {
   return { languages: [], packageManagers: [], frameworks: [], commands: [], notes: [], ...part };
 }
@@ -71,8 +86,12 @@ export function nodeStack({ text, present }: Files): Stack | null {
   const deps = { ...stringRecord(pkg.dependencies), ...stringRecord(pkg.devDependencies) };
   const scripts = stringRecord(pkg.scripts);
   const typescript = present.has('tsconfig.json') || 'typescript' in deps;
+  // npm runs pre<name> and post<name> around a script, and a script can run
+  // another by name: each counts as part of the body.
+  const next = (name: string) => [`pre${name}`, `post${name}`, ...(scripts[name] ?? '').split(/[^\w:.-]+/)].filter((other) => other in scripts);
+  const body = (name: string) => withReached(name, next, (other) => scripts[other] ?? '');
   const commands = scriptNames.flatMap(([kind, names]) =>
-    names.filter((name) => name in scripts).map((name) => ({ kind, command: `${manager} run ${name}`, source: 'package.json', body: scripts[name] ?? '' })),
+    names.filter((name) => name in scripts).map((name) => ({ kind, command: `${manager} run ${name}`, source: 'package.json', body: body(name) })),
   );
   return stack({
     languages: [typescript ? 'typescript' : 'javascript'],
@@ -134,20 +153,35 @@ export function rustStack({ text }: Files): Stack | null {
 
 const makeKinds: Record<string, CommandKind> = { test: 'test', tests: 'test', lint: 'lint', typecheck: 'typecheck', 'type-check': 'typecheck', build: 'build', run: 'run', dev: 'run', serve: 'run', start: 'run' };
 
-/** A Makefile: each target with a known name, and the recipe it runs. */
+type Rule = { needs: string[]; recipe: string[] };
+
+/** Every rule of a Makefile: its prerequisites and its recipe, inline after
+ * `;` and on the tab lines below. */
+function makeRules(lines: string[]): Map<string, Rule> {
+  const rules = new Map<string, Rule>();
+  lines.forEach((line, index) => {
+    const match = /^([A-Za-z0-9][\w.-]*)\s*:(?![:=])([^;]*)(?:;(.*))?$/.exec(line);
+    if (match === null || rules.has(match[1] ?? '')) return;
+    const recipe = match[3]?.trim() ? [match[3].trim()] : [];
+    for (let next = index + 1; lines[next]?.startsWith('\t'); next++) recipe.push((lines[next] ?? '').trim());
+    rules.set(match[1] ?? '', { needs: (match[2] ?? '').split(/\s+/).filter((need) => need !== ''), recipe });
+  });
+  return rules;
+}
+
+/** A Makefile: each target with a known name, and the recipe it runs with
+ * every prerequisite's. */
 export function makeStack({ text }: Files): Stack | null {
   const name = ['GNUmakefile', 'makefile', 'Makefile'].find((file) => text.has(file));
   if (name === undefined) return null;
-  const lines = (text.get(name) ?? '').split('\n');
+  const rules = makeRules((text.get(name) ?? '').split('\n'));
   const commands: FoundCommand[] = [];
-  lines.forEach((line, index) => {
-    const target = /^([A-Za-z0-9][\w.-]*)\s*:(?![:=])/.exec(line)?.[1];
-    const kind = target === undefined ? undefined : makeKinds[target];
-    if (kind === undefined) return;
-    const recipe: string[] = [];
-    for (let next = index + 1; lines[next]?.startsWith('\t'); next++) recipe.push((lines[next] ?? '').trim());
-    commands.push({ kind, command: `make ${target}`, source: name, body: recipe.join('\n') });
-  });
+  for (const target of rules.keys()) {
+    const kind = makeKinds[target];
+    if (kind === undefined) continue;
+    const body = withReached(target, (other) => rules.get(other)?.needs ?? [], (other) => (rules.get(other)?.recipe ?? []).join('\n'));
+    commands.push({ kind, command: `make ${target}`, source: name, body });
+  }
   return stack({ commands });
 }
 
