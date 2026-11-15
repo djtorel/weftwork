@@ -1,4 +1,4 @@
-// story: e07s01, e07s02
+// story: e07s01, e07s02, e09s03
 // The Claude Code Stop hook mapping (e07s01 AC-01 to AC-05, AC-11, AC-12): an
 // engine answer becomes an exit code and the host's output, the Stop input is
 // checked, and the directory and command come from the owner, not the agent.
@@ -246,4 +246,26 @@ test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded
   const out = hookAnswer(answer('failed', { reason: 'no-ledger' }));
   assert.match(out.stderr, /could not be recorded/);
   assert.match(out.stderr, /could not check/);
+});
+
+// e09s03 R4: a failed answer within the handover reserve carries a detail,
+// and the block reason ends with it, so the agent reads it.
+test('AC-e09s03-10 a failed answer with a detail blocks with the detail as the last line', () => {
+  const out = hookAnswer(answer('failed', { detail: '2 runs since the last done, 1 left: write the handoff' }));
+  assert.equal(out.exitCode, 2);
+  assert.equal(out.stdout, '');
+  assert.equal(
+    out.stderr,
+    'weftwork: not done (failed, exit-nonzero): npm test\n' +
+      'Make that command pass before you stop.\n' +
+      '2 runs since the last done, 1 left: write the handoff\n',
+  );
+});
+
+test('AC-e09s03-10 a failed answer with no detail keeps the two-line reason', () => {
+  const out = hookAnswer(answer('failed'));
+  assert.equal(
+    out.stderr,
+    'weftwork: not done (failed, exit-nonzero): npm test\nMake that command pass before you stop.\n',
+  );
 });
