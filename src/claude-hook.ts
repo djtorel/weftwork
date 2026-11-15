@@ -1,17 +1,24 @@
-// story: e07s01, e07s02, e09s03
+// story: e07s01, e07s02, e09s03, e09s04
 // The Claude Code adapter: the host's Stop input in, the host's answer out.
 // Exit 2 is the only block. Every other state allows the stop, with a
-// warning for the user. Only `done` is silent, and no text for any other
-// state says the work is done.
+// warning for the user. `done` shows only the budget line, and no text for
+// any other state says the work is done.
 //
 // The agent must not choose where the owner's command runs. The Stop input's
 // `cwd` follows the agent's `cd` (Claude Code hooks docs, read 2026-11-12),
 // so it is never used. The directory is CLAUDE_PROJECT_DIR, which the host
 // sets and the agent cannot change.
+//
+// Every answer shows the budget used and the session's tokens (e09s04): on
+// the second line of a block, on the second line of a warning, and as the
+// systemMessage of a done stop. The tokens come from the transcript the host
+// names in `transcript_path`; they are a report and never change the answer.
+import { budgetLine } from './budget-report.ts';
 import type { Answer } from './engine.ts';
 import { messageOf } from './errors.ts';
 import { parseRequest, type GateRequest, type Reason } from './gate.ts';
 import { isRecord } from './json.ts';
+import type { TokenRead } from './transcript-usage.ts';
 import { isAbsolute } from 'node:path';
 import type { Readable } from 'node:stream';
 
@@ -55,7 +62,9 @@ export function hookDeadline(env: Record<string, string | undefined>): number {
 
 export type HookOutput = { exitCode: number; stdout: string; stderr: string };
 
-export type HookInput = { ok: true } | { ok: false; error: string };
+/** The Stop input, checked. `transcriptPath` is the raw `transcript_path`
+ * value, unchecked: readTranscriptUsage checks it. */
+export type HookInput = { ok: true; transcriptPath: unknown } | { ok: false; error: string };
 
 export type HookText = { ok: true; text: string } | { ok: false; error: string };
 
@@ -140,9 +149,10 @@ export function faultOutput(error: unknown): HookOutput {
   return blockStop(`adapter fault: ${messageOf(error)}`);
 }
 
-/** Check that the Stop input is a JSON object. No field is read from it:
- * `cwd` follows the agent and `last_assistant_message` is the agent's own
- * text, so neither may steer the gate. */
+/** Check that the Stop input is a JSON object. No field of it steers the
+ * gate: `cwd` follows the agent and `last_assistant_message` is the agent's
+ * own text. Only `transcript_path`, which the host sets, is passed on, for the
+ * token report (e09s04). */
 export function parseHookInput(text: string): HookInput {
   let value: unknown;
   try {
@@ -150,7 +160,9 @@ export function parseHookInput(text: string): HookInput {
   } catch {
     return { ok: false, error: 'input is not JSON' };
   }
-  return isRecord(value) ? { ok: true } : { ok: false, error: 'input is not a JSON object' };
+  return isRecord(value)
+    ? { ok: true, transcriptPath: value.transcript_path }
+    : { ok: false, error: 'input is not a JSON object' };
 }
 
 /** The directory the declared command runs in: CLAUDE_PROJECT_DIR. */
@@ -174,7 +186,8 @@ export function hookRequest(args: string[], dir: string): HookRequest {
   return parseRequest(JSON.stringify({ command, timeoutMs: engineTimeoutMs }), dir);
 }
 
-function warn(message: string): HookOutput {
+/** Allow the stop, with a message for the user. */
+function allow(message: string): HookOutput {
   return { exitCode: 0, stdout: JSON.stringify({ systemMessage: message }), stderr: '' };
 }
 
@@ -207,28 +220,30 @@ const failedLines: Record<Reason, string> = {
 };
 
 /** The one answer that blocks a run the engine reported: the command failed.
- * A detail (the handover reserve, e09s03) is the last line, so the agent
- * reads it before it goes on. */
-function blockFailed(answer: Answer): HookOutput {
+ * The budget is the second line. A detail (the handover reserve, e09s03) is
+ * the last line, so the agent reads it before it goes on. */
+function blockFailed(answer: Answer, budget: string): HookOutput {
   const detail = answer.detail === undefined ? '' : `\n${answer.detail}`;
   return blockStop(
-    `not done (failed, ${answer.reason}): ${answer.command}\n${failedLines[answer.reason]}${detail}`,
+    `not done (failed, ${answer.reason}): ${answer.command}\n${budget}\n${failedLines[answer.reason]}${detail}`,
   );
 }
 
-/** Map an engine answer to the exit code and output the host reads. */
-export function hookAnswer(answer: Answer): HookOutput {
+/** Map an engine answer and the session's tokens to the exit code and output
+ * the host reads. */
+export function hookAnswer(answer: Answer, tokens: TokenRead): HookOutput {
+  const budget = budgetLine(answer.budget, tokens);
   switch (answer.state) {
     case 'done':
-      return { exitCode: 0, stdout: '', stderr: '' };
+      return allow(`weftwork: done. ${budget}`);
     case 'failed':
-      return blockFailed(answer);
+      return blockFailed(answer, budget);
     case 'blocked':
     case 'stalled':
     case 'exhausted':
     case 'killed':
-      return warn(`weftwork: not done (${answer.state}): ${answer.detail ?? answer.reason}`);
+      return allow(`weftwork: not done (${answer.state}): ${answer.detail ?? answer.reason}\n${budget}`);
     case 'overridden':
-      return warn(`weftwork: overridden by the owner's record, not done: ${answer.command}`);
+      return allow(`weftwork: overridden by the owner's record, not done: ${answer.command}\n${budget}`);
   }
 }

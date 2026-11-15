@@ -1,4 +1,4 @@
-// story: e09s01
+// story: e09s01, e09s04
 // The CLI applies the budget setting before the engine runs: weftwork.yaml at
 // the repository root and the user file under XDG_CONFIG_HOME. A bad file is
 // bad input (exit 2): nothing runs and nothing is logged.
@@ -102,4 +102,12 @@ test('a collection used as a key is refused with no Node warning on stderr (revi
   const result = spawnSync(process.execPath, [cliPath], { input: failing, cwd: repo, encoding: 'utf8', env: isolatedEnv() });
   assert.equal(result.status, 2);
   assert.equal(result.stderr, '');
+});
+
+test('AC-e09s04-06 the CLI line carries the budget, with the limits from the setting file', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 4\n  maxRuns: 7\n' });
+  runCli(repo);
+  const second = runCli(repo);
+  assert.equal(second.status, 1);
+  assert.deepEqual(second.line['budget'], { runs: 2, maxRuns: 7, failures: 2, maxFailures: 4 });
 });

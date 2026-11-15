@@ -1,4 +1,4 @@
-// story: e06s01, e09s03
+// story: e06s01, e09s03, e09s04
 // Thin shell over the engine library: JSON on stdin, one JSON line on
 // stdout, the exit code carries the state. Logic lives in engine.ts.
 //
@@ -13,7 +13,8 @@
 // line holds the "state", the verdict ("done", "exitCode", "reason",
 // "command" and the "fingerprint" of the tree taken before the run) and, for
 // blocked, stalled, exhausted and overridden, a "detail". A failed run within
-// the handover reserve (e09s03, docs/BUDGET.md) has a "detail" too.
+// the handover reserve (e09s03, docs/BUDGET.md) has a "detail" too. Every
+// answer of the engine ends with "budget", the budget used (e09s04).
 //
 // Overridden (e06s05) is a failed or stalled run that the owner let through
 // once, by hand-writing `<git dir>/weftwork/override.json` for that exact

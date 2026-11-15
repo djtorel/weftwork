@@ -1,6 +1,6 @@
 # The budget setting
 
-<!-- story: e09s01, e09s02, e09s03 -->
+<!-- story: e09s01, e09s02, e09s03, e09s04 -->
 
 The engine has three stop rules and a handover reserve. You set them in a
 plain YAML file.
@@ -195,6 +195,63 @@ is `failed`, not a new state, and it writes no state line.
   (`maxFailures`) and the stall rule still end the loop with no warning.
 - At the ceiling the answer is `exhausted`, as before. The engine does not
   check that the agent wrote the handoff.
+
+## The budget report
+
+Every engine answer, done or not, has a `budget` object. It is on even when
+no stop rule is on, since an agent that cannot see the count guesses the
+budget it has left too high (R15). It is a report: it never changes a
+verdict.
+
+```json
+{"state":"failed", "...": "...", "budget":{"runs":2,"maxRuns":null,"failures":2,"maxFailures":5}}
+```
+
+| Field | What it counts |
+| --- | --- |
+| `runs` | Runs of any command since the last `done`: the count of the loop ceiling. A `done` answer opens a new loop, so it shows 0. |
+| `maxRuns` | The loop ceiling in force, or `null` when it is off. |
+| `failures` | Failed runs in a row of this command: the count of the failure ceiling. |
+| `maxFailures` | The failure ceiling in force. |
+
+The counts come from the same ledger read that decided the answer: before
+the run for a refused call (`exhausted` before the run, `blocked`), so it
+adds no run, and after the run otherwise. They count the lines in the 1 MiB
+tail the engine reads, so a cut tail can show fewer. `runs` and `failures`
+are `null` when the ledger cannot be read, and outside a git repository,
+where there is no ledger. They are never 0 for a count that was not made.
+
+### Tokens in Claude Code
+
+The Claude Code hook adds the session's token use: input, output, cache
+read and cache write, summed from the transcript file that the host names
+in `transcript_path` of the Stop input. Each assistant message counts once,
+since the host writes one message streamed in parts as several lines with
+the same id. There are no dollars: a price table per model goes stale.
+
+The hook shows one line:
+
+```text
+budget: 2 runs in this loop (no ceiling), 2 failed in a row (ceiling 5), tokens 7 input, 222 output, 74918 cache read, 22705 cache write
+```
+
+| Answer | Where the line goes |
+| --- | --- |
+| `failed` (the stop is blocked) | The second line of the reason on stderr, which the agent reads. A handover detail stays the last line. |
+| `done` | The `systemMessage` on stdout: `weftwork: done. budget: ...` |
+| Any other state | The second line of the `systemMessage` warning. |
+
+The `systemMessage` is shown to the user, not to the agent (Claude Code hooks
+docs, JSON output, read 2026-11-15). After an allowed stop the agent has no
+turn left, so the user is the reader.
+
+The tokens are `not counted`, with the reason, when the Stop input has no
+`transcript_path`, the path is not absolute, there is no file there, or the
+file is not a regular file (a symlink is not followed), is larger than
+64 MiB (67108864 bytes) or is not valid UTF-8. The answer is the same
+either way. Lines that are not JSON, such as a last line the host has not
+finished writing, are skipped. The host writes the transcript while the
+session runs, so the last turn can be missing from the count.
 
 ## Limits of this setting
 
