@@ -48,7 +48,7 @@ The engine empties `<git dir>/weftwork/ui/<phase>/`, runs `screenshot` in
 the working tree with `WEFTWORK_SHOTS` set to that folder, and checks what
 it wrote: at least one and at most 20 `.png` files, each with the PNG
 signature and at most 20 MiB. It keeps a manifest with each file's size and
-SHA-256, the branch, and the fingerprint of the tree they show.
+SHA-256, the branch, the base commit, and the fingerprint of the tree they show.
 
 | Exit | First line | Meaning |
 | --- | --- | --- |

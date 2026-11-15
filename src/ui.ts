@@ -18,7 +18,7 @@ import type { UiSetting } from './ui-setting.ts';
 export type Phase = 'before' | 'after';
 export type Shot = { name: string; bytes: number; sha256: string };
 /** What one phase kept: when, on which branch and tree, and the files. */
-export type Shots = { phase: Phase; at: string; branch: string | null; fingerprint: string; files: Shot[] };
+export type Shots = { phase: Phase; at: string; branch: string | null; base: string; fingerprint: string; files: Shot[] };
 
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 /** More screenshots than this is an error: the council reads every one. */
@@ -122,7 +122,7 @@ export async function takeShots(request: { cwd: string; weftwork: string; ui: Ui
   try {
     const pngs = await readPngs(dir);
     if (!pngs.ok) return { kind: 'failed', why: pngs.error };
-    const shots: Shots = { phase, at: new Date().toISOString(), branch: request.branch, fingerprint: tree.fingerprint, files: pngs.files };
+    const shots: Shots = { phase, at: new Date().toISOString(), branch: request.branch, base: request.base, fingerprint: tree.fingerprint, files: pngs.files };
     await writeFile(join(dir, 'manifest.json'), `${JSON.stringify(shots)}\n`);
     return { kind: 'taken', shots };
   } catch (error) {
@@ -155,7 +155,7 @@ export type UiForReview =
  * What the review does about the UI: skip when UI checks are off or the
  * change does not touch ui.paths; otherwise it needs after screenshots of this
  * branch and this exact tree. Before screenshots are used when they are of
- * the same branch; without them the council reads the after ones alone.
+ * the same branch and base; without them the council reads the after ones alone.
  */
 export async function uiForReview(request: { cwd: string; weftwork: string; ui: UiSetting | null; base: string; branch: string | null; fingerprint: string }): Promise<UiForReview> {
   if (request.ui === null) return { kind: 'skip' };
@@ -168,7 +168,9 @@ export async function uiForReview(request: { cwd: string; weftwork: string; ui: 
     return { kind: 'missing', why: `the change touches ui.paths (${touched.slice(0, 5).join(', ')}) and there are no after screenshots of this tree` };
   }
   const before = await readShots(request.weftwork, 'before');
-  return { kind: 'ready', touched, before: before !== null && before.branch === request.branch ? before : null, after };
+  // Before screenshots of another branch or base (after a rebase) are no baseline (review round 1).
+  const same = before !== null && before.branch === request.branch && before.base === request.base;
+  return { kind: 'ready', touched, before: same ? before : null, after };
 }
 
 /** The part of the brief that hands the council the screenshots. */

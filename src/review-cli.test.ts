@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanupTempDirs, isolatedEnv, makeTempDir, makeTestRepo, writePng } from './test-helpers.ts';
+import { cleanupTempDirs, git, isolatedEnv, makeTempDir, makeTestRepo, writePng } from './test-helpers.ts';
 import { ledgerPath } from './ledger.ts';
 
 after(cleanupTempDirs);
@@ -190,4 +190,23 @@ test('a change that does not touch ui.paths needs no screenshots (e11s05)', () =
   writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}ui:\n  screenshot: 'exit 1'\n  paths: ['web/**']\n`);
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
   assert.equal(review(repo).status, 0);
+});
+
+test('before screenshots of another base are not used as the baseline (e11s05, review round 1)', () => {
+  const repo = makeTestRepo();
+  mkdirSync(join(repo, 'web'));
+  writeFileSync(join(repo, 'web', 'a.html'), '<p>a</p>\n');
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("grep -q 'before: none were taken' && echo 'VERDICT: APPROVE'")}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-q', '-m', 'old base');
+  assert.equal(node(uiCli, repo, { phase: 'before' }).status, 0);
+  writeFileSync(join(repo, 'web', 'b.html'), '<p>new</p>\n');
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-q', '-m', 'new base');
+  writeFileSync(join(repo, 'web', 'a.html'), '<p>b</p>\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  const out = review(repo);
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.match(out.stdout, /^before: none were taken$/m);
 });
