@@ -169,8 +169,10 @@ answer has a `detail`:
 
 The path is the absolute path of `src/handoff-cli.ts` in the weftwork
 checkout, in double quotes, so the line works in any repository the hook
-guards and from a checkout path with spaces. The handoff CLI reads one JSON
-object on stdin with `next_skill`, `branch` and `note` (docs/STATE.md). The Claude Code
+guards and from a checkout path with spaces. A checkout path with `$`, a
+backtick or `!` does not paste as is, since the shell expands those inside
+double quotes. The handoff CLI reads one JSON object on stdin with
+`next_skill`, `branch` and `note` (docs/STATE.md). The Claude Code
 hook adds the detail as the last line of the reason with which it blocks the
 stop. The exit code stays 1 on the engine CLI and 2 on the hook. The answer
 is `failed`, not a new state, and it writes no state line.

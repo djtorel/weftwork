@@ -48,6 +48,11 @@ reasons: "1 runs" (matches the e09s02 loop-ceiling text), the inline
 0 to 1000 check in `src/budget.ts` (one file-only key; `maxThreshold` is
 shared), and `src/engine.ts` at 299 lines (split when a story passes 300).
 
+Request-review round 2 (2026-11-15): tests now pin that a killed or
+overridden run in the window uses up the warning, and the maxRuns 2 edge.
+The owner chose to document, not change, the double-quoted path: a
+checkout path with `$`, a backtick or `!` does not paste as is.
+
 ## 2. Zoom-out
 
 - `src/breaker.ts`. Purpose: the stop rules as pure functions over
