@@ -140,7 +140,7 @@ function reserveDetail(read: LedgerForRules, request: GateRequest): { detail?: s
   }
   const detail =
     `${reserve.count} runs since the last done, ${reserve.left} left before the loop ceiling of ${request.maxRuns}: ` +
-    `write the handoff now with node ${handoffCli}`;
+    `write the handoff now with node ${JSON.stringify(handoffCli)} (JSON on stdin: next_skill, branch, note)`;
   return { detail };
 }
 
