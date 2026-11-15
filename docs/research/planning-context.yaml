@@ -449,7 +449,7 @@ hypotheses:
       enforces the limits that matter: only a must-fix grounded in a real
       file and line blocks, later rounds look only at what changed and
       the open findings, the change and not the author sets the risk
-      tier, the diff cannot grow without limit, and the new tests must
+      tier, diff growth is reported each round, and the new tests must
       fail on the base. A score measures the reviewer, never the change'
     tested_by:
       - R19
