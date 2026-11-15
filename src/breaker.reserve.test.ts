@@ -46,6 +46,11 @@ test('AC-e09s03-02 with no reserveRuns the reserve is 1', () => {
   assert.equal(checkReserve(runs(2), 4, undefined), null);
 });
 
+test('AC-e09s03-02 a ceiling of 2 with the default reserve warns after the first run', () => {
+  assert.equal(checkReserve([], 2, undefined), null);
+  assert.deepEqual(checkReserve(runs(1), 2, undefined), { count: 1, left: 1 });
+});
+
 test('AC-e09s03-02 a ceiling of 1 has no reserve', () => {
   assert.equal(checkReserve([], 1, undefined), null);
   assert.equal(checkReserve([], 1, 5), null);
