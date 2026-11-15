@@ -108,3 +108,12 @@ test('R5 an overridden run in the window gives the record reason; the next failu
   assert.equal(overridden.detail, 'flaky');
   assert.equal((await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 4 })).state, 'exhausted');
 });
+
+test('R5 a stall in the reserve window answers stalled, with no handoff text', async () => {
+  const repo = makeTestRepo();
+  const request = { command: 'exit 7', cwd: repo, maxRuns: 3, stallAfter: 2 };
+  assert.equal((await runEngine(request)).state, 'failed');
+  const second = await runEngine(request);
+  assert.equal(second.state, 'stalled');
+  assert.doesNotMatch(second.detail ?? '', /handoff/);
+});
