@@ -9,6 +9,9 @@
 // (no project dir, bad input, a throw, the deadline) ends in exit 2. A crash
 // before this code runs still fails open; the guard is one layer, not a wall.
 //
+// e11s04: with a git worktree, the guard also blocks the mechanical ask
+// triggers, a file write outside the worktree and a push to main (docs/ASK.md).
+//
 // Each block is a guard line in the ledger. A failed log write does not turn a
 // block into an allow; the reason says the log failed.
 import { writeSync } from 'node:fs';
@@ -24,6 +27,7 @@ import {
   type HookOutput,
 } from './claude-hook.ts';
 import { guardCall, guardPaths } from './guard.ts';
+import { guardWorktree } from './guard-worktree.ts';
 import { appendGuard, weftworkDir } from './ledger.ts';
 
 /** The guard gives up and blocks this long after its start. The host's
@@ -63,7 +67,8 @@ async function run(): Promise<HookOutput> {
   const input = parse(text.text);
   if (!input.ok) return blockStop('unreadable hook input: input is not JSON');
   const engineDir = await weftworkDir(dir.dir);
-  const answer = guardCall(input.value, guardPaths(dir.dir, engineDir, process.env));
+  const worktree = await guardWorktree(dir.dir, process.env);
+  const answer = guardCall(input.value, guardPaths(dir.dir, engineDir, process.env), worktree);
   if (!answer.block) return allow;
   const entry = { guard: 'blocked' as const, tool: answer.tool, target: answer.target };
   const logged = engineDir === null ? null : await appendGuard(join(engineDir, 'ledger.jsonl'), entry, new Date());

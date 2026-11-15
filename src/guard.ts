@@ -11,10 +11,15 @@
 // show (a variable, a glob, `cd .git`), and a command that only reads or only
 // mentions a path is blocked too. The engine's own CLIs write these files from
 // their own process, so no tool call names the path and they still work.
+//
+// e11s04 adds the mechanical ask triggers (docs/ASK.md) when the hook knows
+// the worktree: a file tool that writes outside it, and a Bash command that
+// pushes to main (guard-push.ts). The Bash write check stays by path text.
 import { realpathSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { userSettingPath } from './budget.ts';
 import { userSettingsPath } from './claude-settings-file.ts';
+import { pushToMain } from './guard-push.ts';
 import { isRecord } from './json.ts';
 
 /** What the guard protects, for one project. */
@@ -30,6 +35,11 @@ export type GuardPaths = {
   /** Text removed from a Bash command before the needles are matched. */
   allowedText: string[];
 };
+
+/** The worktree an agent works in, for the ask triggers. `allowed` holds the
+ * folders and files outside it that stay writable: the temp folder and the
+ * clone's backlog. `branch` is the current branch, null on a detached HEAD. */
+export type Worktree = { root: string; allowed: string[]; branch: string | null };
 
 export type GuardAnswer = { block: false } | { block: true; tool: string; target: string; reason: string };
 
@@ -56,6 +66,7 @@ const fixedNeedles = [
   'weftwork/config.yaml',
   'weftwork/state.yaml',
   'ledger.jsonl',
+  'decisions.jsonl',
   'override.json',
   'last-call.json',
   'claude-install-cli',
@@ -114,16 +125,31 @@ const byText =
   'The guard matches a command by its text, so a command that only reads or mentions the path is blocked too. ' +
   'To read the file, use the Read tool. To put the path in a commit or PR text, write the text to a file and pass the file.';
 
-function checkFile(tool: string, input: Record<string, unknown>, cwd: unknown, guard: GuardPaths): GuardAnswer {
+const askOwner =
+  'Only the owner may do this. Decide another way inside the task, or end the run blocked with a handoff and ask the owner (docs/ASK.md).';
+
+/** Block a write outside the worktree, unless it is an allowed path. */
+function checkOutside(tool: string, raw: string, path: string, worktree: Worktree): GuardAnswer {
+  if (isInside(path, canonical(worktree.root))) return { block: false };
+  if (worktree.allowed.some((allowed) => isInside(path, canonical(allowed)))) return { block: false };
+  return blocked(tool, raw, `${raw} is outside the worktree ${worktree.root}. ${askOwner}`);
+}
+
+function checkFile(
+  tool: string,
+  input: Record<string, unknown>,
+  cwd: unknown,
+  guard: GuardPaths,
+  worktree: Worktree | null,
+): GuardAnswer {
   const raw = input[fileTools[tool] ?? ''];
   if (typeof raw !== 'string' || raw === '') {
     return blocked(tool, '', 'the guard could not read the path the tool writes.');
   }
   const base = typeof cwd === 'string' ? cwd : '/';
   const path = canonical(resolve(base, raw));
-  return isProtected(path, guard)
-    ? blocked(tool, raw, `${raw} is protected: ${ownerOnly}`)
-    : { block: false };
+  if (isProtected(path, guard)) return blocked(tool, raw, `${raw} is protected: ${ownerOnly}`);
+  return worktree === null ? { block: false } : checkOutside(tool, raw, path, worktree);
 }
 
 /** `text` as a whole path: not followed by a character that would make it a
@@ -133,10 +159,12 @@ function wholeToken(text: string): RegExp {
   return new RegExp(`${escaped}(?![^\\s'"\`;|&)<>])`, 'g');
 }
 
-function checkBash(command: unknown, guard: GuardPaths): GuardAnswer {
+function checkBash(command: unknown, guard: GuardPaths, worktree: Worktree | null): GuardAnswer {
   if (typeof command !== 'string') {
     return blocked('Bash', '', 'the guard could not read the command.');
   }
+  const push = worktree === null ? null : pushToMain(command, worktree.branch);
+  if (push !== null) return blocked('Bash', 'git push', `${push}, and a push to main is the owner's step. ${askOwner}`);
   const text = guard.allowedText.reduce((rest, allowed) => rest.replace(wholeToken(allowed), ''), command);
   const needle = guard.needles.find((name) => text.includes(name));
   return needle === undefined
@@ -146,8 +174,8 @@ function checkBash(command: unknown, guard: GuardPaths): GuardAnswer {
 
 /** Block or allow one PreToolUse input. A tool the guard does not watch is
  * allowed; an input it cannot read is blocked, since the guard must not fail
- * open on the calls it watches. */
-export function guardCall(input: unknown, guard: GuardPaths): GuardAnswer {
+ * open on the calls it watches. The ask triggers run only with a worktree. */
+export function guardCall(input: unknown, guard: GuardPaths, worktree: Worktree | null = null): GuardAnswer {
   if (!isRecord(input) || typeof input.tool_name !== 'string') {
     return blocked('tool call', '', 'the guard could not read the hook input.');
   }
@@ -155,6 +183,6 @@ export function guardCall(input: unknown, guard: GuardPaths): GuardAnswer {
   const toolInput = input.tool_input;
   if (!(tool in fileTools) && tool !== 'Bash') return { block: false };
   if (!isRecord(toolInput)) return blocked(tool, '', 'the guard could not read the tool input.');
-  if (tool === 'Bash') return checkBash(toolInput.command, guard);
-  return checkFile(tool, toolInput, input.cwd, guard);
+  if (tool === 'Bash') return checkBash(toolInput.command, guard, worktree);
+  return checkFile(tool, toolInput, input.cwd, guard, worktree);
 }

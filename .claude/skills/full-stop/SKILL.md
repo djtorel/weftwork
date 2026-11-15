@@ -31,7 +31,9 @@ deleting data, or anything outside this repository.
    `git checkout -b <type>/<short-name>`. Never work on `main`.
 3. **Change.** Make the smallest change that does the task. Fix the case that
    happened, not every case that could. For behaviour, write the test first,
-   run it, and see it fail for the right reason.
+   run it, and see it fail for the right reason. Log each choice you make
+   without the owner when you make it (`docs/ASK.md`):
+   `echo '{"question":"...","choice":"...","reason":"..."}' | node src/decision-cli.ts`.
 4. **Prove.** Run the task's check, then Preflight through the engine, so its
    done gate decides and the ledger counts the budget:
    `echo '{"command":"<Preflight>"}' | node src/cli.ts` (Preflight is in
@@ -41,7 +43,8 @@ deleting data, or anything outside this repository.
 6. **File.** Rebase onto the latest `main`, run Preflight through the engine
    again, then get the proof block with the same command string:
    `echo '{"command":"<Preflight>"}' | node src/pr-proof-cli.ts`
-   (`docs/PR-PROOF.md`). Paste its output into the PR's Proof block as it is.
+   (`docs/PR-PROOF.md`). Paste its output into the PR's Proof block as it is,
+   and the output of `node src/decision-cli.ts list` into its Decisions.
    Exit 0: push and open the PR with the `file-pr` skill. Exit 1: the gate
    says draft; fix it and run the engine again, or stop early (below).
 7. **Wait for CI.** `gh pr checks <number> --watch --interval 15`. Fix real
@@ -64,23 +67,29 @@ The PR is ready when all of these hold on its latest commit:
 
 ## Asking the user
 
-A question in a normal message goes unseen and the thread looks done. Use the
-question tool (`AskUserQuestion` in Claude Code), with all the context in the
-question: the PR link, what blocks you, and the options with your
-recommendation first.
+A question in a normal message goes unseen and the thread looks done. Ask only
+on one of these triggers (`docs/ASK.md`):
 
-Ask only when:
+- A file write outside the worktree, or a push to `main`. The guard blocks
+  these; do not look for another way to do them.
+- An irreversible or destructive action: deleting data, rewriting shared
+  history, a deploy, a publish, a merge.
+- A security-sensitive change: auth, secrets, permissions, the guard.
+- Any other effect outside this worktree: another repository, a service, a
+  message to a person.
+- A task or plan too broken or ambiguous to follow, in a way that changes the
+  result, or another PR that makes this one obsolete.
+- Spend past the budget: the engine answers exhausted.
+- A change you cannot prove, or a check that cannot pass and you cannot fix.
 
-- You cannot prove the change.
-- A check cannot pass and you cannot fix it.
-- The next step is outside the grant above.
-- The goal is ambiguous in a way that changes the result.
-- Another PR makes this one obsolete.
+On a trigger, end the run blocked: write the handoff with
+`node src/handoff-cli.ts` (`docs/STATE.md`), run the engine with
+`"blocked":"<why>"` in the request so the proof says so, and open the PR as a
+draft with what you have, the proof block and the handoff note in its body.
+The engine answering blocked, stalled or exhausted ends the run the same way.
+Then ask with the question tool (`AskUserQuestion` in Claude Code), with all
+the context in the question: the PR link, what blocks you, and the options
+with your recommendation first.
 
-Decide everything else with sensible defaults and list the decisions in the PR
-and the report. If you must stop before the PR is ready (a ceiling, a blocker),
-or the engine answers blocked, stalled or exhausted, write the handoff first
-with `node src/handoff-cli.ts` (`docs/STATE.md`), then open the PR as a draft
-with what you have, the proof block and the handoff note in its body. To
-end blocked on purpose, run the engine with `"blocked":"<why>"` in the
-request; the proof then says so.
+Decide everything else with sensible defaults. Log each decision with
+`node src/decision-cli.ts`, and list them in the PR and the report.
