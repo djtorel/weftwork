@@ -94,3 +94,55 @@ test('AC-e12s03b-07 success criteria written without an indent still count (revi
   const text = gsdSection('### Phase 3: X\n**Goal**: g\n**Success Criteria**:\n1. One\n2. Two\n', [], 'gsd-era');
   assert.match(text, /\n {2}Done when: One; Two\n/);
 });
+
+test('AC-e12s03b-08 a PLAN.md with no SUMMARY.md and no roadmap line is an open plan; a folder the roadmap lacks is a phase', () => {
+  const unlisted = [
+    '- [x] **Phase 1: Base** - Repo',
+    '### Phase 2: Checkout',
+    '**Goal**: Pay',
+    'Plans:',
+    '- [x] 02-01: Cart model',
+    '- [ ] 02-02: Card payment',
+    '### Phase 3: Reports',
+    '**Goal**: Sales',
+    'Plans:',
+    '- [x] 03-01: Daily',
+    '',
+  ].join('\n');
+  const folders = ['01-base', '02-checkout', '03-reports', '05-search', '06-later'];
+  const files = [
+    '01-base/01-01-PLAN.md',
+    '02-checkout/02-01-PLAN.md',
+    '02-checkout/02-01-SUMMARY.md',
+    '02-checkout/02-02-PLAN.md',
+    '02-checkout/02-03-PLAN.md',
+    '02-checkout/02-04-PLAN.md',
+    '02-checkout/02-04-SUMMARY.md',
+    '02-checkout/notes.md',
+    '03-reports/03-02-PLAN.md',
+    '05-search/05-01-PLAN.md',
+    '06-later/06-01-PLAN.md',
+    '06-later/06-01-SUMMARY.md',
+  ];
+  const text = gsdSection(unlisted, folders, 'gsd-era', files);
+  assert.equal(
+    text.split('\n').filter((line) => /^\s/.test(line) || line.startsWith('- [')).join('\n'),
+    [
+      '- [ ] **Phase 2: Checkout.** Goal: Pay',
+      '  Open plan 02-02: Card payment',
+      '  Open plan 02-03 (02-03-PLAN.md, not on the roadmap)',
+      '  Old spec: `.gsd-planning/phases/02-checkout/`',
+      '- [ ] **Phase 3: Reports.** Goal: Sales',
+      '  Open plan 03-02 (03-02-PLAN.md, not on the roadmap)',
+      '  Old spec: `.gsd-planning/phases/03-reports/`',
+      '- [ ] **Phase 5: search.** Not on the roadmap.',
+      '  Open plan 05-01 (05-01-PLAN.md, not on the roadmap)',
+      '  Old spec: `.gsd-planning/phases/05-search/`',
+    ].join('\n'),
+  );
+});
+
+test('AC-e12s03b-09 a phase of a shipped milestone in <details> stays out, even with a PLAN.md and no SUMMARY.md (review round 1)', () => {
+  const shipped = '<details>\n<summary>v1.0 - SHIPPED</summary>\n\n- [x] **Phase 1: Base** - Repo\n</details>\n';
+  assert.match(gsdSection(shipped, ['01-base'], 'gsd-era', ['01-base/01-01-PLAN.md']), /No open phases\./);
+});

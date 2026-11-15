@@ -1,14 +1,16 @@
 // story: e12s03b
 // The backlog section a GSD conversion writes, from the text of
-// .planning/ROADMAP.md and the names of the folders in .planning/phases/:
-// each open phase as a backlog item that keeps its number, with its goal,
-// its success criteria as done-when, its open plans and a link to its old
-// phase folder in the gitignored .gsd-planning/. Pure: no file is read here.
-// The format is GSD v1.30's templates/roadmap.md. docs/CONVERT.md.
+// .planning/ROADMAP.md and the names of the folders and files in
+// .planning/phases/: each open phase as a backlog item that keeps its number,
+// with its goal, its success criteria as done-when, its open plans and a link
+// to its old phase folder in the gitignored .gsd-planning/. A PLAN.md with no
+// SUMMARY.md beside it is open even when the roadmap does not list it (GSD's
+// own rule). Pure: no file is read here. The format is GSD v1.30's
+// templates/roadmap.md and templates/phase-prompt.md. docs/CONVERT.md.
 
 export const gsdSectionTitle = '## Converted from GSD';
 
-type Phase = { id: string; name: string; goal: string; criteria: string[]; plans: { done: boolean; text: string }[]; done: boolean };
+type Phase = { id: string; name: string; goal: string; criteria: string[]; plans: { done: boolean; text: string }[]; done: boolean; listed: boolean };
 
 const listLine = /^- \[([ xX])\] \*\*Phase (\d+(?:\.\d+)*): (.+?)\*\*(?: - (.*))?$/;
 const heading = /^#{2,4}\s+(?:\S+\s+)?Phase (\d+(?:\.\d+)*): (.+?)\s*$/;
@@ -17,14 +19,14 @@ const progressLine = /^\|\s*(\d+(?:\.\d+)*)\. [^|]*\|.*\|\s*Complete\s*\|/;
 
 const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
-/** The phases of `roadmap`, in the order they first appear, outside any
- * collapsed `<details>` block (a shipped milestone). */
+/** The phases of `roadmap`, in the order they first appear; a phase in a
+ * collapsed `<details>` block (a shipped milestone) is done. */
 function phases(roadmap: string): Phase[] {
   const found = new Map<string, Phase>();
   const get = (id: string, name: string): Phase => {
     const old = found.get(id);
     if (old !== undefined) return old;
-    const phase: Phase = { id, name: oneLine(name), goal: '', criteria: [], plans: [], done: false };
+    const phase: Phase = { id, name: oneLine(name), goal: '', criteria: [], plans: [], done: false, listed: true };
     found.set(id, phase);
     return phase;
   };
@@ -40,8 +42,13 @@ function phases(roadmap: string): Phase[] {
       current = null;
       continue;
     }
-    if (collapsed) continue;
     const listed = listLine.exec(text);
+    if (collapsed) {
+      // A shipped phase: kept as done, so its folder is not a new phase.
+      const id = listed?.[2] ?? heading.exec(text)?.[1];
+      if (id !== undefined) get(id, '').done = true;
+      continue;
+    }
     const titled = heading.exec(text);
     const progress = progressLine.exec(text);
     if (listed !== null) {
@@ -81,12 +88,38 @@ function folderOf(id: string, folders: string[]): string | null {
   return folders.find((name) => name.startsWith(`${padded}-`)) ?? null;
 }
 
+const phaseFolder = /^(\d+(?:\.\d+)*)-(.+)$/;
+const planFile = /^(\d+(?:\.\d+)*-\d+)-PLAN\.md$/;
+
+/** Adds to `found` each plan in `files` (`<folder>/<name>`) that has a
+ * PLAN.md, no SUMMARY.md beside it and no line in its phase's roadmap
+ * Plans list; a folder the roadmap does not list becomes a phase. */
+function addUnlisted(found: Phase[], files: string[]): Phase[] {
+  const present = new Set(files);
+  const all = [...found];
+  for (const path of files) {
+    const [folder, name, ...deeper] = path.split('/');
+    const plan = planFile.exec(name ?? '');
+    const owner = phaseFolder.exec(folder);
+    if (plan === null || owner === null || deeper.length > 0 || present.has(`${folder}/${plan[1]}-SUMMARY.md`)) continue;
+    const id = owner[1].replace(/^0+(?=\d)/, '');
+    let phase = all.find((each) => each.id === id);
+    if (phase === undefined) {
+      phase = { id, name: owner[2], goal: '', criteria: [], plans: [], done: false, listed: false };
+      all.push(phase);
+    }
+    if (phase.plans.some((each) => each.text.startsWith(`${plan[1]}:`))) continue;
+    phase.plans.push({ done: false, text: `${plan[1]} (${name}, not on the roadmap)` });
+  }
+  return all;
+}
+
 const isOpen = (phase: Phase): boolean => !phase.done && !(phase.plans.length > 0 && phase.plans.every((plan) => plan.done));
 
 /** The lines for one open phase. */
 function phaseItem(phase: Phase, folders: string[]): string[] {
   const head = `- [ ] **Phase ${phase.id}: ${phase.name}.**`;
-  const out = [phase.goal === '' ? head : `${head} Goal: ${phase.goal}`];
+  const out = [phase.goal !== '' ? `${head} Goal: ${phase.goal}` : phase.listed ? head : `${head} Not on the roadmap.`];
   if (phase.criteria.length > 0) out.push(`  Done when: ${phase.criteria.join('; ')}`);
   for (const plan of phase.plans.filter((plan) => !plan.done)) out.push(`  Open plan ${plan.text}`);
   const folder = folderOf(phase.id, folders);
@@ -95,16 +128,17 @@ function phaseItem(phase: Phase, folders: string[]): string[] {
 }
 
 /** The section, from the text of ROADMAP.md (null when there is none), the
- * folder names in .planning/phases/, and the tag that holds the old plans. */
-export function gsdSection(roadmap: string | null, folders: string[], tag: string): string {
+ * folder names in .planning/phases/, the tag that holds the old plans, and
+ * the files one level inside those folders, as `<folder>/<name>`. */
+export function gsdSection(roadmap: string | null, folders: string[], tag: string, files: string[] = []): string {
   const intro = [
     gsdSectionTitle,
     '',
-    'The open phases of the old GSD roadmap, by number. The old plans are in',
-    `the gitignored \`.gsd-planning/\` and at the tag \`${tag}\`.`,
+    'The open phases of the old GSD roadmap and phase folders, by number. The',
+    `old plans are in the gitignored \`.gsd-planning/\` and at the tag \`${tag}\`.`,
     '',
   ];
-  const open = phases(roadmap ?? '').filter(isOpen);
+  const open = addUnlisted(phases(roadmap ?? ''), files).filter(isOpen);
   const body = open.flatMap((phase) => phaseItem(phase, folders));
   if (body.length === 0) body.push('No open phases.');
   return [...intro, ...body, ''].join('\n');
