@@ -18,8 +18,9 @@ export type ProofInput = {
 };
 
 /** `text` is plain lines, one field per line, for the PR template's Proof
- * block. Text from outside the engine goes through terminalSafe. */
-export type Proof = { ready: boolean; text: string };
+ * block. Text from outside the engine goes through terminalSafe. `why` says
+ * why it is not ready, or is null (the review CLI, e11s03). */
+export type Proof = { ready: boolean; text: string; why: string | null };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
@@ -70,5 +71,5 @@ export function prProof(input: ProofInput): Proof {
   }
   if (why !== null) lines.push(`why: ${why}`);
   lines.push(budgetLine(entries, last, command, why === null));
-  return { ready: why === null, text: `${lines.join('\n')}\n` };
+  return { ready: why === null, text: `${lines.join('\n')}\n`, why };
 }

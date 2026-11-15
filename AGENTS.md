@@ -67,6 +67,7 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | ------ | ------- |
 | Run the engine | `echo '{"command":"npm test"}' \| node src/cli.ts` |
 | PR proof | `echo '{"command":"npm test"}' \| node src/pr-proof-cli.ts` |
+| Review round | `echo '{"command":"npm test","brief":"..."}' \| node src/review-cli.ts` |
 | Test | `npm test` |
 | Typecheck | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint .` |
@@ -98,7 +99,10 @@ and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `handoff.ts` and `handoff-cli.ts` write the handoff block; `resume.ts` and
 `resume-cli.ts` check it at session start (`docs/STATE.md`). `pr-proof.ts` and
 `pr-proof-cli.ts` print a pull request's Proof block from the ledger and the
-tree, and say whether it is ready or a draft (`docs/PR-PROOF.md`). Every CLI is a
+tree, and say whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
+and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
+(`review-setting.ts`) and count the rounds in the ledger (`review-ledger.ts`;
+`docs/REVIEW.md`). Every CLI is a
 thin shell over a library function.
 
 ## Rules
