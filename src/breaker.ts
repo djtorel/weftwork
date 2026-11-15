@@ -1,4 +1,4 @@
-// story: e06s04, e09s02, e09s03
+// story: e06s04, e09s02, e09s03, e09s04
 // The ways the engine stops a run that goes nowhere, as pure functions
 // over ledger entries so tests need no process and no repository.
 //
@@ -65,8 +65,9 @@ export function checkLoopCeiling(entries: LedgerEntry[], maxRuns: number | undef
   return count >= maxRuns ? { state: 'exhausted', threshold: maxRuns, count } : null;
 }
 
-/** The runs of the loop: every run of any command since the last done. */
-function loopRuns(entries: LedgerEntry[]): number {
+/** The runs of the loop: every run of any command since the last done. The
+ * budget report shows this count (e09s04). */
+export function loopRuns(entries: LedgerEntry[]): number {
   return entries.length - (entries.findLastIndex((entry) => entry.done) + 1);
 }
 

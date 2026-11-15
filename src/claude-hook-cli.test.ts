@@ -1,4 +1,4 @@
-// story: e07s01, e07s04
+// story: e07s01, e07s04, e09s04
 // The real Claude Code hook CLI, started as a child process against
 // temporary git repositories (e07s01 AC-06 to AC-09, AC-11, AC-12). No case
 // touches this repository's own ledger: a `false` run there would trip its
@@ -48,11 +48,42 @@ test('AC-e07s01-06 a failing command blocks the stop', () => {
   assert.equal(out.stdout, '');
 });
 
-test('AC-e07s01-07 a passing command allows the stop', () => {
+test('AC-e07s01-07 a passing command allows the stop, with only the budget line on stdout', () => {
   const repo = makeTestRepo();
   const out = runHook(stopInput(repo), ['--', 'true'], repo);
   assert.equal(out.status, 0);
-  assert.equal(out.stdout, '');
+  const parsed: unknown = JSON.parse(out.stdout);
+  assert.ok(isRecord(parsed));
+  assert.deepEqual(Object.keys(parsed), ['systemMessage']);
+  assert.match(String(parsed.systemMessage), /^weftwork: done\. budget: 0 runs in this loop/);
+});
+
+// e09s04: the tokens come from the transcript the host names.
+const transcript = join(import.meta.dirname, 'fixtures', 'transcript.jsonl');
+
+function withTranscript(cwd: string, path: unknown): string {
+  return JSON.stringify({ hook_event_name: 'Stop', cwd, stop_hook_active: false, transcript_path: path });
+}
+
+test('AC-e09s04-13 the hook sums the tokens of the transcript_path it is given', () => {
+  const repo = makeTestRepo();
+  const failed = runHook(withTranscript(repo, transcript), ['--', 'false'], repo);
+  assert.equal(failed.status, 2);
+  assert.match(failed.stderr, /1 runs in this loop \(no ceiling\), 1 failed in a row \(ceiling 5\), tokens 7 input, 222 output, 74918 cache read, 22705 cache write\n/);
+  const done = runHook(withTranscript(repo, transcript), ['--', 'true'], repo);
+  assert.equal(done.status, 0);
+  assert.match(done.stdout, /tokens 7 input, 222 output/);
+});
+
+test('AC-e09s04-13 a transcript the hook cannot read never changes the answer', () => {
+  const repo = makeTestRepo();
+  const missing = join(makeTempDir(), 'gone.jsonl');
+  const done = runHook(withTranscript(repo, missing), ['--', 'true'], repo);
+  assert.equal(done.status, 0);
+  assert.ok(done.stdout.includes(`tokens not counted (no transcript at ${missing})`));
+  const failed = runHook(withTranscript(repo, 'relative.jsonl'), ['--', 'false'], repo);
+  assert.equal(failed.status, 2);
+  assert.match(failed.stderr, /tokens not counted \(transcript_path is not an absolute path\)/);
 });
 
 test('AC-e07s01-07 the command runs in CLAUDE_PROJECT_DIR', () => {

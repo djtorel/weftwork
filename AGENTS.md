@@ -83,10 +83,12 @@ yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test
 
 `src/` holds the gate library (`gate.ts`), the working-tree fingerprint
 (`tree.ts`) and the thin CLI (`cli.ts`); `engine.ts` runs the loop, with the
-ledger (`ledger.ts`), the no-progress breaker (`breaker.ts`) and the budget
-setting (`budget.ts`, `docs/BUDGET.md`). The Claude Code adapter is
-`claude-hook.ts` and its thin CLI `claude-hook-cli.ts`; `claude-install.ts`
-installs the Stop hook. The state writer is `state-file.ts` (set one field of a
+stop rules (`engine-rules.ts`), the ledger (`ledger.ts`), the no-progress
+breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
+on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
+adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
+the session's tokens from the transcript (`transcript-usage.ts`);
+`claude-install.ts` installs the Stop hook. The state writer is `state-file.ts` (set one field of a
 YAML file and keep every other byte), with the file half in `state-write.ts`
 and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `state-cli.ts` own the engine's state file in `<git dir>/weftwork/`;

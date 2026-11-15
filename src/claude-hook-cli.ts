@@ -1,4 +1,4 @@
-// story: e07s01, e07s02, e07s04
+// story: e07s01, e07s02, e07s04, e09s04
 // Thin shell for the Claude Code Stop hook: the host's JSON on stdin, the
 // declared command as the one argument after `--`, the host's answer on
 // stdout and stderr and in the exit code. Logic lives in claude-hook.ts.
@@ -46,12 +46,14 @@ import {
   readHookInput,
   signalGraceMs,
   stdinDeadlineMs,
+  type HookInput,
   type HookOutput,
 } from './claude-hook.ts';
 import { applyBudget } from './budget.ts';
 import { terminalSafe } from './cli-io.ts';
 import { runEngine } from './engine.ts';
 import { lastCallPath, writeLastCall } from './last-call.ts';
+import { readTranscriptUsage } from './transcript-usage.ts';
 
 const controller = new AbortController();
 
@@ -102,15 +104,15 @@ process.on('uncaughtException', fault);
 process.on('unhandledRejection', fault);
 setTimeout(expire, hookDeadline(process.env)).unref();
 
-/** The block to answer when the host's input cannot be used, or null when it
- * can. A signal that arrived while waiting wins over the input's fault. */
-async function refusedInput(): Promise<HookOutput | null> {
+/** The host's input, or the block to answer when it cannot be used. A signal
+ * that arrived while waiting wins over the input's fault. */
+async function readInput(): Promise<Extract<HookInput, { ok: true }> | { ok: false; output: HookOutput }> {
   const text = await readHookInput(process.stdin, maxHookInputBytes, stdinDeadlineMs);
   if (controller.signal.aborted) {
-    return terminated();
+    return { ok: false, output: terminated() };
   }
   const input = text.ok ? parseHookInput(text.text) : text;
-  return input.ok ? null : blockStop(`unreadable hook input: ${input.error}`);
+  return input.ok ? input : { ok: false, output: blockStop(`unreadable hook input: ${input.error}`) };
 }
 
 /** Record that the host called this hook, for the live check. Both calls never
@@ -136,9 +138,9 @@ async function run(args: string[]): Promise<HookOutput> {
     return blockStop(request.error);
   }
   await recordCall(dir.dir, request.request.command);
-  const refused = await refusedInput();
-  if (refused !== null) {
-    return refused;
+  const input = await readInput();
+  if (!input.ok) {
+    return input.output;
   }
   // The budget setting files set the limits (e09s01). After recordCall, so a
   // bad file still counts as a call for the live check; a bad file blocks.
@@ -151,7 +153,12 @@ async function run(args: string[]): Promise<HookOutput> {
   const answer = await runEngine(budgeted.request, controller.signal);
   // An aborted run answers `killed`, which allows the stop. A signal is not a
   // result, so block.
-  return controller.signal.aborted ? terminated() : hookAnswer(answer);
+  if (controller.signal.aborted) {
+    return terminated();
+  }
+  // The session's tokens, read after the run so they are as late as they can
+  // be. A report: an unusable transcript gives a reason, never a block.
+  return hookAnswer(answer, readTranscriptUsage(input.transcriptPath));
 }
 
 leave(await failClosed(() => run(process.argv.slice(2))));

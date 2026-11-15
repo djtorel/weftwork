@@ -1,4 +1,4 @@
-// story: e06s05
+// story: e06s05, e09s04
 // The override record through the real CLI (e06s05 AC-19 to AC-21). Each case
 // starts the real CLI with the current Node binary, in a temporary git
 // repository.
@@ -61,7 +61,8 @@ test('AC-e06s05-19 a failed run never names the hatch', async () => {
     await writeRecord(repo, text);
     const result = runCli(repo);
     assert.equal(result.status, baseline.status, name);
-    assert.equal(result.stdout, baseline.stdout, name);
+    // The budget counts one more run each time; the rest of the line must match.
+    assert.deepEqual(withoutBudget(result.stdout), withoutBudget(baseline.stdout), name);
     assert.equal(result.stderr, baseline.stderr, name);
   }
   for (const text of [baseline.stdout, baseline.stderr]) {
@@ -118,6 +119,12 @@ test('AC-e06s05-21 the counts through the real CLI', async () => {
   });
 });
 
+/** The answer line without its budget report (e09s04), which counts runs. */
+function withoutBudget(stdout: string): Record<string, unknown> {
+  const { budget: _budget, ...rest } = lineOf(stdout);
+  return rest;
+}
+
 async function recordPath(repo: string): Promise<string> {
   const dir = dirname((await ledgerPath(repo)) as string);
   mkdirSync(dir, { recursive: true });
@@ -139,7 +146,8 @@ test('AC-e06s05-19 a record that is not a regular file never names the hatch', a
     const result = runCli(repo);
     rmSync(path, { recursive: true, force: true });
     assert.equal(result.status, baseline.status, name);
-    assert.equal(result.stdout, baseline.stdout, name);
+    // The budget counts one more run each time; the rest of the line must match.
+    assert.deepEqual(withoutBudget(result.stdout), withoutBudget(baseline.stdout), name);
     assert.equal(result.stderr, baseline.stderr, name);
   }
 });

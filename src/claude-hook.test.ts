@@ -1,4 +1,4 @@
-// story: e07s01, e07s02, e09s03
+// story: e07s01, e07s02, e09s03, e09s04
 // The Claude Code Stop hook mapping (e07s01 AC-01 to AC-05, AC-11, AC-12): an
 // engine answer becomes an exit code and the host's output, the Stop input is
 // checked, and the directory and command come from the owner, not the agent.
@@ -23,6 +23,7 @@ import {
 import type { Reason } from './gate.ts';
 import { isRecord } from './json.ts';
 import type { State } from './states.ts';
+import type { TokenRead } from './transcript-usage.ts';
 
 function answer(state: State, extra: Partial<Answer> = {}): Answer {
   return {
@@ -32,8 +33,20 @@ function answer(state: State, extra: Partial<Answer> = {}): Answer {
     command: 'npm test',
     fingerprint: 'abc',
     state,
+    budget: { runs: 2, maxRuns: null, failures: 1, maxFailures: 5 },
     ...extra,
   };
+}
+
+const tokens: TokenRead = { ok: true, tokens: { input: 7, output: 222, cacheRead: 74918, cacheWrite: 22705 } };
+
+/** The budget line for the default answer and tokens above. */
+const budget =
+  'budget: 2 runs in this loop (no ceiling), 1 failed in a row (ceiling 5), ' +
+  'tokens 7 input, 222 output, 74918 cache read, 22705 cache write';
+
+function hookFor(given: Answer, read: TokenRead = tokens) {
+  return hookAnswer(given, read);
 }
 
 /** Parse stdout as one JSON object and return it. */
@@ -46,12 +59,15 @@ function systemMessage(stdout: string): string {
   return message;
 }
 
-test('AC-e07s01-01 a done run lets the agent stop', () => {
-  assert.deepEqual(hookAnswer(answer('done')), { exitCode: 0, stdout: '', stderr: '' });
+test('AC-e07s01-01 a done run lets the agent stop, with the budget line only (e09s04)', () => {
+  const out = hookFor(answer('done'));
+  assert.equal(out.exitCode, 0);
+  assert.equal(out.stderr, '');
+  assert.equal(systemMessage(out.stdout), `weftwork: done. ${budget}`);
 });
 
 test('AC-e07s01-02 a failed run blocks the stop', () => {
-  const out = hookAnswer(answer('failed'));
+  const out = hookFor(answer('failed'));
   assert.equal(out.exitCode, hostBlockExitCode);
   assert.equal(out.stdout, '');
   assert.match(out.stderr, /not done \(failed, exit-nonzero\): npm test/);
@@ -60,7 +76,7 @@ test('AC-e07s01-02 a failed run blocks the stop', () => {
 
 for (const state of ['blocked', 'stalled', 'exhausted', 'killed'] as const) {
   test(`AC-e07s01-03 a run that ends ${state} allows the stop`, () => {
-    const out = hookAnswer(answer(state, { detail: 'the detail text' }));
+    const out = hookFor(answer(state, { detail: 'the detail text' }));
     assert.equal(out.exitCode, 0);
     assert.equal(out.stderr, '');
     const message = systemMessage(out.stdout);
@@ -71,13 +87,13 @@ for (const state of ['blocked', 'stalled', 'exhausted', 'killed'] as const) {
 }
 
 test('AC-e07s01-03 a state with no detail names the reason instead', () => {
-  const out = hookAnswer(answer('killed', { reason: 'killed' }));
+  const out = hookFor(answer('killed', { reason: 'killed' }));
   assert.equal(out.exitCode, 0);
   assert.match(systemMessage(out.stdout), /not done \(killed\): killed/);
 });
 
 test('AC-e07s01-04 an overridden run is allowed and never reads as done', () => {
-  const out = hookAnswer(answer('overridden'));
+  const out = hookFor(answer('overridden'));
   assert.equal(out.exitCode, 0);
   assert.equal(out.stderr, '');
   const message = systemMessage(out.stdout);
@@ -92,7 +108,7 @@ test('AC-e07s01-04 no state but done says the work is done', () => {
   const command = 'make the-command';
   const detail = 'the-detail';
   for (const state of ['failed', 'blocked', 'stalled', 'exhausted', 'killed', 'overridden'] as const) {
-    const out = hookAnswer(answer(state, { command, detail }));
+    const out = hookFor(answer(state, { command, detail }));
     const ours = `${out.stdout}${out.stderr}`.replaceAll(command, '').replaceAll(detail, '');
     assert.equal(ours.toLowerCase().replaceAll('not done', '').includes('done'), false, state);
   }
@@ -110,7 +126,7 @@ test('AC-e07s01-05 a Stop input that is a JSON object is ok', () => {
     background_tasks: [],
     session_crons: [],
   });
-  assert.deepEqual(parseHookInput(input), { ok: true });
+  assert.deepEqual(parseHookInput(input), { ok: true, transcriptPath: '/tmp/t.jsonl' });
 });
 
 test('AC-e07s01-05 input that is not JSON is not ok', () => {
@@ -193,7 +209,7 @@ const failedWords: Array<[Reason, RegExp]> = [
 
 for (const [reason, words] of failedWords) {
   test(`AC-e07s02-02 a failed run with reason ${reason} blocks and says what is wrong`, () => {
-    const out = hookAnswer(answer('failed', { reason }));
+    const out = hookFor(answer('failed', { reason }));
     assert.equal(out.exitCode, hostBlockExitCode);
     assert.equal(out.stdout, '');
     assert.match(out.stderr, new RegExp(`not done \\(failed, ${reason}\\): npm test`));
@@ -203,17 +219,17 @@ for (const [reason, words] of failedWords) {
 
 test('AC-e07s02-02 a fault Claude cannot fix, or a run too slow, says to tell the owner', () => {
   for (const reason of ['timeout', 'no-tree', 'no-ledger', 'not-started', 'not-run'] as const) {
-    assert.match(hookAnswer(answer('failed', { reason })).stderr, /tell the owner/, reason);
+    assert.match(hookFor(answer('failed', { reason })).stderr, /tell the owner/, reason);
   }
 });
 
 test('AC-e07s02-02 a passing run that changed the tree says the result is not trusted', () => {
-  assert.match(hookAnswer(answer('failed', { reason: 'tree-changed' })).stderr, /not trusted/);
+  assert.match(hookFor(answer('failed', { reason: 'tree-changed' })).stderr, /not trusted/);
 });
 
 test('AC-e07s02-02 no failed reason says the work is done', () => {
   for (const [reason] of failedWords) {
-    const out = hookAnswer(answer('failed', { reason }));
+    const out = hookFor(answer('failed', { reason }));
     const ours = out.stderr.replaceAll('npm test', '');
     assert.equal(ours.toLowerCase().replaceAll('not done', '').includes('done'), false, reason);
   }
@@ -238,12 +254,12 @@ test('AC-e07s02-12 a shorter deadline from the variable is used, and never a lon
 });
 
 test('AC-e07s02-15 the timeout line names the limit', () => {
-  const out = hookAnswer(answer('failed', { reason: 'timeout' }));
+  const out = hookFor(answer('failed', { reason: 'timeout' }));
   assert.match(out.stderr, new RegExp(`${engineTimeoutMs / 1000} s`));
 });
 
 test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded', () => {
-  const out = hookAnswer(answer('failed', { reason: 'no-ledger' }));
+  const out = hookFor(answer('failed', { reason: 'no-ledger' }));
   assert.match(out.stderr, /could not be recorded/);
   assert.match(out.stderr, /could not check/);
 });
@@ -251,21 +267,48 @@ test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded
 // e09s03 R4: a failed answer within the handover reserve carries a detail,
 // and the block reason ends with it, so the agent reads it.
 test('AC-e09s03-10 a failed answer with a detail blocks with the detail as the last line', () => {
-  const out = hookAnswer(answer('failed', { detail: '2 runs since the last done, 1 left: write the handoff' }));
+  const out = hookFor(answer('failed', { detail: '2 runs since the last done, 1 left: write the handoff' }));
   assert.equal(out.exitCode, 2);
   assert.equal(out.stdout, '');
   assert.equal(
     out.stderr,
     'weftwork: not done (failed, exit-nonzero): npm test\n' +
+      `${budget}\n` +
       'Make that command pass before you stop.\n' +
       '2 runs since the last done, 1 left: write the handoff\n',
   );
 });
 
-test('AC-e09s03-10 a failed answer with no detail keeps the two-line reason', () => {
-  const out = hookAnswer(answer('failed'));
+test('AC-e09s03-10 a failed answer with no detail ends with what to do', () => {
+  const out = hookFor(answer('failed'));
   assert.equal(
     out.stderr,
-    'weftwork: not done (failed, exit-nonzero): npm test\nMake that command pass before you stop.\n',
+    `weftwork: not done (failed, exit-nonzero): npm test\n${budget}\nMake that command pass before you stop.\n`,
   );
+});
+
+// e09s04: the budget used and the session's tokens, on every answer.
+test('AC-e09s04-11 every state shows the budget line', () => {
+  const states = ['done', 'failed', 'blocked', 'stalled', 'exhausted', 'killed', 'overridden'] as const;
+  for (const state of states) {
+    const out = hookFor(answer(state, { detail: 'the detail' }));
+    assert.ok(`${out.stdout}${out.stderr}`.includes(budget.split(',')[0] as string), state);
+  }
+});
+
+test('AC-e09s04-11 the ceilings in force are named, and counts the engine could not read say so', () => {
+  const counted = hookFor(answer('failed', { budget: { runs: 3, maxRuns: 9, failures: 2, maxFailures: 4 } }));
+  assert.match(counted.stderr, /3 runs in this loop \(ceiling 9\), 2 failed in a row \(ceiling 4\)/);
+  const unread = hookFor(answer('failed', { budget: { runs: null, maxRuns: null, failures: null, maxFailures: 5 } }));
+  assert.match(unread.stderr, /runs not counted \(no ceiling\), failures not counted \(ceiling 5\)/);
+});
+
+test('AC-e09s04-12 a transcript that cannot be used says why and never changes the answer', () => {
+  const missing: TokenRead = { ok: false, error: 'no transcript at /x\u001b[2J.jsonl' };
+  const done = hookFor(answer('done'), missing);
+  assert.equal(done.exitCode, 0);
+  const message = systemMessage(done.stdout);
+  assert.match(message, /tokens not counted \(no transcript at \/x\\u001b\[2J\.jsonl\)/);
+  assert.ok(!message.includes('\u001b'), 'a control character from outside is escaped');
+  assert.equal(hookFor(answer('failed'), missing).exitCode, hostBlockExitCode);
 });
