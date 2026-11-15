@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check a research brief against brief_rules in specs/planning-context.yaml.
+# Check a research brief against brief_rules in docs/research/planning-context.yaml.
 # Usage: check-brief.sh <brief> <R-id> [--sources]
 #        check-brief.sh --selftest
 # Exit: 0 pass, 1 check failed, 2 usage error (bad R-id, missing file).
@@ -112,7 +112,7 @@ check_verdicts() {
 
 # context_query <R-id>: "R <id>" per research story, "H <id>" per hypothesis
 context_query() {
-  local ctx=${PLANNING_CONTEXT:-$(dirname "$SELF")/../specs/planning-context.yaml}
+  local ctx=${PLANNING_CONTEXT:-$(dirname "$SELF")/../docs/research/planning-context.yaml}
   python3 -I -c "$PY" "$ctx" "$1" 2>/dev/null && return
   echo "check-brief: cannot read $ctx" >&2
   return 1

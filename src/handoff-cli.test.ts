@@ -1,17 +1,17 @@
 // story: e08s03
 // The handoff CLI, run as a real process in temporary repositories (e08s03
-// AC-07, AC-08): it writes the handoff block of specs/state.yaml from JSON on
+// AC-07, AC-08): it writes the handoff block of the state file from JSON on
 // stdin and keeps every other byte, exits 1 when the engine refuses and 2 for
 // input it cannot read, and leaves the file as it was unless it exits 0. The
 // field checks are tested on writeHandoff itself (handoff.test.ts). No test
-// touches this repository's own specs/state.yaml.
+// touches this repository's own state file.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
-import { cleanupTempDirs, makeStateRepo, makeTempDir } from './test-helpers.ts';
+import { cleanupTempDirs, makeEngineRepo, makeTempDir } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -35,10 +35,10 @@ function runCli(cwd: string, stdin: string | Buffer): { status: number | null; r
 
 // AC-e08s03-07
 test('a complete input writes the block and keeps the rest of the file', () => {
-  const { repo, state } = makeStateRepo(fixture);
+  const { repo, state } = makeEngineRepo(fixture);
   const run = runCli(repo, input);
   assert.equal(run.status, 0, JSON.stringify(run.result));
-  assert.deepEqual(run.result, { ok: true, action: 'written', file: 'specs/state.yaml' });
+  assert.deepEqual(run.result, { ok: true, action: 'written', file: 'state.yaml' });
   const text = readFileSync(state, 'utf8');
   const block = (parse(text) as Record<string, Record<string, unknown>>)['handoff'];
   assert.equal(block?.['next_skill'], 'verify-work');
@@ -52,8 +52,10 @@ test('a complete input writes the block and keeps the rest of the file', () => {
 });
 
 test('the CLI writes the state file of the repository root from a subdirectory', () => {
-  const { specs, state } = makeStateRepo(fixture);
-  assert.equal(runCli(specs, input).status, 0);
+  const { repo, state } = makeEngineRepo(fixture);
+  const sub = join(repo, 'sub');
+  mkdirSync(sub);
+  assert.equal(runCli(sub, input).status, 0);
   assert.ok(readFileSync(state, 'utf8').includes('branch: e08s03-handoff-note'));
 });
 
@@ -67,7 +69,7 @@ for (const [name, stdin, code] of [
   ['bytes that are not UTF-8', Buffer.from([0x7b, 0xff, 0x7d]), 2],
 ] as [string, string | Buffer, number][]) {
   test(`${name} exits ${code} and leaves the file as it was`, () => {
-    const { repo, state } = makeStateRepo(fixture);
+    const { repo, state } = makeEngineRepo(fixture);
     const run = runCli(repo, stdin);
     assert.equal(run.status, code, JSON.stringify(run.result));
     assert.equal(run.result.ok, false);
@@ -77,7 +79,7 @@ for (const [name, stdin, code] of [
 
 test('a note the yaml package cannot write as a block scalar still gives one JSON line and exit 0', () => {
   // Review round 2, B1: this note made setMapping throw, and the CLI print a stack trace.
-  const { repo, state } = makeStateRepo(fixture);
+  const { repo, state } = makeEngineRepo(fixture);
   // Whitespace-only lines first, as in the crash; the note itself is not only whitespace.
   const run = runCli(repo, JSON.stringify({ ...JSON.parse(input), note: ' \n\t\nx' }));
   assert.equal(run.status, 0, JSON.stringify(run.result));

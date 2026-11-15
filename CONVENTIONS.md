@@ -1,7 +1,6 @@
 # Conventions
-<!-- story: e05s03 -->
 
-Shared rules for every agent working in weftwork. Written from the bigpowers base.
+Shared rules for every agent working in weftwork.
 The stack is TypeScript on Node 26 or later, with npm and `node:test` (owner decision, e04 checkpoint, 2026-11-11).
 
 ## Conventional Commits
@@ -11,31 +10,15 @@ The stack is TypeScript on Node 26 or later, with npm and `node:test` (owner dec
 - Types: `feat` (minor), `fix` and `perf` (patch), `docs`, `chore`, `style`, `refactor`, `test` (no bump).
 - Research and planning work uses `docs`. Tooling uses `chore`.
 - NEVER add `Co-authored-by` or any AI attribution footer to a commit.
-- Every commit on a story branch carries a `Story: <story-id>` trailer, for
-  example `Story: e02s04`, after a blank line in the body. It is not an
-  attribution footer. `scripts/record-cycle-time.sh` attributes effort by
-  this trailer and refuses to record a story whose commits lack it.
-- Run cycle-time recording through `tools/record-cycle-time.sh`: it calls
-  `scripts/record-cycle-time.sh` and restores the `---` line that script
-  removes from `specs/execution-status.yaml` (BUG-004).
-- CI runs `tools/test-record-cycle-time.sh` (the BUG-004 regression test)
-  on every push and pull request, so the marker fix stays enforced.
-- Run the audit gate through `tools/assert-audit-story.sh`, not
-  `scripts/lib/assert-epic-gate.sh`: the global gate passes any
-  `VERDICT: PASS` in `specs/AUDIT_LATEST.md`, even one for an earlier
-  story (BUG-006). The wrapper needs a `Story: <active story>` line in that
-  file. audit-code must write it for every story. CI runs
-  `tools/test-assert-audit-story.sh`.
-- The cycle-time ledger is `specs/metrics/cycle-times.md`. Always pass
-  `--file specs/metrics/cycle-times.md` to `record-cycle-time.sh`: its
-  default name, `cycle-times.yaml`, holds front matter plus a Markdown
-  body, which `validate-specs-yaml.sh` rejects. Take the branch SHA range
-  before the squash merge; the merge hides it.
+- PRs are squash-merged, so the PR title becomes the commit title. Write it
+  as a Conventional Commit.
 
 ## Git
 
 - NEVER work on `main`. Start every task on a feature branch.
-- A guard hook blocks direct commits to `main`.
+- GitHub branch protection on `main` requires a pull request and a green
+  `checks` job. No local hook stops a commit to `main`, so check the branch
+  before you commit.
 - Commit, push a feature branch and open a PR without asking (owner
   decision, 2026-11-15).
 - NEVER merge, land, or push to `main` without the owner's go-ahead.
@@ -44,29 +27,32 @@ The stack is TypeScript on Node 26 or later, with npm and `node:test` (owner dec
 ## Boundaries
 
 - NEVER read or write files outside this repository without asking the owner.
-- Exception: the owner names a path, for example `../pi-flow-legacy` for R14.
-- `scripts/` is a symlink to a global install. NEVER commit it. NEVER edit through it.
+- Exception: the owner names a path. A download for research goes in the
+  session scratchpad and is never run.
 - NEVER run more than 2 subagents at once.
 
 ## Evidence
 
-- Every task has a runnable `verify:` command.
-- Run the command after the last edit. Show its output.
+- Every task has a runnable check. Run it after the last edit and show its
+  output.
 - A self-report is not evidence.
-- Every brief cites dated sources: access date and publication date.
+- Research briefs (`docs/research/R<n>-<slug>.md`) cite dated sources:
+  access date and publication date. `tools/check-brief.sh` checks them against
+  `docs/research/planning-context.yaml`.
 - Cite papers wherever literature exists. Practitioner opinion alone is not enough there.
 - Secondary sources (blogs, comparison pages, curated lists) find candidates. They prove nothing.
-- Every hypothesis gets a verdict: confirmed, refined, or refuted.
+- Every hypothesis a brief tests gets a verdict: confirmed, refined, or refuted.
 - NEVER state a claim as a decision without a cited source.
 
 ## Always Green and Discovered Defects
 
-- Preflight is `yamllint specs && bash tools/validate-specs-yaml.sh &&
-  bash tools/check-gate-ignores.sh && npm run typecheck && npm test`.
+- Preflight is `yamllint . && bash tools/check-briefs.sh && npm run
+  typecheck && npm test`.
 - On a fresh clone, run `bash tools/setup.sh` first. Preflight needs
   `node_modules`.
 - Preflight MUST pass before forward work.
-- A reproducible gate failure needs `quick-fix` or `fix-bug`, in a separate commit.
+- A reproducible failure is fixed, in its own commit, or reported. A bug
+  worth a write-up goes in `docs/bugs/BUG-<n>-<slug>.md`.
 - Banned dismissive phrases: "pre-existing", "unrelated to this session", "not introduced by my changes", "out of scope".
 
 ## TypeScript code style
@@ -98,35 +84,26 @@ Only rules that the toolchain enforces or that a reviewer can check.
 - Put each test in `<name>.test.ts` next to the code it tests. Node 26
   finds `**/*.test.ts` by default.
 - Red first: write the test, run it, and see it fail before the code
-  exists. Record that failure as RED evidence.
+  exists.
 - Every test asserts. A test that cannot fail is not a test.
+- Every test that starts a CLI isolates `XDG_CONFIG_HOME`, so the
+  owner's own budget file never changes a result.
 - Preflight and CI run `npm run typecheck` and `npm test`. CI also runs
   the shell selftests in `tools/`.
 
-## specs/ and docs/
+## Docs and files
 
-- `specs/` holds planning output: scope, epics, release plan, state, checkpoints.
-- `docs/research/` holds one brief per research story.
+- `docs/research/` holds one brief per research question; `docs/bugs/`
+  holds bug write-ups; `docs/security/REVIEW.md` holds the security
+  review that code comments cite.
+- Plans, tasks and agent state are local and untracked (AGENTS.md,
+  "Where things are"). The pull request is the shared record of a task.
 - `docs/SEED-SPEC.md` is provisional. Archive it to `docs/archive/` when the v1 spec replaces it.
 - Write YAML with a `---` start and lines of 80 columns or fewer.
-- Use `todo`, `in_progress`, `done` for task and story status.
-
-## Generated and Managed Files
-
-- The global scripts `record-cycle-time.sh` and `bp-timing.sh` rewrite YAML
-  state files with `yaml.dump`, which drops comments, the `---` line and
-  folded scalars (BUG-005, BUG-001). `tools/record-cycle-time.sh` restores
-  the style of `specs/execution-status.yaml` itself. After the last
-  `bp-timing.sh` call of a story, run `python3 tools/restore-yaml-style.py
-  specs/state.yaml --base HEAD` before you commit. It puts back the text of
-  every block whose data did not change and never changes data.
-
-- Edit `AGENTS.md` only inside `bigpowers:` fences, or outside them.
 - `CLAUDE.md` is a symlink to `AGENTS.md`. NEVER edit it separately.
 - Every command written into `AGENTS.md` MUST resolve in this repository today.
 
 ## Provisional Rules
 
-- The bigpowers workflow mandate applies now, minus the gates retired on 2026-11-15 (AGENTS.md, "Retired gates and owner check-ins"). The e11 auto run replaces it once it ships.
 - Add gates only after an observed failure justifies them.
 - Each gate needs a logged, one-shot escape hatch.

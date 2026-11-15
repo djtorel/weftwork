@@ -1,28 +1,24 @@
-<!-- story: e05s04 -->
-## Summary
+## Problem
 
-<!-- What this PR changes and why, in two or three sentences. -->
+<!-- What was wrong or missing, in plain words, in two or three sentences. -->
 
-## Story
+## Change
 
-<!-- The story or bug id, for example e05s04 or BUG-006. -->
+<!-- The fix in a sentence or two. Backlog id if there is one. -->
 
-## Gates
+## Proof
 
-<!--
-One line per gate. Say whether it passed, was waived, was stale or
-was missing, and why. Link the waiver in specs/state.yaml if waived.
--->
-
-- Audit (`tools/assert-audit-story.sh`):
-- Security review:
-- Review (at most 2 rounds; only must-fix blocks):
-- Unresolved should-fix findings:
-
-## Verify
-
-<!-- Paste the Preflight output, or the task verify output, or link it. -->
+<!-- Commands run after the last edit and what they showed; screenshots for UI. -->
 
 ```text
 
 ```
+
+## Review
+
+<!-- "Reviewed with review-loop: N rounds with Codex. Verdict: ...", and
+declined findings with reasons. -->
+
+## Decisions
+
+<!-- Choices made without the owner, one line each. "None" if none. -->

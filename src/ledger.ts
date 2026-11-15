@@ -63,19 +63,27 @@ export type Counts = {
 };
 
 /**
- * `<absolute git dir>/weftwork/ledger.jsonl` for the working tree that holds
- * `cwd`, or null when there is none. A linked worktree has its own git dir.
- * core.fsmonitor=false stops a repository's own config from naming a program
- * for git to run. Never throws.
+ * `<absolute git dir>/weftwork` for the working tree that holds `cwd`, or null
+ * when there is none: the engine's own folder, untracked and one per worktree,
+ * since a linked worktree has its own git dir. It holds the ledger, the last
+ * call and the state file. core.fsmonitor=false stops a repository's own
+ * config from naming a program for git to run. Never throws.
  */
-export async function ledgerPath(cwd: string): Promise<string | null> {
+export async function weftworkDir(cwd: string): Promise<string | null> {
   try {
     const args = ['-c', 'core.fsmonitor=false', 'rev-parse', '--absolute-git-dir'];
     const { stdout } = await run('git', args, { cwd, encoding: 'utf8' });
-    return join(stdout.replace(/\n$/, ''), 'weftwork', 'ledger.jsonl');
+    return join(stdout.replace(/\n$/, ''), 'weftwork');
   } catch {
     return null;
   }
+}
+
+/** `<absolute git dir>/weftwork/ledger.jsonl` for the working tree that holds
+ * `cwd`, or null when there is none. Never throws. */
+export async function ledgerPath(cwd: string): Promise<string | null> {
+  const dir = await weftworkDir(cwd);
+  return dir === null ? null : join(dir, 'ledger.jsonl');
 }
 
 /** A failed close must not reach a caller that promises never to throw: on the

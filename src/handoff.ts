@@ -1,5 +1,6 @@
 // story: e08s03
-// The handoff block of specs/state.yaml, written by the engine for a session
+// The handoff block of the engine's state file (<git dir>/weftwork/state.yaml),
+// written by the engine for a session
 // that remembers nothing (R12). The caller gives what only it knows: the next
 // skill, the note, the branch to start on and the files the note names. The
 // engine adds what it can measure itself, when it wrote the block and which
@@ -10,7 +11,8 @@ import { lstatSync } from 'node:fs';
 import { isAbsolute, posix } from 'node:path';
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
-import { stateFile, valueProblem } from './state-fields.ts';
+import { weftworkDir } from './ledger.ts';
+import { ensureStateFile, stateFile, valueProblem } from './state-fields.ts';
 import { writeStateMapping } from './state-mapping.ts';
 import type { WriteField } from './state-file.ts';
 import { insideRoot, type Unresolved } from './state-write.ts';
@@ -131,17 +133,23 @@ export function checkHandoff(root: string, input: unknown): { ok: true; handoff:
   return { ok: true, handoff: fields as HandoffInput };
 }
 
-/** Write the handoff block of specs/state.yaml under the repository `root`:
- * the caller's checked fields, written_at from `now` (UTC, to the second) and
- * uncommitted from git status, sorted, without the state file itself. A refused
- * input, or a repository git cannot read, writes nothing. */
+/** Write the handoff block of the state file of the worktree at `root`, in
+ * <git dir>/weftwork, creating the file when it is missing: the caller's
+ * checked fields, written_at from `now` (UTC, to the second) and uncommitted
+ * from git status, sorted. The state file is outside the working tree, so git
+ * status never lists it. A refused input, or a repository git cannot read,
+ * writes nothing. */
 export async function writeHandoff(root: string, input: unknown, now: Date = new Date()): Promise<WriteField> {
   const checked = checkHandoff(root, input);
   if (!checked.ok) return checked;
-  const status = await uncommittedPaths(root, [stateFile]);
+  const status = await uncommittedPaths(root);
   if (!status.ok) return { ok: false, error: `git status failed: ${status.error}` };
+  const dir = await weftworkDir(root);
+  if (dir === null) return { ok: false, error: `${root} has no git dir for the state file` };
+  const made = ensureStateFile(dir);
+  if (made !== null) return made;
   const { next_skill, next_story, next_epic, branch, files, note } = checked.handoff;
-  return writeStateMapping(root, stateFile, 'handoff', {
+  return writeStateMapping(dir, stateFile, 'handoff', {
     next_skill,
     next_story,
     next_epic,

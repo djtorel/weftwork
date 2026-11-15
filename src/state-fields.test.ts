@@ -1,25 +1,25 @@
 // story: e08s02
 // The field table (e08s02 AC-01 to AC-05): the engine sets only the five
-// documented fields of specs/state.yaml, checks each value for type, refuses
-// everything else with the file left the same bytes, reads the documented
-// fields back, and agrees with docs/STATE.md. Every test runs in a temporary
-// repository; none touches this repository's own specs/state.yaml.
+// documented fields of the engine's state file (<git dir>/weftwork/state.yaml),
+// checks each value for type, refuses everything else with the file left the
+// same bytes, reads the documented fields back, and agrees with docs/STATE.md.
+// Every test runs in a temporary repository.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { checkStateField, readStateFields, setStateField, stateFields, stateFile } from './state-fields.ts';
-import { cleanupTempDirs, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, makeEngineRepo, makeTempDir } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const fixture = readFileSync(join(import.meta.dirname, 'fixtures', 'state.yaml'), 'utf8');
 
-/** The repository of makeStateRepo, with specs/state.yaml set to `text`. */
-const repoWithState = (text: string = fixture): string => makeStateRepo(text).repo;
+/** The engine folder of a temporary repository whose state file is `text`. */
+const repoWithState = (text: string = fixture): string => makeEngineRepo(text).dir;
 
-const stateText = (repo: string): string => readFileSync(join(repo, stateFile), 'utf8');
+const stateText = (dir: string): string => readFileSync(join(dir, stateFile), 'utf8');
 
 /** The value at a dotted key of parsed YAML text. */
 function valueAt(text: string, key: string): unknown {
@@ -29,7 +29,7 @@ function valueAt(text: string, key: string): unknown {
 }
 
 test('AC-e08s02-01 the table is the five documented fields', () => {
-  assert.equal(stateFile, 'specs/state.yaml');
+  assert.equal(stateFile, 'state.yaml');
   assert.deepEqual([...stateFields].sort(), ['active_epic', 'active_flow', 'active_story', 'phase', 'vcs.branch']);
 });
 
@@ -137,10 +137,17 @@ for (const [name, text, key] of [
   });
 }
 
-test('readStateFields refuses a repository with no state file', () => {
-  const result = readStateFields(makeTestRepo());
-  assert.equal(result.ok, false);
-  assert.ok(!result.ok && result.error.includes(stateFile), JSON.stringify(result));
+test('readStateFields reads a missing state file as every field null and creates nothing', () => {
+  const dir = join(makeTempDir(), 'weftwork');
+  assert.deepEqual(readStateFields(dir), { ok: true, fields: Object.fromEntries(stateFields.map((key) => [key, null])) });
+  assert.throws(() => readFileSync(join(dir, stateFile)));
+});
+
+test('setStateField creates a missing state file with every field null, then sets one', () => {
+  const dir = join(makeTempDir(), 'weftwork');
+  assert.deepEqual(setStateField(dir, 'phase', 'build'), { ok: true, action: 'written', file: stateFile });
+  const expected = Object.fromEntries(stateFields.map((key) => [key, key === 'phase' ? 'build' : null]));
+  assert.deepEqual(readStateFields(dir), { ok: true, fields: expected });
 });
 
 test('readStateFields refuses invalid YAML', () => {
@@ -148,15 +155,15 @@ test('readStateFields refuses invalid YAML', () => {
   assert.equal(result.ok, false);
 });
 
-// Security review e08s02, F1: get must not read through a folder outside the root.
-test('readStateFields refuses a specs folder that is a symlink out of the repository', () => {
-  const repo = makeTestRepo();
+// Security review e08s02, F1: get must not read through a link out of its folder.
+test('readStateFields refuses a state file that is a symlink out of the engine folder', () => {
+  const dir = makeTempDir();
   const outside = makeTempDir();
   writeFileSync(join(outside, 'state.yaml'), fixture);
-  symlinkSync(outside, join(repo, 'specs'));
-  const result = readStateFields(repo);
-  assert.equal(result.ok, false);
-  assert.match(result.ok ? '' : result.error, /outside the repository/);
+  symlinkSync(join(outside, 'state.yaml'), join(dir, stateFile));
+  assert.equal(readStateFields(dir).ok, false);
+  assert.equal(setStateField(dir, 'phase', 'x').ok, false);
+  assert.equal(readFileSync(join(outside, 'state.yaml'), 'utf8'), fixture);
 });
 
 // Security review e08s02, F2: an alias bomb is a refusal, not a throw.

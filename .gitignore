@@ -1,9 +1,14 @@
+# Local agent planning and state: each developer's own, never shared.
+# .specs/ is the bigpowers-era planning tree (tag bigpowers-era holds the
+# tracked copy). The engine keeps its own state in <git dir>/weftwork/.
+.specs/
+.weftwork/
+
 # Machine-local agent tooling, not project source.
-# scripts/ is a symlink into this machine's global bigpowers install (mise node path).
+# scripts/ is a symlink into this machine's global bigpowers install.
 /scripts
 # pi per-project install (GSD copy, local agents/settings).
 .pi/
-# bigpowers dashboard artifacts and local config.
 .bigpowers/
 # Agent worktrees.
 .worktrees/
@@ -17,11 +22,3 @@ coverage/
 dist/
 *.log
 .DS_Store
-
-# bigpowers gate outputs, regenerated on every run (BUG-002).
-# tools/check-gate-ignores.sh checks this block; keep the two in step.
-specs/blind-spots.json
-specs/traceability-matrix.json
-specs/TRACEABILITY_LATEST.md
-specs/codebase-wiki/
-specs/verifications/ADVERSARIAL_LATEST.yaml
