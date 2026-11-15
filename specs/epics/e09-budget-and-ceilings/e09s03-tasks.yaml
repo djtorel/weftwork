@@ -26,7 +26,7 @@
 # Spec: e09s03-handover-reserve.md.
 story_id: e09s03
 title: The engine keeps a reserve so a hard stop leaves a handoff
-status: in_progress
+status: done
 bcps: 3
 type: feat
 context: engine

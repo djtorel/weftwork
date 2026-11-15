@@ -27,7 +27,7 @@ stories:
   - id: e09s03
     title: The engine keeps a reserve so a hard stop leaves a handoff
     bcps: 3
-    status: todo
+    status: done
     tasks: e09s03-tasks.yaml
     delta: ADDED
   - id: e09s04
