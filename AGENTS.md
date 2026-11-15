@@ -109,7 +109,8 @@ and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
 (`review-setting.ts`) and count the rounds in the ledger (`review-ledger.ts`;
 `docs/REVIEW.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
-them to the council when a change touches the UI (`docs/UI.md`). Every CLI is a
+them to the council, as images and with the design reference and a design
+checklist, when a change touches the UI (`docs/UI.md`). Every CLI is a
 thin shell over a library function.
 
 ## Rules

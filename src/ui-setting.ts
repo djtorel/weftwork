@@ -1,16 +1,18 @@
-// story: e11s05
+// story: e11s05, e11s06
 // The UI setting: the command that writes screenshots and the paths that make
 // a change a UI change, from the `ui` mapping of the same two setting files as
-// the budget (docs/UI.md). The repository file wins over the user file key by
+// the budget (docs/UI.md), and the design reference the council reviews
+// against (e11s06). The repository file wins over the user file key by
 // key. No `ui` mapping in either file means UI checks are off.
 import type { Failure } from './errors.ts';
+import { isAbsolute } from 'node:path';
 import { isInteger } from './json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from './budget.ts';
 
-export type UiSetting = { screenshot: string; paths: string[]; timeoutSeconds: number };
+export type UiSetting = { screenshot: string; paths: string[]; timeoutSeconds: number; design?: string };
 export type UiSettingResult = { ok: true; ui: UiSetting | null } | Failure;
 
-const knownKeys = ['screenshot', 'paths', 'timeout_seconds'];
+const knownKeys = ['screenshot', 'paths', 'timeout_seconds', 'design'];
 const maxPaths = 50;
 const defaultTimeoutSeconds = 600;
 
@@ -23,12 +25,17 @@ function isPaths(value: unknown): value is string[] {
   );
 }
 
+/** A path from the repository root that stays inside it. */
+function isInsidePath(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '' && !value.includes('\0') && !isAbsolute(value) && !value.split(/[\\/]/).includes('..');
+}
+
 /** The `ui` keys one file sets, or the first unknown key or bad value. */
 function checkUi(ui: Record<string, unknown>): { ok: true; set: Partial<UiSetting> } | Failure {
   const unknown = Object.keys(ui).find((key) => !knownKeys.includes(key));
   if (unknown !== undefined) return { ok: false, error: `ui.${clip(unknown)} is not a known key (known: ${knownKeys.join(', ')})` };
   const set: Partial<UiSetting> = {};
-  const { screenshot, paths, timeout_seconds: timeout } = ui;
+  const { screenshot, paths, timeout_seconds: timeout, design } = ui;
   if (screenshot !== undefined) {
     if (typeof screenshot !== 'string' || screenshot.trim() === '' || screenshot.includes('\0')) return { ok: false, error: 'ui.screenshot must be a non-empty command' };
     set.screenshot = screenshot;
@@ -40,6 +47,10 @@ function checkUi(ui: Record<string, unknown>): { ok: true; set: Partial<UiSettin
   if (timeout !== undefined) {
     if (!isInteger(timeout) || timeout < 1 || timeout > 3600) return { ok: false, error: 'ui.timeout_seconds must be an integer from 1 to 3600' };
     set.timeoutSeconds = timeout;
+  }
+  if (design !== undefined) {
+    if (!isInsidePath(design)) return { ok: false, error: 'ui.design must be a path inside the repository, from its root' };
+    set.design = design;
   }
   return { ok: true, set };
 }
@@ -71,9 +82,9 @@ export function resolveUi(files: { user: SettingFile | null; repo: SettingFile |
     Object.assign(ui, read.set);
   }
   if (!found) return { ok: true, ui: null };
-  const { screenshot, paths, timeoutSeconds = defaultTimeoutSeconds } = ui;
+  const { screenshot, paths, timeoutSeconds = defaultTimeoutSeconds, design } = ui;
   if (screenshot === undefined || paths === undefined) return { ok: false, error: 'ui needs both screenshot and paths' };
-  return { ok: true, ui: { screenshot, paths, timeoutSeconds } };
+  return { ok: true, ui: { screenshot, paths, timeoutSeconds, ...(design === undefined ? {} : { design }) } };
 }
 
 /** The UI setting for the repository that holds `cwd`, read under the

@@ -28,7 +28,7 @@ The guard blocks the agent from editing either file (`docs/GUARD.md`).
 ---
 review:
   council:
-    - codex exec --ignore-user-config --sandbox read-only --ephemeral -
+    - codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
   max_rounds: 3
   max_rounds_sensitive: 5
   timeout_seconds: 1200
@@ -50,7 +50,9 @@ Each command runs in a shell in the working directory, in its own process
 group, with the brief and the reply format on stdin. Its stdout is the reply
 (a reply larger than 1 MiB fails the reviewer, since a cut reply could drop
 a must-fix). At most 2 reviewers run at once (AGENTS.md: never more
-than 2 subagents at once). The engine asks for this format:
+than 2 subagents at once). For a UI change the brief holds the screenshots and
+a design checklist, and `WEFTWORK_IMAGES` holds the image paths
+(`docs/UI.md`). The engine asks for this format:
 
 ```text
 VERDICT: APPROVE or CHANGES

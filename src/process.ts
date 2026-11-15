@@ -130,9 +130,9 @@ function collect(stream: NodeJS.ReadableStream | null, max: number, tail: boolea
  * stdout (the first 1 MiB; `stdoutCut` when there was more) and the end of its stderr (e11s03: a reviewer's
  * reply and why it failed). Resolves, never rejects.
  */
-export async function runCapture(command: string, cwd: string, timeoutMs: number, input: string): Promise<Captured> {
+export async function runCapture(command: string, cwd: string, timeoutMs: number, input: string, env?: NodeJS.ProcessEnv): Promise<Captured> {
   try {
-    const child = spawn(command, { cwd, shell: true, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(command, { cwd, env: env ?? process.env, shell: true, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
     const stdout = collect(child.stdout, maxCaptureBytes, false);
     const stderr = collect(child.stderr, 400, true);
     // A command that does not read its stdin closes the pipe: EPIPE is not a failure.

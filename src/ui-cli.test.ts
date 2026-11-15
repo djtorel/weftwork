@@ -63,6 +63,7 @@ for (const [name, command, why] of [
   ['a command that fails', 'exit 3', /^why: the screenshot command failed: exit 3$/m],
   ['a command that writes no PNG', 'echo hi > "$WEFTWORK_SHOTS/a.txt"', /^why: the screenshot command wrote no PNG file$/m],
   ['a file named .png that is not a PNG', 'echo hi > "$WEFTWORK_SHOTS/a.png"', /^why: a\.png is not a PNG file$/m],
+  ['a PNG name with a comma (e11s06: WEFTWORK_IMAGES is a comma list)', writePng('a,b.png'), /^why: a,b\.png has a comma in its name$/m],
   ['a command that changes the tree', `${writePng('a.png')}; echo x > tracked.txt`, /^why: the screenshot command changed the tree$/m],
 ] as [string, string, RegExp][]) {
   test(`${name}: failed, exit 1`, () => {

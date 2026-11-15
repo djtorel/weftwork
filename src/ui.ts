@@ -1,9 +1,11 @@
-// story: e11s05
+// story: e11s05, e11s06
 // UI changes checked from screenshots (docs/UI.md). The engine runs the
 // owner's screenshot command with WEFTWORK_SHOTS set to a folder of its own,
 // keeps the PNG files it wrote with their hashes and the tree they show, and
 // tells the review whether a change touches ui.paths and which screenshots
-// the council reads. A model's score is reported, never a gate.
+// the council reads. A model's score is reported, never a gate. A UI change
+// is reviewed as a design audit against the project's design reference, and
+// each reviewer gets the images in WEFTWORK_IMAGES (e11s06).
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, open, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -11,8 +13,8 @@ import { join, matchesGlob } from 'node:path';
 import { terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
 import { runCommand } from './process.ts';
-import { strictUtf8 } from './regular-file.ts';
-import { fingerprintTree, gitOutput } from './tree.ts';
+import { readRegularFile, strictUtf8 } from './regular-file.ts';
+import { fingerprintTree, gitOutput, repositoryRoot } from './tree.ts';
 import type { UiSetting } from './ui-setting.ts';
 
 export type Phase = 'before' | 'after';
@@ -76,6 +78,9 @@ async function readPngs(dir: string): Promise<{ ok: true; files: Shot[] } | Fail
   if (names.length === 0) return { ok: false, error: 'the screenshot command wrote no PNG file' };
   if (names.length > maxShots) return { ok: false, error: `the screenshot command wrote ${names.length} PNG files; at most ${maxShots}` };
   const files: Shot[] = [];
+  const comma = names.find((name) => name.includes(','));
+  // WEFTWORK_IMAGES joins the paths with commas (e11s06).
+  if (comma !== undefined) return { ok: false, error: `${terminalSafe(comma)} has a comma in its name` };
   for (const name of names) {
     const stat = await lstat(join(dir, name));
     if (!stat.isFile() || stat.size > maxShotBytes) return { ok: false, error: `${terminalSafe(name)} is not a PNG file of at most ${maxShotBytes} bytes` };
@@ -173,13 +178,58 @@ export async function uiForReview(request: { cwd: string; weftwork: string; ui: 
   return { kind: 'ready', touched, before: same ? before : null, after };
 }
 
-/** The part of the brief that hands the council the screenshots. */
-export function uiPrompt(weftwork: string, ready: { touched: string[]; before: Shots | null; after: Shots }): string {
+/** The design reference ui.design names, read under the setting file rules:
+ * a regular file, not a symlink, UTF-8, at most 64 KiB. */
+export async function readDesign(cwd: string, design: string): Promise<{ ok: true; design: Design } | Failure> {
+  let path: string;
+  try {
+    path = join((await repositoryRoot(cwd)).toString(), design);
+  } catch (error) {
+    return { ok: false, error: `ui.design: no repository root: ${messageOf(error)}` };
+  }
+  const read = readRegularFile(path, { follow: false, maxBytes: maxDesignBytes });
+  if (!read.ok) return { ok: false, error: `ui.design: ${read.error}` };
+  if (read.file === null) return { ok: false, error: `ui.design: ${path} does not exist` };
+  return { ok: true, design: { path: design, text: read.file.text } };
+}
+
+export type Design = { path: string; text: string };
+const maxDesignBytes = 64 * 1024;
+
+/** The screenshots as one value for WEFTWORK_IMAGES: absolute paths, before
+ * then after, joined by commas (`codex exec --image` takes this form). */
+export function imagesValue(weftwork: string, ready: { before: Shots | null; after: Shots }): string {
+  const paths = (shots: Shots | null) => (shots === null ? [] : shots.files.map((file) => join(shotsDir(weftwork, shots.phase), file.name)));
+  return [...paths(ready.before), ...paths(ready.after)].join(',');
+}
+
+const designAudit = [
+  'Review it as a design audit as well as for defects. Design checklist:',
+  '- consistency with the design reference and with the existing screens',
+  '- hierarchy: what the eye reads first, second and last',
+  '- spacing and alignment',
+  '- typography',
+  '- colour and contrast',
+  '- states (hover, focus, disabled, error, empty, loading), where the screenshots show them',
+  'A screenshot name may give its screen, viewport and state: <screen>.<viewport>.<state>.png.',
+  'Severity: MUST-FIX only for an objective break: the change breaks the design reference, text fails WCAG 2 AA contrast, or the layout is broken at a viewport the screenshots show.',
+  'A design judgement call is SHOULD-FIX; it is listed in the pull request and does not block.',
+];
+
+/** The part of the brief that hands the council the screenshots, the design
+ * checklist and the design reference. */
+export function uiPrompt(weftwork: string, ready: { touched: string[]; before: Shots | null; after: Shots }, design: Design | null = null): string {
+  const reference =
+    design === null
+      ? ['Design reference: there is no design reference (ui.design is not set); judge consistency against the existing screens.']
+      : [`Design reference (${design.path}), between the two marker lines:`, '----- design reference -----', design.text.replace(/\n*$/, ''), '----- end of design reference -----'];
   return [
     `This change touches the UI (${ready.touched.slice(0, 5).join(', ')}). Open each screenshot and compare before with after.`,
     ...(ready.before === null ? ['before: none were taken'] : shotLines(weftwork, ready.before)),
     ...shotLines(weftwork, ready.after),
     'A UI defect you see is a finding under the same rule: MUST-FIX when the intended case looks wrong or broken.',
+    ...designAudit,
     'You may add one line UI-SCORE: <0 to 10> for the UI. It is reported, never a gate.',
+    ...reference,
   ].join('\n');
 }
