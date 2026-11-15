@@ -18,6 +18,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import { guardEntry, guardMatcher } from './claude-guard-install.ts';
 import { hookTimeoutSeconds } from './claude-hook.ts';
 import { isRecord } from './json.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -26,6 +27,7 @@ after(cleanupTempDirs);
 
 const installCli = join(import.meta.dirname, 'claude-install-cli.ts');
 const adapterCli = join(import.meta.dirname, 'claude-hook-cli.ts');
+const guardCli = join(import.meta.dirname, 'guard-cli.ts');
 
 type Run = { status: number | null; stdout: string; stderr: string };
 
@@ -88,6 +90,22 @@ test('AC-e07s03-07 the written entry runs the real adapter and blocks a failing 
   assert.equal(run.status, 2, run.stderr);
 });
 
+test('AC-e11s01-13 the install registers the guard, and the entry blocks a Write to weftwork.yaml', () => {
+  const repo = makeTestRepo();
+  const run = install(repo, '--', 'npm test');
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /PreToolUse guard/);
+  const hooks = readSettings(repo).hooks;
+  assert.ok(isRecord(hooks) && Array.isArray(hooks.PreToolUse));
+  assert.deepEqual(hooks.PreToolUse, [{ matcher: guardMatcher, hooks: [guardEntry(guardCli)] }]);
+  const entry = guardEntry(guardCli) as { command: string };
+  const input = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: join(repo, 'weftwork.yaml') } });
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir(), HOME: makeTempDir() };
+  const guard = spawnSync('sh', ['-c', entry.command], { cwd: repo, input, encoding: 'utf8', env, timeout: 30000 });
+  assert.equal(guard.status, 2, guard.stderr);
+  assert.match(guard.stderr, /weftwork\.yaml is protected/);
+});
+
 test('AC-e07s03-08 an existing file keeps its other hooks and a second run changes nothing', () => {
   const repo = makeTestRepo();
   mkdirSync(join(repo, '.claude'));
@@ -97,7 +115,8 @@ test('AC-e07s03-08 an existing file keeps its other hooks and a second run chang
   const kept = readSettings(repo);
   assert.deepEqual(kept.env, before.env);
   assert.ok(isRecord(kept.hooks));
-  assert.deepEqual(kept.hooks.PreToolUse, before.hooks.PreToolUse);
+  assert.ok(Array.isArray(kept.hooks.PreToolUse));
+  assert.deepEqual(kept.hooks.PreToolUse[0], before.hooks.PreToolUse[0], 'the owner group stays first');
 
   const bytes = readFileSync(settingsPath(repo));
   const old = new Date('2020-01-01T00:00:00Z');
@@ -107,6 +126,22 @@ test('AC-e07s03-08 an existing file keeps its other hooks and a second run chang
   assert.match(again.stdout, /^unchanged/);
   assert.deepEqual(readFileSync(settingsPath(repo)), bytes);
   assert.equal(statSync(settingsPath(repo)).mtimeMs, old.getTime());
+});
+
+test('AC-e11s01-13 the install registers the guard, and the entry blocks a Write to weftwork.yaml', () => {
+  const repo = makeTestRepo();
+  const run = install(repo, '--', 'npm test');
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /PreToolUse guard/);
+  const hooks = readSettings(repo).hooks;
+  assert.ok(isRecord(hooks) && Array.isArray(hooks.PreToolUse));
+  assert.deepEqual(hooks.PreToolUse, [{ matcher: guardMatcher, hooks: [guardEntry(guardCli)] }]);
+  const entry = guardEntry(guardCli) as { command: string };
+  const input = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: join(repo, 'weftwork.yaml') } });
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir(), HOME: makeTempDir() };
+  const guard = spawnSync('sh', ['-c', entry.command], { cwd: repo, input, encoding: 'utf8', env, timeout: 30000 });
+  assert.equal(guard.status, 2, guard.stderr);
+  assert.match(guard.stderr, /weftwork\.yaml is protected/);
 });
 
 test('AC-e07s03-08 an existing file keeps its mode, whatever the umask', () => {

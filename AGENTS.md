@@ -88,7 +88,9 @@ breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
 on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
 adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
 the session's tokens from the transcript (`transcript-usage.ts`);
-`claude-install.ts` installs the Stop hook. The state writer is `state-file.ts` (set one field of a
+`claude-install.ts` installs the Stop hook. The guard (`guard.ts`, its PreToolUse hook
+`guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
+would change the agent's own limits or hooks (`docs/GUARD.md`). The state writer is `state-file.ts` (set one field of a
 YAML file and keep every other byte), with the file half in `state-write.ts`
 and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `state-cli.ts` own the engine's state file in `<git dir>/weftwork/`;

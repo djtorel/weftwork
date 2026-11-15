@@ -1,5 +1,6 @@
-// story: e06s03, e07s02, e07s04
+// story: e06s03, e07s02, e07s04, e11s01
 // e07s02 (BUG-007): the ledger opens without blocking and only as a regular file.
+// e11s01 adds guard lines, one per blocked tool call.
 // e06s04 adds state lines (one per terminal state), the capped tail reader
 // the stop rules use (security review F3) and failingRun.
 // The counts ledger: a plain file, one JSON object per line, that only the
@@ -147,6 +148,15 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date): Pro
   return writeLine(path, entry);
 }
 
+/** One block by the guard (e11s01): which tool, and the path or name it
+ * would have changed. A log for the owner, never an input to a count. */
+export type GuardEntry = { guard: 'blocked'; tool: string; target: string };
+
+/** Append one guard line, the same way as an entry. Never throws. */
+export async function appendGuard(path: string, entry: GuardEntry, at: Date): Promise<AppendResult> {
+  return writeLine(path, { at: at.toISOString(), ...entry });
+}
+
 /** Append one state line, the same way as an entry. Never throws. */
 export async function appendState(
   path: string,
@@ -179,12 +189,16 @@ function toEntry(data: unknown): LedgerEntry | null {
   return { at, done, exitCode, reason, command, fingerprint };
 }
 
-type Parsed = { entry: LedgerEntry } | { state: StateEntry } | null;
+type Parsed = { entry: LedgerEntry } | { state: StateEntry } | 'guard' | null;
 
-/** A line with a string `state` key is a state line, anything else a run. */
+/** A line with a string `state` key is a state line, one with a string
+ * `guard` key a guard line, which no reader uses; anything else a run. */
 function parseLine(line: string): Parsed {
   try {
     const data: unknown = JSON.parse(line);
+    if (isRecord(data) && typeof data.guard === 'string') {
+      return 'guard';
+    }
     if (isRecord(data) && typeof data.state === 'string') {
       const state = toState(data);
       return state === null ? null : { state };
@@ -207,6 +221,8 @@ function parseLines(text: string) {
     const parsed = parseLine(line);
     if (parsed === null) {
       skipped += 1;
+    } else if (parsed === 'guard') {
+      continue;
     } else if ('entry' in parsed) {
       entries.push(parsed.entry);
     } else {
