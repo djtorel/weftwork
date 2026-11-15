@@ -16,7 +16,8 @@ was missing, and why. Link the waiver in specs/state.yaml if waived.
 
 - Audit (`tools/assert-audit-story.sh`):
 - Security review:
-- Gate-trace:
+- Review (at most 2 rounds; only must-fix blocks):
+- Unresolved should-fix findings:
 
 ## Verify
 

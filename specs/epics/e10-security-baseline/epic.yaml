@@ -6,9 +6,15 @@ risk: P2
 status: todo
 depends_on:
   - e07
+  - e11
 done_when: >-
-  A protected-paths list, the untrusted-content rule for the engine and
-  its skills, a per-host report of the boundary the host gives, and
-  credential-scrubbing guidance
+  A protected-paths list beyond the engine's own files, the
+  untrusted-content rule for the engine and its skills, a per-host
+  report of the boundary the host gives, and credential-scrubbing
+  guidance
 stories: []
 # Candidate epic B6 in docs/research/SYNTHESIS.md [S11].
+# Change-request 2026-11-15 (owner decision): deferred until after e11.
+# MODIFIED: protecting weftwork.yaml, the budget file, the ledger and
+# the hook settings from the agent moved to e11s01, because an
+# unattended run must not raise its own limits.

@@ -1,0 +1,112 @@
+---
+id: e11
+title: Auto run, one command from a task to an open pull request (B9)
+wsjf: 3.6
+risk: P1
+status: todo
+depends_on:
+  - e07
+  - e08
+  - e09
+done_when: >-
+  The owner types one command with a short task, and without further
+  input the agent makes a branch, builds the change until the engine's
+  done gate passes, has a council of reviewer models check it, checks
+  UI changes from screenshots, and opens a pull request that shows the
+  evidence, the review findings and every decision it took alone. The
+  owner is asked only on fixed triggers, and merges.
+total_bcps: 21
+stories:
+  - id: e11s01
+    title: The agent cannot change its own limits or the guard hooks
+    bcps: 3
+    status: todo
+    delta: MODIFIED
+    acceptance: >-
+      Given weftwork.yaml, the user budget file, the ledger or the
+      Claude Code settings that register the hooks, when an agent tool
+      call (Edit, Write, or a Bash command that names the path) would
+      change one of them, then a PreToolUse hook blocks the call with
+      a reason and the ledger logs the block. The engine's own CLIs
+      still write their files. The Bash match is by path text and is
+      a known partial guard; the report says so.
+  - id: e11s02
+    title: One command takes a task to an open pull request (tracer)
+    bcps: 5
+    status: todo
+    delta: ADDED
+    acceptance: >-
+      Given a clean main and a task of one or two sentences, when the
+      owner runs the entry command in Claude Code (a SKILL.md skill),
+      then the agent creates specs/state.yaml with a handoff key if it
+      is missing, makes a feature branch, writes a short plan into the
+      pull request body (no plan files), works until the engine's done
+      gate passes, commits as Conventional Commits, pushes the branch
+      and opens a pull request whose body names the verify command,
+      its result and the budget used. A run that ends blocked, stalled
+      or exhausted opens a draft pull request with the handoff note.
+      The agent never pushes to main and never merges.
+  - id: e11s03
+    title: A council of reviewer models checks the change before the PR
+    bcps: 5
+    status: todo
+    delta: ADDED
+    acceptance: >-
+      Given review.council in weftwork.yaml lists reviewer commands
+      (for example codex exec, claude -p or gemini -p; the default is
+      one reviewer from another model family when one is installed),
+      when the done gate passes, then each reviewer reads the diff
+      read-only and returns findings marked must-fix or should-fix.
+      Must-fix findings go back to the worker, the done gate runs
+      again, and the loop stops after review.max_rounds (default 2).
+      The pull request lists every unresolved finding. A reviewer that
+      fails or times out is reported and counts as neither a pass nor
+      a block. There is no score threshold.
+  - id: e11s04
+    title: The agent asks the owner only on fixed triggers
+    bcps: 3
+    status: todo
+    delta: ADDED
+    acceptance: >-
+      Given a question during an auto run, when it matches no trigger
+      (an irreversible or destructive action, a security-sensitive
+      change, an effect outside the worktree, a plan too broken to
+      follow, spend past the budget), then the agent decides, logs the
+      question, its choice and the reason, and the pull request body
+      lists them. When it matches a trigger, the run ends blocked with
+      a handoff note and a draft pull request. The mechanical triggers
+      (a write outside the worktree, a push to main) are a PreToolUse
+      check; the rest is skill text.
+  - id: e11s05
+    title: UI changes are checked from screenshots by the council
+    bcps: 5
+    status: todo
+    delta: ADDED
+    acceptance: >-
+      Given ui.screenshot in weftwork.yaml names a command that writes
+      PNG files (for example a Playwright script) and ui.paths names
+      the UI files, when the diff touches ui.paths, then the run takes
+      screenshots before and after the change, the council reviews
+      them with the diff under the same must-fix rule, and the pull
+      request shows them. A model's score is reported, never a gate.
+# Re-planned by change-request 2026-11-15 after the owner's workflow
+# audit ("let's go with your recommendations"). Before: Skills and
+# entry command (B4), a small SKILL.md catalog with one entry command
+# per host, no stories. After: the auto mode B9 from
+# docs/research/SYNTHESIS.md, built thin, with the entry command of B4
+# folded into e11s02. The pi host and a skill catalog are out.
+# Owner decisions recorded here (2026-11-15), not research findings:
+# - The run ends at an open pull request; the owner reviews and merges.
+#   Push of a feature branch and opening the pull request are part of
+#   the run the owner started, so they need no further go-ahead.
+# - Review is a council of models named in a setting, capped at two
+#   rounds, and only must-fix findings block. The dual-blind AND-gate
+#   with a score threshold is retired for this project.
+# - UI review from screenshots is in scope; scores are noisy, so only
+#   findings gate. A programmatic check beats a model score where one
+#   exists.
+# e11s01 comes from e10 (protected paths for the engine's own files):
+# an unattended run must not be able to raise its own limits. The rest
+# of e10 is deferred until after e11.
+# Order: e11s01, then e11s02 (tracer), then e11s03, e11s04, e11s05.
+# plan-work writes each story's tasks file when the story starts.

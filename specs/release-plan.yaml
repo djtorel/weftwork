@@ -130,23 +130,34 @@ epics:
     release: "0.2.0"
     note: >-
       Candidate B5. The spend cap for experiments stays deferred.
-  - id: e10
-    title: Security baseline (B6)
-    wsjf: 3.2               # (5 + 3 + 8) / 5; estimate
-    risk: P2
-    depends_on: [e07]
-    capsule_dir: epics/e10-security-baseline
-    release: "0.2.0"
-    note: Candidate B6.
+  # Change-request 2026-11-15 (owner decision after a workflow audit):
+  # e11 becomes the auto run (B9, built thin, with B4's entry command
+  # folded in) and runs next after e09. e10 is deferred until after
+  # e11, except protecting the engine's own files, which moved to
+  # e11s01. WSJF is no longer rescored; order is by dependency and the
+  # owner's priority. The scores below are the last estimates.
   - id: e11
-    title: Skills and entry command (B4)
-    wsjf: 3.6               # (8 + 5 + 5) / 5; estimate
-    risk: P2
-    depends_on: [e07]
-    capsule_dir: epics/e11-skills-and-entry-command
+    title: Auto run, one command from a task to an open pull request (B9)
+    wsjf: 3.6               # last estimate; not rescored
+    bcps: 21                # 5 stories, set by change-request 2026-11-15
+    risk: P1
+    depends_on: [e07, e08, e09]
+    capsule_dir: epics/e11-auto-run
     release: "0.2.0"
     note: >-
-      Candidate B4. Last, because e07 installs the skills on each host.
+      Was Skills and entry command (B4). Now B9 built thin: entry
+      command, done gate, model council review, owner-only triggers,
+      UI check from screenshots, open pull request.
+  - id: e10
+    title: Security baseline (B6)
+    wsjf: 3.2               # last estimate; not rescored
+    risk: P2
+    depends_on: [e07, e11]
+    capsule_dir: epics/e10-security-baseline
+    release: "0.3.0"
+    note: >-
+      Candidate B6. Deferred until after e11 on 2026-11-15; the
+      protection of the engine's own files moved to e11s01.
 
 # Release after 0.1.0. The 0.1.0 release above ends with e05; the
 # validator reads only the "release" block, so this one is a label.
@@ -155,10 +166,12 @@ next_release:
   codename: First build
   status: planning
   semantic_release: false
-  epics: [e06, e07, e08, e09, e10, e11]
+  epics: [e06, e07, e08, e09, e11]
 
 # Recorded, not scheduled (owner decision, 2026-11-11). Definitions are
 # in docs/research/SYNTHESIS.md. No capsule exists for these.
+# B9 (auto mode) was scheduled as e11 by change-request 2026-11-15.
+# Its candidate hypothesis still needs B7 to measure.
 unscheduled:
   - id: B7
     title: Measurement harness and first experiment
@@ -169,7 +182,3 @@ unscheduled:
   - id: B8
     title: Parallel work, after the first release
     depends_on: [e06, e08]
-  - id: B9
-    title: Auto mode, after the first release (owner request)
-    depends_on: [e06, e07, e08, e09, e10]
-    note: its candidate hypothesis needs B7 to measure
