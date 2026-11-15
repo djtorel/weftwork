@@ -165,3 +165,11 @@ test('AC-e12s03b-11 a plan title is cut to 120 characters', () => {
   const text = gsdSection(null, ['02-pay'], 'gsd-era', ['02-pay/02-01-PLAN.md'], { '02-pay/02-01-PLAN.md': `<objective>${long}</objective>` });
   assert.match(text, new RegExp(`Open plan 02-01: ${'x'.repeat(119)}… \\(`));
 });
+
+test('AC-e12s03b-12 the cut keeps whole characters, and only an <objective> tag at a line start counts (review round 1)', () => {
+  const emoji = `<objective>\n${'a'.repeat(118)}😀😀😀\n</objective>`;
+  const cut = gsdSection(null, ['02-pay'], 'gsd-era', ['02-pay/02-01-PLAN.md'], { '02-pay/02-01-PLAN.md': emoji });
+  assert.match(cut, new RegExp(`Open plan 02-01: ${'a'.repeat(118)}😀… \\(`, 'u'));
+  const prose = 'Use <objective> tags.\n<objective>\nReal aim\n</objective>\n';
+  assert.match(gsdSection(null, ['02-pay'], 'gsd-era', ['02-pay/02-01-PLAN.md'], { '02-pay/02-01-PLAN.md': prose }), /Open plan 02-01: Real aim \(/);
+});

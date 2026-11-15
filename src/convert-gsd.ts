@@ -94,13 +94,14 @@ const planFile = /^(\d+(?:\.\d+)*-\d+)-PLAN\.md$/;
 
 const titleMax = 120;
 
-/** The first non-empty line inside the `<objective>` of plan text `text`,
- * on one line and at most 120 characters, or null. */
-export function objectiveTitle(text: string): string | null {
-  const body = /<objective>([\s\S]*?)<\/objective>/.exec(text)?.[1] ?? '';
-  const first = oneLine(body.split('\n').find((line) => line.trim() !== '') ?? '');
-  if (first === '') return null;
-  return first.length > titleMax ? `${first.slice(0, titleMax - 1)}…` : first;
+/** The first non-empty line inside the `<objective>` (its tag at a line
+ * start) of plan text `text`, on one line and at most 120 characters, or
+ * null. */
+function objectiveTitle(text: string): string | null {
+  const body = /^<objective>([\s\S]*?)<\/objective>/m.exec(text)?.[1] ?? '';
+  const first = [...oneLine(body.split('\n').find((line) => line.trim() !== '') ?? '')];
+  if (first.length === 0) return null;
+  return first.length > titleMax ? `${first.slice(0, titleMax - 1).join('')}…` : first.join('');
 }
 
 /** Adds to `found` each plan in `files` (`<folder>/<name>`) that has a
