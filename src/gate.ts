@@ -1,4 +1,4 @@
-// story: e06s01, e09s02
+// story: e06s01, e09s02, e09s03
 // The evidence gate: done means a declared command, run by the engine,
 // exited 0 and left the working tree as it found it. The agent's own claim
 // is never evidence (e06s01, e06s02). Every verdict is logged (e06s03). An
@@ -9,8 +9,10 @@ import { isInteger, isRecord } from './json.ts';
 import { runCommand, type Outcome } from './process.ts';
 import { fingerprintTree, type FingerprintResult } from './tree.ts';
 
-/** `blocked`, `stallAfter` and `maxFailures` (e06s04) and `maxRuns`
- * (e09s02) are read for the engine; `runGate` ignores them. */
+/** `blocked`, `stallAfter` and `maxFailures` (e06s04), `maxRuns` (e09s02)
+ * and `reserveRuns` (e09s03) are read for the engine; `runGate` ignores them.
+ * `reserveRuns` is never parsed from the request: only the budget setting
+ * files set it (applyBudget). */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -19,6 +21,7 @@ export type GateRequest = {
   stallAfter?: number;
   maxFailures?: number;
   maxRuns?: number;
+  reserveRuns?: number;
 };
 
 export type Reason =

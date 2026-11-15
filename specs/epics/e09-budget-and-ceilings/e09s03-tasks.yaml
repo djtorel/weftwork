@@ -62,7 +62,7 @@ tasks:
       node --test src/budget.test.ts src/budget.files.test.ts
       src/gate.request.test.ts && npm run typecheck
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
