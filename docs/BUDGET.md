@@ -1,14 +1,16 @@
 # The budget setting
 
-<!-- story: e09s01, e09s02 -->
+<!-- story: e09s01, e09s02, e09s03 -->
 
-The engine has three stop rules. You set their limits in a plain YAML file.
+The engine has three stop rules and a handover reserve. You set them in a
+plain YAML file.
 
 | Key | What it limits | Answer when reached | Range | Built-in |
 | --- | --- | --- | --- | --- |
 | `maxFailures` | Failed runs in a row of one command | `exhausted` (exit 5) | 1 to 1000 | 5 |
 | `stallAfter` | Failed runs in a row on the same tree, with the same reason and exit code | `stalled` (exit 4) | 2 to 1000 | 3 |
 | `maxRuns` | Runs of any command since the last `done` (the loop ceiling) | `exhausted` (exit 5) | 1 to 1000 | off |
+| `reserveRuns` | Runs left under `maxRuns` when the agent is told to write the handoff | `failed` (exit 1) with a `detail` | 0 to 1000 | 1 when `maxRuns` is set |
 
 ## The files
 
@@ -25,6 +27,7 @@ budget:
   maxFailures: 3
   stallAfter: 2
   maxRuns: 40
+  reserveRuns: 2
 ```
 
 The engine ignores other top-level keys. Later stories add them.
@@ -45,6 +48,9 @@ fingerprint the tree, so it answers `no-tree` (not done).
    the request cannot raise your limit. `maxRuns` has no built-in value,
    so when no file sets it, any request value is lower and turns the
    loop ceiling on. A request can never turn it off.
+5. `reserveRuns` is not a request key. Only the files set it, so the agent
+   cannot turn the handover warning off through the request. A
+   `reserveRuns` in the request JSON is ignored.
 
 ## A file that cannot be used
 
@@ -68,8 +74,9 @@ The engine refuses a file that:
 - has a top level that is not a plain mapping
 - has a `budget` that is not a plain mapping (an empty `budget:`, a
   `!!set` and an `!!omap` too)
-- has a key under `budget` other than `maxFailures`, `stallAfter` and
-  `maxRuns` (a long key is cut to 200 characters in the error)
+- has a key under `budget` other than `maxFailures`, `stallAfter`,
+  `maxRuns` and `reserveRuns` (a long key is cut to 200 characters in the
+  error)
 - has a value out of its range, or a value that is not an integer
   (an untagged `"2"` and `2.5` are refused; a plain YAML 1.2 number that is whole,
   such as `2.0` or `0x2`, counts as that number)
@@ -145,10 +152,43 @@ end.
 Outside a git repository there is no ledger and no count. The engine runs
 no command there: it answers `no-tree` (not done).
 
+## The handover reserve
+
+At the loop ceiling the answer is `exhausted`, and the Claude Code hook lets
+the stop go ahead. The agent then has no turn left to write a handoff. The
+reserve warns it first.
+
+With `maxRuns` set, after a run that answers `failed`, the engine counts the
+runs since the last `done` (this run included) and the runs left before the
+ceiling. When the runs left are more than 0 and no more than the reserve, the
+answer has a `detail`:
+
+```text
+3 runs since the last done, 1 left before the loop ceiling of 4: write the handoff now with node /path/to/weftwork/src/handoff-cli.ts
+```
+
+The path is the absolute path of `src/handoff-cli.ts` in the weftwork
+checkout, so the line works in any repository the hook guards. The Claude Code
+hook adds the detail as the last line of the reason with which it blocks the
+stop. The exit code stays 1 on the engine CLI and 2 on the hook. The answer
+is `failed`, not a new state, and it writes no state line.
+
+- The reserve is `reserveRuns`, or 1 when no file sets it. The engine uses
+  at most `maxRuns - 1`, so `maxRuns: 1` has no reserve, and a large
+  `reserveRuns` warns from the first run of the loop. No mix of files is an
+  error.
+- `reserveRuns: 0` turns the warning off.
+- Without `maxRuns` there is no reserve, and no answer changes.
+- The reserve applies only to the loop ceiling. The failure ceiling
+  (`maxFailures`) and the stall rule still end the loop with no warning.
+- At the ceiling the answer is `exhausted`, as before. The engine does not
+  check that the agent wrote the handoff.
+
 ## Limits of this setting
 
 - The agent can edit `weftwork.yaml`. Protecting it is a later story
-  (e10, protected paths).
+  (e10, protected paths). The agent can set `reserveRuns: 0` there, as it
+  can raise `maxRuns`.
 - The agent can edit or delete the ledger. A forged `done` line, or a
   deleted ledger, opens a new loop, as erasing failures resets the
   failure ceiling (T3, e10).
