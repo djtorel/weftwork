@@ -86,6 +86,8 @@ test('AC-e11s01-04 a Bash command that names a protected path is blocked, and th
     'echo {} > override.json',
     'cat ~/.config/weftwork/config.yaml',
     `rm -r ${f.engine}`,
+    `echo x > ${join(f.engine, 'BACKLOG.md.bak')}`,
+    'echo x > .git/weftwork/BACKLOG.md2',
     "node src/claude-install-cli.ts -- 'true'",
   ];
   for (const command of commands) {

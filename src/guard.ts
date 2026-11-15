@@ -126,11 +126,18 @@ function checkFile(tool: string, input: Record<string, unknown>, cwd: unknown, g
     : { block: false };
 }
 
+/** `text` as a whole path: not followed by a character that would make it a
+ * longer name (`BACKLOG.md.bak` is another file). */
+function wholeToken(text: string): RegExp {
+  const escaped = text.replace(/[.*+?^$|()[\]{}\\]/g, '\\$&');
+  return new RegExp(`${escaped}(?![^\\s'"\`;|&)<>])`, 'g');
+}
+
 function checkBash(command: unknown, guard: GuardPaths): GuardAnswer {
   if (typeof command !== 'string') {
     return blocked('Bash', '', 'the guard could not read the command.');
   }
-  const text = guard.allowedText.reduce((rest, allowed) => rest.replaceAll(allowed, ''), command);
+  const text = guard.allowedText.reduce((rest, allowed) => rest.replace(wholeToken(allowed), ''), command);
   const needle = guard.needles.find((name) => text.includes(name));
   return needle === undefined
     ? { block: false }

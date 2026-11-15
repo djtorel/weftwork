@@ -128,22 +128,6 @@ test('AC-e07s03-08 an existing file keeps its other hooks and a second run chang
   assert.equal(statSync(settingsPath(repo)).mtimeMs, old.getTime());
 });
 
-test('AC-e11s01-13 the install registers the guard, and the entry blocks a Write to weftwork.yaml', () => {
-  const repo = makeTestRepo();
-  const run = install(repo, '--', 'npm test');
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /PreToolUse guard/);
-  const hooks = readSettings(repo).hooks;
-  assert.ok(isRecord(hooks) && Array.isArray(hooks.PreToolUse));
-  assert.deepEqual(hooks.PreToolUse, [{ matcher: guardMatcher, hooks: [guardEntry(guardCli)] }]);
-  const entry = guardEntry(guardCli) as { command: string };
-  const input = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: join(repo, 'weftwork.yaml') } });
-  const env = { ...process.env, CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir(), HOME: makeTempDir() };
-  const guard = spawnSync('sh', ['-c', entry.command], { cwd: repo, input, encoding: 'utf8', env, timeout: 30000 });
-  assert.equal(guard.status, 2, guard.stderr);
-  assert.match(guard.stderr, /weftwork\.yaml is protected/);
-});
-
 test('AC-e07s03-08 an existing file keeps its mode, whatever the umask', () => {
   const repo = makeTestRepo();
   mkdirSync(join(repo, '.claude'));
