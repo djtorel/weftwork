@@ -92,12 +92,13 @@ export async function runCommand(
   cwd: string,
   timeoutMs: number,
   signal?: AbortSignal,
+  env?: NodeJS.ProcessEnv,
 ): Promise<Outcome> {
   if (signal?.aborted) {
     return killed;
   }
   try {
-    const child = spawn(command, { cwd, shell: true, detached: true, stdio: ['ignore', 2, 2] });
+    const child = spawn(command, { cwd, env: env ?? process.env, shell: true, detached: true, stdio: ['ignore', 2, 2] });
     return await watchChild(child, timeoutMs, signal);
   } catch {
     // spawn throws at once for a NUL byte in the command or the cwd.

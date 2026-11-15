@@ -34,11 +34,15 @@ deleting data, or anything outside this repository.
    run it, and see it fail for the right reason. Log each choice you make
    without the owner when you make it (`docs/ASK.md`):
    `echo '{"question":"...","choice":"...","reason":"..."}' | node src/decision-cli.ts`.
+   When `weftwork.yaml` sets `ui` and the task changes a file in `ui.paths`,
+   run `echo '{"phase":"before"}' | node src/ui-cli.ts` before the first such
+   edit (`docs/UI.md`).
 4. **Prove.** Run the task's check, then Preflight through the engine, so its
    done gate decides and the ledger counts the budget:
    `echo '{"command":"<Preflight>"}' | node src/cli.ts` (Preflight is in
    `AGENTS.md`). For UI or runtime behaviour, also run it and look; green
-   mocked tests do not prove a user-facing change.
+   mocked tests do not prove a user-facing change. For a UI change, then run
+   `echo '{"phase":"after"}' | node src/ui-cli.ts`; the review needs it.
 5. **Review.** Use the `review-loop` skill. Fix what it finds, prove each fix.
 6. **File.** Rebase onto the latest `main`, run Preflight through the engine
    again, then get the proof block with the same command string:

@@ -15,7 +15,7 @@ import type { ReviewSetting } from './review-setting.ts';
 export const maxParallelReviewers = 2;
 
 export type ReviewerResult =
-  | { name: string; ok: true; mustFix: string[]; shouldFix: string[] }
+  | { name: string; ok: true; mustFix: string[]; shouldFix: string[]; score?: number }
   | { name: string; ok: false; error: string };
 
 const replyFormat = [
@@ -33,11 +33,13 @@ export function reviewPrompt(brief: string): string {
   return `${brief.replace(/\n*$/, '')}\n\n${replyFormat.join('\n')}\n`;
 }
 
+const scoreLine = /^\s*UI-SCORE:\s*(\d+(?:\.\d+)?)\b/im;
+
 const findingLine = /^\s*(?:[-*]\s*)?(?:R\d+\s*)?\[?(MUST|SHOULD)-FIX\]?:?\s+(.+?)\s*$/i;
 
 /** The findings in a reviewer's reply, or why it cannot be read. A reply
  * with no VERDICT line is not an approval: the reviewer failed. */
-export function parseReply(reply: string): { ok: true; mustFix: string[]; shouldFix: string[] } | Failure {
+export function parseReply(reply: string): { ok: true; mustFix: string[]; shouldFix: string[]; score?: number } | Failure {
   if (!/^\s*VERDICT:\s*(APPROVE|CHANGES)\b/im.test(reply)) return { ok: false, error: 'the reply has no VERDICT line' };
   const mustFix: string[] = [];
   const shouldFix: string[] = [];
@@ -46,7 +48,9 @@ export function parseReply(reply: string): { ok: true; mustFix: string[]; should
     if (match === null) continue;
     (match[1]?.toUpperCase() === 'MUST' ? mustFix : shouldFix).push(match[2] ?? '');
   }
-  return { ok: true, mustFix, shouldFix };
+  // A UI score (e11s05) is reported, never a gate: roundVerdict does not read it.
+  const score = Number(scoreLine.exec(reply)?.[1] ?? Number.NaN);
+  return score >= 0 && score <= 10 ? { ok: true, mustFix, shouldFix, score } : { ok: true, mustFix, shouldFix };
 }
 
 /** Block on any must-fix; pass when no must-fix and one reviewer or more
@@ -119,7 +123,7 @@ const verdictText: Record<RoundVerdict, string> = { pass: 'pass', block: 'block'
 /** Plain lines for the PR: the verdict, the round, each reviewer, then every
  * finding. Text from a reviewer goes through terminalSafe, so a reply
  * cannot add a line of its own. */
-export function roundReport(round: { verdict: RoundVerdict; round: number; maxRounds: number; results: ReviewerResult[]; why?: string }): string {
+export function roundReport(round: { verdict: RoundVerdict; round: number; maxRounds: number; results: ReviewerResult[]; why?: string; screenshots?: string[] }): string {
   const lines = [`weftwork review: ${verdictText[round.verdict]}`, `round: ${round.round} of ${round.maxRounds}`];
   if (round.why !== undefined) lines.push(`why: ${round.why}`);
   round.results.forEach((result, index) => {
@@ -131,6 +135,10 @@ export function roundReport(round: { verdict: RoundVerdict; round: number; maxRo
     for (const finding of result.mustFix) lines.push(`must-fix (${terminalSafe(result.name)}): ${terminalSafe(finding)}`);
     for (const finding of result.shouldFix) lines.push(`should-fix (${terminalSafe(result.name)}): ${terminalSafe(finding)}`);
   }
+  for (const result of round.results) {
+    if (result.ok && result.score !== undefined) lines.push(`ui score (${terminalSafe(result.name)}): ${result.score} of 10, reported, not a gate`);
+  }
+  lines.push(...(round.screenshots ?? []));
   return `${lines.join('\n')}\n`;
 }
 

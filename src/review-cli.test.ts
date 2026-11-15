@@ -7,9 +7,9 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanupTempDirs, isolatedEnv, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, isolatedEnv, makeTempDir, makeTestRepo, writePng } from './test-helpers.ts';
 import { ledgerPath } from './ledger.ts';
 
 after(cleanupTempDirs);
@@ -144,4 +144,50 @@ test('a bad review setting: exit 2, with the file and the key', () => {
   const out = review(repo);
   assert.equal(out.status, 2);
   assert.match(out.stderr, /weftwork\.yaml: review\.max_rounds must be/);
+});
+
+/** A repository with UI checks on and web/a.html changed, the done gate passed. */
+function uiChangedRepo(reviewer: string): string {
+  const repo = makeTestRepo();
+  mkdirSync(join(repo, 'web'));
+  writeFileSync(join(repo, 'web', 'a.html'), '<p>a</p>\n');
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(reviewer)}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  return repo;
+}
+
+const uiCli = join(import.meta.dirname, 'ui-cli.ts');
+
+test('a change to ui.paths without after screenshots of this tree: exit 4, and no reviewer runs (e11s05)', () => {
+  const marker = join(makeTempDir(), 'ran');
+  const repo = uiChangedRepo(`touch ${marker}; echo 'VERDICT: APPROVE'`);
+  const out = review(repo);
+  assert.equal(out.status, 4, out.stderr);
+  assert.match(out.stdout, /^why: the change touches ui\.paths \(web\/a\.html\) and there are no after screenshots of this tree$/m);
+  assert.equal(existsSync(marker), false);
+});
+
+test('with after screenshots: the council reads their paths, a score is reported, and only a must-fix gates (e11s05)', () => {
+  const repo = uiChangedRepo("grep -c -e 'ui/after/home.png' -e 'before: none were taken' | grep -qx 2 && printf 'VERDICT: APPROVE\\nUI-SCORE: 1\\n'");
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  const out = review(repo);
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.match(out.stdout, /^weftwork review: pass$/m);
+  assert.match(out.stdout, /^ui score \(grep\): 1 of 10, reported, not a gate$/m);
+  assert.match(out.stdout, /^after: .*\/ui\/after\/home\.png 8 bytes sha256:[0-9a-f]{12}$/m);
+});
+
+test('after screenshots of an older tree do not count (e11s05)', () => {
+  const repo = uiChangedRepo("echo 'VERDICT: APPROVE'");
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  writeFileSync(join(repo, 'web', 'a.html'), '<p>c</p>\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(review(repo).status, 4);
+});
+
+test('a change that does not touch ui.paths needs no screenshots (e11s05)', () => {
+  const repo = makeTestRepo();
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}ui:\n  screenshot: 'exit 1'\n  paths: ['web/**']\n`);
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(review(repo).status, 0);
 });

@@ -48,7 +48,10 @@ node -e 'const [command, file] = process.argv.slice(1);
 
 The engine adds the reply format (`VERDICT:`, `MUST-FIX`, `SHOULD-FIX`)
 after the brief. Exit 0 pass, 1 block, 3 no verdict, 4 the done gate has not
-passed, 5 the round ceiling, 2 an error (`docs/REVIEW.md`). Do not edit
+passed, or a UI change has no after screenshots of this tree (run
+`echo '{"phase":"after"}' | node src/ui-cli.ts`, `docs/UI.md`), 5 the round
+ceiling, 2 an error (`docs/REVIEW.md`). For a UI change the engine adds the
+screenshots to the brief; a reviewer's `UI-SCORE` is reported, never a gate. Do not edit
 files in the change while the review runs: a changed tree gives no verdict.
 A failed or timed-out reviewer counts as neither pass nor block. On exit 3
 (every reviewer failed), fix the cause and run again once; if it fails

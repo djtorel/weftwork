@@ -4,7 +4,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import {
@@ -51,6 +51,7 @@ export function makeTestRepo(files: Record<string, string> = { 'tracked.txt': 'o
   const dir = makeTempDir();
   git(dir, 'init', '-q', '-b', 'main');
   for (const [name, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(dir, name)), { recursive: true });
     writeFileSync(join(dir, name), content);
   }
   git(dir, 'add', '-A');
@@ -203,3 +204,7 @@ export async function seedLedger(repo: string, commands: string[]): Promise<void
     assert.deepEqual(await appendEntry(path, verdict, at), { ok: true });
   }
 }
+
+/** A shell command for ui.screenshot that writes a minimal PNG (its 8-byte
+ * signature) as `name` in the folder the engine names (e11s05). */
+export const writePng = (name: string): string => `printf '\\211PNG\\r\\n\\032\\n' > "$WEFTWORK_SHOTS/${name}"`;
