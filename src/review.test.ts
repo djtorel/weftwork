@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
+import { diffReport, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -13,6 +13,49 @@ test('the prompt is the brief, then the reply format the engine reads', () => {
   assert.match(prompt, /^VERDICT: APPROVE or CHANGES$/m);
   assert.match(prompt, /^MUST-FIX <file>:<line>/m);
   assert.match(prompt, /^SHOULD-FIX <file>:<line>/m);
+  assert.match(prompt, /^FOLLOW-UP <file>:<line>/m);
+  assert.match(prompt, /^FOLLOW-UP: a real defect this change did not cause/m);
+  assert.match(prompt, /^MUST-FIX: the intended case is wrong, or this change causes a bug callers will hit, in any file\.$/m);
+});
+
+test('a FOLLOW-UP is read on its own and never blocks (e13s02)', () => {
+  const parsed = parseReply('VERDICT: APPROVE\nFOLLOW-UP src/old.ts:4 an old bug. Fix: later\n');
+  assert.deepEqual(parsed, { ok: true, mustFix: [], shouldFix: [], followUp: ['src/old.ts:4 an old bug. Fix: later'] });
+  const result = passed('codex', [], [], ['src/old.ts:4 an old bug']);
+  assert.equal(roundVerdict([result]), 'pass');
+  const text = roundReport({ verdict: 'pass', round: 1, maxRounds: 3, results: [result] });
+  assert.match(text, /^reviewer 1, codex: 0 must-fix, 0 should-fix, 1 follow-up$/m);
+  assert.match(text, /^follow-up \(codex\): src\/old\.ts:4 an old bug$/m);
+});
+
+test('a later round is told what changed since the last round and which must-fix findings are open (e13s02)', () => {
+  const text = laterRoundPrompt(2, ['src/a.ts', 'src/b.ts'], ['(codex): src/a.ts:1 bad']);
+  assert.match(text, /^This is round 2\. Review only what changed since round 1 and the must-fix findings still open/m);
+  assert.match(text, /^Files changed since round 1:\n- src\/a\.ts\n- src\/b\.ts$/m);
+  assert.match(text, /^Must-fix findings open after round 1:\n- \(codex\): src\/a\.ts:1 bad$/m);
+  assert.match(text, /A new MUST-FIX must be a bug this change causes, wherever it is\./);
+  const none = laterRoundPrompt(3, [], []);
+  assert.match(none, /^Files changed since round 2:\n- none$/m);
+  assert.match(none, /^Must-fix findings open after round 2:\n- none$/m);
+  const many = laterRoundPrompt(2, Array.from({ length: 105 }, (_, i) => `f${i}.ts`), []);
+  assert.match(many, /^- and 5 more$/m);
+});
+
+test('a new must-fix on a file that did not change since the last round, and that no open finding named, is marked; it still blocks (e13s02)', () => {
+  const results = [passed('codex', ['src/old.ts:3 new here', 'src/a.ts:9 on a changed file', 'src/open.ts:1 named before', 'no anchor'])];
+  const marked = newOnUnchanged(results, { round: 2, changed: ['src/a.ts'], open: ['(codex): src/open.ts:5 x'] });
+  assert.ok(marked[0]?.ok);
+  assert.deepEqual(marked[0].mustFix, ['src/old.ts:3 new here [new, on a file unchanged since round 1]', 'src/a.ts:9 on a changed file', 'src/open.ts:1 named before', 'no anchor']);
+  assert.equal(roundVerdict(marked), 'block');
+});
+
+test('the diff line: its size, its size at round 1, and a note past twice round 1 and 200 lines more (e13s02)', () => {
+  assert.deepEqual(diffReport(120, undefined), ['diff: 120 lines changed from the base']);
+  assert.deepEqual(diffReport(150, 120), ['diff: 150 lines changed from the base, 120 at round 1']);
+  assert.deepEqual(diffReport(320, 120), ['diff: 320 lines changed from the base, 120 at round 1']);
+  assert.deepEqual(diffReport(321, 120), ['diff: 321 lines changed from the base, 120 at round 1', 'diff growth: past twice round 1 and 200 lines more; cut the diff before the next round']);
+  assert.deepEqual(diffReport(800, 400), ['diff: 800 lines changed from the base, 400 at round 1']);
+  assert.equal(diffReport(801, 400).length, 2);
 });
 
 test('a reply with findings: each MUST-FIX and SHOULD-FIX line, prefix and list marks taken off', () => {
@@ -27,18 +70,19 @@ test('a reply with findings: each MUST-FIX and SHOULD-FIX line, prefix and list 
     ok: true,
     mustFix: ['src/a.ts:3 wrong exit code. Fix: return 1', 'src/c.ts:1 lower case too'],
     shouldFix: ['src/b.ts:9 a name. Fix: rename'],
+    followUp: [],
   });
 });
 
 test('an approval with no findings', () => {
-  assert.deepEqual(parseReply('VERDICT: APPROVE\n'), { ok: true, mustFix: [], shouldFix: [] });
+  assert.deepEqual(parseReply('VERDICT: APPROVE\n'), { ok: true, mustFix: [], shouldFix: [], followUp: [] });
 });
 
 test('a UI-SCORE line is read as a number from 0 to 10; it never blocks (e11s05)', () => {
-  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 2\n'), { ok: true, mustFix: [], shouldFix: [], score: 2 });
-  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 7.5/10\n'), { ok: true, mustFix: [], shouldFix: [], score: 7.5 });
-  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 11\n'), { ok: true, mustFix: [], shouldFix: [] });
-  const low: ReviewerResult = { name: 'a', ok: true, mustFix: [], shouldFix: [], score: 0 };
+  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 2\n'), { ok: true, mustFix: [], shouldFix: [], followUp: [], score: 2 });
+  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 7.5/10\n'), { ok: true, mustFix: [], shouldFix: [], followUp: [], score: 7.5 });
+  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 11\n'), { ok: true, mustFix: [], shouldFix: [], followUp: [] });
+  const low: ReviewerResult = { name: 'a', ok: true, mustFix: [], shouldFix: [], followUp: [], score: 0 };
   assert.equal(roundVerdict([low]), 'pass');
   assert.match(roundReport({ verdict: 'pass', round: 1, maxRounds: 3, results: [low] }), /^ui score \(a\): 0 of 10, reported, not a gate$/m);
 });
@@ -49,7 +93,7 @@ test('a reply with no VERDICT line cannot be read: the reviewer failed', () => {
   assert.match(parsed.ok ? '' : parsed.error, /no VERDICT line/);
 });
 
-const passed = (name: string, mustFix: string[] = [], shouldFix: string[] = []): ReviewerResult => ({ name, ok: true, mustFix, shouldFix });
+const passed = (name: string, mustFix: string[] = [], shouldFix: string[] = [], followUp: string[] = []): ReviewerResult => ({ name, ok: true, mustFix, shouldFix, followUp });
 const failed = (name: string): ReviewerResult => ({ name, ok: false, error: 'timed out after 1200 s' });
 
 test('only a must-fix blocks; a should-fix passes; a failed reviewer is neither', () => {
@@ -75,7 +119,7 @@ test('the rounds done are the highest round number, so rounds cut from the ledge
 });
 
 test('the ceiling is max_rounds, or max_rounds_sensitive for a sensitive change', () => {
-  const review = { council: ['c'], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1 };
+  const review = { council: ['c'], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, sensitivePaths: [] };
   assert.equal(roundCeiling(review, false), 3);
   assert.equal(roundCeiling(review, true), 5);
 });

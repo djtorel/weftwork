@@ -13,7 +13,7 @@ test('no file: one reviewer from another family, 3 rounds, 5 when sensitive, 120
   const result = resolveReview({ user: null, repo: null });
   assert.deepEqual(result, {
     ok: true,
-    review: { council: defaultCouncil, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200 },
+    review: { council: defaultCouncil, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] },
   });
   assert.equal(defaultCouncil.length, 1);
   assert.match(defaultCouncil[0] ?? '', /^codex exec .*--sandbox read-only/);
@@ -37,7 +37,7 @@ test('the repository file wins over the user file, key by key; the council is re
   const result = resolveReview({ user, repo });
   assert.deepEqual(result, {
     ok: true,
-    review: { council: ['c'], maxRounds: 2, maxRoundsSensitive: 5, timeoutSeconds: 30 },
+    review: { council: ['c'], maxRounds: 2, maxRoundsSensitive: 5, timeoutSeconds: 30, sensitivePaths: [] },
   });
 });
 
@@ -51,6 +51,9 @@ for (const [name, text, error] of [
   ['max_rounds_sensitive 11', 'max_rounds_sensitive: 11', /review\.max_rounds_sensitive must be an integer from 1 to 10/],
   ['timeout_seconds 0', 'timeout_seconds: 0', /review\.timeout_seconds must be an integer from 1 to 3600/],
   ['an unknown key', 'rounds: 3', /review\.rounds is not a known key/],
+  ['sensitive_paths that is not a list', 'sensitive_paths: src/guard.ts', /review\.sensitive_paths must be a list of 1 to 100 glob patterns/],
+  ['an empty sensitive_paths', 'sensitive_paths: []', /review\.sensitive_paths must be a list of 1 to 100 glob patterns/],
+  ['a blank sensitive path', "sensitive_paths: ['']", /review\.sensitive_paths must be a list of 1 to 100 glob patterns/],
 ] as [string, string, RegExp][]) {
   test(`${name}: an error that names the file and the key`, () => {
     const result = resolveReview({ user: null, repo: file(`---\nreview:\n  ${text}\n`) });
@@ -59,6 +62,11 @@ for (const [name, text, error] of [
     assert.match(result.ok ? '' : result.error, error);
   });
 }
+
+test('sensitive_paths: the glob patterns whose files make a change sensitive (e13s02)', () => {
+  const result = resolveReview({ user: null, repo: file("---\nreview:\n  sensitive_paths: ['src/guard*.ts', '**/auth/**']\n") });
+  assert.deepEqual(result.ok && result.review.sensitivePaths, ['src/guard*.ts', '**/auth/**']);
+});
 
 test('a review that is not a mapping, and YAML that is not valid: an error', () => {
   for (const text of ['---\nreview: 3\n', '---\nreview:\n', 'a: [\n']) {

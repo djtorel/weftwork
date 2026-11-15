@@ -66,7 +66,9 @@ The PR is ready when all of these hold on its latest commit:
 
 - Your proof covers every change in the diff.
 - Preflight passed locally and the required CI checks are green.
-- `review-loop` agreed, or the items still disputed are listed in the PR.
+- `review-loop` agreed, or the items still disputed are listed in the PR,
+  each must-fix with a written dispute and its evidence. A must-fix that is
+  open with no dispute makes the PR a draft.
 - The branch is up to date with `main` and GitHub reports it mergeable.
 
 ## Asking the user
