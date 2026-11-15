@@ -161,10 +161,13 @@ function makeRules(lines: string[]): Map<string, Rule> {
   const rules = new Map<string, Rule>();
   lines.forEach((line, index) => {
     const match = /^([A-Za-z0-9][\w.-]*)\s*:(?![:=])([^;]*)(?:;(.*))?$/.exec(line);
-    if (match === null || rules.has(match[1] ?? '')) return;
-    const recipe = match[3]?.trim() ? [match[3].trim()] : [];
-    for (let next = index + 1; lines[next]?.startsWith('\t'); next++) recipe.push((lines[next] ?? '').trim());
-    rules.set(match[1] ?? '', { needs: (match[2] ?? '').split(/\s+/).filter((need) => need !== ''), recipe });
+    if (match === null) return;
+    // make joins every declaration of a target, so the rule does too.
+    const rule = rules.get(match[1] ?? '') ?? { needs: [], recipe: [] };
+    if (match[3]?.trim()) rule.recipe.push(match[3].trim());
+    for (let next = index + 1; lines[next]?.startsWith('\t'); next++) rule.recipe.push((lines[next] ?? '').trim());
+    rule.needs.push(...(match[2] ?? '').split(/\s+/).filter((need) => need !== ''));
+    rules.set(match[1] ?? '', rule);
   });
   return rules;
 }

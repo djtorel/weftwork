@@ -52,7 +52,7 @@ test('AC-e12s01-13 a deploy behind an npm hook, a called script, a make prerequi
   const marker = join(dir, 'shipped');
   const scripts = { build: 'echo build', prebuild: `touch ${marker}; npm publish`, test: 'npm run ship', ship: `touch ${marker}; npm publish` };
   writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts }));
-  writeFileSync(join(dir, 'Makefile'), `test: ship\n\techo test\n\nship:\n\ttouch ${marker}; ./deploy.sh\n\nlint: ; touch ${marker}; npm publish\n`);
+  writeFileSync(join(dir, 'Makefile'), `test: ship\n\techo test\n\nship:\n\ttouch ${marker}; ./deploy.sh\n\nlint: ; touch ${marker}; npm publish\n\nbuild: prep\nbuild:\n\ttouch ${marker}; npm publish\n`);
   const detected = await detectProject(dir);
   assert.ok(detected.ok);
   const checked = await checkCommands(detected.report.commands, dir, 20000);
@@ -63,6 +63,7 @@ test('AC-e12s01-13 a deploy behind an npm hook, a called script, a make prerequi
       ['npm run build', 'skipped'],
       ['make test', 'skipped'],
       ['make lint', 'skipped'],
+      ['make build', 'skipped'],
     ],
   );
   assert.equal(existsSync(marker), false);
