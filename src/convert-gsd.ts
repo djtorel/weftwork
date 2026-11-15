@@ -62,7 +62,7 @@ function phases(roadmap: string): Phase[] {
       if (goal !== null) current.goal = oneLine(goal[1]);
       else if (/^\*\*Success Criteria\*\*/.test(text)) inCriteria = true;
       else if (/^\*\*/.test(text) || /^Plans:/.test(text)) inCriteria = false;
-      else if (inCriteria && /^\s+\d+\.\s/.test(text)) current.criteria.push(oneLine(text.replace(/^\s+\d+\.\s/, '')));
+      else if (inCriteria && /^\s*\d+\.\s/.test(text)) current.criteria.push(oneLine(text.replace(/^\s*\d+\.\s/, '')));
       if (plan !== null) current.plans.push({ done: plan[1] !== ' ', text: oneLine(plan[2]) });
     }
   }

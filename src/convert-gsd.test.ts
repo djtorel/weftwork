@@ -89,3 +89,8 @@ test('AC-e12s03b-03 a phase whose plans are all done is done; no roadmap or no o
   assert.match(gsdSection(allDone, [], 'gsd-era'), /No open phases\./);
   assert.match(gsdSection(null, [], 'gsd-era'), /No open phases\./);
 });
+
+test('AC-e12s03b-07 success criteria written without an indent still count (review round 1)', () => {
+  const text = gsdSection('### Phase 3: X\n**Goal**: g\n**Success Criteria**:\n1. One\n2. Two\n', [], 'gsd-era');
+  assert.match(text, /\n {2}Done when: One; Two\n/);
+});
