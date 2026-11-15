@@ -56,6 +56,31 @@ export function parseReply(reply: string): { ok: true; mustFix: string[]; should
   return score >= 0 && score <= 10 ? { ok: true, ...findings, score } : { ok: true, ...findings };
 }
 
+/** The audit every round asks for (e13s03, R19): the four things large
+ * teams' reviewers check, named by the engine so a thin brief cannot drop
+ * one, and a security audit in the same pass for a sensitive change.
+ * `ruleFiles` are the project's rule files that exist. */
+export function auditPrompt(input: { sensitive: boolean; ruleFiles: string[] }): string {
+  const rules =
+    input.ruleFiles.length === 0
+      ? '3. Rules: the conventions in the surrounding code; a change that breaks one, and a doc the change makes out of date.'
+      : `3. Rules: the project rules in ${input.ruleFiles.join(', ')}; a change that breaks one, and a doc or rule the change makes out of date.`;
+  const lines = [
+    'Audit the change for each of these, in this order:',
+    '1. Correctness: the intended case, the callers of what changed, error paths and edge cases the intent names.',
+    '2. Proof: for each behaviour change, a test that would fail without it; a test that passes on the old code too proves nothing. Check that the claims in the brief (checks run, results) match the repository.',
+    rules,
+    '4. Scope: code, tests, options or guards the intent does not need, and changes outside the intent.',
+  ];
+  if (input.sensitive) {
+    lines.push(
+      '5. Security: input from outside (files, env, network, model output) reaching a shell, a path or a parser; path traversal and symlinks; secrets in code, logs or errors; a check that fails open; a race between a check and its use.',
+    );
+  }
+  lines.push('You may run read-only commands (git, grep, a focused test) to confirm a finding; do not change files. A finding you could not confirm is SHOULD-FIX.');
+  return lines.join('\n');
+}
+
 const maxListed = 100;
 
 function listed(items: string[]): string {

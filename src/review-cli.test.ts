@@ -145,6 +145,21 @@ test('a base of HEAD cannot hide a committed change to a sensitive path: the def
   assert.match(out.stdout, /^round: 1 of 2$/m);
 });
 
+test('every reviewer gets the audit checklist; a sensitive change also gets the security audit (e13s03)', () => {
+  const prompt = join(makeTempDir(), 'prompt');
+  const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'AGENTS.md': 'rules\n' });
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(`cat > ${prompt}; echo 'VERDICT: APPROVE'`)}`);
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(review(repo).status, 0);
+  const plain = readFileSync(prompt, 'utf8');
+  assert.match(plain, /^Audit the change for each of these, in this order:$/m);
+  assert.match(plain, /^3\. Rules: the project rules in AGENTS\.md;/m);
+  assert.doesNotMatch(plain, /^5\. Security:/m);
+  assert.ok(plain.indexOf('Audit the change') < plain.indexOf('VERDICT: APPROVE or CHANGES'));
+  assert.equal(review(repo, { sensitive: true }).status, 0);
+  assert.match(readFileSync(prompt, 'utf8'), /^5\. Security:/m);
+});
+
 test('a change the brief marks sensitive says so in the report (e13s02)', () => {
   const repo = readyRepo(council("echo 'VERDICT: APPROVE'"));
   const out = review(repo, { sensitive: true });

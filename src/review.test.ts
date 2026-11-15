@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -16,6 +16,28 @@ test('the prompt is the brief, then the reply format the engine reads', () => {
   assert.match(prompt, /^FOLLOW-UP <file>:<line>/m);
   assert.match(prompt, /^FOLLOW-UP: a real defect this change did not cause/m);
   assert.match(prompt, /^MUST-FIX: the intended case is wrong, or this change causes a bug callers will hit, in any file\.$/m);
+});
+
+test('every round audits the same four things, named by the engine, not the brief (e13s03, R19)', () => {
+  const text = auditPrompt({ sensitive: false, ruleFiles: ['AGENTS.md', 'CONVENTIONS.md'] });
+  for (const line of [
+    /^Audit the change for each of these, in this order:$/m,
+    /^1\. Correctness: the intended case, the callers of what changed, error paths and edge cases the intent names\.$/m,
+    /^2\. Proof: for each behaviour change, a test that would fail without it/m,
+    /claims in the brief \(checks run, results\) match the repository/m,
+    /^3\. Rules: the project rules in AGENTS\.md, CONVENTIONS\.md; a change that breaks one, and a doc or rule the change makes out of date\.$/m,
+    /^4\. Scope: code, tests, options or guards the intent does not need/m,
+    /^You may run read-only commands \(git, grep, a focused test\) to confirm a finding/m,
+  ]) assert.match(text, line);
+  assert.doesNotMatch(text, /Security:/);
+  assert.match(auditPrompt({ sensitive: false, ruleFiles: [] }), /^3\. Rules: the conventions in the surrounding code; a change that breaks one, and a doc the change makes out of date\.$/m);
+});
+
+test('a sensitive change adds a security audit to the same pass (e13s03, R19)', () => {
+  const text = auditPrompt({ sensitive: true, ruleFiles: [] });
+  assert.match(text, /^5\. Security: input from outside \(files, env, network, model output\) reaching a shell, a path or a parser/m);
+  assert.match(text, /secrets in code, logs or errors/m);
+  assert.match(text, /a check that fails open/m);
 });
 
 test('a FOLLOW-UP is read on its own and never blocks (e13s02)', () => {
