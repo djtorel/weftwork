@@ -1,0 +1,122 @@
+---
+# verify-work 2026-11-15. The manual run (UAT) was done by the agent at
+# the owner's request ("verify the UAT steps for me"), in a scratch clone
+# of the branch, with XDG_CONFIG_HOME set to an empty directory.
+story_id: e09s03
+verified_at: "2026-11-15T02:46:08Z"
+verifier: verify-work
+risk: P2
+branch: e09s03-engine-reserve
+head: 6575fb7
+phases:
+  smoke:
+    passed: null
+    note: "N/A. CLI library with no server process."
+  build:
+    passed: null
+    note: "No build step. Node runs .ts directly (CLAUDE.md)."
+  typecheck:
+    passed: true
+    command: "npm run typecheck"
+    exit_code: 0
+  lint:
+    passed: true
+    command: "yamllint specs"
+    exit_code: 0
+  tests:
+    passed: true
+    command: "npm test"
+    tests: 852
+    pass: 852
+    fail: 0
+    skipped: 0
+  terminal_verdict:
+    command: >-
+      yamllint specs && bash tools/validate-specs-yaml.sh
+      && bash tools/check-gate-ignores.sh && npm run typecheck && npm test
+    exit_code: 0
+    captured_at: "2026-11-15T02:46:08Z"
+    note: "Single run at 6575fb7, 852 of 852 tests, none skipped."
+  task_verifies:
+    passed: true
+    note: "All five verify: commands in e09s03-tasks.yaml exit 0 at 6575fb7."
+  isolation:
+    passed: true
+    note: >-
+      With a user file of maxRuns 1, maxFailures 1, stallAfter 2 and
+      reserveRuns 1000 under XDG_CONFIG_HOME, the suite passed 852 of 852.
+  red_evidence:
+    passed: true
+    note: >-
+      Each of the four test-only commits (2dc61da, de5e784, 3b3b96c,
+      e99e7f8) failed alone in a detached worktree:
+      scripts/verify-tdd-red-commit.sh with TDD_ENFORCE_RED=1 and the
+      task's test files as TDD_VERIFY_CMD.
+  security_review:
+    passed: null
+    note: >-
+      Skipped: risk P2 (verify-work runs the security scan for P0 and P1
+      only). The new input is one integer key of the owner's setting
+      file, checked 0 to 1000; the request cannot set it. The agent can
+      still set reserveRuns 0 in weftwork.yaml (T3, protected paths are
+      e10), as docs/BUDGET.md says.
+  blind_spots:
+    passed: true
+    high: 0
+    note: "MEDIUM entries are double-tags on files several stories touch."
+  completeness_critic:
+    passed: true
+    blocker: 0
+    warning: 1
+    note: >-
+      The warning: active_story is null in specs/state.yaml, so the
+      script skipped its zero-tag check. The same jq check was run by
+      hand for e09s03 after trace-stories.sh --json: the story is in the
+      matrix with explicit tags (src/breaker.reserve.test.ts), so no
+      BLOCKER. The tracer does not credit e09s03 where it is the last id
+      of a multi-story header line (src/engine.ts and others).
+  adversarial:
+    passed: true
+    command: "bash scripts/verify-adversarial.sh"
+    note: "PASS: Adversarial defect mutation gate passed."
+  manual:
+    status: passed
+    verified_by: agent at the owner's request, 2026-11-15, scratch clone
+    head_at_run: 6575fb7
+    steps:
+      - step: "Step 1, clone and install"
+        expected: "6575fb7 docs(engine): document the handover reserve"
+        actual: "6575fb7, npm ci without errors"
+        passed: true
+      - step: "Step 2, weftwork.yaml with maxRuns 4"
+        expected: "the file holds budget.maxRuns 4"
+        actual: "as expected"
+        passed: true
+      - step: "Step 3, exit 1 then exit 2"
+        expected: '"state":"failed", no detail, exit 1, twice'
+        actual: '"state":"failed", no detail, exit=1, twice'
+        passed: true
+      - step: "Step 4, exit 3"
+        expected: >-
+          "state":"failed", detail "3 runs since the last done, 1 left
+          before the loop ceiling of 4: write the handoff now with node
+          /tmp/wf-uat/src/handoff-cli.ts", exit 1
+        actual: "as expected, exit=1"
+        passed: true
+      - step: "Step 5, exit 4"
+        expected: >-
+          "state":"exhausted", detail "4 runs since the last done, the
+          loop ceiling is 4", exit 5
+        actual: "as expected, exit=5"
+        passed: true
+      - step: "Step 6, clean up"
+        expected: "the clone is gone"
+        actual: "removed"
+        passed: true
+    note: >-
+      The hook path (the detail as the last line of the block reason) is
+      covered by AC-e09s03-10 in src/claude-hook-cli.budget.test.ts, not
+      by a manual step.
+  gaps:
+    closed: true
+    note: "No gap between the promised and the observed behaviour."
