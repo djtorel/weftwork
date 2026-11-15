@@ -40,6 +40,14 @@ recommendations:
 4. `exhausted` does not check that a handoff was written. The engine
    reports; it does not gate on the handoff.
 
+Request-review round 1 (2026-11-15, owner took every recommendation):
+the detail quotes the handoff CLI path and names its JSON input
+(`next_skill`, `branch`, `note`); `docs/BUDGET.md` says that a killed or
+overridden run in the window uses up the warning. Kept as they are, with
+reasons: "1 runs" (matches the e09s02 loop-ceiling text), the inline
+0 to 1000 check in `src/budget.ts` (one file-only key; `maxThreshold` is
+shared), and `src/engine.ts` at 299 lines (split when a story passes 300).
+
 ## 2. Zoom-out
 
 - `src/breaker.ts`. Purpose: the stop rules as pure functions over
@@ -79,8 +87,8 @@ recommendations:
   `reserve` be `min(reserveRuns, maxRuns - 1)`. When `0 < left <=
   reserve`, the answer carries a detail that names `count`, `left`, the
   ceiling, and the command that writes the handoff: `node
-  <absolute path of src/handoff-cli.ts>`. Every other answer is as
-  before.
+  "<absolute path of src/handoff-cli.ts>" (JSON on stdin: next_skill,
+  branch, note)`. Every other answer is as before.
 - **ADDED R2.** `reserveRuns` is a key of the `budget` mapping: an
   integer from 0 to 1000. A user file value is overridden by a
   repository file value. With `maxRuns` set and no file value, it is 1.
@@ -191,7 +199,8 @@ Run in a scratch clone so the ledger lines do not matter:
 3. Run `echo '{"command":"exit 1"}' | XDG_CONFIG_HOME=/tmp/wf-uat-xdg node src/cli.ts; echo $?`,
    then the same with `exit 2`. Both exit 1 and have no `detail`.
 4. The same with `exit 3`: exit 1, and the `detail` says 3 runs, 1 left,
-   the ceiling 4, and `node /tmp/wf-uat/src/handoff-cli.ts`.
+   the ceiling 4, and ends `node "/tmp/wf-uat/src/handoff-cli.ts" (JSON
+   on stdin: next_skill, branch, note)`.
 5. The same with `exit 4`: exit 5 (`exhausted`).
 6. `rm -rf /tmp/wf-uat /tmp/wf-uat-xdg`
 
