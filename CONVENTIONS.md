@@ -36,8 +36,10 @@ The stack is TypeScript on Node 26 or later, with npm and `node:test` (owner dec
 
 - NEVER work on `main`. Start every task on a feature branch.
 - A guard hook blocks direct commits to `main`.
-- NEVER commit, push, or land a branch without the owner's go-ahead.
-- Landing is currently a decision for the owner.
+- Commit, push a feature branch and open a PR without asking (owner
+  decision, 2026-11-15).
+- NEVER merge, land, or push to `main` without the owner's go-ahead.
+  Landing is a decision for the owner.
 
 ## Boundaries
 
@@ -125,6 +127,6 @@ Only rules that the toolchain enforces or that a reviewer can check.
 
 ## Provisional Rules
 
-- The bigpowers workflow mandate applies now. Research stories R1 and R2 evaluate it.
+- The bigpowers workflow mandate applies now, minus the gates retired on 2026-11-15 (AGENTS.md, "Retired gates and owner check-ins"). The e11 auto run replaces it once it ships.
 - Add gates only after an observed failure justifies them.
 - Each gate needs a logged, one-shot escape hatch.

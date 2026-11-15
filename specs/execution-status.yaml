@@ -51,6 +51,11 @@ development_status:
   e09s04: todo
   e10: todo
   e11: todo
+  e11s01: todo
+  e11s02: todo
+  e11s03: todo
+  e11s04: todo
+  e11s05: todo
 epics:
   e01:
     status: done
@@ -103,8 +108,9 @@ epics:
     wsjf: 3.2
   e11:
     status: todo
-    title: Skills and entry command (B4)
+    title: Auto run, one command from a task to an open pull request (B9)
     wsjf: 3.6
+    total_bcps: 21
 stories:
   e01s01:
     status: done

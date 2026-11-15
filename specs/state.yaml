@@ -499,51 +499,53 @@ waivers:
 handoff:
   next_skill: kickoff-branch
   next_story: e09s04
-  next_epic: e09
+  next_epic: "e09"
   branch: main
-  written_at: '2026-11-15T03:36:23Z'
+  written_at: "2026-11-15T15:27:26Z"
   files:
-  - specs/epics/e09-budget-and-ceilings/epic.yaml
-  - specs/epics/e09-budget-and-ceilings/e09s04-tasks.yaml
-  - docs/BUDGET.md
-  - src/engine.ts
-  - specs/epics/e11-skills-and-entry-command/epic.yaml
-  uncommitted: []
-  note: 'e09s03 (the handover reserve, 3 BCPs) is released by the squash-merged PR
-    from branch e09s03-engine-reserve: reserveRuns, a file-only budget key (0 to 1000,
-    default 1 with maxRuns, clamped to maxRuns - 1), makes a failed run within the
-    reserve carry a detail that tells the agent to write the handoff with node "<path>/handoff-cli.ts"
-    (JSON on stdin: next_skill, branch, note); the Claude Code hook puts it as the
-    last line of its block reason. Start the next session with node src/resume-cli.ts
-    in the repository root. Next: e09s04, every answer shows the budget used and Claude
-    Code shows tokens, 5 BCPs, the last e09 story; run kickoff-branch on main with
-    git checkout -b in this checkout (not a worktree), then set active_epic e09 and
-    active_story e09s04 with node src/state-cli.ts (the audit gate and the completeness
-    critic read active_story), then plan-work, which puts the three open choices at
-    the top of e09s04-tasks.yaml to the owner (tokens or dollars; an unreadable transcript;
-    where the agent sees it, confirm with ctx7 that the Stop hook output accepts a
-    systemMessage). src/engine.ts is 299 lines and e09s04 adds to the answer, so plan
-    the split (for example the reserve detail next to checkReserve); src/engine.loop.test.ts
-    is 301 lines. The release of e09s04 finishes e09: archive specs/epics/e09-budget-and-ceilings
-    then. The e09-only waivers in state.yaml (missing later specs; gate-trace R1)
-    still cover e09s04; the gate-trace R4 waivers are per release, so put R4 to the
-    owner again. Follow-ups: e11 (entry command) should create specs/state.yaml with
-    a handoff key, since handoff-cli.ts only edits an existing one (logged in the
-    e11 epic; docs/BUDGET.md says to set reserveRuns: 0 meanwhile); trace-stories.sh
-    does not credit a story that is the last id of a multi-story header line (not
-    logged as a bug yet, ask the owner). Owned by e10: the agent can edit weftwork.yaml
-    (raise maxRuns, set reserveRuns: 0) and the ledger, or forge a done line (A2,
-    T3, rest of F1); the ledger path is resolved twice (engine and gate). Observation
-    kept: src/cli.ts ends by letting the event loop drain, so a signal in the shutdown
-    stretch ends it by signal; not fail-open. Lessons: request-review took 3 rounds;
-    reviewers that run the warning end to end find real gaps, so ask them to. Every
-    test that starts a CLI must isolate XDG_CONFIG_HOME. Write the handoff only with
-    node src/handoff-cli.ts and state fields with node src/state-cli.ts. Tell request-review
-    reviewers to guard every cd and check pwd before any write. Pushes, PRs and merges
-    need an explicit go-ahead each. Do not run scripts/sync-status-from-epics.sh.
-    After the last bp-timing.sh call run python3 tools/restore-yaml-style.py specs/state.yaml
-    --base HEAD. stash@{0} is from an earlier session (kickoff e06); leave it unless
-    the owner says.'
+    - AGENTS.md
+    - specs/epics/e09-budget-and-ceilings/epic.yaml
+    - specs/epics/e09-budget-and-ceilings/e09s04-tasks.yaml
+    - docs/BUDGET.md
+    - src/engine.ts
+    - specs/epics/e11-auto-run/epic.yaml
+  uncommitted:
+    - AGENTS.md
+    - CONVENTIONS.md
+    - specs/epics/e10-security-baseline/epic.yaml
+    - specs/epics/e11-auto-run/epic.yaml
+    - specs/execution-status.yaml
+    - specs/release-plan.yaml
+  note: "Re-planned 2026-11-15 (branch docs/replan-auto-mode): e11 is now the auto
+    run (one command from a task to an open pull request, B9 built thin) and
+    runs right after e09; e10 is deferred until after e11. Read AGENTS.md
+    section 'Retired gates and owner check-ins' first: gate-trace, the
+    plan-consistency check, WSJF rescoring and the dual-blind AND-gate are
+    retired; review is one fresh reviewer on another model family if installed,
+    at most 2 rounds, only must-fix blocks; take the recommended option for open
+    choices and record it in the PR body. Next: e09s04 (every answer shows the
+    budget used, Claude Code shows tokens, 5 BCPs, the last e09 story). Run
+    kickoff-branch on main with git checkout -b in this checkout (not a
+    worktree), set active_epic e09 and active_story e09s04 with node
+    src/state-cli.ts, then plan-work: take the three recommendations at the top
+    of e09s04-tasks.yaml (tokens only; an unreadable transcript gives null
+    tokens with a reason and never changes a verdict; a systemMessage on an
+    allowed stop if ctx7 confirms the Stop hook accepts one). src/engine.ts is
+    299 lines and src/engine.loop.test.ts 301, so plan the split. The release of
+    e09s04 finishes e09: archive specs/epics/e09-budget-and-ceilings then; the
+    next story is e11s01. Follow-ups now in e11: the entry command creates
+    specs/state.yaml with a handoff key (e11s02); protecting weftwork.yaml, the
+    ledger and the hook settings from the agent (e11s01). trace-stories.sh does
+    not credit a story that is the last id of a multi-story header line (not
+    logged as a bug; gate-trace is retired, so low priority). Lessons: every
+    test that starts a CLI must isolate XDG_CONFIG_HOME. Write the handoff only
+    with node src/handoff-cli.ts and state fields with node src/state-cli.ts.
+    Guard every cd and check pwd before any write. Commit, push the feature
+    branch and open the PR without asking; merges and anything on main need the
+    owner. Do not run scripts/sync-status-from-epics.sh. After the last
+    bp-timing.sh call run python3 tools/restore-yaml-style.py specs/state.yaml
+    --base HEAD. stash@{0} is from an earlier session (kickoff e06); leave it
+    unless the owner says."
 metrics:
   story_start: '2026-11-12T21:27:08Z'
   skill_timings:

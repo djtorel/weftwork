@@ -97,14 +97,14 @@ Research briefs go in `docs/research/`. Plans, epics, and state go in `specs/`.
 - Never proceed on red Preflight — invoke quick-fix or fix-bug first
 - NEVER read or write files in other projects without asking the owner.
 - NEVER commit to `main`. Work on a feature branch.
-- NEVER commit, push, or land without the owner's go-ahead.
+- NEVER merge, land, or push to `main` without the owner's go-ahead. Commit, push a feature branch and open a PR without asking (owner decision, 2026-11-15).
 - NEVER mark a brief done before its verify command passes.
 - NEVER state a research claim as a decision without a cited source.
 - NEVER run more than 2 subagents at once.
 
 ## Agent Rules
 
-- **Workflow Mandate:** This project currently follows bigpowers. Use its skills (`plan-work`, `develop-tdd`, `build-epic`) for structured work. The mandate is provisional: R2 evaluates bigpowers.
+- **Workflow Mandate:** This project currently follows bigpowers, minus the gates retired in "Retired gates and owner check-ins" below. Use its skills (`plan-work`, `develop-tdd`, `build-epic`) for structured work. The mandate is provisional: the e11 auto run replaces it once it ships.
 - **Always Green:** Preflight must pass before forward work.
 - Read `specs/` and CONVENTIONS.md before writing.
 - Write the minimum that solves the stated problem.
@@ -131,6 +131,15 @@ These rules keep the bigpowers flow in order. They apply while this project uses
   - Reconcile the story status in its tasks file, `epic.yaml`, and `execution-status.yaml`.
   - Write the handoff for the next story in `state.yaml`: `vcs.branch: main`, `next_skill: kickoff-branch`, the next story id, and anything the owner must decide first. Write the note for a session that remembers nothing of this one.
   - Commit `state.yaml` only as part of that handoff, so `main` is not left with a dirty `state.yaml` after the merge.
-  - Name every gate in the PR body that passed, was waived, was stale, or was missing (audit, security review, gate-trace).
+  - Name every gate in the PR body that passed, was waived, was stale, or was missing (audit, security review). Do not list retired gates.
   - Leave out the bigpowers provenance marker. CONVENTIONS.md bans AI attribution in commits, and a squash merge can carry the PR body into the commit.
 - **After the merge:** sync `main`, delete the local and remote branch, and confirm a clean tree and green CI on the merge commit. Leave no scratch files in the repo.
+
+## Retired gates and owner check-ins
+
+Owner decision, 2026-11-15, after a workflow audit. It is permanent until the owner changes it. It overrides any bigpowers skill text that asks for these gates or check-ins. The data behind it is in `specs/state.yaml`: 55 waivers, 17 of them for gate-trace and 12 for plan-consistency-check, and `request-review` used 37 percent of recorded skill time.
+
+- **Retired, do not run:** `gate-trace`, the plan-consistency check, WSJF rescoring, and the dual-blind AND-gate with a score threshold in `request-review`. Write no waiver for a retired gate.
+- **Review:** one reviewer in a fresh context, on another model family when one is installed. At most 2 rounds. Only must-fix findings block. List the unresolved should-fix findings in the PR body and release. The e11 council replaces this when it ships.
+- **Open choices with a recommendation** (for example at the top of a tasks file): take the recommendation, record it in the PR body, and do not ask.
+- **Ask the owner only for:** a merge, an irreversible or destructive action, a security-sensitive change, an effect outside the repository, a plan too broken to follow, or a choice with no recommendation the specs can settle.
