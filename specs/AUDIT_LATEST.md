@@ -1,9 +1,9 @@
 # Audit (latest)
 
-Story: BUG-008
-Branch: fix-bug-008-second-sigterm
-Full report: specs/verifications/AUDIT-bug-BUG-008.md
+Story: e09s03
+Branch: e09s03-engine-reserve
+Full report: specs/verifications/AUDIT-e09-e09s03.md
 Mode: default (full checklist)
-Result: PASS (no item failed)
+Result: PASS after three fixes made in the audit
 
 VERDICT: PASS

@@ -129,20 +129,17 @@ function uncountedReason(read: LedgerForRules, trip: Trip | null): string | null
   return hidden ? 'the ledger tail was cut with no done in it' : null;
 }
 
-/** The handoff CLI the agent runs to write the handoff (e08s03), by its
- * absolute path, so the detail works in any repository the hook guards. */
+/** The handoff CLI (e08s03) by absolute path, for any repository guarded. */
 const handoffCli = join(import.meta.dirname, 'handoff-cli.ts');
 
-/** The detail of a failed run within the handover reserve (e09s03), or
- * nothing. */
+/** The detail of a failed run within the handover reserve (e09s03), or none. */
 function reserveDetail(read: LedgerForRules, request: GateRequest): { detail?: string } {
   const reserve = checkReserve(read.entries, request.maxRuns, request.reserveRuns);
   if (reserve === null) {
     return {};
   }
-  const { count, left } = reserve;
   const detail =
-    `${count} runs since the last done, ${left} left before the loop ceiling of ${request.maxRuns}: ` +
+    `${reserve.count} runs since the last done, ${reserve.left} left before the loop ceiling of ${request.maxRuns}: ` +
     `write the handoff now with node ${handoffCli}`;
   return { detail };
 }

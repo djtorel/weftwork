@@ -10,7 +10,7 @@ import { isAbsolute, join } from 'node:path';
 import { parseDocument, type YAMLError } from 'yaml';
 import { defaultMaxFailures, defaultStallAfter } from './breaker.ts';
 import type { Failure } from './errors.ts';
-import { isLimit, limitKeys, limitRule, type GateRequest, type ParseResult } from './gate.ts';
+import { isLimit, limitKeys, limitRule, maxThreshold, type GateRequest, type ParseResult } from './gate.ts';
 import { isInteger, isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { repositoryRoot } from './tree.ts';
@@ -23,7 +23,6 @@ export type Limits = { stallAfter: number; maxFailures: number; maxRuns?: number
 /** The handover reserve (e09s03) is a file-only key: the request cannot set
  * it, so the agent cannot turn the warning off. 0 turns it off. */
 const reserveKey = 'reserveRuns';
-const reserveMax = 1000;
 
 /** Every key the `budget` mapping of a setting file may hold. */
 const budgetKeys: readonly string[] = [...limitKeys, reserveKey];
@@ -136,8 +135,8 @@ function checkLimits(budget: Record<string, unknown>): BudgetCheck {
   }
   const reserve = budget[reserveKey];
   if (reserve !== undefined) {
-    if (!isInteger(reserve) || reserve < 0 || reserve > reserveMax) {
-      return { ok: false, error: `budget.${reserveKey} must be an integer from 0 to ${reserveMax}` };
+    if (!isInteger(reserve) || reserve < 0 || reserve > maxThreshold) {
+      return { ok: false, error: `budget.${reserveKey} must be an integer from 0 to ${maxThreshold}` };
     }
     limits.reserveRuns = reserve;
   }

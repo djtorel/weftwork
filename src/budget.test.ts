@@ -265,8 +265,7 @@ test('AC-e09s02-07 a request maxRuns is checked against the user file as well', 
   assert.equal(limitsOf({ user: file, request: { maxRuns: 9 } }).maxRuns, 4);
 });
 
-// e09s03: reserveRuns, the handover reserve. A file-only key: the request
-// cannot set it, so the agent cannot turn the warning off.
+// e09s03: reserveRuns, a file-only key, so the agent cannot turn it off.
 test('AC-e09s03-04 reserveRuns from 0 to 1000 is accepted', () => {
   assert.equal(limitsOf({ repo: repo('budget:\n  reserveRuns: 0\n') }).reserveRuns, 0);
   assert.equal(limitsOf({ repo: repo('budget:\n  reserveRuns: 1000\n') }).reserveRuns, 1000);
@@ -283,10 +282,6 @@ test('AC-e09s03-04 an unknown key error lists reserveRuns as known', () => {
   assert.match(errorOf({ repo: repo('budget:\n  maxFailure: 2\n') }), /known: .*reserveRuns/);
 });
 
-test('AC-e09s03-04 with no source setting reserveRuns it stays unset', () => {
-  assert.equal('reserveRuns' in limitsOf({ repo: repo('budget:\n  maxRuns: 4\n') }), false);
-});
-
 test('AC-e09s03-05 the repository file reserveRuns overrides the user file', () => {
   assert.equal(limitsOf({ user: user('budget:\n  reserveRuns: 2\n') }).reserveRuns, 2);
   const both = { user: user('budget:\n  reserveRuns: 2\n'), repo: repo('budget:\n  reserveRuns: 1\n') };
@@ -297,5 +292,5 @@ test('AC-e09s03-07 a request reserveRuns is ignored, lower or higher', () => {
   const file = repo('budget:\n  reserveRuns: 2\n');
   assert.equal(limitsOf({ repo: file, request: { reserveRuns: 0 } }).reserveRuns, 2);
   assert.equal(limitsOf({ repo: file, request: { reserveRuns: 9 } }).reserveRuns, 2);
-  assert.equal('reserveRuns' in limitsOf({ request: { reserveRuns: 0 } }), false);
+  assert.equal('reserveRuns' in limitsOf({ request: { reserveRuns: 0 } }), false, 'no file: unset');
 });

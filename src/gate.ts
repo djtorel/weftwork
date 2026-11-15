@@ -64,7 +64,7 @@ function isTimeout(value: unknown): value is number {
 }
 
 const maxBlockedLength = 1000;
-const maxThreshold = 1000;
+export const maxThreshold = 1000;
 
 /** The engine's stop-rule limits. The request and the budget setting files
  * (e09s01) check them by the same rule. `maxRuns`, the loop ceiling, has no
