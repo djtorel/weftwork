@@ -175,6 +175,13 @@ research_stories:
       synthesis: the always-loaded skill listing in tokens (pi and Claude
       Code), whether Claude Code reads .agents/skills at runtime, and a
       re-check of BMAD v7. Refreshes the H8 and H10 verdicts'
+  - id: R17
+    wave: 5
+    title: Practitioner autonomy (tstack)
+    question: 'How does a fast-shipping practitioner (Theo Browne, T3
+      Code, Aug to Nov 2026) get agents to finish, review and merge work
+      without him, and how does that practice line up with R1 to R16?
+      Read his published skills as the primary source'
 waves:
   1:
     - R0
@@ -197,6 +204,8 @@ waves:
   4:
     - R10
     - R16
+  5:
+    - R17
 hypotheses:
   - id: H1
     claim: 'Evidence over claims: done = declared command the
@@ -207,6 +216,7 @@ hypotheses:
       - R7
       - R10
       - R15
+      - R17
   - id: H2
     claim: 'Deterministic where possible: stack facts, commands,
       gate verdicts come from code, not the model'
@@ -214,6 +224,7 @@ hypotheses:
       - R4
       - R8
       - R13
+      - R17
   - id: H3
     claim: 'We lint our own output: every command/version in AGENTS.md
       resolves to the repo'
@@ -240,6 +251,7 @@ hypotheses:
       - R1
       - R2
       - R13
+      - R17
   - id: H7
     claim: Ceremony proportional to risk
     tested_by:
@@ -248,6 +260,7 @@ hypotheses:
       - R3
       - R13
       - R10
+      - R17
   - id: H8
     claim: Portable artifacts (AGENTS.md, SKILL.md, plain YAML/markdown);
       no bespoke schema
@@ -267,6 +280,7 @@ hypotheses:
       - R2
       - R3
       - R16
+      - R17
   - id: H11
     claim: Dispatch per subsystem, not per task, to avoid re-learning
       the codebase
@@ -278,24 +292,28 @@ hypotheses:
       re-verifies merged result
     tested_by:
       - R6
+      - R17
   - id: H13
     claim: Reviewer/decider use a different model and fresh context;
       auto-answers limited by reversibility class
     tested_by:
       - R4
       - R7
+      - R17
   - id: H14
     claim: Review checks evidence (tests run, mutations tried),
       not opinion
     tested_by:
       - R4
       - R7
+      - R17
   - id: H15
     claim: Tiers not model names; escalate after N failures; budget
       ceilings stop the run; escalations logged
     tested_by:
       - R9
       - R15
+      - R17
   - id: H16
     claim: 'Engine split: host-agnostic engine + thin adapters
       + skills'
