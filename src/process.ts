@@ -1,4 +1,4 @@
-// story: e06s04
+// story: e06s04, e11s03
 // Running the declared command as a child process in its own group: the
 // timeout, the abort and the kill of the whole group (threat model C7). Split
 // out of gate.ts, which keeps the verdict rules. Never reads the ledger.
@@ -102,5 +102,45 @@ export async function runCommand(
   } catch {
     // spawn throws at once for a NUL byte in the command or the cwd.
     return notStarted;
+  }
+}
+
+/** What a captured command printed, and how it ended. */
+export type Captured = Outcome & { stdout: string; stdoutCut: boolean; stderrTail: string };
+
+/** The most a captured command's stdout may hold; more is cut. */
+export const maxCaptureBytes = 1024 * 1024;
+
+/** Collect a stream: the first `max` bytes, or with `tail` the last ones.
+ * `cut` says whether bytes were dropped. */
+function collect(stream: NodeJS.ReadableStream | null, max: number, tail: boolean) {
+  let kept = Buffer.alloc(0);
+  let cut = false;
+  stream?.on('data', (chunk: Buffer) => {
+    const all = Buffer.concat([kept, chunk]);
+    cut ||= all.length > max;
+    kept = tail ? all.subarray(Math.max(0, all.length - max)) : all.subarray(0, max);
+  });
+  return () => ({ text: kept.toString('utf8'), cut });
+}
+
+/**
+ * Run `command` like runCommand, with `input` on its stdin, and keep its
+ * stdout (the first 1 MiB; `stdoutCut` when there was more) and the end of its stderr (e11s03: a reviewer's
+ * reply and why it failed). Resolves, never rejects.
+ */
+export async function runCapture(command: string, cwd: string, timeoutMs: number, input: string): Promise<Captured> {
+  try {
+    const child = spawn(command, { cwd, shell: true, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    const stdout = collect(child.stdout, maxCaptureBytes, false);
+    const stderr = collect(child.stderr, 400, true);
+    // A command that does not read its stdin closes the pipe: EPIPE is not a failure.
+    child.stdin?.on('error', () => {});
+    child.stdin?.end(input);
+    const outcome = await watchChild(child, timeoutMs);
+    const out = stdout();
+    return { ...outcome, stdout: out.text, stdoutCut: out.cut, stderrTail: stderr().text };
+  } catch {
+    return { ...notStarted, stdout: '', stdoutCut: false, stderrTail: '' };
   }
 }

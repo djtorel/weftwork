@@ -30,7 +30,8 @@ budget:
   reserveRuns: 2
 ```
 
-The engine ignores other top-level keys. Later stories add them.
+The engine ignores other top-level keys here. The `review` key sets the
+review council (`docs/REVIEW.md`).
 
 The engine reads both files on every run: from the engine CLI
 (`node src/cli.ts`) and from the Claude Code Stop hook

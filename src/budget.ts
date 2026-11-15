@@ -55,7 +55,7 @@ const maxEchoLength = 200;
 /** `text` cut to 200 characters, counted as code points so a surrogate pair
  * is never split: every piece of file text in an error stays short and echoes
  * little of the file (an alias name or a key can be as long as the file). */
-function clip(text: string): string {
+export function clip(text: string): string {
   const chars = Array.from(text);
   return chars.length <= maxEchoLength ? text : `${chars.slice(0, maxEchoLength - 1).join('')}…`;
 }
@@ -86,7 +86,7 @@ function yamlDirectiveCount(text: string): number {
 /** The YAML in `file` as plain data, or why it is not valid YAML 1.2. The
  * yaml package throws for an alias bomb (security review F1), and its
  * warnings would reach stderr, so they are off. */
-function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
+export function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
   const doc = parseDocument(file.text, { logLevel: 'error' });
   const first = doc.errors[0];
   if (first !== undefined) return { ok: false, error: yamlError(first) };
@@ -106,7 +106,7 @@ function yamlData(file: SettingFile): { ok: true; data: unknown } | Failure {
 
 /** A plain YAML mapping. A !!set or !!omap is a Set or Map, which would
  * pass a record check with no own keys and set nothing without a word. */
-function isMapping(value: unknown): value is Record<string, unknown> {
+export function isMapping(value: unknown): value is Record<string, unknown> {
   return isRecord(value) && Object.getPrototypeOf(value) === Object.prototype;
 }
 
@@ -187,7 +187,7 @@ export function userSettingPath(env: NodeJS.ProcessEnv): string | null {
  * engine needs the same git call to fingerprint the tree: without it the run
  * answers `no-tree` and the command never runs (request-review round 1). A
  * later story that runs without a tree must refuse here instead. */
-async function repoSettingPath(cwd: string): Promise<string | null> {
+export async function repoSettingPath(cwd: string): Promise<string | null> {
   try {
     return join((await repositoryRoot(cwd)).toString(), 'weftwork.yaml');
   } catch {
@@ -195,12 +195,12 @@ async function repoSettingPath(cwd: string): Promise<string | null> {
   }
 }
 
-type BudgetFileRead = { ok: true; file: SettingFile | null } | Failure;
+type SettingFileRead = { ok: true; file: SettingFile | null } | Failure;
 
 /** One setting file under the file rules: a regular file of at most 64 KiB,
  * valid UTF-8. The repository file may not be a symlink, since the agent can
  * place one; the user file may be, since dotfile managers link it. */
-function readBudgetFile(path: string | null, follow: boolean): BudgetFileRead {
+export function readSettingFile(path: string | null, follow: boolean): SettingFileRead {
   if (path === null) return { ok: true, file: null };
   const read = readRegularFile(path, { follow, maxBytes: settingMaxBytes });
   if (!read.ok) return read;
@@ -210,9 +210,9 @@ function readBudgetFile(path: string | null, follow: boolean): BudgetFileRead {
 /** `request` with its limits set from the setting files, or the first
  * problem with a file. Resolves, never rejects. */
 export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv): Promise<ParseResult> {
-  const user = readBudgetFile(userSettingPath(env), true);
+  const user = readSettingFile(userSettingPath(env), true);
   if (!user.ok) return user;
-  const repo = readBudgetFile(await repoSettingPath(request.cwd), false);
+  const repo = readSettingFile(await repoSettingPath(request.cwd), false);
   if (!repo.ok) return repo;
   const resolved = resolveLimits({ user: user.file, repo: repo.file, request });
   if (!resolved.ok) return resolved;
