@@ -35,6 +35,17 @@ test('a snapshot is a git tree of the working tree: untracked files in, ignored 
   assert.notEqual(changed.ok && changed.tree, first.tree);
 });
 
+test('a tracked file that matches an ignore rule is still in the snapshot (review round 1)', async () => {
+  const repo = makeTestRepo({ 'kept.log': 'one\n', 'a.txt': 'a\n' });
+  writeFileSync(join(repo, '.gitignore'), '*.log\n');
+  const one = await snapshotTree(repo, scratch());
+  assert.ok(one.ok);
+  writeFileSync(join(repo, 'kept.log'), 'two\n');
+  const two = await snapshotTree(repo, scratch());
+  assert.ok(two.ok);
+  assert.deepEqual(await changedBetween(repo, one.tree, two.tree), { ok: true, paths: ['kept.log'] });
+});
+
 test('the files changed between two snapshots, and the lines changed from the base', async () => {
   const repo = makeTestRepo({ 'a.txt': 'a\n', 'b.txt': 'b\n' });
   const base = gitOut(repo, 'rev-parse', 'HEAD').trim();
@@ -60,6 +71,7 @@ test('a finding\'s anchor: the file and line it starts with', () => {
   assert.deepEqual(anchorOf('src/a.ts:12 wrong exit code'), { file: 'src/a.ts', line: 12 });
   assert.deepEqual(anchorOf('`src/a.ts:12-20` a range'), { file: 'src/a.ts', line: 12 });
   assert.deepEqual(anchorOf('src/a.ts:12:4 a column'), { file: 'src/a.ts', line: 12 });
+  assert.deepEqual(anchorOf('`docs/a b.md:3` a quoted path with a space'), { file: 'docs/a b.md', line: 3 });
   assert.deepEqual(anchorOf('(codex): src/a.ts:3 stored in the ledger'), { file: 'src/a.ts', line: 3 });
   assert.equal(anchorOf('the whole design is wrong'), null);
 });

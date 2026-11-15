@@ -131,6 +131,20 @@ test('review.sensitive_paths: a change to a matching file gets max_rounds_sensit
   assert.equal(review(repo).status, 5);
 });
 
+test('a base of HEAD cannot hide a committed change to a sensitive path: the default base decides (e13s02, review round 1)', () => {
+  const repo = makeTestRepo();
+  git(repo, 'checkout', '-q', '-b', 'feat/x');
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
+  mkdirSync(join(repo, 'auth'));
+  writeFileSync(join(repo, 'auth', 'login.ts'), 'x\n');
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-q', '-m', 'auth');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const out = review(repo, { base: 'HEAD' });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^round: 1 of 2$/m);
+});
+
 test('a change the brief marks sensitive says so in the report (e13s02)', () => {
   const repo = readyRepo(council("echo 'VERDICT: APPROVE'"));
   const out = review(repo, { sensitive: true });

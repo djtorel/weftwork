@@ -17,15 +17,19 @@ import type { ReviewerResult } from './review.ts';
 import { gitOutput, repositoryRoot } from './tree.ts';
 import { baseCommit } from './ui.ts';
 
-/** The working tree as a git tree object: tracked and untracked files that
- * are not ignored, as they are on disk. It uses its own index file in
- * `scratch`, so the repository's index and files are not touched; git
- * writes the blobs to the object store. */
+/** The working tree as a git tree object: tracked files (also those an
+ * ignore rule matches) and untracked files that are not ignored, as they are
+ * on disk. It uses its own index file in `scratch`, seeded from the real
+ * index, so the repository's index and files are not touched; git writes
+ * the blobs to the object store. */
 export async function snapshotTree(cwd: string, scratch: string): Promise<{ ok: true; tree: string } | Failure> {
   const index = join(scratch, `review-index-${process.pid}-${randomBytes(4).toString('hex')}`);
   try {
     const root = (await repositoryRoot(cwd)).toString('utf8');
     const env = { ...process.env, GIT_INDEX_FILE: index };
+    // Seed with the tracked paths, so `add --all` updates tracked files an ignore rule matches.
+    const tracked = await gitOutput(root, ['ls-files', '-z', '--cached', '--full-name', ':(top)']);
+    if (tracked.length > 0) await gitIn(root, ['update-index', '--add', '--remove', '-z', '--stdin'], env, tracked);
     await gitIn(root, ['add', '--all', '--', ':(top)'], env);
     return { ok: true, tree: (await gitIn(root, ['write-tree'], env)).trim() };
   } catch (error) {
@@ -38,8 +42,10 @@ export async function snapshotTree(cwd: string, scratch: string): Promise<{ ok: 
 const run = promisify(execFile);
 
 /** Run git in `cwd` with `env` (gitOutput takes no environment). */
-async function gitIn(cwd: string, args: string[], env: NodeJS.ProcessEnv): Promise<string> {
-  return (await run('git', ['-c', 'core.fsmonitor=false', ...args], { cwd, env, maxBuffer: 64 * 1024 * 1024 })).stdout;
+async function gitIn(cwd: string, args: string[], env: NodeJS.ProcessEnv, input?: Buffer): Promise<string> {
+  const child = run('git', ['-c', 'core.fsmonitor=false', ...args], { cwd, env, maxBuffer: 64 * 1024 * 1024 });
+  if (input !== undefined) child.child.stdin?.end(input);
+  return (await child).stdout;
 }
 
 /** The paths that differ between two commits or trees. */
@@ -74,13 +80,15 @@ export function sensitiveFiles(paths: string[], patterns: string[]): string[] {
   return paths.filter((path) => patterns.some((pattern) => matchesGlob(path, pattern)));
 }
 
-const anchor = /^(?:\([^)]*\):\s*)?`?([^\s`:]+):(\d+)(?:[-:,]\d+)?`?(?=[\s.,;:]|$)/;
+const anchor = /^(?:\([^)]*\):\s*)?(?:`([^`:]+):(\d+)(?:[-:,]\d+)?`|([^\s`:]+):(\d+)(?:[-:,]\d+)?(?=[\s.,;:]|$))/;
 
 /** The file and line a finding starts with, after the `(<reviewer>): `
- * prefix the ledger stores, or null when it names none. */
+ * prefix the ledger stores, or null when it names none. A path with a space
+ * needs backticks. */
 export function anchorOf(finding: string): { file: string; line: number } | null {
   const match = anchor.exec(finding.trim());
-  return match === null ? null : { file: match[1] ?? '', line: Number(match[2]) };
+  if (match === null) return null;
+  return { file: match[1] ?? match[3] ?? '', line: Number(match[2] ?? match[4]) };
 }
 
 /** Why a finding is not grounded in the repository at `root`, or null when
@@ -145,15 +153,19 @@ export async function roundScope(input: { cwd: string; scratch: string; base: st
     const since = await changedBetween(input.cwd, input.last.tree, snapshot.tree);
     if (since.ok) scope.changedSinceLast = since.paths;
   }
-  const base = await baseCommit(input.cwd, input.base);
-  if (!base.ok) {
-    // A review without a base still runs, unless something needs the base.
-    if (input.base !== undefined || input.sensitivePaths.length > 0) return base;
-    return { ok: true, scope };
+  // The default base, not the caller's, decides sensitive_paths: a base of
+  // HEAD would hide committed changes (review round 1).
+  const own = await baseCommit(input.cwd);
+  const base = input.base === undefined ? own : await baseCommit(input.cwd, input.base);
+  if (input.base !== undefined && !base.ok) return base;
+  if (input.sensitivePaths.length > 0) {
+    if (!own.ok) return { ok: false, error: `review.sensitive_paths needs a base: ${own.error}` };
+    const changed = await changedBetween(input.cwd, own.sha, snapshot.tree);
+    if (!changed.ok) return changed;
+    scope.sensitiveBy = sensitiveFiles(changed.paths, input.sensitivePaths)[0] ?? null;
   }
-  const changed = await changedBetween(input.cwd, base.sha, snapshot.tree);
-  if (!changed.ok) return changed;
-  scope.sensitiveBy = sensitiveFiles(changed.paths, input.sensitivePaths)[0] ?? null;
+  // A review without a base still runs; it has no diff size.
+  if (!base.ok) return { ok: true, scope };
   const size = await diffLines(input.cwd, base.sha, snapshot.tree);
   if (!size.ok) return size;
   scope.diffLines = size.lines;

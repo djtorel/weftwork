@@ -42,7 +42,7 @@ review:
 | `max_rounds` | Rounds on one branch | 1 to 10 | 3 |
 | `max_rounds_sensitive` | Rounds on one branch for a `sensitive` change | 1 to 10 | 5 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | 1200 |
-| `sensitive_paths` | Glob patterns (as `ui.paths`); a change to a matching file gets `max_rounds_sensitive` whatever the brief says (R19: the change sets the tier, not the author) | 1 to 100 patterns | none |
+| `sensitive_paths` | Glob patterns (as `ui.paths`); a change to a matching file gets `max_rounds_sensitive` whatever the brief says (R19: the change sets the tier, not the author). The files are compared with the default base, never the `base` in the request, so a base of `HEAD` cannot hide a committed change | 1 to 100 patterns | none |
 
 A file that cannot be used stops the review with exit 2, under the same
 file rules as the budget. An unknown key under `review` is an error.
@@ -78,7 +78,8 @@ round has no verdict.
 
 ## Grounding and later rounds
 
-A must-fix blocks only when it starts with a `<file>:<line>` that exists: a
+A must-fix blocks only when it starts with a `<file>:<line>` (in backticks
+when the path has a space) that exists: a
 file inside the repository (a symlink out of it does not count) with at
 least that many lines. Any other must-fix becomes a should-fix, with the
 reason after it, such as `[not grounded: line 9 is past the end of a.ts, 3
@@ -86,8 +87,9 @@ lines]` (R19: models are poor at telling a wrong review comment from a
 right one, and teams ask for a file and line as evidence).
 
 Before the reviewers run, the engine snapshots the working tree as a git
-tree (tracked and untracked files that are not ignored, through its own
-index file, so the repository's index is not touched) and logs it with the
+tree (tracked files, also those an ignore rule matches, and untracked
+files that are not ignored, through its own index file, so the
+repository's index is not touched) and logs it with the
 round. From round 2 it adds to the brief the files changed since the last
 round and the must-fix findings open after it, and asks for those only. A
 new must-fix on a file that did not change since the last round, and that

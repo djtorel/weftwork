@@ -205,6 +205,7 @@ export function exhaustedReport(rounds: ReviewEntry[], maxRounds: number): strin
     lines.push(`last round: ${verdictText[last.review]}, at ${last.at}`);
     for (const finding of last.mustFix) lines.push(`unresolved must-fix ${terminalSafe(finding)}`);
     for (const finding of last.shouldFix) lines.push(`unresolved should-fix ${terminalSafe(finding)}`);
+    for (const finding of last.followUp ?? []) lines.push(`unresolved follow-up ${terminalSafe(finding)}`);
   }
   return `${lines.join('\n')}\n`;
 }

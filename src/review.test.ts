@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diffReport, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
+import { diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -137,6 +137,12 @@ test('the report: verdict, round, each reviewer and every finding, for the PR', 
   assert.match(text, /^reviewer 2, claude: failed, timed out after 1200 s$/m);
   assert.match(text, /^must-fix \(codex\): a\.ts:1 x$/m);
   assert.match(text, /^should-fix \(codex\): b\.ts:2 y$/m);
+});
+
+test('the exhausted report lists the last round\'s follow-ups too (review round 1)', () => {
+  const last = { ...entry('feat/a', 3), followUp: ['(codex): old.ts:1 old'] };
+  assert.match(exhaustedReport([last], 3), /^unresolved follow-up \(codex\): old\.ts:1 old$/m);
+  assert.doesNotMatch(exhaustedReport([entry('feat/a', 3)], 3), /follow-up/);
 });
 
 test('control characters in a finding are escaped, so a reviewer cannot forge a report line', () => {
