@@ -1,6 +1,6 @@
 # UI changes checked from screenshots
 
-<!-- story: e11s05, e11s06 -->
+<!-- story: e11s05, e11s06, e11s07 -->
 
 A change to the UI is reviewed from screenshots as well as from the diff.
 The engine runs the owner's screenshot command, keeps the PNG files it
@@ -98,6 +98,13 @@ the design reference, text fails WCAG 2 AA contrast, or the layout is broken
 at a viewport the screenshots show. A judgement call is SHOULD-FIX: it is
 listed in the pull request and does not block.
 
+A design MUST-FIX names its evidence: the rule of the design reference and
+the value that breaks it, the two colours and their ratio, or the screenshot
+and the element that is broken. A contrast or exact-colour finding seen only
+in a screenshot is SHOULD-FIX, and names the programmatic check that would
+settle it, since a vision model does not measure colour from pixels
+reliably (e11s07, `docs/research/R18-vision-design-judging.md`).
+
 When `ui.design` is set, the engine reads that file and puts it in the brief
 between two marker lines. It must be a regular file (not a symlink), inside
 the repository once its folders are resolved, valid UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
@@ -135,8 +142,11 @@ does not.
   path and hash, it does not embed them.
 - A reviewer that cannot take `WEFTWORK_IMAGES` must open the image files by
   path. One that can do neither reviews the diff alone, and should say so.
-- How well a vision model judges visual design is not yet measured (a
-  research brief is a follow-up); until then design findings get the
-  severity rule above, and the score never gates.
+- Vision models judge visual design weakly: absolute scores rarely match
+  people, zero-shot critiques are often wrong, and fine colour and spatial
+  detail is misread; comparing two screens works better
+  (`docs/research/R18-vision-design-judging.md`). Hence the severity rule
+  above, and the score never gates. Those measurements are of 2024 and 2025
+  models; none of today's council.
 - The screenshot command comes from the setting files, so a repository's
   `weftwork.yaml` can name any command, as it can for the review council.
