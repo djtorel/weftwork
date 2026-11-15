@@ -108,5 +108,9 @@ stories:
 # e11s01 comes from e10 (protected paths for the engine's own files):
 # an unattended run must not be able to raise its own limits. The rest
 # of e10 is deferred until after e11.
+# Input for every story: docs/research/R17-practitioner-autonomy.md.
+# Build the skills by adapting t3dotgg/tstack (MIT, keep credit):
+# full-send/full-stop for e11s02 and e11s04, sol-loop for e11s03; the
+# engine adds the ceilings and the done gate tstack leaves to prose.
 # Order: e11s01, then e11s02 (tracer), then e11s03, e11s04, e11s05.
 # plan-work writes each story's tasks file when the story starts.
