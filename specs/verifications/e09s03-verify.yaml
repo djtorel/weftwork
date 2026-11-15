@@ -117,6 +117,23 @@ phases:
       The hook path (the detail as the last line of the block reason) is
       covered by AC-e09s03-10 in src/claude-hook-cli.budget.test.ts, not
       by a manual step.
+  request_review:
+    passed: true
+    rounds: 3
+    scores_a_b: ["94.7/91.7", "88.2/100", "94.1/95.5"]
+    head_at_pass: 6be9931
+    note: >-
+      Dual-blind AND-gate passed in round 3. Round 1: the reserve line did
+      not name the handoff CLI input, and engine.loop.test.ts grew (fixed:
+      quoted path and JSON hint, tests moved to engine.reserve.test.ts).
+      Round 2: tests for a killed or overridden run in the window and the
+      maxRuns 2 edge (added); the $ and backtick quoting limit documented
+      (owner decision). Round 3: both reviewers found that handoff-cli.ts
+      needs an existing specs/state.yaml with a handoff key; documented in
+      docs/BUDGET.md and logged as an e11 follow-up (owner decision), and a
+      stall-in-window test added (a9aea6f, 89bf2a2, not re-reviewed).
+      specs/state.yaml was backed up and its hash checked after every
+      round: unchanged.
   gaps:
     closed: true
     note: "No gap between the promised and the observed behaviour."
