@@ -64,7 +64,7 @@ async function main(): Promise<void> {
   if (input.apply !== true) {
     return printAnswer({ ok: true, plan: { changes: changes.map(({ path, action, diff }) => ({ path, action, diff })), notes } }, 0);
   }
-  const applied = applySetup(dir, planned.plan, { engineDir, overwrite: (input.overwrite as string[] | undefined) ?? [] });
+  const applied = applySetup(dir, planned.plan, { overwrite: (input.overwrite as string[] | undefined) ?? [] });
   if (!applied.ok) return fail(applied.error, 1);
   printAnswer({ ok: true, written: applied.written, kept: applied.kept, notes }, 0);
 }

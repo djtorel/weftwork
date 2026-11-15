@@ -56,10 +56,10 @@ when the plan or a write is refused (a folder on the way is a symlink, an
 | `AGENTS.md` | A short letter: about, words, the commands whose check ran, the Preflight, the rules |
 | `CLAUDE.md` | A symlink to `AGENTS.md` |
 | `CONVENTIONS.md` | Only when the owner gives rules |
-| `.claude/skills/` | `full-stop`, `review-loop` and `file-pr`, with each `node src/<cli>.ts` rewritten to this checkout's absolute path |
+| `.claude/skills/` | `full-stop`, `review-loop` and `file-pr`, with each `node src/<cli>.ts`, each engine doc (`docs/*.md`) and the PR template rewritten to this checkout's absolute path |
 | `.gitignore` | `.env`, `.env.*` and each stack's folders (`node_modules/`, `__pycache__/`, `.venv/`, `target/`), appended only when missing |
 | `<git common dir>/weftwork/BACKLOG.md` | The local backlog, seeded with the first tasks |
-| `.claude/settings.json` | With `stopHook`: the Stop hook declaring the Preflight, and the guard (`claude-install-cli.ts`) |
+| `.claude/settings.json` | With `stopHook`: the Stop hook declaring the Preflight, and the guard, as `claude-install-cli.ts` writes them; an existing file that would change is a conflict |
 
 Commands in AGENTS.md: only those whose check ran, so each one resolves
 today (H3); one that ran and failed is marked `(fails today)`. The Preflight
@@ -79,4 +79,5 @@ Setting up again is safe. Each file is `create`, `unchanged` or
 a conflict, shown as a diff and kept. It is written only when `overwrite`
 names it, and then the old file is first moved to `<path>.weftwork-old`
 (setup refuses if that exists). Nothing is deleted. `.gitignore` is only
-appended to (`append`); `link` and `hook` are the symlink and the Stop hook.
+appended to (`append`); `link` is the symlink. A file that changed between
+the plan and the write is kept and listed in `kept`.

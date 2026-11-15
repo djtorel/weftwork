@@ -74,7 +74,7 @@ test('AC-e12s02-02 the letter names only commands that resolve, and Preflight on
 
 test('AC-e12s02-03 apply writes the files, links CLAUDE.md, rewrites skill paths and seeds the backlog', () => {
   const dir = makeTestRepo({ 'main.go': 'package main\n', '.gitignore': '.env\n' });
-  const result = applySetup(dir, plan(dir), { engineDir, overwrite: [] });
+  const result = applySetup(dir, plan(dir), { overwrite: [] });
   assert.ok(result.ok, result.ok ? '' : result.error);
   assert.match(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /^# /);
   assert.equal(readlinkSync(join(dir, 'CLAUDE.md')), 'AGENTS.md');
@@ -83,13 +83,16 @@ test('AC-e12s02-03 apply writes the files, links CLAUDE.md, rewrites skill paths
   const skill = readFileSync(join(dir, '.claude/skills/full-stop/SKILL.md'), 'utf8');
   assert.ok(skill.includes(`node '${join(engineDir, 'src', 'cli.ts')}'`), 'the skill names the engine by absolute path');
   assert.doesNotMatch(skill, /node src\//);
+  assert.ok(skill.includes(`\`${join(engineDir, 'docs', 'ASK.md')}\``), 'engine docs are named by absolute path');
+  const filePr = readFileSync(join(dir, '.claude/skills/file-pr/SKILL.md'), 'utf8');
+  assert.ok(filePr.includes(join(engineDir, '.github', 'pull_request_template.md')));
   const backlogPath = join(dir, '.git', 'weftwork', 'BACKLOG.md');
   assert.match(readFileSync(backlogPath, 'utf8'), /- \[ \] Add a --json flag\./);
 });
 
 test('AC-e12s02-04 a re-run changes nothing, and a file the owner changed is a conflict with a diff, kept', () => {
   const dir = makeTestRepo({ 'main.go': 'package main\n' });
-  assert.ok(applySetup(dir, plan(dir), { engineDir, overwrite: [] }).ok);
+  assert.ok(applySetup(dir, plan(dir), { overwrite: [] }).ok);
   const again = plan(dir);
   assert.deepEqual([...new Set(again.changes.map((change) => change.action))], ['unchanged']);
   writeFileSync(join(dir, 'AGENTS.md'), '# Mine\n');
@@ -98,7 +101,7 @@ test('AC-e12s02-04 a re-run changes nothing, and a file the owner changed is a c
   assert.equal(agents?.action, 'conflict');
   assert.match(agents?.diff ?? '', /^-# Mine$/m);
   assert.match(agents?.diff ?? '', /^\+## About this project$/m);
-  const applied = applySetup(dir, changed, { engineDir, overwrite: [] });
+  const applied = applySetup(dir, changed, { overwrite: [] });
   assert.ok(applied.ok);
   assert.deepEqual(applied.kept, ['AGENTS.md']);
   assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), '# Mine\n');
@@ -108,7 +111,7 @@ test('AC-e12s02-05 an overwrite named by the owner moves the old file aside, nev
   const dir = makeTestRepo({ 'main.go': 'package main\n', 'CLAUDE.md': '# Old notes\n' });
   const p = plan(dir);
   assert.equal(action(p, 'CLAUDE.md'), 'conflict');
-  assert.ok(applySetup(dir, p, { engineDir, overwrite: ['CLAUDE.md'] }).ok);
+  assert.ok(applySetup(dir, p, { overwrite: ['CLAUDE.md'] }).ok);
   assert.equal(readlinkSync(join(dir, 'CLAUDE.md')), 'AGENTS.md');
   assert.equal(readFileSync(join(dir, 'CLAUDE.md.weftwork-old'), 'utf8'), '# Old notes\n');
 });
@@ -127,17 +130,44 @@ test('AC-e12s02-07 no git repository: no backlog and no Stop hook, with a note',
   mkdirSync(join(dir, 'src'));
   const p = plan(dir, { stopHook: true });
   assert.ok(!p.changes.some((change) => change.path.endsWith('BACKLOG.md')));
-  assert.ok(!p.changes.some((change) => change.action === 'hook'));
+  assert.ok(!p.changes.some((change) => change.path === '.claude/settings.json'));
   assert.ok(p.notes.some((note) => /not a git repository/.test(note)));
 });
 
 test('AC-e12s02-08 the Stop hook is planned with the Preflight and installed on apply', () => {
   const dir = makeTestRepo({ 'main.go': 'package main\n' });
   const p = plan(dir, { stopHook: true });
-  const hook = p.changes.find((change) => change.action === 'hook');
-  assert.equal(hook?.path, '.claude/settings.json');
-  assert.ok(applySetup(dir, p, { engineDir, overwrite: [] }).ok);
+  assert.equal(action(p, '.claude/settings.json'), 'create');
+  assert.ok(applySetup(dir, p, { overwrite: [] }).ok);
   const settings = readFileSync(join(dir, '.claude/settings.json'), 'utf8');
   assert.ok(settings.includes('go test ./...'));
   assert.ok(settings.includes(join(engineDir, 'src', 'claude-hook-cli.ts')));
+});
+
+test('AC-e12s02-13 a settings file the owner edited is a conflict with a diff, not silently replaced', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n' });
+  assert.ok(applySetup(dir, plan(dir, { stopHook: true }), { overwrite: [] }).ok);
+  const path = join(dir, '.claude/settings.json');
+  const edited = readFileSync(path, 'utf8').replace('go test ./...', 'go test -short ./...');
+  writeFileSync(path, edited);
+  const p = plan(dir, { stopHook: true });
+  const settings = p.changes.find((change) => change.path === '.claude/settings.json');
+  assert.equal(settings?.action, 'conflict');
+  assert.match(settings?.diff ?? '', /^-.*go test -short/m);
+  const applied = applySetup(dir, p, { overwrite: [] });
+  assert.ok(applied.ok);
+  assert.deepEqual(applied.kept, ['.claude/settings.json']);
+  assert.equal(readFileSync(path, 'utf8'), edited);
+});
+
+test('AC-e12s02-14 a file created or changed after the plan is kept, not written', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n' });
+  const p = plan(dir);
+  writeFileSync(join(dir, 'AGENTS.md'), '# Written meanwhile\n');
+  writeFileSync(join(dir, '.gitignore'), 'dist/\n');
+  const applied = applySetup(dir, p, { overwrite: [] });
+  assert.ok(applied.ok);
+  assert.deepEqual(applied.kept, ['AGENTS.md', '.gitignore']);
+  assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), '# Written meanwhile\n');
+  assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), 'dist/\n');
 });
