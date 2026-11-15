@@ -189,6 +189,13 @@ research_stories:
       UI from screenshots, and how much weight should the review
       council''s design findings get? Revisit the e11s06 severity rule
       against the answer'
+  - id: R19
+    wave: 5
+    title: Review that converges and audits
+    question: 'What do teams that run AI code review at scale, and the
+      2026 papers on it, say about keeping a review loop bounded while it
+      still catches what matters, and is a score, a council or a
+      severity gate the better gate for a change?'
 waves:
   1:
     - R0
@@ -214,6 +221,7 @@ waves:
   5:
     - R17
     - R18
+    - R19
 hypotheses:
   - id: H1
     claim: 'Evidence over claims: done = declared command the
@@ -308,6 +316,7 @@ hypotheses:
       - R4
       - R7
       - R17
+      - R19
   - id: H14
     claim: Review checks evidence (tests run, mutations tried),
       not opinion
@@ -315,6 +324,7 @@ hypotheses:
       - R4
       - R7
       - R17
+      - R19
   - id: H15
     claim: Tiers not model names; escalate after N failures; budget
       ceilings stop the run; escalations logged
@@ -322,6 +332,7 @@ hypotheses:
       - R9
       - R15
       - R17
+      - R19
   - id: H16
     claim: 'Engine split: host-agnostic engine + thin adapters
       + skills'
@@ -431,6 +442,17 @@ hypotheses:
       a program can make belong in the verify command'
     tested_by:
       - R18
+  # H31 added for e13s01 on 2026-11-15 (the owner asked whether the
+  # review round is thorough and bounded). Outside the H1-H27 criterion.
+  - id: H31
+    claim: 'A review loop stays bounded and thorough when the engine
+      enforces the limits that matter: only a must-fix grounded in a real
+      file and line blocks, later rounds cannot block on unchanged code,
+      the change and not the author sets the risk tier, the diff cannot
+      grow without limit, and the new tests must fail on the base. A
+      score measures the reviewer, never the change'
+    tested_by:
+      - R19
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing
