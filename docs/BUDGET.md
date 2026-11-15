@@ -50,7 +50,9 @@ fingerprint the tree, so it answers `no-tree` (not done).
    loop ceiling on. A request can never turn it off.
 5. `reserveRuns` is not a request key. Only the files set it, so the agent
    cannot turn the handover warning off through the request. A
-   `reserveRuns` in the request JSON is ignored.
+   `reserveRuns` in the request JSON is ignored. A lower request `maxRuns`
+   moves the reserve window with the ceiling; that only lets the agent
+   stop sooner.
 
 ## A file that cannot be used
 
@@ -168,11 +170,14 @@ answer has a `detail`:
 ```
 
 The path is the absolute path of `src/handoff-cli.ts` in the weftwork
-checkout, in double quotes, so the line works in any repository the hook
-guards and from a checkout path with spaces. A checkout path with `$`, a
-backtick or `!` does not paste as is, since the shell expands those inside
-double quotes. The handoff CLI reads one JSON object on stdin with
-`next_skill`, `branch` and `note` (docs/STATE.md). The Claude Code
+checkout, in double quotes, so it pastes from any directory and from a
+checkout path with spaces. A checkout path with `$`, a backtick or `!` does
+not paste as is, since the shell expands those inside double quotes. The
+handoff CLI reads one JSON object on stdin with `next_skill`, `branch` and
+`note` (docs/STATE.md). It writes to the repository of the directory it runs
+in, and only into an existing `specs/state.yaml` that has a `handoff` key; it
+does not create either. In a repository without that file the command fails,
+so set `reserveRuns: 0` there (creating the file is a later story). The Claude Code
 hook adds the detail as the last line of the reason with which it blocks the
 stop. The exit code stays 1 on the engine CLI and 2 on the hook. The answer
 is `failed`, not a new state, and it writes no state line.

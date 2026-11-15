@@ -13,3 +13,8 @@ done_when: >-
 stories: []
 # Candidate epic B4 in docs/research/SYNTHESIS.md [S16][S1][S3].
 # Runs last: the adapters (e07) install the skills on each host.
+# Follow-up from e09s03 review round 3 (2026-11-15, owner decision): the
+# reserve warning tells the agent to run src/handoff-cli.ts, which only
+# edits an existing specs/state.yaml with a handoff key. Setting up a
+# repository for weftwork (the entry command) should create that file,
+# so the warning works in every guarded repository.

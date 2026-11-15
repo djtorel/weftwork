@@ -53,6 +53,18 @@ overridden run in the window uses up the warning, and the maxRuns 2 edge.
 The owner chose to document, not change, the double-quoted path: a
 checkout path with `$`, a backtick or `!` does not paste as is.
 
+Request-review round 3 (2026-11-15, AND-gate passed: A 94.1, B 95.5).
+Both reviewers found that `src/handoff-cli.ts` only edits an existing
+`specs/state.yaml` with a `handoff` key. The owner chose to document it in
+`docs/BUDGET.md` (set `reserveRuns: 0` in a repository without that file)
+and log the follow-up in the e11 epic (the entry command creates the file).
+Applied: a test that a stall in the window answers stalled, and doc
+sentences on the handoff CLI's directory and a lower request `maxRuns`.
+Declined: making `defaultReserveRuns` and `Reserve` private (they mirror
+`defaultMaxFailures` and `Trip`), an engine test of a cut tail holding a
+done (`loopRuns` is shared with the e09s02 ceiling tests), and a shared
+helper for the detail text in tests.
+
 ## 2. Zoom-out
 
 - `src/breaker.ts`. Purpose: the stop rules as pure functions over
