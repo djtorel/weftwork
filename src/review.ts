@@ -208,15 +208,20 @@ export function roundReport(round: { verdict: RoundVerdict; round: number; maxRo
     lines.push(result.ok ? `${label}: ${result.mustFix.length} must-fix, ${result.shouldFix.length} should-fix${followUps}` : `${label}: failed, ${terminalSafe(result.error)}`);
   });
   // Ids count each kind across reviewers in council order, the order
-  // storedFindings logs them in (e13s05, review-outcome.ts).
+  // storedFindings logs them in (e13s05, review-outcome.ts); past the 50 it
+  // keeps, a finding has no id (review round 1).
   const count = { m: 0, s: 0, f: 0 };
-  const id = (kind: 'm' | 's' | 'f') => `r${round.round}${kind}${++count[kind]}`;
+  const line = (word: string, kind: 'm' | 's' | 'f', name: string, finding: string) => {
+    const n = ++count[kind];
+    const text = terminalSafe(finding);
+    lines.push(n <= maxStored ? `${word} r${round.round}${kind}${n} (${name}): ${text}` : `${word} none (${name}): ${text} [not stored: the ledger keeps ${maxStored} of each kind]`);
+  };
   for (const result of round.results) {
     if (!result.ok) continue;
     const name = terminalSafe(result.name);
-    for (const finding of result.mustFix) lines.push(`must-fix ${id('m')} (${name}): ${terminalSafe(finding)}`);
-    for (const finding of result.shouldFix) lines.push(`should-fix ${id('s')} (${name}): ${terminalSafe(finding)}`);
-    for (const finding of result.followUp) lines.push(`follow-up ${id('f')} (${name}): ${terminalSafe(finding)}`);
+    for (const finding of result.mustFix) line('must-fix', 'm', name, finding);
+    for (const finding of result.shouldFix) line('should-fix', 's', name, finding);
+    for (const finding of result.followUp) line('follow-up', 'f', name, finding);
   }
   for (const result of round.results) {
     if (result.ok && result.score !== undefined) lines.push(`ui score (${terminalSafe(result.name)}): ${result.score} of 10, reported, not a gate`);

@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -173,6 +173,20 @@ test('ids count each kind across reviewers in council order, as the ledger store
   assert.match(text, /^should-fix r1s1 \(codex\): b\.ts:1 y$/m);
   assert.match(text, /^must-fix r1m2 \(claude\): c\.ts:1 z$/m);
   assert.match(text, /^must-fix r1m3 \(claude\): d\.ts:1 w$/m);
+});
+
+test('past the 50 findings of a kind the ledger keeps, a finding has no id and says it is not stored (review round 1)', () => {
+  const many = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${i}.ts:1 x`);
+  const results = [passed('codex', many('m', 30), many('s', 30), many('f', 30)), passed('claude', many('n', 21), many('t', 21), many('g', 21))];
+  const text = roundReport({ verdict: 'block', round: 1, maxRounds: 3, results });
+  const stored = storedFindings(results);
+  for (const [word, letter, kept] of [['must-fix', 'm', stored.mustFix], ['should-fix', 's', stored.shouldFix], ['follow-up', 'f', stored.followUp ?? []]] as const) {
+    assert.match(text, new RegExp(`^${word} r1${letter}50 \\(claude\\): `, 'm'));
+    assert.doesNotMatch(text, new RegExp(`r1${letter}51`));
+    assert.match(text, new RegExp(`^${word} none \\(claude\\): .* \\[not stored: the ledger keeps 50 of each kind\\]$`, 'm'));
+    assert.equal(kept.length, 50);
+    assert.match(kept[49] ?? '', /^\(claude\): /);
+  }
 });
 
 test('control characters in a finding are escaped, so a reviewer cannot forge a report line', () => {
