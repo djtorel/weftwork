@@ -1,10 +1,10 @@
 # Convert a project
 
-<!-- story: e12s03 -->
+<!-- story: e12s03, e12s03b -->
 
 The third step of backlog e12: move a project off another planning system and
-onto weftwork. This version converts bigpowers only (`specs/state.yaml`); GSD,
-spec-kit and BMAD come later. It makes the steps of PR #66 general. The
+onto weftwork. It converts bigpowers (`specs/state.yaml`) and GSD
+(`.planning/`, the v1.30 layout); spec-kit and BMAD come later. It makes the steps of PR #66 general. The
 `convert-project` skill drives it in Claude Code, and then runs setup
 (`docs/SETUP.md`) for the new AGENTS.md.
 
@@ -17,18 +17,21 @@ echo '{"path":"/path/to/project"}' | node src/convert-cli.ts
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `path` | the current folder | The project folder, the root of a git repository |
-| `tag` | `bigpowers-era` | The tag put on the last commit that tracks `specs/` |
+| `system` | found from the folder | `bigpowers` or `gsd`; needed only when the folder has both |
+| `tag` | `bigpowers-era`, or `gsd-era` | The tag put on the last commit that tracks the plans |
 | `apply` | `false` | Convert; without it the CLI prints the plan and writes nothing |
 
 It prints one JSON line and exits 0. It exits 1, with the reason on stderr,
 when the conversion is refused, and 2 for bad input.
 
-Without `apply`: `{"ok":true,"plan":{"tag","moves","changes","notes"}}`.
+Without `apply`: `{"ok":true,"plan":{"system","tag","moves","changes","notes"}}`.
 Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
 `unchanged`) and a `diff`. With `apply`:
 `{"ok":true,"tag","moved","written","kept","notes"}`.
 
 ## What it does
+
+The steps below are for bigpowers; "GSD" below them says what differs.
 
 1. **Tag** `HEAD` with `tag`, so the last tracked copy of the old plans stays
    in the history. Undo: `git tag -d <tag>`.
@@ -55,23 +58,41 @@ Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
    anything `done` is left out, and so is `epics/archive/`. A backlog that has
    the section already is left as it is.
 
+**GSD.** The plans folder is `.planning/` and its local copy
+`.gsd-planning/` (`.planning` is already hidden, and `.gsd` is GSD 2's
+folder). GSD's own plans and state stay behind, even when cited:
+`PROJECT.md`, `REQUIREMENTS.md`, `ROADMAP.md`, `STATE.md`, `MILESTONES.md`,
+`RETROSPECTIVE.md`, `config.json` and the folders `phases/`, `milestones/`,
+`quick/`, `todos/`, `debug/`, `seeds/`, `threads/`, `forensics/` and
+`reports/`; a cited `codebase/` or `research/` file moves to `docs/`. GSD has
+no ADR folder: a `Decisions` or `Key Decisions` section in `PROJECT.md` or
+`STATE.md` is a note, for the agent to carry by hand. The backlog section is
+`## Converted from GSD`: one item per open phase of `ROADMAP.md`, keeping its
+number, with its goal, its success criteria as `Done when:`, each open plan,
+and a link to its folder in `.gsd-planning/phases/` (or to `ROADMAP.md` when
+it has none). A phase is done when its line is ticked, the Progress table
+says `Complete`, or every plan is ticked; a shipped milestone collapsed in
+`<details>` is left out. Plan files (`*-PLAN.md`) are not read.
+
 Nothing is deleted. Nothing is committed: the owner's agent commits the
 result, with the new AGENTS.md, in one pull request.
 
 ## What it refuses
 
 The plan is refused when the folder is not a git repository root, has no
-`specs/state.yaml`, has uncommitted changes under `specs/` (the tag would not
-hold them), already has the tag or a `.specs`, or when a cited file would
+`specs/state.yaml` (GSD: `.planning/`), has uncommitted changes in the plans
+folder (the tag would not hold them), already has the tag or the local copy,
+has both systems and no `system`, or when a cited file would
 move onto a file that exists. Apply checks all of these again. A file that
 changed between the plan and the write is kept and listed in `kept`.
 
 ## What is left for the agent
 
-- **The notes.** Each tracked file that still names `specs/` after the
-  rewrite is a note: a citation of bigpowers' own state, a tool or a CI step
-  that exists only for bigpowers, or a path built in code. Check what calls
-  each one; drop it if it serves only bigpowers, or point it at the new place.
+- **The notes.** Each tracked file that still names `specs/` (GSD:
+  `.planning/`) after the rewrite is a note: a citation of the old system's
+  own state, a tool or a CI step that exists only for it, or a path built in
+  code. Check what calls each one; drop it if it serves only the old system,
+  or point it at the new place.
 - **Paths built in code.** The scan reads text, so `join('specs',
   'state.yaml')` is not found. Preflight after the conversion finds what
   breaks.

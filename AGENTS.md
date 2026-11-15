@@ -118,7 +118,7 @@ once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 `setup-diff.ts` and `setup-cli.ts` set up a new or plain project from that
 report and the owner's answers: a dry-run plan, then a write that never
 overwrites a changed file (`docs/SETUP.md`). `convert.ts`,
-`convert-backlog.ts` and `convert-cli.ts` convert a bigpowers project: tag,
+`convert-backlog.ts`, `convert-gsd.ts` and `convert-cli.ts` convert a bigpowers or GSD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog (`docs/CONVERT.md`). Every CLI is a
 thin shell over a library function.
