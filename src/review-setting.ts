@@ -13,8 +13,9 @@ export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
 /** One reviewer from another model family than Claude, read-only, with the
  * user's own Codex settings off (the review-loop skill). It prints only its
- * answer on stdout and reads the prompt from stdin. */
-export const defaultCouncil: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral -'];
+ * answer on stdout and reads the prompt from stdin. For a UI change it gets
+ * the screenshots as images (e11s06, docs/UI.md). */
+export const defaultCouncil: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -'];
 
 const builtIn: ReviewSetting = { council: [...defaultCouncil], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200 };
 

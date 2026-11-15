@@ -17,7 +17,7 @@ import type { RoundVerdict } from './review-ledger.ts';
 import { loadReview } from './review-setting.ts';
 import { exhaustedReport, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
 import { currentBranch, fingerprintTree } from './tree.ts';
-import { baseCommit, shotLines, uiForReview, uiPrompt, type UiForReview } from './ui.ts';
+import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './ui.ts';
 import { loadUi, type UiSetting } from './ui-setting.ts';
 
 const exitCodes: Record<RoundVerdict, number> = { pass: 0, block: 1, 'no-verdict': 3 };
@@ -65,9 +65,22 @@ async function main(): Promise<void> {
   if (shots.kind === 'error') return fail(shots.error);
   if (shots.kind === 'missing') return answer(`weftwork review: not run\nwhy: ${terminalSafe(shots.why)}\nnext: echo '{"phase":"after"}' | node src/ui-cli.ts\n`, 4);
   const ready = shots.kind === 'ready' ? shots : null;
+  let design: Design | null = null;
+  if (ready !== null && ui.ui?.design !== undefined) {
+    const read = await readDesign(cwd, ui.ui.design);
+    if (!read.ok) return fail(read.error);
+    design = read.design;
+  }
 
-  const prompt = ready === null ? brief : `${brief.replace(/\n*$/, '')}\n\n${uiPrompt(weftwork, ready)}`;
-  const results = await runCouncil(setting.review, cwd, reviewPrompt(prompt));
+  const prompt = ready === null ? brief : `${brief.replace(/\n*$/, '')}\n\n${uiPrompt(weftwork, ready, design)}`;
+  // Only a UI change sets WEFTWORK_IMAGES; one from the caller is dropped (review round 1).
+  const { WEFTWORK_IMAGES: _inherited, ...env } = process.env;
+  if (ready !== null) {
+    const images = imagesValue(weftwork, ready);
+    if (!images.ok) return fail(images.error);
+    env['WEFTWORK_IMAGES'] = images.value;
+  }
+  const results = await runCouncil(setting.review, cwd, reviewPrompt(prompt), env);
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const verdict = changed ? 'no-verdict' : roundVerdict(results);

@@ -93,9 +93,9 @@ function why(outcome: { reason: string; exitCode: number | null }, timeoutSecond
 }
 
 /** Run one reviewer and read its reply. Never rejects. */
-async function runReviewer(command: string, cwd: string, prompt: string, timeoutSeconds: number): Promise<ReviewerResult> {
+async function runReviewer(command: string, cwd: string, prompt: string, timeoutSeconds: number, env?: NodeJS.ProcessEnv): Promise<ReviewerResult> {
   const name = reviewerName(command);
-  const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt);
+  const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt, env);
   if (out.reason !== 'passed') return { name, ok: false, error: why(out, timeoutSeconds, out.stderrTail) };
   // A cut reply could drop a must-fix after the VERDICT line (review round 1).
   if (out.stdoutCut) return { name, ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` };
@@ -104,14 +104,15 @@ async function runReviewer(command: string, cwd: string, prompt: string, timeout
 }
 
 /** Run the council on `prompt`, at most maxParallelReviewers at once, and
- * return the results in council order. */
-export async function runCouncil(review: ReviewSetting, cwd: string, prompt: string): Promise<ReviewerResult[]> {
+ * return the results in council order. `env` is each reviewer's
+ * environment (e11s06: WEFTWORK_IMAGES for a UI change). */
+export async function runCouncil(review: ReviewSetting, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
   const results: ReviewerResult[] = [];
   let next = 0;
   const worker = async () => {
     while (next < review.council.length) {
       const index = next++;
-      results[index] = await runReviewer(review.council[index] ?? '', cwd, prompt, review.timeoutSeconds);
+      results[index] = await runReviewer(review.council[index] ?? '', cwd, prompt, review.timeoutSeconds, env);
     }
   };
   await Promise.all(Array.from({ length: Math.min(maxParallelReviewers, review.council.length) }, worker));

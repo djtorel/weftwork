@@ -18,6 +18,11 @@ test('screenshot and paths turn UI checks on, with a 600 s timeout by default', 
   assert.deepEqual(result, { ok: true, ui: { screenshot: 'node shoot.js', paths: ['web/**'], timeoutSeconds: 600 } });
 });
 
+test('ui.design names the design reference, a path from the repository root (e11s06)', () => {
+  const result = resolveUi({ user: null, repo: file("---\nui:\n  screenshot: a\n  paths: [x]\n  design: docs/DESIGN.md\n") });
+  assert.deepEqual(result, { ok: true, ui: { screenshot: 'a', paths: ['x'], timeoutSeconds: 600, design: 'docs/DESIGN.md' } });
+});
+
 test('the repository file wins over the user file, key by key', () => {
   const user = file('---\nui:\n  screenshot: a\n  paths: [x]\n  timeout_seconds: 30\n', '/home/u/.config/weftwork/config.yaml');
   const repo = file('---\nui:\n  paths: [y, z]\n');
@@ -31,6 +36,8 @@ for (const [name, text, error] of [
   ['empty paths', 'screenshot: a\n  paths: []', /ui\.paths must be a list of 1 to 50 patterns/],
   ['a path that is not text', 'screenshot: a\n  paths: [1]', /ui\.paths must be a list of 1 to 50 patterns/],
   ['timeout 0', 'screenshot: a\n  paths: [a]\n  timeout_seconds: 0', /ui\.timeout_seconds must be an integer from 1 to 3600/],
+  ['an absolute design path', 'screenshot: a\n  paths: [a]\n  design: /etc/DESIGN.md', /ui\.design must be a path inside the repository/],
+  ['a design path that leaves the repository', 'screenshot: a\n  paths: [a]\n  design: ../DESIGN.md', /ui\.design must be a path inside the repository/],
   ['an unknown key', 'shots: a', /ui\.shots is not a known key/],
 ] as [string, string, RegExp][]) {
   test(`${name}: an error that names the file`, () => {

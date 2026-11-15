@@ -1,11 +1,13 @@
 # UI changes checked from screenshots
 
-<!-- story: e11s05 -->
+<!-- story: e11s05, e11s06 -->
 
 A change to the UI is reviewed from screenshots as well as from the diff.
 The engine runs the owner's screenshot command, keeps the PNG files it
 wrote, and the review council reads them under the same must-fix rule as
-the code (`docs/REVIEW.md`). A model's score is reported, never a gate.
+the code (`docs/REVIEW.md`). The council reviews the change as a design
+audit, against the project's design reference when one is set. A model's
+score is reported, never a gate.
 
 ## The setting
 
@@ -21,6 +23,7 @@ ui:
     - 'web/**'
     - '**/*.css'
   timeout_seconds: 600
+  design: DESIGN.md
 ```
 
 | Key | What it is | Range | Built-in |
@@ -28,6 +31,7 @@ ui:
 | `screenshot` | A command that writes PNG files into the folder named by `$WEFTWORK_SHOTS` | a non-empty command | none |
 | `paths` | Glob patterns from the repository root (`path.matchesGlob`); a change that touches one is a UI change | 1 to 50 | none |
 | `timeout_seconds` | Time for the screenshot command | 1 to 3600 | 600 |
+| `design` | The design reference: a path from the repository root to a file of colours, type, spacing and component rules (a DESIGN.md; bigpowers `extract-design` can make one) | a path inside the repository | none |
 
 `screenshot` and `paths` go together: a file that leaves one unset is an
 error. The guard blocks the agent from editing either setting file
@@ -61,6 +65,12 @@ SHA-256, the branch, the base commit, and the fingerprint of the tree they show.
 Take the before screenshots before the first edit to a UI file, and the
 after ones once the done gate passed on the final tree.
 
+Name each screenshot by screen, viewport and state, so a reviewer knows what
+it shows: `<screen>.<viewport>.<state>.png`, for example `home.mobile.png`,
+`home.desktop.png` or `login.mobile.error.png`. Take the viewports the
+project supports and the states the change touches. A name may not hold a
+comma, since `WEFTWORK_IMAGES` joins the paths with commas.
+
 ## In the review
 
 When `ui` is set and the change from the base touches `ui.paths`, the review
@@ -76,18 +86,57 @@ report is pasted in. Only a must-fix blocks.
 Before screenshots are optional in the review. When none were taken on this
 branch and base, the brief says so and the council reads the after ones alone.
 
+### The design audit
+
+The brief for a UI change also holds a design checklist and a severity rule
+(e11s06). The checklist: consistency with the design reference and the
+existing screens; hierarchy; spacing and alignment; typography; colour and
+contrast; states (hover, focus, disabled, error, empty, loading).
+
+A design finding is MUST-FIX only for an objective break: the change breaks
+the design reference, text fails WCAG 2 AA contrast, or the layout is broken
+at a viewport the screenshots show. A judgement call is SHOULD-FIX: it is
+listed in the pull request and does not block.
+
+When `ui.design` is set, the engine reads that file and puts it in the brief
+between two marker lines. It must be a regular file (not a symlink), inside
+the repository once its folders are resolved, valid UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
+review with exit 2, and no reviewer runs. Without `ui.design`, the brief says
+there is no design reference, and the council judges consistency against the
+existing screens.
+
+### The images
+
+For a UI change, each reviewer runs with `WEFTWORK_IMAGES` set to the
+absolute paths of the screenshots, before then after, joined by commas. A
+reviewer that can attach images uses it, so the model gets the images and
+not only their paths. The built-in council does this:
+
+```bash
+codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
+```
+
+`${WEFTWORK_IMAGES:+...}` adds `--image` only for a UI change. Write a
+council entry in `weftwork.yaml` the same way. For a change that is not a UI
+change, `WEFTWORK_IMAGES` is not set, even when the caller had set it. A
+screenshot path with a comma of its own (in the git directory's path, say)
+stops the review with exit 2.
+
 ## A programmatic check wins
 
 Where a test can check the UI (a visual regression test with a stored
-baseline, an accessibility check, a layout assertion), put it in the verify
-command. The done gate runs it and it gates; a model's view of a screenshot
+baseline, an accessibility check, a contrast ratio, a colour that is not a
+design token, a layout assertion), put it in the verify command. The done gate runs it and it gates; a model's view of a screenshot
 does not.
 
 ## Limits
 
 - The images stay in the engine's folder; the pull request lists them by
   path and hash, it does not embed them.
-- A reviewer must be able to open a local image file. One that cannot
-  reviews the diff alone, and should say so.
+- A reviewer that cannot take `WEFTWORK_IMAGES` must open the image files by
+  path. One that can do neither reviews the diff alone, and should say so.
+- How well a vision model judges visual design is not yet measured (a
+  research brief is a follow-up); until then design findings get the
+  severity rule above, and the score never gates.
 - The screenshot command comes from the setting files, so a repository's
   `weftwork.yaml` can name any command, as it can for the review council.

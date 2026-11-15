@@ -4,6 +4,7 @@
 // user file, key by key. A bad value is an error that names the file and key.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { defaultCouncil, resolveReview } from './review-setting.ts';
 
 const file = (text: string, path = '/repo/weftwork.yaml') => ({ path, text });
@@ -16,6 +17,13 @@ test('no file: one reviewer from another family, 3 rounds, 5 when sensitive, 120
   });
   assert.equal(defaultCouncil.length, 1);
   assert.match(defaultCouncil[0] ?? '', /^codex exec .*--sandbox read-only/);
+});
+
+test('the built-in reviewer attaches the screenshots with --image only when WEFTWORK_IMAGES is set (e11s06)', () => {
+  // The same shell text, with codex exec swapped for printf, shows the argv codex would get.
+  const argv = (env: NodeJS.ProcessEnv) => spawnSync((defaultCouncil[0] ?? '').replace(/^codex exec/, "printf '[%s]'"), { shell: true, env, encoding: 'utf8' }).stdout;
+  assert.equal(argv({ PATH: process.env['PATH'], WEFTWORK_IMAGES: '/a b/x.png,/y.png' }), '[--ignore-user-config][--sandbox][read-only][--ephemeral][--image][/a b/x.png,/y.png][-]');
+  assert.equal(argv({ PATH: process.env['PATH'] }), '[--ignore-user-config][--sandbox][read-only][--ephemeral][-]');
 });
 
 test('a file without a review mapping sets nothing; the budget key is left to budget.ts', () => {
