@@ -328,7 +328,7 @@ test('AC-e09s03-06 the failed run that leaves 1 run under maxRuns 4 carries the 
   const answer = await runEngine({ command: 'exit 3', cwd: repo, maxRuns: 4 });
   assert.equal(answer.state, 'failed');
   assert.match(answer.detail ?? '', /3 runs since the last done, 1 left before the loop ceiling of 4/);
-  assert.ok(answer.detail?.includes(`node ${handoffCli}`), answer.detail);
+  assert.ok((answer.detail ?? '').includes(`node ${handoffCli}`), answer.detail ?? 'no detail');
   assert.deepEqual(await readRepoStates(repo), [], 'a failed answer still logs no state line');
 });
 
