@@ -1,4 +1,4 @@
-// story: e09s02, e09s03
+// story: e09s02
 // The loop ceiling in the engine (e09s02 AC-04, AC-05, AC-08, R1, R4, R5):
 // checked before a run and after it, after the failure ceiling, and closed
 // when maxRuns is set and the ledger cannot be read (residual F5). Every
@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { appendFileSync, chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { runEngine } from './engine.ts';
-import { appendEntry, ledgerPath } from './ledger.ts';
+import { ledgerPath } from './ledger.ts';
 import { fingerprintTree } from './tree.ts';
 import {
   cleanupTempDirs,
@@ -16,12 +16,11 @@ import {
   makeTestRepo,
   readRepoLedger,
   readRepoStates,
+  seedLedger,
   waitForFile,
 } from './test-helpers.ts';
 
 after(cleanupTempDirs);
-
-const at = new Date('2026-11-14T03:00:00.000Z');
 
 async function quietly<T>(body: () => Promise<T>): Promise<T> {
   const write = mock.method(process.stderr, 'write', () => true);
@@ -32,26 +31,9 @@ async function quietly<T>(body: () => Promise<T>): Promise<T> {
   }
 }
 
-/** One run entry per command, written straight into the ledger; a command
- * named `pass` is a done run. */
-async function seed(repo: string, commands: string[]): Promise<void> {
-  const path = (await ledgerPath(repo)) as string;
-  for (const command of commands) {
-    const done = command === 'pass';
-    const verdict = {
-      done,
-      exitCode: done ? 0 : 1,
-      reason: done ? ('passed' as const) : ('exit-nonzero' as const),
-      command,
-      fingerprint: 'F',
-    };
-    assert.deepEqual(await appendEntry(path, verdict, at), { ok: true });
-  }
-}
-
 test('AC-e09s02-04 the run that reaches maxRuns answers exhausted, with the loop ceiling as threshold', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
+  await seedLedger(repo, ['a', 'b']);
   const answer = await runEngine({ command: 'exit 3', cwd: repo, maxRuns: 3 });
   assert.equal(answer.state, 'exhausted');
   assert.equal(answer.reason, 'exit-nonzero', 'the run did happen');
@@ -62,7 +44,7 @@ test('AC-e09s02-04 the run that reaches maxRuns answers exhausted, with the loop
 
 test('AC-e09s02-04 at maxRuns a new command is refused without running, even one that would pass', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b', 'c']);
+  await seedLedger(repo, ['a', 'b', 'c']);
   const answer = await runEngine({ command: 'touch ran.txt', cwd: repo, maxRuns: 3 });
   assert.equal(answer.state, 'exhausted');
   assert.equal(answer.reason, 'not-run');
@@ -74,20 +56,20 @@ test('AC-e09s02-04 at maxRuns a new command is refused without running, even one
 
 test('AC-e09s02-05 a done opens a new loop', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b', 'c', 'pass']);
+  await seedLedger(repo, ['a', 'b', 'c', 'pass']);
   assert.equal((await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 2 })).state, 'failed');
   assert.equal((await runEngine({ command: 'exit 2', cwd: repo, maxRuns: 2 })).state, 'exhausted');
 });
 
 test('AC-e09s02-05 the run that reaches maxRuns and passes is done', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   assert.equal((await runEngine({ command: 'true', cwd: repo, maxRuns: 2 })).state, 'done');
 });
 
 test('R5 the failure ceiling is checked before the loop ceiling', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['exit 7', 'exit 7']);
+  await seedLedger(repo, ['exit 7', 'exit 7']);
   const answer = await runEngine({ command: 'exit 7', cwd: repo, maxFailures: 2, maxRuns: 2 });
   assert.equal(answer.reason, 'not-run');
   assert.match(answer.detail ?? '', /2 failed runs in a row, the ceiling is 2/);
@@ -95,7 +77,7 @@ test('R5 the failure ceiling is checked before the loop ceiling', async () => {
 
 test('R2 with no maxRuns, runs of new commands never meet a loop ceiling', async () => {
   const repo = makeTestRepo();
-  await seed(repo, Array.from({ length: 20 }, (_, index) => `c${index}`));
+  await seedLedger(repo, Array.from({ length: 20 }, (_, index) => `c${index}`));
   assert.equal((await runEngine({ command: 'exit 1', cwd: repo })).state, 'failed');
 });
 
@@ -130,7 +112,7 @@ test('AC-e09s02-09 with no maxRuns, an unreadable ledger still turns the rules o
 
 test('AC-e09s02-11 with maxRuns set, a failed run that cannot be written to the ledger answers exhausted', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   chmodSync((await ledgerPath(repo)) as string, 0o400);
   const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 5 }));
   assert.equal(answer.state, 'exhausted');
@@ -140,7 +122,7 @@ test('AC-e09s02-11 with maxRuns set, a failed run that cannot be written to the 
 
 test('AC-e09s02-11 with no maxRuns, a failed run that cannot be written stays failed', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   chmodSync((await ledgerPath(repo)) as string, 0o400);
   const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo }));
   assert.equal(answer.state, 'failed');
@@ -149,7 +131,7 @@ test('AC-e09s02-11 with no maxRuns, a failed run that cannot be written stays fa
 /** `count` run lines of about 120 KB each: long commands that the request
  * allows, so the 1 MiB tail holds only a few of them. */
 async function seedLong(repo: string, count: number): Promise<void> {
-  await seed(repo, Array.from({ length: count }, (_, index) => `false # ${String(index).repeat(120_000)}`));
+  await seedLedger(repo, Array.from({ length: count }, (_, index) => `false # ${String(index).repeat(120_000)}`));
 }
 
 test('AC-e09s02-12 with maxRuns set, a cut tail with no done answers exhausted without running', async () => {
@@ -164,7 +146,7 @@ test('AC-e09s02-12 with maxRuns set, a cut tail with no done answers exhausted w
 
 test('AC-e09s02-12 junk lines that cut the tail answer exhausted as well (F1)', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   appendFileSync((await ledgerPath(repo)) as string, `${'x'.repeat(100)}\n`.repeat(11_000));
   const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 }));
   assert.equal(answer.state, 'exhausted');
@@ -174,7 +156,7 @@ test('AC-e09s02-12 junk lines that cut the tail answer exhausted as well (F1)', 
 test('AC-e09s02-12 a cut tail with a done in it is counted as usual', async () => {
   const repo = makeTestRepo();
   await seedLong(repo, 12);
-  await seed(repo, ['pass']);
+  await seedLedger(repo, ['pass']);
   const answer = await quietly(() => runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3 }));
   assert.equal(answer.state, 'failed');
 });
@@ -188,7 +170,7 @@ test('AC-e09s02-12 with no maxRuns, a cut tail with no done changes nothing', as
 
 test('AC-e09s02-13 a run killed at the ceiling answers killed, not exhausted', { timeout: 15000 }, async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
+  await seedLedger(repo, ['a', 'b']);
   const pidFile = join(makeTempDir(), 'pid');
   const controller = new AbortController();
   const running = runEngine(
@@ -202,14 +184,14 @@ test('AC-e09s02-13 a run killed at the ceiling answers killed, not exhausted', {
 
 test('AC-e09s02-13 at the ceiling, exhausted comes before blocked', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
+  await seedLedger(repo, ['a', 'b']);
   const answer = await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 2, blocked: 'need a key' });
   assert.equal(answer.state, 'exhausted');
 });
 
 test('AC-e09s02-13 a blocked refusal is not counted as a run', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   assert.equal((await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 3, blocked: 'need a key' })).state, 'blocked');
   assert.equal((await runEngine({ command: 'exit 2', cwd: repo, maxRuns: 3 })).state, 'failed');
 });
@@ -241,7 +223,7 @@ async function stderrOf(body: () => Promise<unknown>): Promise<string> {
 
 test('AC-e09s02-11 with maxRuns set, a passing run that cannot be written answers exhausted, not done', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   chmodSync((await ledgerPath(repo)) as string, 0o400);
   const answer = await quietly(() => runEngine({ command: 'true', cwd: repo, maxRuns: 5 }));
   assert.equal(answer.state, 'exhausted');
@@ -251,7 +233,7 @@ test('AC-e09s02-11 with maxRuns set, a passing run that cannot be written answer
 
 test('AC-e09s02-04 a refusal at the loop ceiling writes one state line with the loop threshold', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b', 'c']);
+  await seedLedger(repo, ['a', 'b', 'c']);
   await runEngine({ command: 'exit 4', cwd: repo, maxRuns: 3 });
   const lines = await readRepoStates(repo);
   assert.equal(lines.length, 1);
@@ -294,7 +276,7 @@ test('R1 the loop ceiling comes before the stall rule', async () => {
 
 test('R1 a run at the loop ceiling does not spend the override record', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
+  await seedLedger(repo, ['a', 'b']);
   const before = await fingerprintTree(repo);
   assert.ok(before.ok);
   const file = join(dirname((await ledgerPath(repo)) as string), 'override.json');
@@ -306,7 +288,7 @@ test('R1 a run at the loop ceiling does not spend the override record', async ()
 
 test('R4 a passing run stays done when the ledger read after it fails, and the note says so', async () => {
   const repo = makeTestRepo();
-  await seed(repo, ['a']);
+  await seedLedger(repo, ['a']);
   const ledger = (await ledgerPath(repo)) as string;
   let answer: Awaited<ReturnType<typeof runEngine>> | undefined;
   const text = await stderrOf(async () => {
@@ -316,60 +298,4 @@ test('R4 a passing run stays done when the ledger read after it fails, and the n
   assert.equal(answer?.state, 'done');
   assert.equal(answer?.done, true);
   assert.match(text, /unless the run is done or killed/);
-});
-
-// e09s03: the handover reserve. A failed run within the reserve tells the
-// agent to write the handoff now; every other answer is as before.
-const handoffCli = join(import.meta.dirname, 'handoff-cli.ts');
-
-test('AC-e09s03-06 the failed run that leaves 1 run under maxRuns 4 carries the handoff detail', async () => {
-  const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
-  const answer = await runEngine({ command: 'exit 3', cwd: repo, maxRuns: 4 });
-  assert.equal(answer.state, 'failed');
-  assert.match(answer.detail ?? '', /3 runs since the last done, 1 left before the loop ceiling of 4/);
-  assert.ok((answer.detail ?? '').includes(`node ${handoffCli}`), answer.detail ?? 'no detail');
-  assert.deepEqual(await readRepoStates(repo), [], 'a failed answer still logs no state line');
-});
-
-test('AC-e09s03-06 a failed run outside the reserve has no detail', async () => {
-  const repo = makeTestRepo();
-  await seed(repo, ['a']);
-  const answer = await runEngine({ command: 'exit 2', cwd: repo, maxRuns: 4 });
-  assert.equal(answer.state, 'failed');
-  assert.equal('detail' in answer, false);
-});
-
-test('AC-e09s03-02 a reserveRuns above the ceiling is clamped to maxRuns - 1', async () => {
-  const repo = makeTestRepo();
-  const answer = await runEngine({ command: 'exit 1', cwd: repo, maxRuns: 4, reserveRuns: 9 });
-  assert.match(answer.detail ?? '', /1 runs since the last done, 3 left before the loop ceiling of 4/);
-});
-
-test('AC-e09s03-08 with no maxRuns, or reserveRuns 0, a failed run has no detail', async () => {
-  const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
-  assert.equal('detail' in (await runEngine({ command: 'exit 3', cwd: repo })), false);
-  const other = makeTestRepo();
-  await seed(other, ['a', 'b']);
-  const off = await runEngine({ command: 'exit 3', cwd: other, maxRuns: 4, reserveRuns: 0 });
-  assert.equal(off.state, 'failed');
-  assert.equal('detail' in off, false);
-});
-
-test('AC-e09s03-09 the failure ceiling in the reserve window keeps its own detail', async () => {
-  const repo = makeTestRepo();
-  await seed(repo, ['exit 7', 'exit 7']);
-  const answer = await runEngine({ command: 'exit 7', cwd: repo, maxFailures: 3, maxRuns: 4 });
-  assert.equal(answer.state, 'exhausted');
-  assert.match(answer.detail ?? '', /3 failed runs in a row, the ceiling is 3/);
-  assert.doesNotMatch(answer.detail ?? '', /handoff/);
-});
-
-test('AC-e09s03-09 a run in the reserve window that passes is done, with no detail', async () => {
-  const repo = makeTestRepo();
-  await seed(repo, ['a', 'b']);
-  const answer = await runEngine({ command: 'true', cwd: repo, maxRuns: 4 });
-  assert.equal(answer.state, 'done');
-  assert.equal('detail' in answer, false);
 });

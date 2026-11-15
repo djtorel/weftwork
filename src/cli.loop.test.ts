@@ -99,7 +99,7 @@ test('AC-e09s03-06 maxRuns 4: the third failed run tells the agent to write the 
   assert.equal(runCli(repo, { command: 'exit 4' }).status, 5);
 });
 
-test('AC-e09s03-07 a request reserveRuns 0 does not turn the warning off', () => {
+test('AC-e09s03-07 a request reserveRuns is not read: 0 does not turn the warning off', () => {
   const repo = makeTestRepo(maxRuns(4));
   runCli(repo, { command: 'exit 1' });
   runCli(repo, { command: 'exit 2' });
