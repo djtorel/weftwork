@@ -146,3 +146,22 @@ test('AC-e12s03b-09 a phase of a shipped milestone in <details> stays out, even 
   const shipped = '<details>\n<summary>v1.0 - SHIPPED</summary>\n\n- [x] **Phase 1: Base** - Repo\n</details>\n';
   assert.match(gsdSection(shipped, ['01-base'], 'gsd-era', ['01-base/01-01-PLAN.md']), /No open phases\./);
 });
+
+test('AC-e12s03b-10 an unlisted open plan takes its title from the first line of its <objective>; none or an empty one keeps id and file', () => {
+  const files = ['02-pay/02-01-PLAN.md', '02-pay/02-02-PLAN.md', '02-pay/02-03-PLAN.md'];
+  const plans = {
+    '02-pay/02-01-PLAN.md': '---\nphase: 02-pay\nplan: 01\n---\n\n<objective>\n  Add refresh token   rotation.\n\nPurpose: Longer sessions.\n</objective>\n',
+    '02-pay/02-02-PLAN.md': '# Plan\nNo objective here.\n',
+    '02-pay/02-03-PLAN.md': '<objective>\n\n</objective>\n',
+  };
+  const text = gsdSection('### Phase 2: Pay\n**Goal**: g\n', ['02-pay'], 'gsd-era', files, plans);
+  assert.match(text, /\n {2}Open plan 02-01: Add refresh token rotation\. \(02-01-PLAN\.md, not on the roadmap\)\n/);
+  assert.match(text, /\n {2}Open plan 02-02 \(02-02-PLAN\.md, not on the roadmap\)\n/);
+  assert.match(text, /\n {2}Open plan 02-03 \(02-03-PLAN\.md, not on the roadmap\)\n/);
+});
+
+test('AC-e12s03b-11 a plan title is cut to 120 characters', () => {
+  const long = 'x'.repeat(200);
+  const text = gsdSection(null, ['02-pay'], 'gsd-era', ['02-pay/02-01-PLAN.md'], { '02-pay/02-01-PLAN.md': `<objective>${long}</objective>` });
+  assert.match(text, new RegExp(`Open plan 02-01: ${'x'.repeat(119)}… \\(`));
+});

@@ -174,7 +174,7 @@ function gsdRepo(): string {
     '.planning/ROADMAP.md': '- [x] **Phase 1: Base** - Repo\n- [ ] **Phase 2: Pay** - Pay for a cart\n',
     '.planning/STATE.md': '# State\n',
     '.planning/config.json': '{}\n',
-    '.planning/phases/02-pay/02-01-PLAN.md': '# Plan\n',
+    '.planning/phases/02-pay/02-01-PLAN.md': '# Plan\n\n<objective>\nCharge the card.\n</objective>\n',
     '.planning/phases/03-ship/03-01-PLAN.md': '# Plan\n',
     '.planning/phases/03-ship/03-01-SUMMARY.md': '# Done\n',
     '.planning/codebase/ARCHITECTURE.md': '# Layers\n',
@@ -203,7 +203,7 @@ test('AC-e12s03b-04 a GSD plan: tag gsd-era, cited codebase docs into docs/, .pl
   assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.gsd-planning\/$/m);
   const backlogText = readFileSync(commonBacklog(dir), 'utf8');
   assert.match(backlogText, /## Converted from GSD/);
-  assert.match(backlogText, /- \[ \] \*\*Phase 2: Pay\.\*\* Goal: Pay for a cart\n {2}Open plan 02-01 \(02-01-PLAN\.md, not on the roadmap\)\n {2}Old spec: `\.gsd-planning\/phases\/02-pay\/`/);
+  assert.match(backlogText, /- \[ \] \*\*Phase 2: Pay\.\*\* Goal: Pay for a cart\n {2}Open plan 02-01: Charge the card\. \(02-01-PLAN\.md, not on the roadmap\)\n {2}Old spec: `\.gsd-planning\/phases\/02-pay\/`/);
   assert.doesNotMatch(backlogText, /Phase 1|Phase 3/);
   assert.doesNotMatch(execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: dir, encoding: 'utf8' }), /gsd-planning/);
 });

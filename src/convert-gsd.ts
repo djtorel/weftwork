@@ -5,7 +5,8 @@
 // with its goal, its success criteria as done-when, its open plans and a link
 // to its old phase folder in the gitignored .gsd-planning/. A PLAN.md with no
 // SUMMARY.md beside it is open even when the roadmap does not list it (GSD's
-// own rule). Pure: no file is read here. The format is GSD v1.30's
+// own rule); such a plan takes its title from the first line of its
+// <objective>. Pure: no file is read here. The format is GSD v1.30's
 // templates/roadmap.md and templates/phase-prompt.md. docs/CONVERT.md.
 
 export const gsdSectionTitle = '## Converted from GSD';
@@ -91,10 +92,21 @@ function folderOf(id: string, folders: string[]): string | null {
 const phaseFolder = /^(\d+(?:\.\d+)*)-(.+)$/;
 const planFile = /^(\d+(?:\.\d+)*-\d+)-PLAN\.md$/;
 
+const titleMax = 120;
+
+/** The first non-empty line inside the `<objective>` of plan text `text`,
+ * on one line and at most 120 characters, or null. */
+export function objectiveTitle(text: string): string | null {
+  const body = /<objective>([\s\S]*?)<\/objective>/.exec(text)?.[1] ?? '';
+  const first = oneLine(body.split('\n').find((line) => line.trim() !== '') ?? '');
+  if (first === '') return null;
+  return first.length > titleMax ? `${first.slice(0, titleMax - 1)}…` : first;
+}
+
 /** Adds to `found` each plan in `files` (`<folder>/<name>`) that has a
  * PLAN.md, no SUMMARY.md beside it and no line in its phase's roadmap
  * Plans list; a folder the roadmap does not list becomes a phase. */
-function addUnlisted(found: Phase[], files: string[]): Phase[] {
+function addUnlisted(found: Phase[], files: string[], plans: Record<string, string>): Phase[] {
   const present = new Set(files);
   const all = [...found];
   for (const path of files) {
@@ -109,7 +121,8 @@ function addUnlisted(found: Phase[], files: string[]): Phase[] {
       all.push(phase);
     }
     if (phase.plans.some((each) => each.text.startsWith(`${plan[1]}:`))) continue;
-    phase.plans.push({ done: false, text: `${plan[1]} (${name}, not on the roadmap)` });
+    const title = plans[path] === undefined ? null : objectiveTitle(plans[path]);
+    phase.plans.push({ done: false, text: `${plan[1]}${title === null ? '' : `: ${title}`} (${name}, not on the roadmap)` });
   }
   return all;
 }
@@ -129,8 +142,9 @@ function phaseItem(phase: Phase, folders: string[]): string[] {
 
 /** The section, from the text of ROADMAP.md (null when there is none), the
  * folder names in .planning/phases/, the tag that holds the old plans, and
- * the files one level inside those folders, as `<folder>/<name>`. */
-export function gsdSection(roadmap: string | null, folders: string[], tag: string, files: string[] = []): string {
+ * the files one level inside those folders, as `<folder>/<name>`, and the
+ * text of the PLAN.md files among them, by the same key. */
+export function gsdSection(roadmap: string | null, folders: string[], tag: string, files: string[] = [], plans: Record<string, string> = {}): string {
   const intro = [
     gsdSectionTitle,
     '',
@@ -138,7 +152,7 @@ export function gsdSection(roadmap: string | null, folders: string[], tag: strin
     `old plans are in the gitignored \`.gsd-planning/\` and at the tag \`${tag}\`.`,
     '',
   ];
-  const open = addUnlisted(phases(roadmap ?? ''), files).filter(isOpen);
+  const open = addUnlisted(phases(roadmap ?? ''), files, plans).filter(isOpen);
   const body = open.flatMap((phase) => phaseItem(phase, folders));
   if (body.length === 0) body.push('No open phases.');
   return [...intro, ...body, ''].join('\n');
