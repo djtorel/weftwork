@@ -1,10 +1,18 @@
 # State file fields
 
-`specs/state.yaml` holds the workflow state of this repository. The engine
-writes only the fields marked `engine`, through `setStateField` in
-`src/state-fields.ts`. It refuses every other key and keeps it byte for
-byte. Each engine field is text or null, on one line, of 200 characters or
-fewer. The engine does not check id patterns or phase names.
+The engine keeps its state in `<git dir>/weftwork/state.yaml`, next to its
+ledger (`weftworkDir` in `src/ledger.ts`). The file is untracked and local:
+each worktree has its own, because a linked worktree has its own git dir
+(`git rev-parse --absolute-git-dir` names it). Nothing in it is shared
+through the repository; the pull request is the shared record of a task.
+
+The engine creates the file, with every field null, the first time a CLI
+writes to it. Reading a missing file gives every field null and creates
+nothing. The engine writes only the fields marked `engine`, through
+`setStateField` in `src/state-fields.ts`. It refuses every other key and
+keeps any other key in the file byte for byte. Each engine field is text or
+null, on one line, of 200 characters or fewer. The engine does not check id
+patterns or phase names.
 
 Read and set the engine fields with the state CLI:
 
@@ -20,12 +28,7 @@ echo '{"op":"set","key":"active_story","value":"e08s02"}' | node src/state-cli.t
 | `active_story` | text or null | engine |
 | `phase` | text or null | engine |
 | `vcs.branch` | text or null | engine |
-| `vcs.kind` | text | owner |
-| `workflow_mode` | text | owner |
-| `test_plan` | text | owner |
 | `handoff` | mapping | engine (handoff CLI) |
-| `waivers` | list | owner |
-| `metrics` | mapping | global scripts (`bp-timing.sh`) |
 
 A test (`src/state-fields.test.ts`) fails when the `engine` rows of this
 table and `stateFields` in the code differ. The `handoff` row is not one
@@ -50,7 +53,7 @@ echo '{"next_skill":"verify-work","branch":"e08s03-handoff-note","note":"..."}' 
 | `next_story` | caller, may be null | one line, not empty or only whitespace, 200 characters or fewer |
 | `files` | caller, may be empty | relative paths in normal form that the note names, each once; each must exist in the repository (a symlink is named, not followed) |
 | `written_at` | engine | the write time, UTC, to the second |
-| `uncommitted` | engine | `git status` paths at write time, sorted, without `specs/state.yaml`; an untracked folder is one entry, `dir/` |
+| `uncommitted` | engine | `git status` paths at write time, sorted; an untracked folder is one entry, `dir/` |
 
 The engine ignores `written_at` and `uncommitted` from the caller and
 refuses any other key. A file in the working tree whose name holds a
@@ -65,8 +68,8 @@ check never compares the two lists, so the forms do not meet.
 
 ## Checking the handoff at resume
 
-At session start, before `kickoff-branch`, check the block against the
-repository with `resumeReport` in `src/resume.ts`:
+At session start, check the block against the repository with
+`resumeReport` in `src/resume.ts`:
 
 ```bash
 node src/resume-cli.ts
@@ -81,7 +84,7 @@ run, and the next step on stderr. It never writes. The answer is one of:
 | `ready` | the branch, the named files and git status match the block | 0 |
 | `stale` | HEAD is not on `branch` (another branch, detached, or a ref outside `refs/heads/`), a path in `files` is not found inside the repository, or a path is uncommitted now that `uncommitted` does not list; every reason is listed | 1 |
 | `unverifiable` | the block is not a mapping, has no `branch`, `files` or `uncommitted`, or one of them is null or of the wrong type | 1 |
-| `missing` | the state file has no `handoff` block, or a null one | 1 |
+| `missing` | there is no state file, or it has no `handoff` block, or a null one | 1 |
 
 A path that `uncommitted` lists and that git status no longer lists is a
 note, not a reason.
@@ -96,11 +99,11 @@ or commits made on the branch since the handoff. It does not check the
 note or `next_skill`. `files` is the only existence check, so name in it
 every path the note relies on.
 
-`specs/state.yaml` is always left out. Exit 2 means the check could not
-run: an argument was given, the working directory is gone or not in a git
-repository, git failed, or the state file cannot be read. After
-`kickoff-branch` the branch is the story branch, so the check answers
-`stale`; that is expected.
+The state file is outside the working tree, so git status never lists it.
+Exit 2 means the check could not run: an argument was given, the working
+directory is gone or not in a git repository, git failed, or the state file
+is there but cannot be read. After the next task's branch is made, the
+check answers `stale`; that is expected.
 
 Every CLI line on stdout and the check's stderr text write control
 characters, bidi controls and line separators as `\uXXXX`

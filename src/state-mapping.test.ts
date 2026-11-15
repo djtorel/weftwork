@@ -212,8 +212,8 @@ test('a note ending in a line break at the end of a file with no final newline k
 // Review round 4, B4: every read-back above uses the yaml package, so a case
 // where PyYAML reads the file differently could not fail. This one asks
 // PyYAML itself, which the repository's Python tools use. It is skipped only
-// where python3 with PyYAML is missing (CI runs validate-specs-yaml.sh, which
-// needs it).
+// where python3 with PyYAML is missing (CI installs it with tools/setup.sh,
+// for the brief checker).
 test('PyYAML reads every written layout as the same data', (t) => {
   if (spawnSync('python3', ['-I', '-c', 'import yaml']).status !== 0) {
     t.skip('python3 with PyYAML is not installed');

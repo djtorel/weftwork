@@ -58,7 +58,7 @@ export function makeTestRepo(files: Record<string, string> = { 'tracked.txt': 'o
   return dir;
 }
 
-/** A temporary repository whose specs/state.yaml is `text`, mode 0640. */
+/** A temporary repository whose specs/state.yaml is `text`, mode 0640: a plain file for the writer tests, which take the file name. */
 export function makeStateRepo(text: string): { repo: string; specs: string; state: string } {
   const repo = makeTestRepo();
   const specs = join(repo, 'specs');
@@ -67,6 +67,18 @@ export function makeStateRepo(text: string): { repo: string; specs: string; stat
   writeFileSync(state, text);
   chmodSync(state, 0o640);
   return { repo, specs, state };
+}
+
+/** A temporary repository whose engine state file, `<repo>/.git/weftwork/state.yaml`,
+ * is `text`, mode 0640. `dir` is the engine's folder. */
+export function makeEngineRepo(text: string): { repo: string; dir: string; state: string } {
+  const repo = makeTestRepo();
+  const dir = join(repo, '.git', 'weftwork');
+  mkdirSync(dir, { recursive: true });
+  const state = join(dir, 'state.yaml');
+  writeFileSync(state, text);
+  chmodSync(state, 0o640);
+  return { repo, dir, state };
 }
 
 /** The ledger of the repository at `repo`, read back. Fails the test if the

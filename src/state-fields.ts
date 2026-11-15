@@ -1,17 +1,21 @@
 // story: e08s02, e08s04
-// The fields of specs/state.yaml that the engine owns (docs/STATE.md). The
-// engine sets only these, each one text or null on one line, and refuses every
-// other key, so waivers, metrics and the owner's settings stay byte for byte.
+// The fields of the engine's state file that the engine owns (docs/STATE.md).
+// The file is state.yaml in the engine's folder, <git dir>/weftwork (see
+// weftworkDir in ledger.ts): untracked and one per worktree. The engine sets
+// only these fields, each one text or null on one line, and refuses every
+// other key, so anything else in the file stays byte for byte.
 // setStateField is the one write function the CLIs call; writeStateField of
 // state-file.ts does the format-preserving edit.
-import type { Failure } from './errors.ts';
+import { lstatSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { isMissing, messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { maxStateBytes, parseOne, type WriteField } from './state-file.ts';
 import { insideRoot, writeStateField } from './state-write.ts';
 
-/** The state file, named from the repository root. */
-export const stateFile = 'specs/state.yaml';
+/** The state file, named from the engine's folder (`dir` below). */
+export const stateFile = 'state.yaml';
 
 /** The keys the engine owns, by dotted name. Keep in step with docs/STATE.md. */
 export const stateFields: readonly string[] = ['active_flow', 'active_epic', 'active_story', 'phase', 'vcs.branch'];
@@ -42,13 +46,58 @@ export function checkStateField(key: string, value: unknown): Failure | null {
   return problem === null ? null : { ok: false, error: `${JSON.stringify(key)} ${problem}` };
 }
 
-/** Set one documented field of specs/state.yaml under `root`, keeping every
- * other byte. A refused field writes nothing. */
-export function setStateField(root: string, key: string, value: unknown): WriteField {
+/** The text of a new state file: every documented field null, and a null
+ * handoff, since the handoff writer replaces the value of an existing key. */
+export function emptyStateText(): string {
+  const top = stateFields.filter((key) => !key.includes('.')).map((key) => `${key}: null`);
+  const nested = new Map<string, string[]>();
+  for (const key of stateFields.filter((name) => name.includes('.'))) {
+    const [parent, child] = key.split('.') as [string, string];
+    nested.set(parent, [...(nested.get(parent) ?? []), `  ${child}: null`]);
+  }
+  const blocks = [...nested].flatMap(([parent, children]) => [`${parent}:`, ...children]);
+  return ['---', ...top, ...blocks, 'handoff: null', ''].join('\n');
+}
+
+/** False only when the state file is not there (ENOENT). A symlink there, or
+ * a path that cannot be checked (the folder is a file, no permission), counts
+ * as there, so the writer's checks refuse it with a reason instead of this
+ * reading it as absent. */
+export function stateExists(dir: string): boolean {
+  try {
+    lstatSync(join(dir, stateFile));
+    return true;
+  } catch (error) {
+    return !isMissing(error);
+  }
+}
+
+/** Create `dir` (mode 0700) and an empty state file in it (mode 0600) when the
+ * file is missing; a fresh worktree has none. Never replaces a file: the
+ * create is exclusive, so a file made at the same moment is kept. Null, or a
+ * failure that names what could not be made. */
+export function ensureStateFile(dir: string): Failure | null {
+  try {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    writeFileSync(join(dir, stateFile), emptyStateText(), { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) {
+      return { ok: false, error: `${stateFile} cannot be created in ${dir}: ${messageOf(error)}` };
+    }
+  }
+  return null;
+}
+
+/** Set one documented field of the state file in `dir`, keeping every other
+ * byte; the file is created first when it is missing. A refused field writes
+ * nothing. */
+export function setStateField(dir: string, key: string, value: unknown): WriteField {
   const refused = checkStateField(key, value);
   if (refused !== null) return refused;
+  const made = ensureStateFile(dir);
+  if (made !== null) return made;
   // checkStateField let only null and strings through.
-  return writeStateField(root, stateFile, key.split('.'), value as string | null);
+  return writeStateField(dir, stateFile, key.split('.'), value as string | null);
 }
 
 /** The data of the state file `file` under `root`, read with the writer's
@@ -65,11 +114,13 @@ export function readStateData(root: string, file: string): { ok: true; data: unk
   return parsed.ok ? { ok: true, data: parsed.data } : { ok: false, error: `${file}: ${parsed.error}` };
 }
 
-/** The documented fields of specs/state.yaml under `root`, and nothing else,
- * read with the writer's checks (readStateData). A missing field, or one that
- * is not text or null, is a failure that names it. */
-export function readStateFields(root: string): StateFields {
-  const read = readStateData(root, stateFile);
+/** The documented fields of the state file in `dir`, and nothing else, read
+ * with the writer's checks (readStateData). A missing file reads as every
+ * field null and is not created. A missing field, or one that is not text or
+ * null, is a failure that names it. */
+export function readStateFields(dir: string): StateFields {
+  if (!stateExists(dir)) return { ok: true, fields: Object.fromEntries(stateFields.map((key) => [key, null])) };
+  const read = readStateData(dir, stateFile);
   if (!read.ok) return read;
   const data = read.data;
   const fields: Record<string, string | null> = {};

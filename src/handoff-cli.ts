@@ -4,9 +4,10 @@
 //
 // Input: {"next_skill": string, "branch": string, "note": string,
 // "next_epic"?: string | null, "next_story"?: string | null,
-// "files"?: string[]}. It always writes the handoff block of specs/state.yaml
-// under the root of the repository that holds the working directory; the
-// engine adds written_at and uncommitted. Exit 0 when the block was written or
+// "files"?: string[]}. It always writes the handoff block of the state file in
+// <git dir>/weftwork of the worktree that holds the working directory, and
+// creates the file when it is missing; the engine adds written_at and
+// uncommitted. Exit 0 when the block was written or
 // already held the value; 1 when the engine refused (a missing or bad field, a
 // file that does not exist, a state file it cannot read or keep); 2 for input
 // it cannot read (too large, not UTF-8, not a JSON object, not in a git

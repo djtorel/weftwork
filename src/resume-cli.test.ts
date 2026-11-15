@@ -2,16 +2,17 @@
 // The resume CLI, run as a real process in temporary repositories (e08s04
 // AC-07, AC-08). Each case writes the handoff with the real handoff CLI of
 // e08s03, changes the repository, then runs the check. It exits 0 only for
-// ready, 1 for any other answer and 2 when it cannot read the state file or
+// ready, 1 for any other answer (a worktree with no state file is missing)
+// and 2 when it cannot read the state file or
 // the repository, and it never writes the state file. The rules themselves
 // are tested on resumeReport (resume.test.ts). No test touches this
-// repository's own specs/state.yaml.
+// repository's own state file.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanupTempDirs, git, makeStateRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
+import { cleanupTempDirs, git, makeEngineRepo, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -31,8 +32,8 @@ function runResume(cwd: string, args: string[] = []): Run {
 
 /** A repository whose handoff the real handoff CLI wrote, on branch main,
  * naming tracked.txt. Returns the repository and its state file. */
-function handedOff(): { repo: string; specs: string; state: string } {
-  const made = makeStateRepo(fixture);
+function handedOff(): { repo: string; dir: string; state: string } {
+  const made = makeEngineRepo(fixture);
   const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', files: ['tracked.txt'], note: 'Task 1.' });
   const out = spawnSync('node', [handoffCli], { cwd: made.repo, input, encoding: 'utf8', timeout: 20000 });
   assert.equal(out.status, 0, `handoff write: ${out.stdout} ${out.stderr}`);
@@ -85,7 +86,7 @@ test('the check runs from a subdirectory against the repository root', () => {
 
 // AC-e08s04-08
 test('a state file with no handoff key is missing, exit 1', () => {
-  const { repo } = makeStateRepo('phase: planning\n');
+  const { repo } = makeEngineRepo('phase: planning\n');
   const run = runResume(repo);
   assert.equal(run.status, 1);
   assert.equal(run.result['answer'], 'missing');
@@ -93,8 +94,7 @@ test('a state file with no handoff key is missing, exit 1', () => {
 });
 
 for (const [name, dir, args] of [
-  ['a state file that is not YAML', () => makeStateRepo('phase: [\n').repo, []],
-  ['no state file', () => makeTestRepo(), []],
+  ['a state file that is not YAML', () => makeEngineRepo('phase: [\n').repo, []],
   ['a directory that is not a git repository', () => makeTempDir(), []],
   ['an argument on the command line', () => handedOff().repo, ['now']],
 ] as [string, () => string, string[]][]) {
@@ -121,7 +121,7 @@ test('control characters in a path are escaped on stderr', () => {
 });
 
 test('a ready block with no next skill says to read its note', () => {
-  const { repo } = makeStateRepo('handoff:\n  branch: main\n  files: []\n  uncommitted: []\n');
+  const { repo } = makeEngineRepo('handoff:\n  branch: main\n  files: []\n  uncommitted: []\n');
   const run = runResume(repo);
   assert.equal(run.status, 0, JSON.stringify(run.result));
   assert.equal(run.result['next_skill'], null);
@@ -147,7 +147,7 @@ test('a detached HEAD is stale at the CLI', () => {
 test('known limit: a new file inside an untracked folder the block lists is not seen', () => {
   // git status lists the folder once (dir/), then and now, so ready means the
   // same paths are uncommitted, not the same content (docs/STATE.md).
-  const made = makeStateRepo(fixture);
+  const made = makeEngineRepo(fixture);
   mkdirSync(join(made.repo, 'out'));
   writeFileSync(join(made.repo, 'out', 'a.txt'), 'x\n');
   const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', note: 'Task 1.' });
@@ -182,14 +182,14 @@ test('a working directory that was deleted exits 2 with one JSON line (review ro
 test('files outside the root, under a symlinked folder or in .git are stale; a dangling symlink exists (review round 2)', () => {
   const outside = makeTempDir();
   writeFileSync(join(outside, 'secret.txt'), 'x\n');
-  const { repo } = makeStateRepo('handoff: null\n');
+  const { repo } = makeEngineRepo('handoff: null\n');
   symlinkSync(outside, join(repo, 'up'));
   symlinkSync(join(repo, 'nowhere'), join(repo, 'dangle'));
   git(repo, 'add', 'up', 'dangle');
   git(repo, 'commit', '-q', '-m', 'links');
   const rel = join('..', outside.split('/').pop() as string, 'secret.txt');
   const block = { branch: 'main', files: [rel, 'up/secret.txt', '.git/HEAD', 'dangle'], uncommitted: [] };
-  writeFileSync(join(repo, 'specs', 'state.yaml'), `handoff: ${JSON.stringify(block)}\n`);
+  writeFileSync(join(repo, '.git', 'weftwork', 'state.yaml'), `handoff: ${JSON.stringify(block)}\n`);
   const run = runResume(repo);
   assert.equal(run.status, 1, JSON.stringify(run.result));
   assert.equal(run.result['answer'], 'stale');
@@ -201,7 +201,7 @@ test('files outside the root, under a symlinked folder or in .git are stale; a d
 });
 
 test('a block with no lists is unverifiable at the CLI, exit 1', () => {
-  const { repo } = makeStateRepo('handoff:\n  branch: main\n');
+  const { repo } = makeEngineRepo('handoff:\n  branch: main\n');
   const run = runResume(repo);
   assert.equal(run.status, 1);
   assert.equal(run.result['answer'], 'unverifiable');
@@ -216,14 +216,16 @@ test('a HEAD that names a ref outside refs/heads is not called detached (review 
 });
 
 test('a refused files path says it cannot be checked, not only that it is missing (review round 3)', () => {
-  const { repo } = makeStateRepo('handoff: {branch: main, files: [.git/HEAD], uncommitted: []}\n');
+  const { repo } = makeEngineRepo('handoff: {branch: main, files: [.git/HEAD], uncommitted: []}\n');
   const reasons = runResume(repo).result['reasons'] as string[];
   assert.match(reasons[0] ?? '', /\.git\/HEAD .*cannot be checked/);
 });
 
 test('a state file that cannot be resolved is {ok: false, error} and no more (review round 3)', () => {
-  const run = runResume(makeTestRepo());
-  assert.equal(run.status, 2);
+  const repo = makeTestRepo();
+  writeFileSync(join(repo, '.git', 'weftwork'), 'a file where the engine folder goes\n');
+  const run = runResume(repo);
+  assert.equal(run.status, 2, JSON.stringify(run.result));
   assert.deepEqual(Object.keys(run.result).sort(), ['error', 'ok']);
 });
 
@@ -236,7 +238,7 @@ test('a HEAD git cannot read is exit 2, never ready (review round 3)', () => {
 });
 
 test('a handoff written over a dirty tree is ready while the tree stays as it was', () => {
-  const made = makeStateRepo(fixture);
+  const made = makeEngineRepo(fixture);
   writeFileSync(join(made.repo, 'tracked.txt'), 'two\n');
   writeFileSync(join(made.repo, 'null'), 'x\n');
   const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', files: ['tracked.txt'], note: 'Task 1.' });
@@ -249,7 +251,7 @@ test('a handoff written over a dirty tree is ready while the tree stays as it wa
 test('known limit: a file uncommitted at the handoff and deleted since is not seen', () => {
   // ready compares paths, not their status: the path is listed then and now
   // (docs/STATE.md). files is the only existence check.
-  const made = makeStateRepo(fixture);
+  const made = makeEngineRepo(fixture);
   writeFileSync(join(made.repo, 'tracked.txt'), 'two\n');
   const input = JSON.stringify({ next_skill: 'develop-tdd', branch: 'main', note: 'Keep editing tracked.txt.' });
   assert.equal(spawnSync('node', [handoffCli], { cwd: made.repo, input, encoding: 'utf8' }).status, 0);

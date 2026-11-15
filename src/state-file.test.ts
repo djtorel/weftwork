@@ -12,7 +12,8 @@ import { CST, Parser, parseDocument } from 'yaml';
 import { setField, type FieldValue } from './state-file.ts';
 
 const fixture = (name: string): string => readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8');
-const liveState = join(import.meta.dirname, '..', 'specs', 'state.yaml');
+// A copy of a real bigpowers-era state file (long waivers, folded scalars).
+const liveState = join(import.meta.dirname, 'fixtures', 'state.yaml');
 
 /** The data of `text`, with `path` set to `value` when one is given. */
 function dataWithField(text: string, path?: string[], value?: FieldValue): unknown {
@@ -189,7 +190,7 @@ test('an alias bomb is refused as a value, not thrown', () => {
 });
 
 // AC-e08s01-06
-test("this repository's own specs/state.yaml round-trips", () => {
+test('a real state file (the fixture copy) round-trips', () => {
   const text = readFileSync(liveState, 'utf8');
   const held = parseDocument(text).getIn(['handoff', 'next_skill']) as string;
   assert.equal(set(text, ['handoff', 'next_skill'], held), text);

@@ -1,31 +1,16 @@
 ---
-# Default rules, except for specs/state.yaml. The bigpowers timing helper
-# (scripts/bp-timing.sh) rewrites that one file with PyYAML on every
-# skill call. PyYAML does not indent lists, drops the leading ---, and can
-# exceed 80 columns, so the three rules it breaks skip that file only.
-# See BUG-001.
-#
-# document-start is an error, not the default warning. A warning exits 0,
-# so scripts/record-cycle-time.sh could drop the --- line from
-# specs/execution-status.yaml with Preflight and CI still green (BUG-004).
+# Default rules. document-start is an error, not the default warning, so a
+# tool that drops the leading --- fails Preflight and CI (BUG-004).
 extends: default
 
-# The one gitignored gate output that is YAML; yamllint skips the
-# others (JSON, Markdown) by default. Listed here, not via
-# ignore-from-file, which crashes when yamllint runs from a
-# subdirectory. All paths in this file match from the repository root,
-# so run yamllint there, as Preflight does (BUG-002).
+# src/fixtures/ holds test inputs kept in the style other tools write
+# (PyYAML reflows lines and drops the leading ---), so they stay as found.
 ignore: |
-  specs/verifications/ADVERSARIAL_LATEST.yaml
+  node_modules/
+  .specs/
+  .weftwork/
+  src/fixtures/
 
 rules:
   document-start:
     level: error
-    ignore: |
-      specs/state.yaml
-  indentation:
-    ignore: |
-      specs/state.yaml
-  line-length:
-    ignore: |
-      specs/state.yaml

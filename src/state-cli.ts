@@ -4,16 +4,16 @@
 // exit code carries the answer. Logic lives in state-fields.ts.
 //
 // Input: {"op": "set", "key": string, "value": unknown} or {"op": "get"}.
-// It always works on specs/state.yaml under the root of the repository that
-// holds the working directory; "key" is a dotted field name from
-// docs/STATE.md. Exit 0 when the file was written, already held the value, or
+// It always works on the state file in the engine's folder, <git dir>/weftwork,
+// of the worktree that holds the working directory, and a set creates the file
+// when it is missing; "key" is a dotted field name from docs/STATE.md. Exit 0 when the file was written, already held the value, or
 // was read; 1 when the engine refused (a key outside the table, a bad value,
 // a file it cannot read or keep); 2 for input it cannot read (not JSON, the
 // wrong shape, an unknown op, not in a git repository).
 import { printAnswer, readJsonObject } from './cli-io.ts';
 import { messageOf } from './errors.ts';
 import { readStateFields, setStateField } from './state-fields.ts';
-import { repositoryRoot } from './tree.ts';
+import { weftworkDir } from './ledger.ts';
 
 type Request = { op: 'set'; key: string; value: unknown } | { op: 'get' };
 
@@ -35,13 +35,9 @@ async function main(): Promise<void> {
   if (json.kind === 'refused') return printAnswer({ ok: false, error: json.error }, 2);
   const request = parseRequest(json.input);
   if (typeof request === 'string') return printAnswer({ ok: false, error: request }, 2);
-  let root: string;
-  try {
-    root = (await repositoryRoot(process.cwd())).toString();
-  } catch (error) {
-    return printAnswer({ ok: false, error: `${process.cwd()} is not in a git repository: ${messageOf(error)}` }, 2);
-  }
-  const result = request.op === 'get' ? readStateFields(root) : setStateField(root, request.key, request.value);
+  const dir = await weftworkDir(process.cwd());
+  if (dir === null) return printAnswer({ ok: false, error: `${process.cwd()} is not in a git repository` }, 2);
+  const result = request.op === 'get' ? readStateFields(dir) : setStateField(dir, request.key, request.value);
   printAnswer(result, result.ok ? 0 : 1);
 }
 

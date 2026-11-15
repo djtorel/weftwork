@@ -140,7 +140,7 @@ After a run, these cases apply only to a run that is not `done` and not
 
 Without `maxRuns`, these cases change nothing: the stop rules are off for
 a call whose ledger cannot be read, and the engine writes a note to
-stderr. This is residual F5 in `specs/security/REVIEW.md`. Set `maxRuns`
+stderr. This is residual F5 in `docs/security/REVIEW.md`. Set `maxRuns`
 to close it.
 
 `done` is never read from the ledger. It comes only from running the
@@ -174,10 +174,8 @@ checkout, in double quotes, so it pastes from any directory and from a
 checkout path with spaces. A checkout path with `$`, a backtick or `!` does
 not paste as is, since the shell expands those inside double quotes. The
 handoff CLI reads one JSON object on stdin with `next_skill`, `branch` and
-`note` (docs/STATE.md). It writes to the repository of the directory it runs
-in, and only into an existing `specs/state.yaml` that has a `handoff` key; it
-does not create either. In a repository without that file the command fails,
-so set `reserveRuns: 0` there (creating the file is a later story). The Claude Code
+`note` (docs/STATE.md). It writes the state file of the worktree it runs in,
+`<git dir>/weftwork/state.yaml`, and creates the file when it is missing. The Claude Code
 hook adds the detail as the last line of the reason with which it blocks the
 stop. The exit code stays 1 on the engine CLI and 2 on the hook. The answer
 is `failed`, not a new state, and it writes no state line.

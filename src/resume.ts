@@ -1,5 +1,5 @@
 // story: e08s04
-// The resume check: does the handoff block of specs/state.yaml still match
+// The resume check: does the handoff block of the state file still match
 // the repository? Stored state goes stale (R12), so a session that remembers
 // nothing checks the note before it acts on it. resumeReport is pure, like
 // liveReport in claude-live.ts; resume-cli.ts reads the file and git and
@@ -13,7 +13,7 @@
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 
-/** What the repository says now. `uncommitted` leaves out specs/state.yaml. */
+/** What the repository says now. */
 export type ResumeFacts = {
   /** The branch HEAD points to, or null when it is on none: detached, or a
    * ref outside refs/heads/. */

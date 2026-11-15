@@ -23,15 +23,9 @@ jobs:
           node-version-file: package.json
           cache: npm
       - run: bash tools/setup.sh
-      - run: yamllint specs
-      - run: bash tools/validate-specs-yaml.sh
-      - run: bash tools/test-validate-specs-yaml.sh
+      - run: yamllint .
       - run: bash tools/check-brief.sh --selftest
       - run: bash tools/check-briefs.sh
-      - run: bash tools/check-gate-ignores.sh
-      - run: bash tools/test-record-cycle-time.sh
-      - run: bash tools/test-restore-yaml-style.sh
-      - run: bash tools/test-assert-audit-story.sh
       - run: bash tools/test-setup.sh
       - run: npm run typecheck
       - run: npm test

@@ -181,7 +181,7 @@ function entryTexts(text: string, span: Span, key: string, value: MappingValue):
 }
 
 /** The number of places in `text` that break the yamllint rules this
- * repository applies to specs/state.yaml and that an entry can break: a line
+ * repository applies to the state file and that an entry can break: a line
  * that ends in a space or tab, a third blank line in a row, and a blank line
  * at the end of the file (review round 2, A1; round 3, A1, B2). */
 function lintFaults(text: string): number {

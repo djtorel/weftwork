@@ -80,7 +80,7 @@ const renamed = new Set(['R', 'C']);
  * folder whose only untracked file it is is not listed either. Not ok when
  * `cwd` is not in a repository, git fails, or a path is not UTF-8. Never
  * rejects. git status runs a clean filter that the repository's config names;
- * that is an accepted risk (A1 in specs/security/REVIEW.md, owner decision
+ * that is an accepted risk (A1 in docs/security/REVIEW.md, owner decision
  * 2026-11-13). */
 export async function uncommittedPaths(cwd: string, exclude: readonly string[] = []): Promise<{ ok: true; paths: string[] } | { ok: false; error: string }> {
   let output: Buffer;
