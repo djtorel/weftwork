@@ -19,8 +19,8 @@ const progressLine = /^\|\s*(\d+(?:\.\d+)*)\. [^|]*\|.*\|\s*Complete\s*\|/;
 
 const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
-/** The phases of `roadmap`, in the order they first appear, outside any
- * collapsed `<details>` block (a shipped milestone). */
+/** The phases of `roadmap`, in the order they first appear; a phase in a
+ * collapsed `<details>` block (a shipped milestone) is done. */
 function phases(roadmap: string): Phase[] {
   const found = new Map<string, Phase>();
   const get = (id: string, name: string): Phase => {
@@ -42,8 +42,13 @@ function phases(roadmap: string): Phase[] {
       current = null;
       continue;
     }
-    if (collapsed) continue;
     const listed = listLine.exec(text);
+    if (collapsed) {
+      // A shipped phase: kept as done, so its folder is not a new phase.
+      const id = listed?.[2] ?? heading.exec(text)?.[1];
+      if (id !== undefined) get(id, '').done = true;
+      continue;
+    }
     const titled = heading.exec(text);
     const progress = progressLine.exec(text);
     if (listed !== null) {

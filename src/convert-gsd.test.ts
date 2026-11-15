@@ -141,3 +141,8 @@ test('AC-e12s03b-08 a PLAN.md with no SUMMARY.md and no roadmap line is an open 
     ].join('\n'),
   );
 });
+
+test('AC-e12s03b-09 a phase of a shipped milestone in <details> stays out, even with a PLAN.md and no SUMMARY.md (review round 1)', () => {
+  const shipped = '<details>\n<summary>v1.0 - SHIPPED</summary>\n\n- [x] **Phase 1: Base** - Repo\n</details>\n';
+  assert.match(gsdSection(shipped, ['01-base'], 'gsd-era', ['01-base/01-01-PLAN.md']), /No open phases\./);
+});
