@@ -51,7 +51,9 @@ after the brief. Exit 0 pass, 1 block, 3 no verdict, 4 the done gate has not
 passed, or a UI change has no after screenshots of this tree (run
 `echo '{"phase":"after"}' | node src/ui-cli.ts`, `docs/UI.md`), 5 the round
 ceiling, 2 an error (`docs/REVIEW.md`). For a UI change the engine adds the
-screenshots to the brief; a reviewer's `UI-SCORE` is reported, never a gate. Do not edit
+screenshots, a design checklist and the `ui.design` reference to the brief,
+and hands reviewers the images in `WEFTWORK_IMAGES`; a design judgement call
+is a should-fix, and a reviewer's `UI-SCORE` is reported, never a gate. Do not edit
 files in the change while the review runs: a changed tree gives no verdict.
 A failed or timed-out reviewer counts as neither pass nor block. On exit 3
 (every reviewer failed), fix the cause and run again once; if it fails
