@@ -153,12 +153,12 @@ AC-e09s03-10  Given weftwork.yaml with budget.maxRuns 3
 ## Steps
 
 1. RED, then GREEN (AC-01 to 03). Write the tests in
-   `src/breaker.loop.test.ts` first and record the failure. Add
+   `src/breaker.reserve.test.ts` first and record the failure. Add
    `checkReserve(entries, maxRuns, reserveRuns)` to `src/breaker.ts`:
    null when `maxRuns` is undefined; the reserve is
    `min(reserveRuns ?? 1, maxRuns - 1)`; it gives `{ count, left }` when
    `0 < left <= reserve`.
-   → verify: `node --test src/breaker.test.ts src/breaker.loop.test.ts && npm run typecheck`
+   → verify: `node --test src/breaker.test.ts src/breaker.loop.test.ts src/breaker.reserve.test.ts && npm run typecheck`
 2. RED, then GREEN (AC-04, 05; R2). Add `reserveRuns` (0 to 1000) as a
    file-only key in `src/budget.ts` (`Limits`, `checkLimits`, the
    known-key list in the error) and `reserveRuns?: number` to

@@ -1,4 +1,4 @@
-// story: e06s04, e09s02
+// story: e06s04, e09s02, e09s03
 // The ways the engine stops a run that goes nowhere, as pure functions
 // over ledger entries so tests need no process and no repository.
 //
@@ -61,6 +61,38 @@ export function checkLoopCeiling(entries: LedgerEntry[], maxRuns: number | undef
   if (maxRuns === undefined) {
     return null;
   }
-  const count = entries.length - (entries.findLastIndex((entry) => entry.done) + 1);
+  const count = loopRuns(entries);
   return count >= maxRuns ? { state: 'exhausted', threshold: maxRuns, count } : null;
+}
+
+/** The runs of the loop: every run of any command since the last done. */
+function loopRuns(entries: LedgerEntry[]): number {
+  return entries.length - (entries.findLastIndex((entry) => entry.done) + 1);
+}
+
+/** The default handover reserve when the loop ceiling is on (e09s03). */
+export const defaultReserveRuns = 1;
+
+/** Runs used in the loop and runs left before the loop ceiling. */
+export type Reserve = { count: number; left: number };
+
+/**
+ * The handover reserve (e09s03): the runs used and left when the runs left
+ * under `maxRuns` are within the reserve, so the agent writes the handoff
+ * before the ceiling stops the loop. The reserve is `reserveRuns` (1 when
+ * undefined), clamped to `maxRuns - 1`. Null when the ceiling is off, the
+ * reserve is 0, or the ceiling is reached (it answers exhausted instead).
+ */
+export function checkReserve(
+  entries: LedgerEntry[],
+  maxRuns: number | undefined,
+  reserveRuns: number | undefined,
+): Reserve | null {
+  if (maxRuns === undefined) {
+    return null;
+  }
+  const reserve = Math.min(reserveRuns ?? defaultReserveRuns, maxRuns - 1);
+  const count = loopRuns(entries);
+  const left = maxRuns - count;
+  return left > 0 && left <= reserve ? { count, left } : null;
 }

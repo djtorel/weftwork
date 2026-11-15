@@ -36,16 +36,16 @@ tasks:
   - id: 1
     description: >-
       RED, then GREEN (AC-01 to 03). Write the tests in
-      src/breaker.loop.test.ts first and record the failure. Add
+      src/breaker.reserve.test.ts first and record the failure. Add
       checkReserve(entries, maxRuns, reserveRuns) to src/breaker.ts:
       null when maxRuns is undefined; the reserve is
       min(reserveRuns ?? 1, maxRuns - 1); it gives count and left
       when 0 < left <= reserve
     verify: >-
       node --test src/breaker.test.ts src/breaker.loop.test.ts
-      && npm run typecheck
+      src/breaker.reserve.test.ts && npm run typecheck
     risk: P2
-    status: todo
+    status: done
     allure:
       severity: normal
       categories:
