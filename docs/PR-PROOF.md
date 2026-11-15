@@ -18,20 +18,24 @@ plain lines for the Proof block of the PR template:
 ```text
 weftwork done gate: ready
 command: npm test
-answer: done, exit 0, passed, at 2026-11-15T10:00:00.000Z
+last run: done, exit 0, passed, at 2026-11-15T10:00:00.000Z
 budget: 3 runs in this loop, 1 failed run of this command before the pass
 ```
 
 | Exit | First line | Meaning | What to do |
 | ---- | ---------- | ------- | ---------- |
-| 0 | `ready` | The last run of the command is done, no later stop state, and the tree is the one that run saw | Open the PR for review |
+| 0 | `ready` | The last run of the command is done, no stop state after it, and the tree is the one that run saw | Open the PR for review |
 | 1 | `draft` | No run, a last run that is not done (failed, blocked, stalled, exhausted, killed, overridden), or a tree that changed after the run; a `why:` line says which | Write the handoff, open a draft PR with the block |
 | 2 | none | Bad input, no git working tree, or a ledger it cannot read; the reason is on stderr | Fix the cause and run it again |
 
 The command must be the exact string the engine ran: the ledger matches
-commands by text. A `detail:` line shows the stop rule's detail, such as
-the ceiling that was reached. `budget:` counts the runs of any command
-since the `done` before the last run, and the failed runs of this command.
+commands by text. When the engine logged a stop state for the
+command after its last run (blocked, stalled, exhausted, killed,
+overridden), a `stopped:` line names it and a `detail:` line shows the
+stop rule's detail, such as the ceiling that was reached. A refusal logs a
+state and no run, so the two lines are never merged. On `ready`, `budget:`
+counts the runs of any command since the `done` before the pass, and the
+failed runs of this command before it; on `draft`, it counts up to now.
 It reads the last 1 MiB of the ledger, as the stop rules do (F3). Tokens are
 shown only by the Claude Code Stop hook (`docs/BUDGET.md`).
 

@@ -22,7 +22,7 @@ test('a done run of the command on the tree as it is now: ready, with the budget
   assert.equal(proof.ready, true);
   assert.match(proof.text, /^weftwork done gate: ready$/m);
   assert.match(proof.text, /^command: npm test$/m);
-  assert.match(proof.text, /^answer: done, exit 0, passed, at 2026-11-15T10:00:00\.000Z$/m);
+  assert.match(proof.text, /^last run: done, exit 0, passed, at 2026-11-15T10:00:00\.000Z$/m);
   assert.match(proof.text, /^budget: 3 runs in this loop, 1 failed run of this command before the pass$/m);
 });
 
@@ -43,7 +43,7 @@ test('a later failed run after a pass: draft', () => {
   const entries = [run('npm test', true), run('npm test', false)];
   const proof = prProof({ entries, states: [], command: 'npm test', fingerprint: 'F' });
   assert.equal(proof.ready, false);
-  assert.match(proof.text, /^answer: failed, exit 1, exit-nonzero, at /m);
+  assert.match(proof.text, /^last run: not done, exit 1, exit-nonzero, at /m);
   assert.match(proof.text, /^why: the last run of this command is not done$/m);
 });
 
@@ -52,7 +52,8 @@ test('a run that ended exhausted: draft, with the stop state and its detail', ()
   const states = [stop('npm test', 'exhausted', 'maxFailures 3 reached')];
   const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
   assert.equal(proof.ready, false);
-  assert.match(proof.text, /^answer: exhausted, exit 1, exit-nonzero, at /m);
+  assert.match(proof.text, /^last run: not done, exit 1, exit-nonzero, at /m);
+  assert.match(proof.text, /^stopped: exhausted, at /m);
   assert.match(proof.text, /^detail: maxFailures 3 reached$/m);
   assert.match(proof.text, /^budget: 3 runs in this loop, 3 failed runs of this command in a row$/m);
 });
@@ -78,14 +79,26 @@ test('a run refused as blocked after a pass: draft, not run, with the reason', (
   const states = [{ ...stop('npm test', 'blocked', 'needs the owner'), at: '2026-11-15T11:00:00.000Z' }];
   const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
   assert.equal(proof.ready, false);
-  assert.match(proof.text, /^answer: blocked, not run, at 2026-11-15T11:00:00\.000Z$/m);
+  assert.match(proof.text, /^stopped: blocked, at 2026-11-15T11:00:00\.000Z$/m);
   assert.match(proof.text, /^detail: needs the owner$/m);
+  assert.match(proof.text, /^why: the engine stopped after the last run of this command$/m);
 });
 
 test('a refusal with no run at all: draft, the state, not run', () => {
   const states = [stop('npm test', 'blocked', 'needs the owner')];
   const proof = prProof({ entries: [], states, command: 'npm test', fingerprint: 'F' });
   assert.equal(proof.ready, false);
-  assert.match(proof.text, /^answer: blocked, not run, at /m);
+  assert.match(proof.text, /^last run: none$/m);
+  assert.match(proof.text, /^stopped: blocked, at /m);
   assert.match(proof.text, /^why: the ledger has no run of this command$/m);
+});
+
+test('a ceiling refusal after a pass and other runs: draft, the refusal on its own line, the runs after the pass counted (review round 1)', () => {
+  const entries = [run('npm test', true), run('lint', false), run('lint', false)];
+  const states = [{ ...stop('npm test', 'exhausted', 'maxRuns 2 reached'), at: '2026-11-15T12:00:00.000Z' }];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, false);
+  assert.match(proof.text, /^last run: done, exit 0, passed, at 2026-11-15T10:00:00\.000Z$/m);
+  assert.match(proof.text, /^stopped: exhausted, at 2026-11-15T12:00:00\.000Z$/m);
+  assert.match(proof.text, /^budget: 2 runs in this loop, 0 failed runs of this command in a row$/m);
 });

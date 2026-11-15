@@ -26,34 +26,34 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 /** Why the PR is not ready, or null when it is. */
 function whyNot(last: LedgerEntry | undefined, stop: StateEntry | undefined, fingerprint: string): string | null {
   if (last === undefined) return 'the ledger has no run of this command';
-  if (!last.done || (stop !== undefined && stop.state !== 'done')) return 'the last run of this command is not done';
+  if (!last.done) return 'the last run of this command is not done';
+  if (stop !== undefined && stop.state !== 'done') return 'the engine stopped after the last run of this command';
   if (last.fingerprint !== fingerprint) return 'the tree changed after the last run; run the engine again';
   return null;
 }
 
-/** The answer line: the state the engine logged, the exit code and reason of
- * the run, and when. A refusal before the run has a state and no run. */
-function answerLine(last: LedgerEntry | undefined, stop: StateEntry | undefined): string | null {
-  // Blocked is always a refusal: the engine never runs the command (e06s04).
-  if (last === undefined || stop?.state === 'blocked') {
-    return stop === undefined ? null : `answer: ${stop.state}, not run, at ${stop.at}`;
-  }
-  const state = stop?.state ?? (last.done ? 'done' : 'failed');
-  return `answer: ${state}, exit ${last.exitCode ?? 'none'}, ${last.reason}, at ${last.at}`;
+/** The last run of the command as the ledger logged it. A stop state is its
+ * own line: a refusal (blocked, or a ceiling before the run) logs a state and
+ * no run, so a state is never paired with a run by guess (review round 1). */
+function runLine(last: LedgerEntry | undefined): string {
+  if (last === undefined) return 'last run: none';
+  const state = last.done ? 'done' : 'not done';
+  return `last run: ${state}, exit ${last.exitCode ?? 'none'}, ${last.reason}, at ${last.at}`;
 }
 
-/** The budget used: runs of any command in the loop that ends at the last run
- * (since the done before it), and the failed runs of this command. */
-function budgetLine(entries: LedgerEntry[], last: LedgerEntry | undefined, command: string): string {
-  const upTo = last === undefined ? entries.length : entries.lastIndexOf(last) + 1;
-  const before = entries.slice(0, upTo);
-  if (last?.done === true) {
-    const runs = loopRuns(before.slice(0, -1)) + 1;
-    const failed = failingRun(before.slice(0, -1), command).length;
+/** The budget used. Ready: runs of any command in the loop that ended at the
+ * pass (since the done before it), and the failed runs of this command before
+ * it. Draft: the same counts over the whole ledger as read, so runs and
+ * refusals after the last run of this command count too. */
+function budgetLine(entries: LedgerEntry[], last: LedgerEntry | undefined, command: string, ready: boolean): string {
+  if (ready && last !== undefined) {
+    const before = entries.slice(0, entries.lastIndexOf(last));
+    const runs = loopRuns(before) + 1;
+    const failed = failingRun(before, command).length;
     return `budget: ${plural(runs, 'run')} in this loop, ${plural(failed, 'failed run')} of this command before the pass`;
   }
-  const failed = failingRun(before, command).length;
-  return `budget: ${plural(loopRuns(before), 'run')} in this loop, ${plural(failed, 'failed run')} of this command in a row`;
+  const failed = failingRun(entries, command).length;
+  return `budget: ${plural(loopRuns(entries), 'run')} in this loop, ${plural(failed, 'failed run')} of this command in a row`;
 }
 
 /** The proof for `command` from the ledger and the current tree. */
@@ -63,11 +63,12 @@ export function prProof(input: ProofInput): Proof {
   // The stop state of the last run, or of a refusal after it.
   const stop = states.findLast((entry) => entry.command === command && (last === undefined || entry.at >= last.at));
   const why = whyNot(last, stop, fingerprint);
-  const lines = [`weftwork done gate: ${why === null ? 'ready' : 'draft'}`, `command: ${terminalSafe(command)}`];
-  const answer = answerLine(last, stop);
-  if (answer !== null) lines.push(answer);
-  if (stop?.detail != null) lines.push(`detail: ${terminalSafe(stop.detail)}`);
+  const lines = [`weftwork done gate: ${why === null ? 'ready' : 'draft'}`, `command: ${terminalSafe(command)}`, runLine(last)];
+  if (stop !== undefined && stop.state !== 'done') {
+    lines.push(`stopped: ${stop.state}, at ${stop.at}`);
+    if (stop.detail !== null) lines.push(`detail: ${terminalSafe(stop.detail)}`);
+  }
   if (why !== null) lines.push(`why: ${why}`);
-  lines.push(budgetLine(entries, last, command));
+  lines.push(budgetLine(entries, last, command, why === null));
   return { ready: why === null, text: `${lines.join('\n')}\n` };
 }
