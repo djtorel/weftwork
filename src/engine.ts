@@ -1,4 +1,4 @@
-// story: e06s04, e09s02
+// story: e06s04, e09s02, e09s03
 // The engine: the order of the checks and the logging, so cli.ts stays a thin
 // shell and tests call the whole flow without a process.
 //
@@ -9,7 +9,9 @@
 // that cannot be counted is exhausted: a ledger that cannot be read (F5), a
 // run line that cannot be written, or a cut tail with no done. A failed or
 // stalled run may then take the owner's override record and answer
-// overridden (e06s05); no other state looks at the record.
+// overridden (e06s05); no other state looks at the record. A failed run
+// within the handover reserve (e09s03) carries a detail that tells the agent
+// to write the handoff before the loop ceiling stops the loop.
 //
 // `done` comes only from the gate, which never reads the ledger (C4). The
 // ledger only decides which not-done state a run ends in. The agent can edit
@@ -21,6 +23,7 @@ import {
   defaultStallAfter,
   checkCeiling,
   checkLoopCeiling,
+  checkReserve,
   checkStall,
   type Trip,
 } from './breaker.ts';
@@ -126,6 +129,21 @@ function uncountedReason(read: LedgerForRules, trip: Trip | null): string | null
   return hidden ? 'the ledger tail was cut with no done in it' : null;
 }
 
+/** The handoff CLI (e08s03) by absolute path, for any repository guarded. */
+const handoffCli = join(import.meta.dirname, 'handoff-cli.ts');
+
+/** The detail of a failed run within the handover reserve (e09s03), or none. */
+function reserveDetail(read: LedgerForRules, request: GateRequest): { detail?: string } {
+  const reserve = checkReserve(read.entries, request.maxRuns, request.reserveRuns);
+  if (reserve === null) {
+    return {};
+  }
+  const detail =
+    `${reserve.count} runs since the last done, ${reserve.left} left before the loop ceiling of ${request.maxRuns}: ` +
+    `write the handoff now with node ${JSON.stringify(handoffCli)} (JSON on stdin: next_skill, branch, note)`;
+  return { detail };
+}
+
 /** The stall rule, or null. */
 function stallStop(entries: LedgerEntry[], request: GateRequest): TrippedRule | null {
   const trip = checkStall(entries, request.command, request.stallAfter ?? defaultStallAfter);
@@ -196,7 +214,7 @@ function classify(verdict: Verdict, read: LedgerForRules, request: GateRequest):
   }
   const stop = ceilingStop(read, request) ?? stallStop(read.entries, request);
   if (stop === null) {
-    return [{ ...verdict, state: 'failed' }, null];
+    return [{ ...verdict, state: 'failed', ...reserveDetail(read, request) }, null];
   }
   return [{ ...verdict, state: stop.state, detail: stop.detail }, stop.threshold];
 }

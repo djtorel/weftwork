@@ -1,4 +1,4 @@
-// story: e07s01, e07s02
+// story: e07s01, e07s02, e09s03
 // The Claude Code adapter: the host's Stop input in, the host's answer out.
 // Exit 2 is the only block. Every other state allows the stop, with a
 // warning for the user. Only `done` is silent, and no text for any other
@@ -206,10 +206,13 @@ const failedLines: Record<Reason, string> = {
   passed: couldNotCheck('the run ended with reason passed'),
 };
 
-/** The one answer that blocks a run the engine reported: the command failed. */
+/** The one answer that blocks a run the engine reported: the command failed.
+ * A detail (the handover reserve, e09s03) is the last line, so the agent
+ * reads it before it goes on. */
 function blockFailed(answer: Answer): HookOutput {
+  const detail = answer.detail === undefined ? '' : `\n${answer.detail}`;
   return blockStop(
-    `not done (failed, ${answer.reason}): ${answer.command}\n${failedLines[answer.reason]}`,
+    `not done (failed, ${answer.reason}): ${answer.command}\n${failedLines[answer.reason]}${detail}`,
   );
 }
 

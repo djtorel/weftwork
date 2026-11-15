@@ -1,4 +1,4 @@
-// story: e09s01, e09s02
+// story: e09s01, e09s02, e09s03
 // The budget setting: the owner's limits for the engine's stop rules, read
 // from a user file and a repository file (docs/BUDGET.md). The built-in
 // defaults are overridden by the user file, which is overridden by the
@@ -10,14 +10,22 @@ import { isAbsolute, join } from 'node:path';
 import { parseDocument, type YAMLError } from 'yaml';
 import { defaultMaxFailures, defaultStallAfter } from './breaker.ts';
 import type { Failure } from './errors.ts';
-import { isLimit, limitKeys, limitRule, type GateRequest, type ParseResult } from './gate.ts';
-import { isRecord } from './json.ts';
+import { isLimit, limitKeys, limitRule, maxThreshold, type GateRequest, type ParseResult } from './gate.ts';
+import { isInteger, isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { repositoryRoot } from './tree.ts';
 
 /** The limits for one run. `maxRuns` is absent when no source sets it: the
- * loop ceiling is off by default (e09s02). */
-export type Limits = { stallAfter: number; maxFailures: number; maxRuns?: number };
+ * loop ceiling is off by default (e09s02). `reserveRuns` is absent when no
+ * file sets it; the engine then uses its default (e09s03). */
+export type Limits = { stallAfter: number; maxFailures: number; maxRuns?: number; reserveRuns?: number };
+
+/** The handover reserve (e09s03) is a file-only key: the request cannot set
+ * it, so the agent cannot turn the warning off. 0 turns it off. */
+const reserveKey = 'reserveRuns';
+
+/** Every key the `budget` mapping of a setting file may hold. */
+const budgetKeys: readonly string[] = [...limitKeys, reserveKey];
 
 /** One setting file's path, for the error text, and its contents. */
 export type SettingFile = { path: string; text: string };
@@ -114,10 +122,9 @@ function budgetMapping(data: unknown): { ok: true; budget: Record<string, unknow
 
 /** The limits in `budget`, or the first unknown key or bad value. */
 function checkLimits(budget: Record<string, unknown>): BudgetCheck {
-  const known: readonly string[] = limitKeys;
-  const unknown = Object.keys(budget).find((key) => !known.includes(key));
+  const unknown = Object.keys(budget).find((key) => !budgetKeys.includes(key));
   if (unknown !== undefined) {
-    return { ok: false, error: `budget.${clip(unknown)} is not a known key (known: ${limitKeys.join(', ')})` };
+    return { ok: false, error: `budget.${clip(unknown)} is not a known key (known: ${budgetKeys.join(', ')})` };
   }
   const limits: Partial<Limits> = {};
   for (const key of limitKeys) {
@@ -125,6 +132,13 @@ function checkLimits(budget: Record<string, unknown>): BudgetCheck {
     if (value === undefined) continue;
     if (!isLimit(key, value)) return { ok: false, error: `budget.${key} ${limitRule(key)}` };
     limits[key] = value;
+  }
+  const reserve = budget[reserveKey];
+  if (reserve !== undefined) {
+    if (!isInteger(reserve) || reserve < 0 || reserve > maxThreshold) {
+      return { ok: false, error: `budget.${reserveKey} must be an integer from 0 to ${maxThreshold}` };
+    }
+    limits.reserveRuns = reserve;
   }
   return { ok: true, budget: limits };
 }
@@ -202,5 +216,8 @@ export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv):
   if (!repo.ok) return repo;
   const resolved = resolveLimits({ user: user.file, repo: repo.file, request });
   if (!resolved.ok) return resolved;
-  return { ok: true, request: { ...request, ...resolved.limits } };
+  // Only the files set reserveRuns. parseRequest already ignores it, so this
+  // drop guards library callers that build a GateRequest themselves.
+  const { reserveRuns: _fromRequest, ...rest } = request;
+  return { ok: true, request: { ...rest, ...resolved.limits } };
 }

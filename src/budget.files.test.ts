@@ -1,4 +1,4 @@
-// story: e09s01
+// story: e09s01, e09s03
 // applyBudget: find weftwork.yaml at the repository root and the user file
 // under XDG_CONFIG_HOME (or ~/.config), read both under the file rules, and
 // set both limits on the request. Every test passes its own env, so none reads
@@ -130,4 +130,11 @@ test('a bad value in weftwork.yaml is refused with the full path and key', async
   const error = await errorOf(request(repo), noUser());
   assert.ok(error.includes(join(repo, 'weftwork.yaml')), error);
   assert.ok(error.includes('budget.maxFailures'), error);
+});
+
+test('AC-e09s03-07 a reserveRuns on the request is replaced by the files, or dropped', async () => {
+  const set = makeTestRepo({ 'weftwork.yaml': 'budget:\n  reserveRuns: 2\n' });
+  assert.equal((await limitsOf(request(set, { reserveRuns: 0 }), noUser())).reserveRuns, 2);
+  const unset = makeTestRepo();
+  assert.equal('reserveRuns' in (await limitsOf(request(unset, { reserveRuns: 0 }), noUser())), false);
 });

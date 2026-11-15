@@ -1,4 +1,4 @@
-// story: e06s02, e07s02
+// story: e06s02, e07s02, e09s03
 // Shared by the test files: temporary directories and temporary git
 // repositories, so no test runs a command in the real repository.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import {
+  appendEntry,
   ledgerPath,
   readLedger,
   readLedgerTail,
@@ -171,4 +172,22 @@ export function aliasBomb(): string {
     lines.push(`a${i}: &a${i} [${Array(9).fill(`*a${i - 1}`).join(', ')}]`);
   }
   return `${lines.join('\n')}\nbudget: {maxFailures: 2}\n`;
+}
+
+/** One run entry per command, written straight into the ledger of `repo`; a
+ * command named `pass` is a done run. */
+export async function seedLedger(repo: string, commands: string[]): Promise<void> {
+  const path = (await ledgerPath(repo)) as string;
+  const at = new Date('2026-11-14T03:00:00.000Z');
+  for (const command of commands) {
+    const done = command === 'pass';
+    const verdict = {
+      done,
+      exitCode: done ? 0 : 1,
+      reason: done ? ('passed' as const) : ('exit-nonzero' as const),
+      command,
+      fingerprint: 'F',
+    };
+    assert.deepEqual(await appendEntry(path, verdict, at), { ok: true });
+  }
 }

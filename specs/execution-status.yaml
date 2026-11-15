@@ -47,7 +47,7 @@ development_status:
   e09: in_progress
   e09s01: done
   e09s02: done
-  e09s03: todo
+  e09s03: done
   e09s04: todo
   e10: todo
   e11: todo
@@ -378,19 +378,22 @@ stories:
     effort_hours: 0.7472
     lead_time_minutes: 47
     bcp_per_hour: 6.7
+  e09s03:
+    effort_hours: 0.8811
+    lead_time_minutes: 59
+    bcp_per_hour: 3.4
 gate_trace:
   verdict: WAIVED
-  generated_at: "2026-11-14T22:30:00Z"
+  generated_at: "2026-11-15T03:30:00Z"
   rationale: >-
-    Release of the BUG-008 fix (branch fix-bug-008-second-sigterm). R1
-    fails for the undone e09s04, which has no code yet; the owner's
-    e09-only waiver covers it. R2 and R3 pass: every done story has verify
-    evidence. R4 gives CONCERNS (18 of 40 stories tagged): the untagged
-    stories are the research epics e01 to e05, which shipped docs, not
-    code. The oracle downgrade (about 61 percent heuristic links) turns
-    it into FAIL. trace-stories.sh, the completeness critic (0 blockers,
-    1 warning: BUG-008 is not a story in the matrix) and the blind-spot
-    check (0 HIGH) ran at fb61429. Owner waiver in state.yaml,
-    2026-11-14, for the BUG-008 fix only.
-  heuristic_ratio: 0.61
+    Release of e09s03 (branch e09s03-engine-reserve). R1 fails for the
+    undone e09s04, which has no code yet; the owner's e09-only waiver
+    covers it. R2 and R3 pass: every done story has verify evidence. R4
+    gives CONCERNS (18 of 40 stories tagged): the untagged stories are the
+    research epics e01 to e05, which shipped docs, not code. The oracle
+    downgrade (171 of 283 links heuristic, 60.4 percent) turns it into
+    FAIL. trace-stories.sh, the completeness critic (0 blockers, 0
+    warnings) and the blind-spot check (0 HIGH) ran at e006518. Owner
+    waiver in state.yaml, 2026-11-15, for the e09s03 release only.
+  heuristic_ratio: 0.604
   downgrade_applied: true

@@ -1,4 +1,4 @@
-// story: e09s01, e09s02
+// story: e09s01, e09s02, e09s03
 // The Claude Code hook applies the budget setting before the engine runs:
 // weftwork.yaml at the project's repository root and the user file under
 // XDG_CONFIG_HOME. Before e09s01 every hook run used the built-in limits. A bad
@@ -7,7 +7,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { cliEnv, cliPath, stopInput } from './hook-cli-test-helpers.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
@@ -79,4 +79,23 @@ test('AC-e09s02-10 weftwork.yaml with maxRuns 2: the second of two different fai
   assert.equal(second.status, 0);
   assert.match(second.stdout, /not done \(exhausted\)/);
   assert.match(second.stdout, /loop ceiling is 2/);
+});
+
+test('AC-e09s03-10 maxRuns 3: the second failure blocks with the handoff line, the third allows the stop', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxRuns: 3\n' });
+  const handoffCli = join(dirname(cliPath), 'handoff-cli.ts');
+  const first = runHook(repo, 'exit 1');
+  assert.equal(first.status, 2);
+  assert.doesNotMatch(first.stderr, /handoff/);
+  const second = runHook(repo, 'exit 2');
+  assert.equal(second.status, 2, 'the reserve still blocks the stop');
+  const last = second.stderr.trimEnd().split('\n').at(-1) ?? '';
+  assert.equal(
+    last,
+    '2 runs since the last done, 1 left before the loop ceiling of 3: write the handoff now with ' +
+      `node ${JSON.stringify(handoffCli)} (JSON on stdin: next_skill, branch, note)`,
+  );
+  const third = runHook(repo, 'exit 3');
+  assert.equal(third.status, 0);
+  assert.match(third.stdout, /not done \(exhausted\)/);
 });
