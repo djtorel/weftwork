@@ -207,11 +207,16 @@ export function roundReport(round: { verdict: RoundVerdict; round: number; maxRo
     const followUps = result.ok && result.followUp.length > 0 ? `, ${result.followUp.length} follow-up` : '';
     lines.push(result.ok ? `${label}: ${result.mustFix.length} must-fix, ${result.shouldFix.length} should-fix${followUps}` : `${label}: failed, ${terminalSafe(result.error)}`);
   });
+  // Ids count each kind across reviewers in council order, the order
+  // storedFindings logs them in (e13s05, review-outcome.ts).
+  const count = { m: 0, s: 0, f: 0 };
+  const id = (kind: 'm' | 's' | 'f') => `r${round.round}${kind}${++count[kind]}`;
   for (const result of round.results) {
     if (!result.ok) continue;
-    for (const finding of result.mustFix) lines.push(`must-fix (${terminalSafe(result.name)}): ${terminalSafe(finding)}`);
-    for (const finding of result.shouldFix) lines.push(`should-fix (${terminalSafe(result.name)}): ${terminalSafe(finding)}`);
-    for (const finding of result.followUp) lines.push(`follow-up (${terminalSafe(result.name)}): ${terminalSafe(finding)}`);
+    const name = terminalSafe(result.name);
+    for (const finding of result.mustFix) lines.push(`must-fix ${id('m')} (${name}): ${terminalSafe(finding)}`);
+    for (const finding of result.shouldFix) lines.push(`should-fix ${id('s')} (${name}): ${terminalSafe(finding)}`);
+    for (const finding of result.followUp) lines.push(`follow-up ${id('f')} (${name}): ${terminalSafe(finding)}`);
   }
   for (const result of round.results) {
     if (result.ok && result.score !== undefined) lines.push(`ui score (${terminalSafe(result.name)}): ${result.score} of 10, reported, not a gate`);
@@ -228,9 +233,9 @@ export function exhaustedReport(rounds: ReviewEntry[], maxRounds: number): strin
   const last = rounds.at(-1);
   if (last !== undefined) {
     lines.push(`last round: ${verdictText[last.review]}, at ${last.at}`);
-    for (const finding of last.mustFix) lines.push(`unresolved must-fix ${terminalSafe(finding)}`);
-    for (const finding of last.shouldFix) lines.push(`unresolved should-fix ${terminalSafe(finding)}`);
-    for (const finding of last.followUp ?? []) lines.push(`unresolved follow-up ${terminalSafe(finding)}`);
+    last.mustFix.forEach((finding, index) => lines.push(`unresolved must-fix r${last.round}m${index + 1} ${terminalSafe(finding)}`));
+    last.shouldFix.forEach((finding, index) => lines.push(`unresolved should-fix r${last.round}s${index + 1} ${terminalSafe(finding)}`));
+    (last.followUp ?? []).forEach((finding, index) => lines.push(`unresolved follow-up r${last.round}f${index + 1} ${terminalSafe(finding)}`));
   }
   return `${lines.join('\n')}\n`;
 }

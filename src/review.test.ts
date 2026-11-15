@@ -47,7 +47,7 @@ test('a FOLLOW-UP is read on its own and never blocks (e13s02)', () => {
   assert.equal(roundVerdict([result]), 'pass');
   const text = roundReport({ verdict: 'pass', round: 1, maxRounds: 3, results: [result] });
   assert.match(text, /^reviewer 1, codex: 0 must-fix, 0 should-fix, 1 follow-up$/m);
-  assert.match(text, /^follow-up \(codex\): src\/old\.ts:4 an old bug$/m);
+  assert.match(text, /^follow-up r1f1 \(codex\): src\/old\.ts:4 an old bug$/m);
 });
 
 test('a later round is told what changed since the last round and which must-fix findings are open (e13s02)', () => {
@@ -157,14 +157,22 @@ test('the report: verdict, round, each reviewer and every finding, for the PR', 
   assert.match(text, /^round: 2 of 3$/m);
   assert.match(text, /^reviewer 1, codex: 1 must-fix, 1 should-fix$/m);
   assert.match(text, /^reviewer 2, claude: failed, timed out after 1200 s$/m);
-  assert.match(text, /^must-fix \(codex\): a\.ts:1 x$/m);
-  assert.match(text, /^should-fix \(codex\): b\.ts:2 y$/m);
+  assert.match(text, /^must-fix r2m1 \(codex\): a\.ts:1 x$/m);
+  assert.match(text, /^should-fix r2s1 \(codex\): b\.ts:2 y$/m);
 });
 
 test('the exhausted report lists the last round\'s follow-ups too (review round 1)', () => {
   const last = { ...entry('feat/a', 3), followUp: ['(codex): old.ts:1 old'] };
-  assert.match(exhaustedReport([last], 3), /^unresolved follow-up \(codex\): old\.ts:1 old$/m);
+  assert.match(exhaustedReport([last], 3), /^unresolved follow-up r3f1 \(codex\): old\.ts:1 old$/m);
   assert.doesNotMatch(exhaustedReport([entry('feat/a', 3)], 3), /follow-up/);
+});
+
+test('ids count each kind across reviewers in council order, as the ledger stores them (e13s05)', () => {
+  const text = roundReport({ verdict: 'block', round: 1, maxRounds: 3, results: [passed('codex', ['a.ts:1 x'], ['b.ts:1 y']), failed('gemini'), passed('claude', ['c.ts:1 z', 'd.ts:1 w'])] });
+  assert.match(text, /^must-fix r1m1 \(codex\): a\.ts:1 x$/m);
+  assert.match(text, /^should-fix r1s1 \(codex\): b\.ts:1 y$/m);
+  assert.match(text, /^must-fix r1m2 \(claude\): c\.ts:1 z$/m);
+  assert.match(text, /^must-fix r1m3 \(claude\): d\.ts:1 w$/m);
 });
 
 test('control characters in a finding are escaped, so a reviewer cannot forge a report line', () => {
