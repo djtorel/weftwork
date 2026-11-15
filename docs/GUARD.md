@@ -12,7 +12,7 @@ tool call that would change one of these:
 | User budget file | `$XDG_CONFIG_HOME/weftwork/config.yaml`, or `$HOME/.config/weftwork/config.yaml` |
 | Project Claude Code settings | `.claude/settings.json` and `.claude/settings.local.json` |
 | User Claude Code settings | `$CLAUDE_CONFIG_DIR/settings.json`, or `~/.claude/settings.json` |
-| The engine's folder | `<git dir>/weftwork/`: the ledger, the state file, the call record and `override.json` |
+| The engine's folder | `<git dir>/weftwork/`: the ledger, the decision log, the state file, the call record and `override.json` |
 
 One file in the engine's folder stays writable: `BACKLOG.md`, the local
 backlog. In a main checkout the backlog's folder is the engine's folder.
@@ -40,8 +40,8 @@ changes nothing. Other `PreToolUse` items stay as they are.
   blocked when it holds a protected absolute path or one of these names:
   `weftwork.yaml`, `.claude/settings`, `.git/weftwork`,
   `weftwork/config.yaml`, `weftwork/state.yaml`, `ledger.jsonl`,
-  `override.json`, `last-call.json`, `claude-install-cli`. The install
-  command is on the list because it rewrites the hook entries.
+  `decisions.jsonl`, `override.json`, `last-call.json`,
+  `claude-install-cli`. The install command is on the list because it rewrites the hook entries.
 - **Any other tool** is allowed. An input the guard cannot read is blocked.
 
 A block exits 2, and Claude Code shows the agent the reason. Exit 2 blocks
@@ -53,6 +53,15 @@ read 2026-11-15). Every block adds one line to the ledger:
 ```
 
 The stop rules and the counts do not read guard lines.
+
+## Ask triggers
+
+<!-- story: e11s04 -->
+
+In a git worktree the guard also blocks the two mechanical ask triggers:
+a file tool that writes outside the worktree, and a Bash `git push` that
+would update `main` or `master`. `docs/ASK.md` says how they decide and
+what they do not see.
 
 ## The engine still writes
 

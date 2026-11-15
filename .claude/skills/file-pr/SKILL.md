@@ -26,7 +26,8 @@ Problem, Change, Proof, Review, Decisions.
 
 - Proof: the commands you ran and what they showed; screenshots for UI.
 - Review: the `review-loop` line and any declined findings with reasons.
-- Decisions: each choice you made alone, one line each.
+- Decisions: each choice you made alone, one line each: the output of
+  `node src/decision-cli.ts list` (`docs/ASK.md`).
 
 Add no model or harness line and no AI attribution: a squash merge can carry
 the description into the commit, and `CONVENTIONS.md` bans that.

@@ -15,10 +15,10 @@ after(cleanupTempDirs);
 
 const guardCli = join(import.meta.dirname, 'guard-cli.ts');
 
-function runGuard(input: string, project: string | null) {
+function runGuard(input: string, project: string | null, env: NodeJS.ProcessEnv = {}) {
   const result = spawnSync(process.execPath, [guardCli], {
     cwd: makeTempDir(),
-    env: { ...cliEnv(project), HOME: makeTempDir() },
+    env: { ...cliEnv(project), HOME: makeTempDir(), ...env },
     input,
     encoding: 'utf8',
     timeout: 20000,
@@ -68,4 +68,20 @@ test('AC-e11s01-10 a fault blocks: no project dir, input that is not JSON', () =
   const notJson = runGuard('{', repo);
   assert.equal(notJson.status, 2);
   assert.match(notJson.stderr, /not JSON/);
+});
+
+test('AC-e11s04-10 the hook blocks a push to main and a write outside the worktree, and logs each', async () => {
+  const repo = makeTestRepo();
+  const env = { TMPDIR: makeTempDir() };
+  const push = runGuard(toolInput(repo, 'Bash', { command: 'git push origin main' }), repo, env);
+  assert.equal(push.status, 2, push.stderr);
+  assert.match(push.stderr, /owner's step/);
+  const outside = join(makeTempDir(), 'x.md');
+  const write = runGuard(toolInput(repo, 'Write', { file_path: outside, content: 'x' }), repo, env);
+  assert.equal(write.status, 2, write.stderr);
+  assert.match(write.stderr, /outside the worktree/);
+  const scratch = runGuard(toolInput(repo, 'Write', { file_path: join(env.TMPDIR, 'body.md'), content: 'x' }), repo, env);
+  assert.equal(scratch.status, 0, scratch.stderr);
+  const targets = (await ledgerLines(repo)).map((line) => (line as { target: string }).target);
+  assert.deepEqual(targets, ['git push', outside]);
 });

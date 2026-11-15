@@ -123,7 +123,7 @@ export async function openRegular(path: string, flags: number, mode?: number): P
  * made 0700 and the file 0600, since a line may hold a command string that
  * holds a secret (T8). Never throws.
  */
-async function writeLine(path: string, line: object): Promise<AppendResult> {
+export async function writeLine(path: string, line: object): Promise<AppendResult> {
   let handle: FileHandle | undefined;
   try {
     await mkdir(dirname(path), { recursive: true, mode: 0o700 });
@@ -276,7 +276,7 @@ export async function readLedger(path: string): Promise<LedgerRead> {
  * is true. Also returns the state lines. Never throws.
  */
 /** The last `maxBytes` bytes of an open file, cut to whole lines. */
-async function tailText(
+export async function tailText(
   handle: FileHandle,
   maxBytes: number,
 ): Promise<{ text: string; truncated: boolean }> {
