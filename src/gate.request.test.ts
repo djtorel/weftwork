@@ -1,4 +1,4 @@
-// story: e06s04, e09s02
+// story: e06s04, e09s02, e09s03
 // The three new input keys of parseRequest (e06s04 AC-15): blocked,
 // stallAfter and maxFailures.
 import { test } from 'node:test';
@@ -63,4 +63,10 @@ test('AC-e06s04-15 a request without the new keys has none of them', () => {
   for (const key of ['blocked', 'stallAfter', 'maxFailures', 'maxRuns']) {
     assert.equal(key in result.request, false);
   }
+});
+
+test('AC-e09s03-07 a request reserveRuns is not read: only the setting files set it', () => {
+  const result = parse({ reserveRuns: 0 });
+  assert.ok(result.ok);
+  assert.equal('reserveRuns' in result.request, false);
 });

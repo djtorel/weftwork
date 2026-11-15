@@ -1,4 +1,4 @@
-// story: e09s01, e09s02
+// story: e09s01, e09s02, e09s03
 // resolveLimits: the built-in limits, overridden by the user file, overridden
 // by the repository file; a request value is used only when it is lower. A
 // file that cannot be used is an error that names the file and the key.
@@ -263,4 +263,39 @@ test('AC-e09s02-07 a request maxRuns is checked against the user file as well', 
   const file = user('budget:\n  maxRuns: 4\n');
   assert.equal(limitsOf({ user: file, request: { maxRuns: 2 } }).maxRuns, 2);
   assert.equal(limitsOf({ user: file, request: { maxRuns: 9 } }).maxRuns, 4);
+});
+
+// e09s03: reserveRuns, the handover reserve. A file-only key: the request
+// cannot set it, so the agent cannot turn the warning off.
+test('AC-e09s03-04 reserveRuns from 0 to 1000 is accepted', () => {
+  assert.equal(limitsOf({ repo: repo('budget:\n  reserveRuns: 0\n') }).reserveRuns, 0);
+  assert.equal(limitsOf({ repo: repo('budget:\n  reserveRuns: 1000\n') }).reserveRuns, 1000);
+});
+
+for (const value of ['-1', '1001', '2.5', '"3"']) {
+  test(`AC-e09s03-04 reserveRuns ${value} is refused, naming the file and budget.reserveRuns`, () => {
+    const error = errorOf({ repo: repo(`budget:\n  reserveRuns: ${value}\n`) });
+    assert.match(error, /\/repo\/weftwork\.yaml: budget\.reserveRuns must be an integer from 0 to 1000/);
+  });
+}
+
+test('AC-e09s03-04 an unknown key error lists reserveRuns as known', () => {
+  assert.match(errorOf({ repo: repo('budget:\n  maxFailure: 2\n') }), /known: .*reserveRuns/);
+});
+
+test('AC-e09s03-04 with no source setting reserveRuns it stays unset', () => {
+  assert.equal('reserveRuns' in limitsOf({ repo: repo('budget:\n  maxRuns: 4\n') }), false);
+});
+
+test('AC-e09s03-05 the repository file reserveRuns overrides the user file', () => {
+  assert.equal(limitsOf({ user: user('budget:\n  reserveRuns: 2\n') }).reserveRuns, 2);
+  const both = { user: user('budget:\n  reserveRuns: 2\n'), repo: repo('budget:\n  reserveRuns: 1\n') };
+  assert.equal(limitsOf(both).reserveRuns, 1);
+});
+
+test('AC-e09s03-07 a request reserveRuns is ignored, lower or higher', () => {
+  const file = repo('budget:\n  reserveRuns: 2\n');
+  assert.equal(limitsOf({ repo: file, request: { reserveRuns: 0 } }).reserveRuns, 2);
+  assert.equal(limitsOf({ repo: file, request: { reserveRuns: 9 } }).reserveRuns, 2);
+  assert.equal('reserveRuns' in limitsOf({ request: { reserveRuns: 0 } }), false);
 });
