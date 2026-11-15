@@ -7,3 +7,5 @@ see `TSTACK-LICENSE`). Changes: they follow this repository's rules
 itself, `review-loop` is tstack's `sol-loop` run through the Codex CLI, and
 `file-pr` adds no model line, because a squash merge can carry the PR body into
 the commit. `docs/research/R17-practitioner-autonomy.md` explains why.
+
+`setup-project` is our own: it drives `src/setup-cli.ts` (`docs/SETUP.md`).
