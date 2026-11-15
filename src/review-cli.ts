@@ -15,8 +15,8 @@ import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } 
 import { prProof } from './pr-proof.ts';
 import type { RoundVerdict } from './review-ledger.ts';
 import { loadReview } from './review-setting.ts';
-import { groundResults, roundScope } from './review-scope.ts';
-import { diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
+import { groundResults, roundScope, ruleFiles } from './review-scope.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
 import { currentBranch, fingerprintTree } from './tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './ui.ts';
 import { loadUi, type UiSetting } from './ui-setting.ts';
@@ -79,7 +79,7 @@ async function main(): Promise<void> {
 
   const round = roundsDone(rounds) + 1;
   const later = last !== undefined && scope.changedSinceLast !== null ? { round, changed: scope.changedSinceLast, open: last.mustFix } : null;
-  const parts = [brief.replace(/\n*$/, '')];
+  const parts = [brief.replace(/\n*$/, ''), auditPrompt({ sensitive: sensitive || scope.sensitiveBy !== null, ruleFiles: await ruleFiles(scope.root) })];
   if (ready !== null) parts.push(uiPrompt(weftwork, ready, design));
   if (later !== null) parts.push(laterRoundPrompt(round, later.changed, later.open));
   const prompt = parts.join('\n\n');

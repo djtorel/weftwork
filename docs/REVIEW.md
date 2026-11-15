@@ -1,6 +1,6 @@
 # The review council
 
-<!-- story: e11s03, e13s02 -->
+<!-- story: e11s03, e13s02, e13s03 -->
 
 Before a pull request, a council of reviewer models reads the change. The
 engine runs the reviewers, reads their findings and counts the rounds, so
@@ -14,7 +14,7 @@ echo '{"command":"npm test","brief":"Review only. ..."}' | node src/review-cli.t
 | Field | What it is |
 | --- | --- |
 | `command` | The verify command, the exact string the engine ran. The council runs only when the done gate passed for it on this tree (`docs/PR-PROOF.md`). |
-| `brief` | What the reviewers read: the repository, the base, the intent, what is out of scope. The engine adds the reply format after it. |
+| `brief` | What the reviewers read: the repository, the base, the intent, what is out of scope, the checks run. The engine adds the audit checklist and the reply format after it. |
 | `base` | The commit the change is measured from, for the UI check (`docs/UI.md`), the diff size and `sensitive_paths`. Optional; by default the merge base of `HEAD` with `origin/HEAD`, `origin/main` or `main`. |
 | `sensitive` | `true` for a change to security, permissions, auth, data loss or concurrency: the ceiling is then `max_rounds_sensitive`. Optional, `false` by default. `sensitive_paths` can also set it, from the files. |
 
@@ -75,6 +75,31 @@ reviewer counts as neither a pass nor a block, and the report says why. The
 command must be read-only: give it its read-only mode (`--sandbox read-only`
 for Codex). The engine checks the tree after the round. When it changed, the
 round has no verdict.
+
+## The audit
+
+After the brief the engine adds the same checklist to every round, so a
+thin brief cannot drop a check (R19: what Anthropic's and OpenAI's reviewers
+look at):
+
+1. Correctness: the intended case, the callers of what changed, error
+   paths and edge cases the intent names.
+2. Proof: a test for each behaviour change that would fail without it,
+   and whether the brief's claims about checks match the repository.
+3. Rules: the rule files at the repository root that exist (`AGENTS.md`,
+   `CLAUDE.md`, `CONVENTIONS.md`, `REVIEW.md`, regular files only), a
+   change that breaks one, and a doc the change makes out of date.
+4. Scope: code, tests, options or guards the intent does not need.
+5. Security, only for a sensitive change (`sensitive` or a
+   `sensitive_paths` match): outside input reaching a shell, a path or a
+   parser; traversal and symlinks; secrets; a check that fails open; a race
+   between a check and its use.
+
+The reviewer may run read-only commands, such as a focused test, to
+confirm a finding (OpenAI found execution gave fewer false alarms, R19). A
+finding it could not confirm is a should-fix. Whether a command runs
+depends on the reviewer's sandbox: Codex's `read-only` sandbox stops any
+command that writes a file.
 
 ## Grounding and later rounds
 

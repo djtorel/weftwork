@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { anchorOf, changedBetween, diffLines, groundResults, sensitiveFiles, snapshotTree } from './review-scope.ts';
+import { anchorOf, changedBetween, diffLines, groundResults, ruleFiles, sensitiveFiles, snapshotTree } from './review-scope.ts';
 import type { ReviewerResult } from './review.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
@@ -101,4 +101,12 @@ test('a must-fix that names no file and line, a missing file, a line past the en
     'dir:1 a folder [not grounded: dir is not a file in the repository]',
     'out/x:1 through a symlink [not grounded: out/x is outside the repository]',
   ]);
+});
+
+test('the rule files the reviewer is told to read: the ones of a fixed list that are files at the repository root (e13s03)', async () => {
+  const repo = makeTestRepo({ 'AGENTS.md': 'rules\n', 'REVIEW.md': 'review\n' });
+  mkdirSync(join(repo, 'CONVENTIONS.md'));
+  symlinkSync('AGENTS.md', join(repo, 'CLAUDE.md'));
+  assert.deepEqual(await ruleFiles(repo), ['AGENTS.md', 'REVIEW.md']);
+  assert.deepEqual(await ruleFiles(makeTestRepo()), []);
 });
