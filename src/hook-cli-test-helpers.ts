@@ -73,10 +73,15 @@ export function stopInput(cwd: string): string {
   return JSON.stringify({ hook_event_name: 'Stop', cwd, stop_hook_active: false });
 }
 
-/** Kill `pid` if it is still there: a test must not leave its command running. */
+/** Kill `pid` if it is still there: a test must not leave its command running.
+ * It can exit between the check and the kill (CI run 43776342542): ESRCH then
+ * means it is gone, which is the goal. */
 export function killIfAlive(pid: number): void {
-  if (isAlive(pid)) {
+  if (!isAlive(pid)) return;
+  try {
     process.kill(pid, 'SIGKILL');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
   }
 }
 
