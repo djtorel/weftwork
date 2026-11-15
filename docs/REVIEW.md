@@ -15,6 +15,7 @@ echo '{"command":"npm test","brief":"Review only. ..."}' | node src/review-cli.t
 | --- | --- |
 | `command` | The verify command, the exact string the engine ran. The council runs only when the done gate passed for it on this tree (`docs/PR-PROOF.md`). |
 | `brief` | What the reviewers read: the repository, the base, the intent, what is out of scope. The engine adds the reply format after it. |
+| `base` | The commit the change is measured from, for the UI check (`docs/UI.md`). Optional; read only when `ui` is set. |
 | `sensitive` | `true` for a change to security, permissions, auth, data loss or concurrency: the ceiling is then `max_rounds_sensitive`. Optional, `false` by default. |
 
 ## The setting
@@ -71,11 +72,13 @@ round has no verdict.
 | 0 | `weftwork review: pass` | No must-fix from any reviewer that answered | File the PR; list the should-fix findings in it |
 | 1 | `weftwork review: block` | A must-fix | Fix it, pass the done gate again, review again |
 | 3 | `weftwork review: no verdict` | Every reviewer failed, or the tree changed during the review | Fix the cause, or review with a fresh-context subagent and say so in the PR |
-| 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree | Run the engine first |
+| 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree, or the change touches `ui.paths` and there are no after screenshots of this tree (`docs/UI.md`) | Run the engine first, or take the after screenshots |
 | 5 | `weftwork review: exhausted` | The rounds on this branch reached the ceiling | Open the PR with the unresolved findings listed |
 | 2 | none | Bad input, no git working tree, a bad setting file, a ledger it cannot read or write; the reason is on stderr | Fix the cause |
 
-Only a must-fix blocks. There is no score. A round that ran (exit 0, 1
+Only a must-fix blocks. A reviewer of a UI change may add a
+`UI-SCORE: <0 to 10>` line; the report shows it, and it never gates
+(`docs/UI.md`). A round that ran (exit 0, 1
 or 3) adds one review line to the ledger, with the branch, the round, the
 ceiling and the findings (at most 50 of each kind, 500 characters each):
 

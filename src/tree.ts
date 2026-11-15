@@ -34,7 +34,7 @@ type Entry = Described & { path: Buffer };
 
 /** Run git in `cwd`. core.fsmonitor=false stops a repository's own config
  * from naming a program for git to run. */
-async function gitOutput(cwd: string, args: string[]): Promise<Buffer> {
+export async function gitOutput(cwd: string, args: string[]): Promise<Buffer> {
   const { stdout } = await run('git', ['-c', 'core.fsmonitor=false', ...args], {
     cwd,
     encoding: 'buffer',

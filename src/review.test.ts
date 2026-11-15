@@ -34,6 +34,15 @@ test('an approval with no findings', () => {
   assert.deepEqual(parseReply('VERDICT: APPROVE\n'), { ok: true, mustFix: [], shouldFix: [] });
 });
 
+test('a UI-SCORE line is read as a number from 0 to 10; it never blocks (e11s05)', () => {
+  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 2\n'), { ok: true, mustFix: [], shouldFix: [], score: 2 });
+  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 7.5/10\n'), { ok: true, mustFix: [], shouldFix: [], score: 7.5 });
+  assert.deepEqual(parseReply('VERDICT: APPROVE\nUI-SCORE: 11\n'), { ok: true, mustFix: [], shouldFix: [] });
+  const low: ReviewerResult = { name: 'a', ok: true, mustFix: [], shouldFix: [], score: 0 };
+  assert.equal(roundVerdict([low]), 'pass');
+  assert.match(roundReport({ verdict: 'pass', round: 1, maxRounds: 3, results: [low] }), /^ui score \(a\): 0 of 10, reported, not a gate$/m);
+});
+
 test('a reply with no VERDICT line cannot be read: the reviewer failed', () => {
   const parsed = parseReply('MUST-FIX a.ts:1 x');
   assert.equal(parsed.ok, false);
