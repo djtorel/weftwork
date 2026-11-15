@@ -102,3 +102,37 @@ Preflight after the fixes: 851 of 851 (one test fewer), exit 0.
   comes from the install location, not from the agent.
 - Not a code finding: `trace-stories.sh` does not credit a story that is
   the last id of a multi-story header line (verify-work evidence).
+
+## Second run (after request-review)
+
+**Diff:** `git diff dbaeabb..HEAD` (the review changes), then the full
+`main...HEAD` again for sizes, patterns and commits.
+**Run:** 2026-11-15, after request-review round 3 (a2acc2e).
+**Result:** PASS after one fix made in this run.
+
+### Failed and fixed in this run
+1. **Line over 120 columns.** `src/cli.loop.test.ts:98` (131 columns,
+   added in review round 1) is two lines now.
+
+### Checked
+- ✓ Code changes since the first audit: the reserve line quotes the path
+  and names the handoff CLI input (`src/engine.ts`, one line); a comment
+  in `applyBudget`; `seedLedger` moved into `src/test-helpers.ts` with the
+  same body. No new dependency, spawn or write.
+- ✓ No secrets, `any`, `@ts-ignore`, `eslint-disable` or `as unknown as`
+  in `main...HEAD`.
+- ✓ Every source file under 300 lines (`src/engine.ts` 299). Test files:
+  `src/engine.loop.test.ts` 301 (319 on main), `src/engine.reserve.test.ts`
+  119.
+- ✓ The other lines over 120 columns in `src/engine.loop.test.ts` were
+  already on main (e09s02).
+- ✓ New tests go through `runEngine` and `checkReserve`; the killed test
+  aborts a real run, the override test writes a real record.
+- ✓ 23 commits, each with a `Story: e09s03` trailer, none with an
+  attribution footer.
+- ✓ Preflight: 855 of 855, exit 0. Completeness critic: BLOCKER 0,
+  WARNING 0. Blind spots: HIGH 0.
+
+### Red Flags
+- None skipped. The round-3 fixes (a9aea6f, 89bf2a2) were not re-reviewed
+  by the reviewer pair; this audit covers them.
