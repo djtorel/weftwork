@@ -71,8 +71,14 @@ no ADR folder: a `Decisions` or `Key Decisions` section in `PROJECT.md` or
 number, with its goal, its success criteria as `Done when:`, each open plan,
 and a link to its folder in `.gsd-planning/phases/` (or to `ROADMAP.md` when
 it has none). A phase is done when its line is ticked, the Progress table
-says `Complete`, or every plan is ticked; a shipped milestone collapsed in
-`<details>` is left out. Plan files (`*-PLAN.md`) are not read.
+says `Complete`, or every plan is done; a shipped milestone collapsed in
+`<details>` is left out. A `<id>-PLAN.md` in a phase folder with no
+`<id>-SUMMARY.md` beside it is open, as GSD itself counts it, even when the
+roadmap does not list it: it joins its phase's item as `Open plan <id>
+(<file>, not on the roadmap)`, and a phase folder the roadmap does not list
+becomes an item marked `Not on the roadmap.` A phase ticked or `Complete` on
+the roadmap stays done. Only file names are read, not what is in a plan;
+GSD 2's `.gsd/` layout is not converted.
 
 Nothing is deleted. Nothing is committed: the owner's agent commits the
 result, with the new AGENTS.md, in one pull request.

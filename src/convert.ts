@@ -68,16 +68,22 @@ const systems: Record<SystemName, System> = {
         const found = /^#{2,3} ((Key )?Decisions)\b/m.exec(readText(join(dir, '.planning', name)) ?? '');
         if (found !== null) notes.push(`.planning/${name} has a "${found[1]}" section; carry the decisions still in force into AGENTS.md or docs/.`);
       }
-      let folders: string[] = [];
-      try {
-        folders = readdirSync(join(dir, '.planning', 'phases'));
-      } catch {
-        // No phases folder: every phase links to ROADMAP.md.
-      }
-      return gsdSection(readText(join(dir, '.planning', 'ROADMAP.md')), folders, tag);
+      const folders = namesIn(join(dir, '.planning', 'phases'));
+      const files = folders.flatMap((folder) => namesIn(join(dir, '.planning', 'phases', folder)).map((name) => `${folder}/${name}`));
+      return gsdSection(readText(join(dir, '.planning', 'ROADMAP.md')), folders, tag, files);
     },
   },
 };
+
+/** The names in folder `path`; none when it is missing or not a folder
+ * (no phases folder: every phase links to ROADMAP.md). */
+function namesIn(path: string): string[] {
+  try {
+    return readdirSync(path);
+  } catch {
+    return [];
+  }
+}
 
 const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** `<root>/<path>` not inside a longer path such as `.specs/` or `my-specs/`. */
