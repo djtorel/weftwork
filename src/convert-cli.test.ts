@@ -49,3 +49,20 @@ test('AC-e12s03-12 a refusal exits 1; bad input exits 2', () => {
   assert.equal(convert(plain, { apply: 'yes' }).status, 2);
   assert.equal(convert(plain, { tag: '' }).status, 2);
 });
+
+// story: e12s03b
+test('AC-e12s03b-06 the CLI finds a GSD project by itself; both systems need "system"; a bad system exits 2', () => {
+  const gsd = makeTestRepo({ '.planning/ROADMAP.md': '- [ ] **Phase 1: A** - B\n' });
+  const out = convert(gsd, {});
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.plan.system, 'gsd');
+  assert.equal(answer.plan.tag, 'gsd-era');
+  assert.deepEqual(answer.plan.moves.at(-1), { from: '.planning', to: '.gsd-planning' });
+  const both = makeTestRepo({ '.planning/ROADMAP.md': '\n', 'specs/state.yaml': '---\n' });
+  const refused = convert(both, {});
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /both bigpowers and GSD/);
+  assert.equal(JSON.parse(convert(both, { system: 'bigpowers' }).stdout).plan.system, 'bigpowers');
+  assert.equal(convert(both, { system: 'spec-kit' }).status, 2);
+});

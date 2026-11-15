@@ -44,7 +44,7 @@ function bigpowersRepo(): string {
 const commonBacklog = (dir: string): string => join(dir, '.git', 'weftwork', 'BACKLOG.md');
 
 function plan(dir: string, tag = 'bigpowers-era'): ConvertPlan {
-  const result = planConvert(dir, { tag });
+  const result = planConvert(dir, { system: 'bigpowers', tag });
   assert.ok(result.ok, result.ok ? '' : result.error);
   return result.plan;
 }
@@ -132,7 +132,7 @@ test('AC-e12s03-08 a file changed after the plan is kept, not rewritten', () => 
 });
 
 function refusal(dir: string): string | null {
-  const result = planConvert(dir, { tag: 'bigpowers-era' });
+  const result = planConvert(dir, { system: 'bigpowers', tag: 'bigpowers-era' });
   return result.ok ? null : result.error;
 }
 
@@ -165,4 +165,57 @@ test('AC-e12s03-14 a .gitignore that cites a moved spec still gets .specs/; the 
   assert.ok(applyConvert(dir, p).ok);
   assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.specs\/$/m);
   assert.ok(p.notes.some((note) => note.startsWith('.gitignore still names specs/')));
+});
+
+// story: e12s03b
+function gsdRepo(): string {
+  return makeTestRepo({
+    '.planning/PROJECT.md': '# Shop\n\n## Key Decisions\n\n| Decision | Rationale |\n',
+    '.planning/ROADMAP.md': '- [x] **Phase 1: Base** - Repo\n- [ ] **Phase 2: Pay** - Pay for a cart\n',
+    '.planning/STATE.md': '# State\n',
+    '.planning/config.json': '{}\n',
+    '.planning/phases/02-pay/02-01-PLAN.md': '# Plan\n',
+    '.planning/codebase/ARCHITECTURE.md': '# Layers\n',
+    'README.md': 'See .planning/codebase/ARCHITECTURE.md and .planning/STATE.md.\n',
+  });
+}
+
+test('AC-e12s03b-04 a GSD plan: tag gsd-era, cited codebase docs into docs/, .planning/ to .gsd-planning/, phases to the backlog', () => {
+  const dir = gsdRepo();
+  const result = planConvert(dir, { system: 'gsd', tag: 'gsd-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  const p = result.plan;
+  assert.deepEqual(p.moves, [
+    { from: '.planning/codebase/ARCHITECTURE.md', to: 'docs/codebase/ARCHITECTURE.md' },
+    { from: '.planning', to: '.gsd-planning' },
+  ]);
+  assert.equal(p.changes[0].path, 'README.md');
+  assert.match(p.changes[0].diff ?? '', /\+See docs\/codebase\/ARCHITECTURE\.md and \.planning\/STATE\.md\./);
+  assert.ok(p.notes.some((note) => note.startsWith('README.md still names .planning/')));
+  assert.ok(p.notes.some((note) => note.includes('Key Decisions')));
+  const applied = applyConvert(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(readFileSync(join(dir, 'docs/codebase/ARCHITECTURE.md'), 'utf8'), '# Layers\n');
+  assert.equal(readFileSync(join(dir, '.gsd-planning/STATE.md'), 'utf8'), '# State\n');
+  assert.equal(existsSync(join(dir, '.planning')), false);
+  assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.gsd-planning\/$/m);
+  const backlogText = readFileSync(commonBacklog(dir), 'utf8');
+  assert.match(backlogText, /## Converted from GSD/);
+  assert.match(backlogText, /- \[ \] \*\*Phase 2: Pay\.\*\* Goal: Pay for a cart\n {2}Old spec: `\.gsd-planning\/phases\/02-pay\/`/);
+  assert.doesNotMatch(backlogText, /Phase 1/);
+  assert.doesNotMatch(execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: dir, encoding: 'utf8' }), /gsd-planning/);
+});
+
+test('AC-e12s03b-05 the GSD plan refuses: no .planning/, a dirty .planning/, an existing .gsd-planning/', () => {
+  const refuse = (dir: string): string | null => {
+    const result = planConvert(dir, { system: 'gsd', tag: 'gsd-era' });
+    return result.ok ? null : result.error;
+  };
+  assert.match(String(refuse(makeTestRepo())), /no GSD \.planning\//);
+  const dirty = gsdRepo();
+  writeFileSync(join(dirty, '.planning/STATE.md'), 'changed\n');
+  assert.match(String(refuse(dirty)), /\.planning\/ has uncommitted changes/);
+  const copied = gsdRepo();
+  execFileSync('mkdir', [join(copied, '.gsd-planning')]);
+  assert.match(String(refuse(copied)), /\.gsd-planning exists/);
 });
