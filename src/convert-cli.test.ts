@@ -1,0 +1,51 @@
+// story: e12s03
+// The convert CLI as a real process: without "apply" it prints the plan and
+// writes nothing; with it, it converts; a refusal exits 1 and bad input 2.
+import { after, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { cleanupTempDirs, isolatedEnv, makeTestRepo } from './test-helpers.ts';
+
+after(cleanupTempDirs);
+
+const convertCli = join(import.meta.dirname, 'convert-cli.ts');
+
+function convert(dir: string, request: object) {
+  const out = spawnSync(process.execPath, [convertCli], { cwd: dir, input: JSON.stringify(request), env: isolatedEnv(), encoding: 'utf8', timeout: 60000 });
+  return { status: out.status, stdout: out.stdout, stderr: out.stderr };
+}
+
+const project = (): string => makeTestRepo({ 'specs/state.yaml': '---\n', 'specs/a.md': 'a\n', 'README.md': 'See specs/a.md\n' });
+
+test('AC-e12s03-10 no "apply": the plan, and nothing written', () => {
+  const dir = project();
+  const out = convert(dir, {});
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.plan.tag, 'bigpowers-era');
+  assert.deepEqual(answer.plan.moves.at(-1), { from: 'specs', to: '.specs' });
+  assert.equal(answer.plan.changes[0].path, 'README.md');
+  assert.equal(answer.plan.changes[0].text, undefined);
+  assert.equal(existsSync(join(dir, '.specs')), false);
+});
+
+test('AC-e12s03-11 "apply": converts, with the tag named in the request', () => {
+  const dir = project();
+  const out = convert(dir, { path: dir, tag: 'old-plans', apply: true });
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.tag, 'old-plans');
+  assert.ok(answer.written.includes('README.md'));
+  assert.ok(existsSync(join(dir, '.specs', 'state.yaml')));
+});
+
+test('AC-e12s03-12 a refusal exits 1; bad input exits 2', () => {
+  const plain = makeTestRepo();
+  const refused = convert(plain, {});
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /no bigpowers specs\/state\.yaml/);
+  assert.equal(convert(plain, { apply: 'yes' }).status, 2);
+  assert.equal(convert(plain, { tag: '' }).status, 2);
+});

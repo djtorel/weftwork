@@ -15,7 +15,7 @@ import { readRegularFile, writeAtomic } from './regular-file.ts';
 import { lineDiff } from './setup-diff.ts';
 import { agentsLetter, backlog, conventions, ignoreLines, missingLines, preflight, type Answers, type CheckedReport } from './setup-text.ts';
 
-export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflict';
+export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflict' | 'rewrite';
 
 /** One planned change. `path` is from the project folder, or absolute for the
  * backlog in the git directory. `text` is what is written; `diff` is what the
@@ -33,7 +33,7 @@ const oldSuffix = '.weftwork-old';
 
 /** Why a write to `path` (from `dir`) could leave the folder: a folder on the
  * way that is a symlink or not a folder. Null when every folder is plain. */
-function pathRefusal(dir: string, path: string): string | null {
+export function pathRefusal(dir: string, path: string): string | null {
   const parts = path.split('/').slice(0, -1);
   for (let end = 1; end <= parts.length; end++) {
     const folder = parts.slice(0, end).join('/');
@@ -75,15 +75,21 @@ function linkChange(dir: string): Change {
   }
 }
 
-/** The .gitignore with the missing lines added at the end. */
+/** The .gitignore with setup's missing lines added at the end. */
 function ignoreChange(dir: string, report: CheckedReport): Change | Failure {
+  return ignoreAppend(dir, ignoreLines(report), ignoreHeader);
+}
+
+/** The .gitignore with those of `wanted` it lacks added at the end, under
+ * `header`. Convert (convert.ts) adds its own lines the same way. */
+export function ignoreAppend(dir: string, wanted: string[], header: string): Change | Failure {
   const read = readRegularFile(join(dir, '.gitignore'), { follow: false, maxBytes: maxFileBytes });
   if (!read.ok) return read;
   const old = read.file?.text ?? '';
-  const lines = missingLines(old, ignoreLines(report));
+  const lines = missingLines(old, wanted);
   if (lines.length === 0) return { path: '.gitignore', action: 'unchanged' };
   const gap = old === '' ? '' : old.endsWith('\n') ? '\n' : '\n\n';
-  const added = `${ignoreHeader}\n${lines.join('\n')}\n`;
+  const added = `${header}\n${lines.join('\n')}\n`;
   return { path: '.gitignore', action: 'append', text: old + gap + added, diff: lineDiff('', added), mode: read.file?.mode, before: read.file?.text ?? null };
 }
 
@@ -105,7 +111,7 @@ function skillTexts(engineDir: string): { ok: true; files: [string, string][] } 
 }
 
 /** The git common directory of the repository rooted at `dir`. */
-function gitCommonDir(dir: string): string | null {
+export function gitCommonDir(dir: string): string | null {
   const run = spawnSync('git', ['rev-parse', '--git-common-dir'], { cwd: dir, encoding: 'utf8' });
   return run.status === 0 ? resolve(dir, run.stdout.trim()) : null;
 }
@@ -161,7 +167,7 @@ function hookChange(dir: string, engineDir: string, check: string): Change | Fai
 }
 
 /** True when the file at `change.path` no longer holds what the plan saw. */
-function changedSincePlan(dir: string, change: Change): boolean {
+export function changedSincePlan(dir: string, change: Change): boolean {
   if (change.before === undefined) return false;
   const read = readRegularFile(absolute(dir, change.path), { follow: false, maxBytes: maxFileBytes });
   return !read.ok || (read.file?.text ?? null) !== change.before;

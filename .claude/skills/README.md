@@ -9,3 +9,6 @@ itself, `review-loop` is tstack's `sol-loop` run through the Codex CLI, and
 the commit. `docs/research/R17-practitioner-autonomy.md` explains why.
 
 `setup-project` is our own: it drives `src/setup-cli.ts` (`docs/SETUP.md`).
+
+`convert-project` is our own too: it drives `src/convert-cli.ts`
+(`docs/CONVERT.md`).
