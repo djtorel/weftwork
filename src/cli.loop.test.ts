@@ -1,4 +1,4 @@
-// story: e09s02
+// story: e09s02, e09s03
 // The loop ceiling through the CLI and weftwork.yaml (e09s02 AC-04 to AC-06,
 // AC-08). Every CLI run has XDG_CONFIG_HOME set to an empty directory, so the
 // owner's real user file is never read.
@@ -78,4 +78,37 @@ test('AC-e09s02-07 with no setting file, a request maxRuns turns the ceiling on'
   const second = runCli(repo, { command: 'exit 2', maxRuns: 2 });
   assert.equal(second.status, 5);
   assert.equal(second.line['state'], 'exhausted');
+});
+
+// e09s03: the handover reserve through the CLI and weftwork.yaml.
+const handoffCli = join(import.meta.dirname, 'handoff-cli.ts');
+const reserveDetail = /3 runs since the last done, 1 left before the loop ceiling of 4/;
+
+test('AC-e09s03-06 maxRuns 4: the third failed run tells the agent to write the handoff', () => {
+  const repo = makeTestRepo(maxRuns(4));
+  for (const command of ['exit 1', 'exit 2']) {
+    const result = runCli(repo, { command });
+    assert.equal(result.status, 1);
+    assert.equal('detail' in result.line, false, command);
+  }
+  const third = runCli(repo, { command: 'exit 3' });
+  assert.equal(third.status, 1);
+  assert.equal(third.line['state'], 'failed');
+  assert.match(String(third.line['detail']), reserveDetail);
+  assert.ok(String(third.line['detail']).includes(`node ${handoffCli}`));
+  assert.equal(runCli(repo, { command: 'exit 4' }).status, 5);
+});
+
+test('AC-e09s03-07 a request reserveRuns 0 does not turn the warning off', () => {
+  const repo = makeTestRepo(maxRuns(4));
+  runCli(repo, { command: 'exit 1' });
+  runCli(repo, { command: 'exit 2' });
+  assert.match(String(runCli(repo, { command: 'exit 3', reserveRuns: 0 }).line['detail']), reserveDetail);
+});
+
+test('AC-e09s03-08 reserveRuns 0 in weftwork.yaml turns the warning off', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxRuns: 4\n  reserveRuns: 0\n' });
+  runCli(repo, { command: 'exit 1' });
+  runCli(repo, { command: 'exit 2' });
+  assert.equal('detail' in runCli(repo, { command: 'exit 3' }).line, false);
 });
