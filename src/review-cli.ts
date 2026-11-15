@@ -15,7 +15,7 @@ import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail } from './ledge
 import { prProof } from './pr-proof.ts';
 import type { RoundVerdict } from './review-ledger.ts';
 import { loadReview } from './review-setting.ts';
-import { exhaustedReport, reviewPrompt, roundCeiling, roundReport, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
+import { exhaustedReport, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
 import { currentBranch, fingerprintTree } from './tree.ts';
 
 const exitCodes: Record<RoundVerdict, number> = { pass: 0, block: 1, 'no-verdict': 3 };
@@ -53,13 +53,13 @@ async function main(): Promise<void> {
   if (!proof.ready) return answer(`weftwork review: not run\nwhy: the done gate has not passed: ${proof.why}\n`, 4);
   const rounds = roundsOn(ledger.reviews, branch.branch);
   const maxRounds = roundCeiling(setting.review, sensitive);
-  if (rounds.length >= maxRounds) return answer(exhaustedReport(rounds, maxRounds), 5);
+  if (roundsDone(rounds) >= maxRounds) return answer(exhaustedReport(rounds, maxRounds), 5);
 
   const results = await runCouncil(setting.review, cwd, reviewPrompt(brief));
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const verdict = changed ? 'no-verdict' : roundVerdict(results);
-  const round = rounds.length + 1;
+  const round = roundsDone(rounds) + 1;
   const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results) }, new Date());
   if (!stored.ok) return fail(`the round could not be written to the ledger: ${stored.error}`);
   const why = changed ? 'the tree changed during the review; a reviewer must be read-only' : undefined;

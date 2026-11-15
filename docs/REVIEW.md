@@ -47,7 +47,8 @@ file rules as the budget. An unknown key under `review` is an error.
 
 Each command runs in a shell in the working directory, in its own process
 group, with the brief and the reply format on stdin. Its stdout is the reply
-(the first 1 MiB). At most 2 reviewers run at once (AGENTS.md: never more
+(a reply larger than 1 MiB fails the reviewer, since a cut reply could drop
+a must-fix). At most 2 reviewers run at once (AGENTS.md: never more
 than 2 subagents at once). The engine asks for this format:
 
 ```text
@@ -82,7 +83,9 @@ ceiling and the findings (at most 50 of each kind, 500 characters each):
 {"at":"2026-11-15T12:00:00.000Z","review":"block","branch":"feat/x","round":1,"maxRounds":3,"mustFix":["(codex): a.ts:1 bad"],"shouldFix":[],"failed":[]}
 ```
 
-The rounds are counted per branch from the last 1 MiB of the ledger. At the
+The rounds are counted per branch from the last 1 MiB of the ledger: the
+highest round number logged there, so earlier rounds cut from the tail still
+count. At the
 ceiling no reviewer runs, and the answer shows the last round's findings
 again, as the unresolved ones. On a detached HEAD there is no branch, so the
 rounds are not counted. The stop rules and the counts of runs do not read

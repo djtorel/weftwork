@@ -91,6 +91,11 @@ test('a reviewer that fails counts as neither pass nor block', () => {
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^reviewer 1, exit: failed, exit 3$/m);
 
+  const big = readyRepo(council("echo 'VERDICT: APPROVE'; head -c 1100000 /dev/zero | tr '\\0' x"));
+  const cut = review(big);
+  assert.equal(cut.status, 3, cut.stderr);
+  assert.match(cut.stdout, /^reviewer 1, echo: failed, the reply is larger than 1048576 bytes$/m);
+
   const none = readyRepo(`${council('sleep 5', 'echo no verdict here')}  timeout_seconds: 1\n`);
   const all = review(none);
   assert.equal(all.status, 3, all.stderr);

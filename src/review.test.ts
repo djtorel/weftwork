@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsOn, type ReviewerResult } from './review.ts';
+import { parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -57,8 +57,12 @@ const entry = (branch: string | null, round: number): ReviewEntry => ({
 
 test('rounds are counted on the current branch only', () => {
   const reviews = [entry('feat/a', 1), entry('feat/b', 1), entry('feat/a', 2)];
-  assert.equal(roundsOn(reviews, 'feat/a').length, 2);
-  assert.equal(roundsOn(reviews, null).length, 0);
+  assert.equal(roundsDone(roundsOn(reviews, 'feat/a')), 2);
+  assert.equal(roundsDone(roundsOn(reviews, null)), 0);
+});
+
+test('the rounds done are the highest round number, so rounds cut from the ledger tail still count', () => {
+  assert.equal(roundsDone([entry('feat/a', 3)]), 3);
 });
 
 test('the ceiling is max_rounds, or max_rounds_sensitive for a sensitive change', () => {

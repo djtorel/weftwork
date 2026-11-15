@@ -6,7 +6,7 @@
 // counts the rounds against the ceiling and runs at most 2 reviewers at once.
 import { terminalSafe } from './cli-io.ts';
 import type { Failure } from './errors.ts';
-import { runCapture } from './process.ts';
+import { maxCaptureBytes, runCapture } from './process.ts';
 import type { ReviewEntry, RoundVerdict } from './review-ledger.ts';
 import type { ReviewSetting } from './review-setting.ts';
 
@@ -63,6 +63,12 @@ export function roundsOn(reviews: ReviewEntry[], branch: string | null): ReviewE
   return branch === null ? [] : reviews.filter((review) => review.branch === branch);
 }
 
+/** The rounds done on a branch: the highest round number logged, so rounds
+ * that fell out of the ledger tail still count (review round 1). */
+export function roundsDone(rounds: ReviewEntry[]): number {
+  return Math.max(rounds.length, ...rounds.map((review) => review.round));
+}
+
 /** The round ceiling: max_rounds, or max_rounds_sensitive for a change to
  * security, permissions, auth, data loss or concurrency. */
 export function roundCeiling(review: ReviewSetting, sensitive: boolean): number {
@@ -87,6 +93,8 @@ async function runReviewer(command: string, cwd: string, prompt: string, timeout
   const name = reviewerName(command);
   const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt);
   if (out.reason !== 'passed') return { name, ok: false, error: why(out, timeoutSeconds, out.stderrTail) };
+  // A cut reply could drop a must-fix after the VERDICT line (review round 1).
+  if (out.stdoutCut) return { name, ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` };
   const parsed = parseReply(out.stdout);
   return parsed.ok ? { name, ...parsed } : { name, ok: false, error: parsed.error };
 }
@@ -129,8 +137,8 @@ export function roundReport(round: { verdict: RoundVerdict; round: number; maxRo
 /** The answer at the ceiling: no reviewer runs, and the last round's
  * findings are shown again, since they are the unresolved ones. */
 export function exhaustedReport(rounds: ReviewEntry[], maxRounds: number): string {
-  const plural = rounds.length === 1 ? 'round' : 'rounds';
-  const lines = ['weftwork review: exhausted', `why: ${rounds.length} ${plural} on this branch, the ceiling is ${maxRounds}`];
+  const done = roundsDone(rounds);
+  const lines = ['weftwork review: exhausted', `why: ${done} ${done === 1 ? 'round' : 'rounds'} on this branch, the ceiling is ${maxRounds}`];
   const last = rounds.at(-1);
   if (last !== undefined) {
     lines.push(`last round: ${verdictText[last.review]}, at ${last.at}`);
