@@ -216,7 +216,8 @@ export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv):
   if (!repo.ok) return repo;
   const resolved = resolveLimits({ user: user.file, repo: repo.file, request });
   if (!resolved.ok) return resolved;
-  // Only the files set reserveRuns: drop any the caller put on the request.
+  // Only the files set reserveRuns. parseRequest already ignores it, so this
+  // drop guards library callers that build a GateRequest themselves.
   const { reserveRuns: _fromRequest, ...rest } = request;
   return { ok: true, request: { ...rest, ...resolved.limits } };
 }

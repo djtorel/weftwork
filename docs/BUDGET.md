@@ -164,11 +164,13 @@ ceiling. When the runs left are more than 0 and no more than the reserve, the
 answer has a `detail`:
 
 ```text
-3 runs since the last done, 1 left before the loop ceiling of 4: write the handoff now with node /path/to/weftwork/src/handoff-cli.ts
+3 runs since the last done, 1 left before the loop ceiling of 4: write the handoff now with node "/path/to/weftwork/src/handoff-cli.ts" (JSON on stdin: next_skill, branch, note)
 ```
 
 The path is the absolute path of `src/handoff-cli.ts` in the weftwork
-checkout, so the line works in any repository the hook guards. The Claude Code
+checkout, in double quotes, so the line works in any repository the hook
+guards and from a checkout path with spaces. The handoff CLI reads one JSON
+object on stdin with `next_skill`, `branch` and `note` (docs/STATE.md). The Claude Code
 hook adds the detail as the last line of the reason with which it blocks the
 stop. The exit code stays 1 on the engine CLI and 2 on the hook. The answer
 is `failed`, not a new state, and it writes no state line.
@@ -179,6 +181,11 @@ is `failed`, not a new state, and it writes no state line.
   error.
 - `reserveRuns: 0` turns the warning off.
 - Without `maxRuns` there is no reserve, and no answer changes.
+- Only a `failed` answer carries the warning. A run in the window that
+  answers `killed`, or a failed run that takes the owner's override record
+  (`overridden`), still counts and uses up that run's warning. With the
+  default reserve of 1 the agent then gets no warning; set `reserveRuns: 2`
+  or more for a second chance.
 - The reserve applies only to the loop ceiling. The failure ceiling
   (`maxFailures`) and the stall rule still end the loop with no warning.
 - At the ceiling the answer is `exhausted`, as before. The engine does not
