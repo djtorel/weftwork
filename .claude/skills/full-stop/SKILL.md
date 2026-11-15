@@ -32,12 +32,18 @@ deleting data, or anything outside this repository.
 3. **Change.** Make the smallest change that does the task. Fix the case that
    happened, not every case that could. For behaviour, write the test first,
    run it, and see it fail for the right reason.
-4. **Prove.** Run the task's check and Preflight (`AGENTS.md`). Keep the output.
-   For UI or runtime behaviour, run it and look; green mocked tests do not prove
-   a user-facing change.
+4. **Prove.** Run the task's check, then Preflight through the engine, so its
+   done gate decides and the ledger counts the budget:
+   `echo '{"command":"<Preflight>"}' | node src/cli.ts` (Preflight is in
+   `AGENTS.md`). For UI or runtime behaviour, also run it and look; green
+   mocked tests do not prove a user-facing change.
 5. **Review.** Use the `review-loop` skill. Fix what it finds, prove each fix.
-6. **File.** Rebase onto the latest `main`, push, and open the PR with the
-   `file-pr` skill.
+6. **File.** Rebase onto the latest `main`, run Preflight through the engine
+   again, then get the proof block with the same command string:
+   `echo '{"command":"<Preflight>"}' | node src/pr-proof-cli.ts`
+   (`docs/PR-PROOF.md`). Paste its output into the PR's Proof block as it is.
+   Exit 0: push and open the PR with the `file-pr` skill. Exit 1: the gate
+   says draft; fix it and run the engine again, or stop early (below).
 7. **Wait for CI.** `gh pr checks <number> --watch --interval 15`. Fix real
    failures, prove the fix, push, and wait again. Tell a flaky run from a real
    failure by its log.
@@ -73,5 +79,8 @@ Ask only when:
 
 Decide everything else with sensible defaults and list the decisions in the PR
 and the report. If you must stop before the PR is ready (a ceiling, a blocker),
-write the handoff first with `node src/handoff-cli.ts` (`docs/STATE.md`), then
-open the PR as a draft with what you have.
+or the engine answers blocked, stalled or exhausted, write the handoff first
+with `node src/handoff-cli.ts` (`docs/STATE.md`), then open the PR as a draft
+with what you have, the proof block and the handoff note in its body. To
+end blocked on purpose, run the engine with `"blocked":"<why>"` in the
+request; the proof then says so.

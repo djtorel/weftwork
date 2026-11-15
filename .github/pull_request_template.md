@@ -8,7 +8,9 @@
 
 ## Proof
 
-<!-- Commands run after the last edit and what they showed; screenshots for UI. -->
+<!-- The output of node src/pr-proof-cli.ts for the verify command
+(docs/PR-PROOF.md), then any other commands run after the last edit and what
+they showed; screenshots for UI. -->
 
 ```text
 
