@@ -74,7 +74,7 @@ screenshot with its path and hash, so the pull request shows them when the
 report is pasted in. Only a must-fix blocks.
 
 Before screenshots are optional in the review. When none were taken on this
-branch, the brief says so and the council reads the after ones alone.
+branch and base, the brief says so and the council reads the after ones alone.
 
 ## A programmatic check wins
 
