@@ -38,4 +38,7 @@ details. Open a real PR, not a draft, unless `full-stop` says to stop early:
 gh pr create --base main --head "$(git branch --show-current)" --title "<title>" --body-file <file>
 ```
 
-Write the body file in a temporary folder outside the repository.
+Write the body file in a temporary folder outside the repository (the
+session's scratchpad when the host gives one, else `mktemp -d`), and leave it
+there: do not `rm -rf` a path held in a variable, which Claude Code's safety
+check blocks.

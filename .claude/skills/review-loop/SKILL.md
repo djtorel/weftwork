@@ -100,4 +100,6 @@ change since the last round. Ask for open ids and changed code only.
 
 Add to the PR: `Reviewed with review-loop: <N> rounds with Codex (<model>).
 Verdict: <approved|stuck>`, and list declined findings with their reasons.
-Delete the temporary folder when the loop ends.
+Leave the temporary folder for the system to clean; do not `rm -rf` it (a
+removal of a path held in a variable is blocked by Claude Code's safety
+check and would stall an unattended run).
