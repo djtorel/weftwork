@@ -92,7 +92,8 @@ test('AC-e09s03-10 maxRuns 3: the second failure blocks with the handoff line, t
   const last = second.stderr.trimEnd().split('\n').at(-1) ?? '';
   assert.equal(
     last,
-    `2 runs since the last done, 1 left before the loop ceiling of 3: write the handoff now with node ${handoffCli}`,
+    '2 runs since the last done, 1 left before the loop ceiling of 3: write the handoff now with ' +
+      `node ${JSON.stringify(handoffCli)} (JSON on stdin: next_skill, branch, note)`,
   );
   const third = runHook(repo, 'exit 3');
   assert.equal(third.status, 0);

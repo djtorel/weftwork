@@ -95,7 +95,7 @@ test('AC-e09s03-06 maxRuns 4: the third failed run tells the agent to write the 
   assert.equal(third.status, 1);
   assert.equal(third.line['state'], 'failed');
   assert.match(String(third.line['detail']), reserveDetail);
-  assert.ok(String(third.line['detail']).includes(`node ${handoffCli}`));
+  assert.ok(String(third.line['detail']).endsWith(`node ${JSON.stringify(handoffCli)} (JSON on stdin: next_skill, branch, note)`));
   assert.equal(runCli(repo, { command: 'exit 4' }).status, 5);
 });
 
