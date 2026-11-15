@@ -18,8 +18,9 @@ they showed; screenshots for UI. -->
 
 ## Review
 
-<!-- "Reviewed with review-loop: N rounds with Codex. Verdict: ...", and
-declined findings with reasons. -->
+<!-- "Reviewed with review-loop: N rounds. Verdict: ...", the last round's
+report from node src/review-cli.ts (docs/REVIEW.md), and every unresolved or
+declined finding with its reason. -->
 
 ## Decisions
 
