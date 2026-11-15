@@ -41,6 +41,7 @@ Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
    `archive/` and `codebase-wiki/`.
 3. **Rewrite the citations** of each moved file, in tracked files and in the
    moved files, from `specs/<path>` to `docs/<path>`. A file's mode is kept.
+   `.gitignore` is only appended to; a citation there is a note.
 4. **Untrack the rest:** `specs/` moves to `.specs/`, and `.gitignore` gets
    `.specs/`. Git then shows the old files as deleted; the local copy keeps
    every byte.

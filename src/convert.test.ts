@@ -158,3 +158,11 @@ test('AC-e12s03-13 bigpowers plans and state stay in .specs/ even when cited; th
   assert.deepEqual(p.moves.map((step) => step.from), ['specs/security/REVIEW.md', 'specs']);
   assert.ok(p.notes.some((note) => note.startsWith('tools/gate.sh still names specs/')));
 });
+
+test('AC-e12s03-14 a .gitignore that cites a moved spec still gets .specs/; the citation is a note', () => {
+  const dir = makeTestRepo({ 'specs/state.yaml': '---\n', 'specs/adr/1.md': 'a\n', '.gitignore': 'specs/adr/1.md\n' });
+  const p = plan(dir);
+  assert.ok(applyConvert(dir, p).ok);
+  assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.specs\/$/m);
+  assert.ok(p.notes.some((note) => note.startsWith('.gitignore still names specs/')));
+});

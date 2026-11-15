@@ -161,8 +161,9 @@ export function planConvert(dir: string, options: { tag: string }): { ok: true; 
   const edit = (path: string, file: { text: string; mode: number } | null): void => {
     const before = file?.text ?? '';
     const after = rewrite(before, moved);
-    if (after !== before) changes.push({ path, action: 'rewrite', text: after, diff: lineDiff(before, after), mode: file?.mode, before });
-    if (anyCitation.test(after)) notes.push(`${path} still names specs/: check it, and drop it if it serves only bigpowers.`);
+    // .gitignore is only appended to (below), so a rewrite cannot hide that.
+    if (after !== before && path !== '.gitignore') changes.push({ path, action: 'rewrite', text: after, diff: lineDiff(before, after), mode: file?.mode, before });
+    if (anyCitation.test(path === '.gitignore' ? before : after)) notes.push(`${path} still names specs/: check it, and drop it if it serves only bigpowers.`);
   };
   for (const [path, file] of texts) edit(path, file);
   for (const [from, to] of moved) edit(to, readFile(join(dir, from)));
