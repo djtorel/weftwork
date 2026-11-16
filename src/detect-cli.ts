@@ -3,11 +3,11 @@
 // "timeoutSeconds": 120}` on stdin, every key optional (the folder defaults to
 // the current one), and one JSON line `{"ok": true, "report": ...}` on stdout.
 // With "run" (the default) each test, lint, typecheck and build command runs
-// once in that folder. Logic lives in detect.ts and detect-check.ts.
+// once in that folder, and each package's in the package folder. Logic lives in detect.ts and detect-check.ts.
 // docs/DETECT.md.
 //
 // Exit 0 with a report, 2 when it cannot run, with the reason on stderr.
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
 import { checkCommands } from './detect-check.ts';
 import { detectProject } from './detect.ts';
@@ -33,8 +33,11 @@ async function main(): Promise<void> {
   const detected = await detectProject(dir);
   if (!detected.ok) return fail(detected.error);
   if (run === false) return printAnswer({ ok: true, report: detected.report }, 0);
-  const commands = await checkCommands(detected.report.commands, dir, (timeoutSeconds ?? defaultTimeoutSeconds) * 1000);
-  printAnswer({ ok: true, report: { ...detected.report, commands } }, 0);
+  const timeout = (timeoutSeconds ?? defaultTimeoutSeconds) * 1000;
+  const commands = await checkCommands(detected.report.commands, dir, timeout);
+  const packages = [];
+  for (const found of detected.report.packages) packages.push({ ...found, commands: await checkCommands(found.commands, join(dir, found.path), timeout) });
+  printAnswer({ ok: true, report: { ...detected.report, commands, packages } }, 0);
 }
 
 await main();

@@ -29,8 +29,7 @@ you trust, or pass `"run": false` for a report from the files alone.
 
 ## What it reads
 
-Only the top folder and a few fixed paths. A monorepo's packages are not
-walked.
+The top folder, a few fixed paths, and the packages of a monorepo.
 
 | Field | From |
 | --- | --- |
@@ -38,7 +37,8 @@ walked.
 | `ci` | `.github/workflows/*.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`, `Jenkinsfile`, `azure-pipelines.yml`, `.travis.yml`, `bitbucket-pipelines.yml` |
 | `agentFiles` | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.cursor/rules`, `.windsurfrules`, `.clinerules`, `.github/copilot-instructions.md` |
 | `planning` | bigpowers `specs/state.yaml`, GSD `.planning`, spec-kit `.specify`, BMAD `_bmad`, `bmad` or `.bmad-core` |
-| `notes` | A manifest that cannot be read or parsed; the rest of the report still holds |
+| `packages` | Each folder a workspace file names: `package.json` `workspaces` (a list, or `packages` in an object), `pnpm-workspace.yaml` `packages`, `go.work` `use`, `Cargo.toml` `[workspace]` `members`. Globs are expanded, and `!` patterns and Cargo's `exclude` leave folders out; a folder outside the project (by `..` or a symlink), `node_modules` and `.git` are not walked, and at most 200 are reported. Each has its own `path`, `languages`, `packageManagers`, `frameworks` and `commands`, read from its own manifests as above, with the root's lock file; a folder with no stack is left out |
+| `notes` | A manifest or `pnpm-workspace.yaml` that cannot be read or parsed; the rest of the report still holds |
 
 Commands come from `package.json` scripts (`test`, `lint`, `typecheck`,
 `build`, and `start`, `dev` or `serve` as run commands), Makefile targets
@@ -74,5 +74,6 @@ name, is read too, up to 50 files of at most 1 MiB; a path outside the
 folder is not. The match is on text, so it is still a partial guard: a
 deploy built at run time, in an environment variable or a program outside
 the folder, is not seen. The
-commands run one at a time in the project folder, in their own process
-group, with stdin empty and `CI=1`, so watch-mode test runners exit.
+commands run one at a time in the project folder (a package's in its own
+folder), in their own process group, with stdin empty and `CI=1`, so
+watch-mode test runners exit.

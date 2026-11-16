@@ -9,8 +9,12 @@ import { isAbsolute, join, normalize, relative } from 'node:path';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { readRegularFile } from './regular-file.ts';
 import { markerFiles, readStacks, textFiles, type Files, type FoundCommand } from './detect-stacks.ts';
+import { packageFolders } from './detect-packages.ts';
 
 export type { FoundCommand } from './detect-stacks.ts';
+
+/** One package of a monorepo: its folder from the project, and its stack. */
+export type PackageReport = { path: string; languages: string[]; packageManagers: string[]; frameworks: string[]; commands: FoundCommand[] };
 
 export type ProjectReport = {
   path: string;
@@ -21,8 +25,12 @@ export type ProjectReport = {
   ci: string[];
   agentFiles: string[];
   planning: { system: string; path: string }[];
+  packages: PackageReport[];
   notes: string[];
 };
+
+/** The lock files a package shares with the workspace root. */
+const rootLocks = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'poetry.lock', 'uv.lock'];
 
 /** The most of one manifest that is read. */
 const maxFileBytes = 1024 * 1024;
@@ -117,6 +125,24 @@ function union(lists: string[][]): string[] {
   return [...new Set(lists.flat())];
 }
 
+/** The stack of each package folder; one with no stack is left out. */
+async function readPackages(dir: string, files: Files, notes: string[]): Promise<PackageReport[]> {
+  const packages: PackageReport[] = [];
+  for (const path of packageFolders(dir, files, notes)) {
+    const own: string[] = [];
+    const found = await readFiles(join(dir, path), own);
+    notes.push(...own.map((note) => `${path}/${note}`));
+    for (const lock of rootLocks) if (files.present.has(lock)) found.present.add(lock);
+    const stacks = readStacks(found);
+    notes.push(...stacks.flatMap((each) => each.notes.map((note) => `${path}/${note}`)));
+    const commands = stacks.flatMap((each) => each.commands);
+    const languages = union(stacks.map((each) => each.languages));
+    if (languages.length === 0 && commands.length === 0) continue;
+    packages.push({ path, languages, packageManagers: union(stacks.map((each) => each.packageManagers)), frameworks: union(stacks.map((each) => each.frameworks)), commands });
+  }
+  return packages;
+}
+
 /** `dir` checked to be a folder, or why not. */
 async function checkFolder(dir: string): Promise<Failure | null> {
   try {
@@ -132,7 +158,9 @@ export async function detectProject(dir: string): Promise<{ ok: true; report: Pr
   const bad = await checkFolder(dir);
   if (bad !== null) return bad;
   const notes: string[] = [];
-  const stacks = readStacks(await readFiles(dir, notes));
+  const files = await readFiles(dir, notes);
+  const stacks = readStacks(files);
+  const packages = await readPackages(dir, files, notes);
   const planning = [];
   for (const [system, path] of planningMarkers) {
     if (await exists(join(dir, path))) planning.push({ system, path });
@@ -148,6 +176,7 @@ export async function detectProject(dir: string): Promise<{ ok: true; report: Pr
       ci: [...(await workflows(dir)), ...(await existing(dir, ciFiles))],
       agentFiles: await existing(dir, agentFiles),
       planning,
+      packages,
       notes: [...notes, ...stacks.flatMap((found) => found.notes)],
     },
   };
