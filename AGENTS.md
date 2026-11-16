@@ -78,6 +78,7 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Lint | `yamllint .` |
 | Preflight | `yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test` |
 | Setup | `bash tools/setup.sh` (fresh clone; Preflight needs `node_modules`) |
+| Install the command | `npm link` (then `weftwork <command>` runs `src/<command>-cli.ts`) |
 | CI | `.github/workflows/ci.yml` |
 
 ## Preflight
@@ -143,7 +144,8 @@ overwrites a changed file (`docs/SETUP.md`). `convert.ts`,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
 `markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
-thin shell over a library function.
+thin shell over a library function, and `weftwork-cli.ts` (the package's
+`weftwork` bin) runs each one as `weftwork <command>`.
 
 ## Rules
 

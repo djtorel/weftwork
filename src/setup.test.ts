@@ -73,7 +73,7 @@ test('AC-e12s02-02 the letter names only commands that resolve, and Preflight on
   assert.match(letter, /- Never push to main\./);
 });
 
-test('AC-e12s02-03 apply writes the files, links CLAUDE.md, rewrites skill paths and seeds the backlog', () => {
+test('AC-e12s02-03 apply writes the files, links CLAUDE.md, turns skill commands into weftwork commands and seeds the backlog', () => {
   const dir = makeTestRepo({ 'main.go': 'package main\n', '.gitignore': '.env\n' });
   const result = applySetup(dir, plan(dir), { overwrite: [] });
   assert.ok(result.ok, result.ok ? '' : result.error);
@@ -82,11 +82,13 @@ test('AC-e12s02-03 apply writes the files, links CLAUDE.md, rewrites skill paths
   assert.equal(readFileSync(join(dir, 'CONVENTIONS.md'), 'utf8'), '# Conventions\n\n- Wrap errors with context.\n');
   assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), '.env\n\n# Added by weftwork setup.\n.env.*\n');
   const skill = readFileSync(join(dir, '.claude/skills/full-stop/SKILL.md'), 'utf8');
-  assert.ok(skill.includes(`node '${join(engineDir, 'src', 'cli.ts')}'`), 'the skill names the engine by absolute path');
-  assert.doesNotMatch(skill, /node src\//);
-  assert.ok(skill.includes(`\`${join(engineDir, 'docs', 'ASK.md')}\``), 'engine docs are named by absolute path');
+  assert.ok(skill.includes("echo '{\"command\":\"<Preflight>\"}' | weftwork engine"), 'the skill runs the engine as a command');
+  assert.ok(skill.includes('| weftwork pr-proof'), 'each CLI is a weftwork command');
+  assert.doesNotMatch(skill, /node src\/|node '/);
+  assert.doesNotMatch(skill, new RegExp(engineDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'the skill does not name this checkout');
+  assert.ok(skill.includes('`$(weftwork path)/docs/ASK.md`'), 'engine docs are under weftwork path');
   const filePr = readFileSync(join(dir, '.claude/skills/file-pr/SKILL.md'), 'utf8');
-  assert.ok(filePr.includes(join(engineDir, '.github', 'pull_request_template.md')));
+  assert.ok(filePr.includes('`$(weftwork path)/.github/pull_request_template.md`'));
   const backlogPath = join(dir, '.git', 'weftwork', 'BACKLOG.md');
   assert.match(readFileSync(backlogPath, 'utf8'), /- \[ \] Add a --json flag\./);
 });
@@ -208,4 +210,23 @@ test('AC-e12s02-16 a CLAUDE.md symlink unchanged since the plan is still overwri
   assert.ok(applied.ok, applied.ok ? '' : applied.error);
   assert.equal(readlinkSync(join(dir, 'CLAUDE.md')), 'AGENTS.md');
   assert.equal(readlinkSync(join(dir, 'CLAUDE.md.weftwork-old')), 'NOTES.md');
+});
+
+test('AC-e12s02-26 the plan notes a weftwork command that is missing or runs another checkout, and not one that runs this engine', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n' });
+  const oldPath = process.env.PATH;
+  const bin = makeTempDir();
+  const linked = (where: string | null): string[] => {
+    rmSync(join(bin, 'weftwork'), { force: true });
+    if (where !== null) writeFileSync(join(bin, 'weftwork'), `#!/bin/sh\necho '${where}'\n`, { mode: 0o755 });
+    process.env.PATH = bin;
+    try {
+      return plan(dir).notes.filter((note) => note.includes('npm link'));
+    } finally {
+      process.env.PATH = oldPath;
+    }
+  };
+  assert.equal(linked(null).length, 1);
+  assert.equal(linked('/somewhere/else').length, 1);
+  assert.deepEqual(linked(engineDir), []);
 });
