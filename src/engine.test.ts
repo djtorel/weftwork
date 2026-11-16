@@ -50,9 +50,10 @@ test('AC-e06s04-18 a passing run is done, with a done state line', async () => {
   const [line, ...rest] = await readRepoStates(repo);
   assert.equal(rest.length, 0);
   assert.deepEqual(
-    { ...line, at: undefined },
+    { ...line, at: undefined, runId: undefined },
     {
       at: undefined,
+      runId: undefined,
       state: 'done',
       command: 'true',
       runs: 1,
@@ -217,4 +218,18 @@ test('AC-e06s04-29 an abort gives killed, a run entry and a killed state line', 
   assert.equal(lines.length, 1);
   assert.equal(lines[0]?.state, 'killed');
   assert.equal(lines[0]?.runs, 1);
+});
+
+test('a run line and its state line carry one run id; a refusal names the run it follows', async () => {
+  const repo = makeTestRepo();
+  await runEngine({ command: 'true', cwd: repo });
+  await runEngine({ command: 'true', cwd: repo, blocked: 'needs the owner' });
+  const [entry] = (await readRepoLedger(repo)).entries;
+  const [own, refusal] = await readRepoStates(repo);
+  assert.equal(typeof entry?.runId, 'string');
+  assert.equal(own?.runId, entry?.runId);
+  assert.equal(refusal?.state, 'blocked');
+  assert.equal(refusal?.after, entry?.runId);
+  assert.equal(typeof refusal?.runId, 'string');
+  assert.notEqual(refusal?.runId, entry?.runId);
 });
