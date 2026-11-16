@@ -10,9 +10,10 @@ import { join } from 'node:path';
 import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type SettingsSource } from './claude-live.ts';
 import { isGitRoot, readSettings, userSettingsPath } from './claude-settings-file.ts';
 import { lastCallPath, readLastCall, type LastCallRead } from './last-call.ts';
+import { sibling } from './sibling.ts';
 
 const usage = 'usage: node claude-live-cli.ts (no arguments; run it in the project root)';
-const installCli = join(import.meta.dirname, 'claude-install-cli.ts');
+const installCli = sibling('claude-install-cli');
 
 const labels: Record<LiveAnswer, string> = {
   live: 'live',
