@@ -4,7 +4,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, isolatedEnv, makeTempDir } from './test-helpers.ts';
 
@@ -51,4 +51,18 @@ test('AC-e12s01-12 bad input or a missing folder exits 2 with the reason', () =>
   const gone = detect(JSON.stringify({ path: '/weftwork/no/such/folder' }));
   assert.equal(gone.status, 2);
   assert.match(gone.stderr, /^detect: /);
+});
+
+test('AC-e12s01-19 the CLI checks each package command in its own folder', () => {
+  const dir = makeTempDir();
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ workspaces: ['packages/*'] }));
+  mkdirSync(join(dir, 'packages', 'a'), { recursive: true });
+  const here = 'node -e "process.exit(require(\'fs\').existsSync(\'only-in-a\') ? 0 : 1)"';
+  writeFileSync(join(dir, 'packages', 'a', 'package.json'), JSON.stringify({ scripts: { test: here } }));
+  writeFileSync(join(dir, 'packages', 'a', 'only-in-a'), '');
+  const out = detect(JSON.stringify({ path: dir }));
+  assert.equal(out.status, 0, out.stderr);
+  const [found] = JSON.parse(out.stdout).report.packages;
+  assert.equal(found.path, 'packages/a');
+  assert.deepEqual(found.commands.map((each: { command: string; check: { status: string } }) => [each.command, each.check.status]), [['npm run test', 'passed']]);
 });

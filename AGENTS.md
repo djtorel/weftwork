@@ -17,8 +17,9 @@ model family, a pull request that says what it proved.
 
 It is TypeScript on Node 26 or later, one package that is both a CLI and a
 library, tested with the built-in `node:test` runner. Claude Code is the first
-host. The next big piece of work is the auto run (backlog item e11), which turns
-the way we work here into a product.
+host. The auto run (backlog e11, the `full-stop` skill) and getting started
+(e12: setting up and converting projects) are built, and this repository runs
+under its own hooks (below).
 
 ## Words
 
@@ -85,6 +86,18 @@ The `full-stop` skill runs steps 2 to 7 for you.
 yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test
 ```
 
+## Hooks
+
+This repository runs under its own engine. `.claude/settings.json` registers
+the Stop hook, which runs the Preflight through the done gate at every stop,
+and the guard (`docs/GUARD.md`). Both name the engine as
+`$CLAUDE_PROJECT_DIR/src/`, so each worktree runs its own copy. They need
+`node_modules`: in a new worktree, run `bash tools/setup.sh` first. Until
+then both hooks crash, and Claude Code lets every call and every stop
+through. The guard blocks any Bash command whose text names a protected path
+(`.claude/settings`, `weftwork.yaml`): read those files with the Read tool,
+and only the owner changes them.
+
 ## Architecture
 
 `src/` holds the gate library (`gate.ts`), the working-tree fingerprint
@@ -120,7 +133,7 @@ fail, and report which do not (`docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` ta
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
 them to the council, as images and with the design reference and a design
 checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
-`detect-stacks.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
+`detect-stacks.ts`, `detect-packages.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
 stack, commands, CI, agent files and planning system, and run each command
 once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 `setup-diff.ts`, `setup-about.ts`, `setup-undo.ts` and `setup-cli.ts` set up a new or plain project from that

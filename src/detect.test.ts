@@ -26,7 +26,7 @@ function fixture(files: Record<string, string>): string {
 }
 
 function empty(path: string): ProjectReport {
-  return { path, languages: [], packageManagers: [], frameworks: [], commands: [], ci: [], agentFiles: [], planning: [], notes: [] };
+  return { path, languages: [], packageManagers: [], frameworks: [], commands: [], ci: [], agentFiles: [], planning: [], packages: [], notes: [] };
 }
 
 async function report(dir: string): Promise<ProjectReport> {
@@ -138,4 +138,47 @@ test('AC-e12s01-06 a path that is not a folder fails with the reason', async () 
   assert.equal(result.ok, false);
   assert.match(result.ok ? '' : result.error, /is not a folder/);
   assert.equal((await detectProject(join(dir, 'gone'))).ok, false);
+});
+
+test('AC-e12s01-18 a monorepo: npm and pnpm workspaces, go.work and a Cargo workspace each report their packages', async () => {
+  const pkg = { workspaces: ['packages/*', '!packages/skip'], scripts: { test: 'node -e 0' } };
+  const dir = fixture({
+    'package.json': JSON.stringify(pkg),
+    'pnpm-lock.yaml': '',
+    'pnpm-workspace.yaml': 'packages:\n  - tools/cli\n',
+    'packages/web/package.json': JSON.stringify({ scripts: { test: 'vitest run' }, dependencies: { react: '19.0.0' } }),
+    'packages/skip/package.json': '{}',
+    'packages/notes.md': '',
+    'tools/cli/package.json': JSON.stringify({ scripts: { lint: 'eslint .' } }),
+    'go.work': 'go 1.23\n\nuse (\n\t./svc\n\t../outside\n)\n',
+    'svc/go.mod': 'module example.com/svc\n',
+    'Cargo.toml': '[workspace] # all crates\nmembers = [\n  "crates/*",\n]\nexclude = ["crates/old"]\n',
+    'crates/core/Cargo.toml': '[package]\nname = "core"\n',
+    'crates/old/Cargo.toml': '[package]\nname = "old"\n',
+  });
+  const found = await report(dir);
+  assert.deepEqual(found.packages, [
+    { path: 'crates/core', languages: ['rust'], packageManagers: ['cargo'], frameworks: [], commands: [
+      { kind: 'test', command: 'cargo test', source: 'Cargo.toml' },
+      { kind: 'typecheck', command: 'cargo check', source: 'Cargo.toml' },
+      { kind: 'build', command: 'cargo build', source: 'Cargo.toml' },
+    ] },
+    { path: 'packages/web', languages: ['javascript'], packageManagers: ['pnpm'], frameworks: ['React'], commands: [
+      { kind: 'test', command: 'pnpm run test', source: 'package.json', body: 'vitest run' },
+    ] },
+    { path: 'svc', languages: ['go'], packageManagers: ['go'], frameworks: [], commands: [
+      { kind: 'test', command: 'go test ./...', source: 'go.mod' },
+      { kind: 'lint', command: 'go vet ./...', source: 'go.mod' },
+      { kind: 'build', command: 'go build ./...', source: 'go.mod' },
+    ] },
+    { path: 'tools/cli', languages: ['javascript'], packageManagers: ['pnpm'], frameworks: [], commands: [
+      { kind: 'lint', command: 'pnpm run lint', source: 'package.json', body: 'eslint .' },
+    ] },
+  ]);
+});
+
+test('AC-e12s01-20 a pnpm-workspace.yaml that does not parse is a note', async () => {
+  const found = await report(fixture({ 'pnpm-workspace.yaml': 'packages: [\n', 'package.json': '{}' }));
+  assert.deepEqual(found.packages, []);
+  assert.ok(found.notes.some((note) => /^pnpm-workspace\.yaml was not parsed/.test(note)), found.notes.join('; '));
 });

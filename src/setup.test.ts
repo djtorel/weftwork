@@ -28,6 +28,7 @@ function report(dir: string): CheckedReport {
     ci: [],
     agentFiles: [],
     planning: [],
+    packages: [],
     notes: [],
   };
 }

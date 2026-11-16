@@ -19,7 +19,7 @@ export type Stack = { languages: string[]; packageManagers: string[]; frameworks
 export type Files = { text: Map<string, string>; present: Set<string> };
 
 /** The names whose text the stack readers need. */
-export const textFiles = ['package.json', 'pyproject.toml', 'requirements.txt', 'setup.cfg', 'Pipfile', 'go.mod', 'Cargo.toml', 'Makefile', 'makefile', 'GNUmakefile'];
+export const textFiles = ['package.json', 'pyproject.toml', 'requirements.txt', 'setup.cfg', 'Pipfile', 'go.mod', 'Cargo.toml', 'Makefile', 'makefile', 'GNUmakefile', 'pnpm-workspace.yaml', 'go.work'];
 
 /** The names whose presence alone tells something. */
 export const markerFiles = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'tsconfig.json', 'poetry.lock', 'uv.lock', 'setup.py', 'pytest.ini'];
