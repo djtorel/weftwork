@@ -5,10 +5,12 @@
 // decisions) into docs/ and rewrite the citations, move the rest into a
 // gitignored local folder, and add the open work to the local backlog. The
 // plan is a dry run; apply never deletes, only tags and moves, and keeps a
-// file that changed since the plan. docs/CONVERT.md.
-import { lstatSync, mkdirSync, readdirSync, renameSync } from 'node:fs';
+// file that changed since the plan. In a linked worktree, which is deleted
+// after its pull request, it copies the local folder to the main checkout too.
+// docs/CONVERT.md.
+import { cpSync, lstatSync, mkdirSync, readdirSync, renameSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { dirname, isAbsolute, join, relative } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { isGitRoot } from './claude-settings-file.ts';
 import { backlogSection, sectionTitle, type BigpowersEpic } from './convert-backlog.ts';
@@ -26,8 +28,10 @@ import { backlog } from './setup-text.ts';
 
 export type Move = { from: string; to: string };
 export type SystemName = 'bigpowers' | 'gsd' | 'gsd2' | 'spec-kit' | 'bmad' | 'bmad-v4';
-export type ConvertPlan = { system: SystemName; tag: string; moves: Move[]; changes: Change[]; notes: string[] };
-export type Converted = { ok: true; tag: string; moved: Move[]; written: string[]; kept: string[] } | Failure;
+/** `copy`: the absolute path in the main checkout that gets a copy of the
+ * local folder, or null. */
+export type ConvertPlan = { system: SystemName; tag: string; moves: Move[]; changes: Change[]; notes: string[]; copy: string | null };
+export type Converted = { ok: true; tag: string; moved: Move[]; written: string[]; kept: string[]; copied: string | null } | Failure;
 
 const maxFileBytes = 1024 * 1024;
 
@@ -372,8 +376,28 @@ function isBacklogOnly(dir: string, system: System): boolean {
   return system.untrackedRoot === true && git(dir, ['ls-files', '--', system.root]).out === '';
 }
 
+/** The main checkout of the repository when `dir` is a linked worktree; null
+ * in the main checkout itself. `bare` when the repository has none. */
+function mainCheckout(dir: string): string | null | 'bare' {
+  const common = gitCommonDir(dir);
+  const own = git(dir, ['rev-parse', '--absolute-git-dir']);
+  if (common === null || !own.ok || resolve(own.out.trim()) === common) return null;
+  const [first = ''] = git(dir, ['worktree', 'list', '--porcelain', '-z']).out.split('\0\0');
+  const lines = first.split('\0');
+  const path = lines[0]?.startsWith('worktree ') ? lines[0].slice('worktree '.length) : '';
+  return path === '' || lines.includes('bare') ? 'bare' : path;
+}
+
+/** Where apply copies the local folder: the main checkout, when `dir` is a
+ * linked worktree and `copy` is not false. */
+function copyTarget(dir: string, system: System, copy: boolean): string | null | 'bare' {
+  if (!copy || isBacklogOnly(dir, system)) return null;
+  const main = mainCheckout(dir);
+  return main === null || main === 'bare' ? main : join(main, system.local);
+}
+
 /** Why `dir` cannot be converted from `system` with `tag`, or null. */
-function refusal(dir: string, system: System, tag: string): string | null {
+function refusal(dir: string, system: System, tag: string, copy: boolean): string | null {
   const { root, local } = system;
   if (!isGitRoot(dir)) return `${dir} is not a git repository root`;
   if (!exists(join(dir, system.marker))) return `${dir} has no ${system.name} ${system.marker === root ? `${root}/` : system.marker}`;
@@ -388,14 +412,17 @@ function refusal(dir: string, system: System, tag: string): string | null {
   const status = git(dir, ['status', '--porcelain', '--untracked-files=all', '--', root]);
   if (!status.ok || status.out !== '') return `${root}/ has uncommitted changes; commit them first, so the tag holds them`;
   if (exists(join(dir, local))) return `${local} exists; move it before converting`;
+  const target = copyTarget(dir, system, copy);
+  if (target !== null && target !== 'bare' && exists(target)) return `${local} exists in the main checkout (${target}); move it before converting, or pass "copy": false`;
   return null;
 }
 
 /** The plan for converting the `system` project in `dir`. Writes nothing. */
-export function planConvert(dir: string, options: { system: SystemName; tag: string }): { ok: true; plan: ConvertPlan } | Failure {
+export function planConvert(dir: string, options: { system: SystemName; tag: string; copy?: boolean }): { ok: true; plan: ConvertPlan } | Failure {
   const system = systemFor(dir, options.system);
   const { root } = system;
-  const refused = refusal(dir, system, options.tag);
+  const copy = options.copy !== false;
+  const refused = refusal(dir, system, options.tag, copy);
   if (refused !== null) return { ok: false, error: refused };
   const notes: string[] = [];
   if (isBacklogOnly(dir, system)) {
@@ -403,7 +430,7 @@ export function planConvert(dir: string, options: { system: SystemName; tag: str
     const common = gitCommonDir(dir);
     if (common === null) return { ok: false, error: 'the git common directory was not found' };
     const change = backlogChange(join(common, 'weftwork', 'BACKLOG.md'), system.section(dir, '', notes, root), system.title, notes);
-    return { ok: true, plan: { system: options.system, tag: '', moves: [], changes: [change], notes } };
+    return { ok: true, plan: { system: options.system, tag: '', moves: [], changes: [change], notes, copy: null } };
   }
   const files = planFiles(dir, root);
   const known = new Set(files);
@@ -448,7 +475,11 @@ export function planConvert(dir: string, options: { system: SystemName; tag: str
   if (common === null) return { ok: false, error: 'the git common directory was not found' };
   changes.push(backlogChange(join(common, 'weftwork', 'BACKLOG.md'), system.section(dir, options.tag, notes, system.local), system.title, notes));
   const moves = [...[...moved].map(([from, to]) => ({ from, to })), { from: root, to: system.local }];
-  return { ok: true, plan: { system: options.system, tag: options.tag, moves, changes, notes } };
+  const target = copyTarget(dir, system, copy);
+  if (target === 'bare') notes.push(`This is a linked worktree of a repository with no main checkout: ${system.local}/ stays in this worktree only, and is deleted with it. Copy it somewhere first.`);
+  else if (target !== null) notes.push(`This is a linked worktree: ${system.local}/ is also copied to ${target} in the main checkout, so it outlives the worktree. The main checkout shows it as untracked until this change is merged there.`);
+  else if (!copy && mainCheckout(dir) !== null) notes.push(`"copy" is false: ${system.local}/ stays in this linked worktree only, and is deleted with it.`);
+  return { ok: true, plan: { system: options.system, tag: options.tag, moves, changes, notes, copy: target === 'bare' ? null : target } };
 }
 
 /** Move `from` to `to` (from `dir`), never onto something that exists. */
@@ -468,8 +499,9 @@ function move(dir: string, { from, to }: Move): Failure | null {
  * its local name. */
 export function applyConvert(dir: string, plan: ConvertPlan): Converted {
   const system = systemFor(dir, plan.system);
-  const refused = refusal(dir, system, plan.tag);
+  const refused = refusal(dir, system, plan.tag, plan.copy !== null);
   if (refused !== null) return { ok: false, error: refused };
+  if (plan.copy !== null && copyTarget(dir, system, true) !== plan.copy) return { ok: false, error: 'the main checkout changed since the plan; plan again' };
   // A backlog-only plan (tag '') applies only while the folder is untracked.
   if (plan.tag === '' && !isBacklogOnly(dir, system)) return { ok: false, error: `${system.root}/ is tracked now; plan again` };
   if (plan.tag !== '' && !git(dir, ['tag', plan.tag, 'HEAD']).ok) return { ok: false, error: `the tag ${plan.tag} could not be made` };
@@ -497,5 +529,12 @@ export function applyConvert(dir: string, plan: ConvertPlan): Converted {
     if (failed !== null) return failed;
     moved.push(last);
   }
-  return { ok: true, tag: plan.tag, moved, written, kept };
+  if (plan.copy !== null && last !== undefined) {
+    try {
+      cpSync(join(dir, last.to), plan.copy, { recursive: true, errorOnExist: true, force: false, preserveTimestamps: true, verbatimSymlinks: true });
+    } catch (error) {
+      return { ok: false, error: `${last.to} could not be copied to ${plan.copy}: ${messageOf(error)}; the conversion is done, copy it by hand` };
+    }
+  }
+  return { ok: true, tag: plan.tag, moved, written, kept, copied: plan.copy };
 }

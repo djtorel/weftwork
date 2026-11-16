@@ -28,6 +28,7 @@ test('AC-e12s03-10 no "apply": the plan, and nothing written', () => {
   assert.deepEqual(answer.plan.moves.at(-1), { from: 'specs', to: '.specs' });
   assert.equal(answer.plan.changes[0].path, 'README.md');
   assert.equal(answer.plan.changes[0].text, undefined);
+  assert.equal(answer.plan.copy, null);
   assert.equal(existsSync(join(dir, '.specs')), false);
 });
 
@@ -48,6 +49,7 @@ test('AC-e12s03-12 a refusal exits 1; bad input exits 2', () => {
   assert.match(refused.stderr, /no bigpowers specs\/state\.yaml/);
   assert.equal(convert(plain, { apply: 'yes' }).status, 2);
   assert.equal(convert(plain, { tag: '' }).status, 2);
+  assert.equal(convert(plain, { copy: 'no' }).status, 2);
 });
 
 // story: e12s03b
