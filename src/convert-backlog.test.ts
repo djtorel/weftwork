@@ -82,3 +82,24 @@ test('AC-e12s03-06 epic, story and task text from the YAML cannot break how the 
   assert.match(text, /^ {2}Check: task 1: `` echo `date` ``$/m);
   assert.match(text, /^ {2}Old spec: ``\.specs\/epics\/e04-x\/odd`name\.md``$/m);
 });
+
+test('AC-e12s03-16 a done epic leaves its open stories out with a note, and an open epic with every story done stays as one item', () => {
+  const mixed: BigpowersEpic[] = [
+    {
+      dir: 'epics/e05-closed',
+      epic: { id: 'e05', title: 'Closed early', status: 'done', stories: [{ id: 'e05s01', title: 'Left over', status: 'todo' }] },
+      tasks: new Map(),
+    },
+    {
+      dir: 'epics/e06-almost',
+      epic: { id: 'e06', title: 'Almost there', status: 'in_progress', done_when: 'Shipped', stories: [{ id: 'e06s01', title: 'Built', status: 'done' }] },
+      tasks: new Map(),
+    },
+  ];
+  const notes: string[] = [];
+  const text = backlogSection(mixed, {}, 'old', notes);
+  assert.doesNotMatch(text, /e05/);
+  assert.deepEqual(notes, ['Epic e05 is done, but its stories e05s01 are not; they are left out of the backlog.']);
+  assert.match(text, /^- \[ \] \*\*e06 Almost there\.\*\* Every story is done; close the epic or add what is left\. Done when: Shipped$/m);
+  assert.match(text, /^ {2}Old spec: `\.specs\/epics\/e06-almost\/epic\.yaml`$/m);
+});

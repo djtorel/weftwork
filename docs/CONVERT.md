@@ -53,9 +53,11 @@ The steps below are for bigpowers; "GSD" below them says what differs.
    `## Converted from bigpowers`. Each open epic and story keeps its id, with
    its title, its done-when (`done_when`, `acceptance`), the `verify` command
    of each open task as `Check:` and a link to its old spec in `.specs/`. An
-   epic with no stories is one item. Status comes from
-   `execution-status.yaml` when it has the id, else from `epic.yaml`;
-   anything `done` is left out, and so is `epics/archive/`. A backlog that has
+   epic with no stories is one item, and so is an open epic whose stories are
+   all done, marked `Every story is done; close the epic or add what is
+   left.` Status comes from `execution-status.yaml` when it has the id, else
+   from `epic.yaml`; anything `done` is left out, and so is `epics/archive/`.
+   A done epic's open stories are left out too, with a note naming them. A backlog that has
    the section already is left as it is.
 
 **GSD.** The plans folder is `.planning/` and its local copy
@@ -110,8 +112,9 @@ changed between the plan and the write is kept and listed in `kept`.
   code. Check what calls each one; drop it if it serves only the old system,
   or point it at the new place.
 - **Paths built in code.** The scan reads text, so `join('specs',
-  'state.yaml')` is not found. Preflight after the conversion finds what
-  breaks.
+  'state.yaml')` is not rewritten. A tracked file that names the plans folder
+  as a quoted string (`'specs'`, `".planning"`) is a note; check each, and
+  Preflight after the conversion finds the rest.
 - **AGENTS.md.** Run setup (`docs/SETUP.md`) and overwrite the old letter;
   setup moves it to `AGENTS.md.weftwork-old` first.
 - Preflight must pass before and after, in the same pull request.

@@ -221,3 +221,14 @@ test('AC-e12s03b-05 the GSD plan refuses: no .planning/, a dirty .planning/, an 
   execFileSync('mkdir', [join(copied, '.gsd-planning')]);
   assert.match(String(refuse(copied)), /\.gsd-planning exists/);
 });
+
+test('AC-e12s03-17 a tracked file that names the plans folder as a quoted string is a note: a path built in code', () => {
+  const dir = makeTestRepo({
+    'specs/state.yaml': '---\nactive_flow: null\n',
+    'tools/state.ts': "const path = join(root, 'specs', 'state.yaml');\n",
+    'tools/other.py': 'ROOT = "specs-old"\n',
+  });
+  const notes = plan(dir).notes;
+  assert.ok(notes.some((note) => note === 'tools/state.ts names "specs" as a string: a path built in code (join(\'specs\', ...)) breaks when specs/ moves; check it.'), notes.join('\n'));
+  assert.ok(!notes.some((note) => note.startsWith('tools/other.py')), notes.join('\n'));
+});

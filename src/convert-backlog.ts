@@ -47,16 +47,22 @@ function storyItem(dir: string, story: Record<string, unknown>, tasks: Map<strin
   return out;
 }
 
-/** The lines for one epic, or none when it is done. */
-function epicLines(found: BigpowersEpic, statuses: Record<string, unknown>): string[] {
+/** The lines for one epic, or none when it is done. A done epic's open
+ * stories are left out with a note; an open epic whose stories are all done
+ * is one item that says so. */
+function epicLines(found: BigpowersEpic, statuses: Record<string, unknown>, notes: string[]): string[] {
   if (!isRecord(found.epic)) return [];
   const epic = found.epic;
   const id = text(epic.id);
   const doneWhen = text(epic.done_when);
   const stories = list(epic.stories).filter(isRecord).filter((story) => isOpen(line(story.id), story.status, statuses));
+  if (!isOpen(line(epic.id), epic.status, statuses)) {
+    const open = stories.map((story) => line(story.id)).join(', ');
+    if (open !== '') notes.push(`Epic ${line(epic.id)} is done, but its stories ${open} are not; they are left out of the backlog.`);
+    return [];
+  }
   if (stories.length === 0) {
-    if (!isOpen(line(epic.id), epic.status, statuses) || list(epic.stories).length > 0) return [];
-    const head = `- [ ] **${id} ${text(epic.title)}.**`;
+    const head = `- [ ] **${id} ${text(epic.title)}.**${list(epic.stories).length > 0 ? ' Every story is done; close the epic or add what is left.' : ''}`;
     return [doneWhen === '' ? head : `${head} Done when: ${doneWhen}`, `  Old spec: ${oldPath(found.dir, 'epic.yaml')}`, ''];
   }
   const out = [`### ${id} ${text(epic.title)}`, ''];
@@ -68,8 +74,9 @@ function epicLines(found: BigpowersEpic, statuses: Record<string, unknown>): str
 }
 
 /** The section, from the open epics in `epics` (sorted by folder) and the
- * statuses in execution-status.yaml (`development_status`). */
-export function backlogSection(epics: BigpowersEpic[], statuses: Record<string, unknown>, tag: string): string {
+ * statuses in execution-status.yaml (`development_status`). What is left out
+ * and why goes into `notes`. */
+export function backlogSection(epics: BigpowersEpic[], statuses: Record<string, unknown>, tag: string, notes: string[] = []): string {
   const intro = [
     sectionTitle,
     '',
@@ -77,7 +84,7 @@ export function backlogSection(epics: BigpowersEpic[], statuses: Record<string, 
     `are in the gitignored \`.specs/\` and at the tag ${codeSpan(tag)}.`,
     '',
   ];
-  const body = [...epics].sort((a, b) => a.dir.localeCompare(b.dir)).flatMap((found) => epicLines(found, statuses));
+  const body = [...epics].sort((a, b) => a.dir.localeCompare(b.dir)).flatMap((found) => epicLines(found, statuses, notes));
   if (body.length === 0) body.push('No open epics or stories.', '');
   return [...intro, ...body].join('\n').replace(/\n+$/, '\n');
 }
