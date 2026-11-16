@@ -6,7 +6,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -199,4 +199,28 @@ test('settings changed after the last call: not seen until the next call (review
   const out = run([checkCli], { cwd: repo, env });
   assert.equal(out.status, 1);
   assert.match(out.stdout, /changed after the last call/);
+});
+
+test('e11s01 the guard: registered and not seen, then failing in a transcript, which fails the check', () => {
+  const repo = makeTestRepo();
+  const config = makeTempDir();
+  const env = cleanEnv(config);
+  run([installCli, '--', 'true'], { cwd: repo, env });
+  callHook(repo, env, 'true');
+  const quiet = run([checkCli], { cwd: repo, env });
+  assert.equal(quiet.status, 0, quiet.stdout);
+  assert.match(quiet.stdout, /^guard: registered, not seen$/m);
+
+  const settings = JSON.parse(readFileSync(join(repo, '.claude', 'settings.json'), 'utf8')) as {
+    hooks: { PreToolUse: { hooks: { command: string }[] }[] };
+  };
+  const command = settings.hooks.PreToolUse[0]?.hooks[0]?.command ?? '';
+  const folder = join(config, 'projects', realpathSync(repo).replace(/[^a-zA-Z0-9]/g, '-'));
+  mkdirSync(folder, { recursive: true });
+  const attachment = { type: 'hook_non_blocking_error', hookEvent: 'PreToolUse', command, exitCode: 1 };
+  writeFileSync(join(folder, 's.jsonl'), `${JSON.stringify({ type: 'attachment', timestamp: new Date().toISOString(), attachment })}\n`);
+  const failing = run([checkCli], { cwd: repo, env });
+  assert.equal(failing.status, 1, failing.stdout);
+  assert.match(failing.stdout, /^weftwork live check: live$/m);
+  assert.match(failing.stdout, /^guard: failing$/m);
 });

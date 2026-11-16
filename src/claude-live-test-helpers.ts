@@ -30,6 +30,7 @@ export function input(change: Partial<LiveInput> = {}): LiveInput {
     local: source('.claude/settings.local.json', null),
     project: source('.claude/settings.json', settings([entry()])),
     user: source('/home/u/.claude/settings.json', null),
+    projectDir: '/opt/weft work',
     exists: (path) => path === cli,
     lastCall: { ok: true, call },
     now,

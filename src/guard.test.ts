@@ -126,3 +126,133 @@ test('AC-e11s01-07 with no git dir the setting and settings files are still prot
   assert.equal(guardCall(edit('Write', join(project, 'weftwork.yaml')), paths).block, true);
   assert.equal(guardCall(edit('Write', join(project, 'src.ts')), paths).block, false);
 });
+
+// e10s01: the built-in protected-paths list beyond the engine's own files, and
+// the owner's own additions (docs/GUARD.md, Protected paths).
+
+test('AC-e10s01-01 a file tool that writes a built-in protected path is blocked', () => {
+  const f = fixture();
+  const targets = [
+    '.git/config',
+    '.git/hooks/pre-commit',
+    '.git',
+    '.claude/hooks/check.sh',
+    '.mcp.json',
+    '.codex/config.toml',
+    '.gemini/settings.json',
+    '.opencode/plugins/x.ts',
+    'opencode.json',
+    '.pi/extensions/x.ts',
+    '.kiro/hooks/x.json',
+    '.env',
+    'web/.env.local',
+    'certs/server.pem',
+    'tls.key',
+    'id_rsa',
+    '.npmrc',
+    '.netrc',
+    '.aws/credentials',
+  ].map((path) => join(f.project, path));
+  targets.push(join(f.home, '.ssh', 'id_ed25519'), join(f.home, '.bashrc'));
+  for (const target of targets) {
+    const answer = guardCall(edit('Write', target), f.paths);
+    assert.equal(answer.block, true, target);
+    assert.ok(answer.block && answer.reason.includes(target), target);
+  }
+});
+
+test('AC-e10s01-02 skill and agent folders, example env files and look-alike names stay writable', () => {
+  const f = fixture();
+  const targets = [
+    '.claude/skills/full-stop/SKILL.md',
+    '.claude/agents/x.md',
+    '.claude/commands/x.md',
+    '.agents/skills/x/SKILL.md',
+    '.env.example',
+    '.env.sample',
+    '.github/workflows/ci.yml',
+    '.gitignore',
+    'src/env.ts',
+    'src/keys.ts',
+    'docs/x.key.md',
+    '.git/weftwork/BACKLOG.md',
+  ];
+  for (const target of targets) {
+    assert.deepEqual(guardCall(edit('Edit', join(f.project, target)), f.paths), { block: false }, target);
+  }
+});
+
+test('AC-e10s01-03 the built-in list matches inside the project only by the path from its root', () => {
+  const parent = join(makeTempDir(), '.codex', 'worktrees');
+  const project = join(parent, 'p');
+  mkdirSync(project, { recursive: true });
+  const paths = guardPaths(project, null, { HOME: makeTempDir() });
+  assert.deepEqual(guardCall(edit('Write', join(project, 'src', 'a.ts')), paths), { block: false });
+  assert.equal(guardCall(edit('Write', join(project, '.codex', 'config.toml')), paths).block, true);
+});
+
+test('AC-e10s01-04 the owner adds paths, and a path the owner adds is blocked like a built-in one', () => {
+  const project = makeTempDir();
+  const paths = guardPaths(project, null, { HOME: makeTempDir() }, ['.claude/skills/', 'docs/security/*.md']);
+  assert.equal(guardCall(edit('Edit', join(project, '.claude/skills/full-stop/SKILL.md')), paths).block, true);
+  assert.equal(guardCall(edit('Edit', join(project, 'docs/security/REVIEW.md')), paths).block, true);
+  assert.equal(guardCall(edit('Edit', join(project, '.env')), paths).block, true, 'the built-in list stays');
+  assert.equal(guardCall(bash('sed -i s/a/b/ .claude/skills/full-stop/SKILL.md'), paths).block, true);
+  assert.deepEqual(guardCall(edit('Edit', join(project, 'docs/README.md')), paths), { block: false });
+});
+
+test('AC-e10s01-11 an exception holds only for its own built-in entry (review r1m1, r1m2)', () => {
+  const project = makeTempDir();
+  const paths = guardPaths(project, null, { HOME: makeTempDir() }, ['docs/security/', '.env.example']);
+  const blockedTargets = ['.git/hooks/.env.example', 'docs/security/.env.example', '.env.example', '.codex/config.toml'];
+  for (const target of blockedTargets) {
+    assert.equal(guardCall(edit('Write', join(project, target)), paths).block, true, target);
+  }
+  for (const command of ['cp x .git/hooks/.env.example', 'cp x docs/security/.env.example']) {
+    assert.equal(guardCall(bash(command), paths).block, true, command);
+  }
+  const plain = guardPaths(project, null, { HOME: makeTempDir() });
+  for (const target of ['.codex/skills/x/SKILL.md', '.codex/agents/x.toml', '.env.example']) {
+    assert.deepEqual(guardCall(edit('Write', join(project, target)), plain), { block: false }, target);
+  }
+});
+
+test('AC-e10s01-08 a Bash command that names a built-in protected path is blocked, by its text', () => {
+  const f = fixture();
+  const commands = [
+    'rm -rf .git',
+    'echo x > .git/hooks/pre-commit',
+    'git config --file .git/config core.hooksPath /tmp',
+    'cat .env',
+    'cp .env.example "$HOME/.env"',
+    'cp a ~/.aws/credentials',
+    'echo t > .npmrc',
+    'chmod 600 certs/server.pem',
+    'ssh-keygen -f ~/.ssh/id_rsa',
+    `echo {} > ${join(f.project, '.codex', 'config.toml')}`,
+    'echo x >> ~/.bashrc',
+  ];
+  for (const command of commands) {
+    const answer = guardCall(bash(command), f.paths);
+    assert.equal(answer.block, true, command);
+    assert.ok(answer.block && /by its text/.test(answer.reason), command);
+  }
+});
+
+test('AC-e10s01-09 a Bash command that names no protected path is allowed, look-alike text too', () => {
+  const f = fixture();
+  const commands = [
+    "node -e 'console.log(process.env.HOME)'",
+    'git rev-parse --git-common-dir',
+    'cat .gitignore',
+    'ls .github/workflows',
+    'cp .env.example .env.sample',
+    'cat .git/weftwork/BACKLOG.md',
+    `cat ${join(f.engine, 'BACKLOG.md')}`,
+    'sed -i s/a/b/ .claude/skills/full-stop/SKILL.md',
+    'npm run typecheck',
+  ];
+  for (const command of commands) {
+    assert.deepEqual(guardCall(bash(command), f.paths), { block: false }, command);
+  }
+});

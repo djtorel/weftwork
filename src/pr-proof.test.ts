@@ -102,3 +102,56 @@ test('a ceiling refusal after a pass and other runs: draft, the refusal on its o
   assert.match(proof.text, /^stopped: exhausted, at 2026-11-15T12:00:00\.000Z$/m);
   assert.match(proof.text, /^budget: 2 runs in this loop, 0 failed runs of this command in a row$/m);
 });
+
+// With run ids, a state is paired with a run by id, not by time: a wall clock
+// can step back between two lines, so time can pair the wrong ones.
+test('a refusal that came before the last run is not paired with it, whatever its time says (run id)', () => {
+  const entries = [{ ...run('npm test', false), runId: 'r1' }, { ...run('npm test', true), runId: 'r2' }];
+  // The refusal followed r1; the clock then stepped back before r2 ran, and
+  // r2's own state line was not written (the engine allows that).
+  const refusal = { ...stop('npm test', 'blocked', 'needs the owner'), at: '2026-11-15T11:00:00.000Z', runId: 'q1', after: 'r1' };
+  const states = [refusal];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, true);
+  assert.doesNotMatch(proof.text, /stopped:|detail:/);
+});
+
+test('a run\'s own stop state stamped before its run line is still shown (run id)', () => {
+  const entries = [{ ...run('npm test', false), runId: 'r1' }];
+  const states = [{ ...stop('npm test', 'stalled', 'same failure'), at: '2026-11-15T09:59:59.000Z', runId: 'r1' }];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, false);
+  assert.match(proof.text, /^stopped: stalled, at 2026-11-15T09:59:59\.000Z$/m);
+});
+
+test('a refusal after the last run, stamped before it, still makes a draft (run id)', () => {
+  const entries = [{ ...run('npm test', true), runId: 'r1' }];
+  const refusal = { ...stop('npm test', 'blocked', 'needs the owner'), at: '2026-11-15T09:00:00.000Z', runId: 'q1', after: 'r1' };
+  const states = [{ ...stop('npm test', 'done', null), runId: 'r1' }, refusal];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, false);
+  assert.match(proof.text, /^stopped: blocked, at 2026-11-15T09:00:00\.000Z$/m);
+  assert.match(proof.text, /^why: the engine stopped after the last run of this command$/m);
+});
+
+// The session's tokens (e11s02 follow-up): the CLI passes what it read from the
+// transcript; the line shows them or why not, and never changes the verdict.
+test('tokens read from the transcript: on the budget line, and the proof is still ready', () => {
+  const tokens = { ok: true as const, tokens: { input: 7, output: 222, cacheRead: 74918, cacheWrite: 22705 } };
+  const proof = prProof({ entries: [run('npm test', true)], states: [], command: 'npm test', fingerprint: 'F', tokens });
+  assert.equal(proof.ready, true);
+  assert.match(
+    proof.text,
+    /^budget: 1 run in this loop, 0 failed runs of this command before the pass, tokens 7 input, 222 output, 74918 cache read, 22705 cache write$/m,
+  );
+});
+
+test('tokens that cannot be read: not counted with the reason, and the verdict is the same', () => {
+  const tokens = { ok: false as const, error: 'no transcript at /x\ny' };
+  const ready = prProof({ entries: [run('npm test', true)], states: [], command: 'npm test', fingerprint: 'F', tokens });
+  assert.equal(ready.ready, true);
+  assert.match(ready.text, /^budget: 1 run in this loop, 0 failed runs of this command before the pass, tokens not counted \(no transcript at \/x\\u000ay\)$/m);
+  const draft = prProof({ entries: [run('npm test', false)], states: [], command: 'npm test', fingerprint: 'F', tokens });
+  assert.equal(draft.ready, false);
+  assert.match(draft.text, /^budget: .*, tokens not counted \(/m);
+});

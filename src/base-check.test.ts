@@ -85,6 +85,44 @@ test('a test that fails on the base shows the change; one that passes there does
   assert.match(out.stdout, /^passes on base: tests\/weak\.test\.sh \(it does not show the change\)$/m);
 });
 
+/** A shell test file that prints TAP: `strong` needs the change (answer 2),
+ * `old` was there before, and `weak` passes whatever the code does. */
+function tapFile(names: string[]): string {
+  const lines = ['. ./lib.sh', 'echo "TAP version 13"', 'f=0'];
+  names.forEach((name, i) => {
+    const check = name === 'strong' ? '[ "$(answer)" = 2 ]' : 'true';
+    lines.push(`if ${check}; then echo "ok ${i + 1} - ${name}"; else echo "not ok ${i + 1} - ${name}"; f=1; fi`);
+  });
+  lines.push(`echo "1..${names.length}"`, 'exit $f');
+  return `${lines.join('\n')}\n`;
+}
+
+test('TAP output: a weak new test in a file that also has a strong one is named; an old test is not', () => {
+  const { dir } = repo();
+  writeFileSync(join(dir, 'tests', 'pair.test.sh'), tapFile(['old']));
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-q', '-m', 'pair');
+  const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
+  writeFileSync(join(dir, 'lib.sh'), 'answer() { echo 2; }\n');
+  writeFileSync(join(dir, 'tests', 'pair.test.sh'), tapFile(['old', 'strong', 'weak']));
+  const out = run(dir, { base });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^weftwork base check: 1 of 1 changed test files fail on the base$/m);
+  assert.match(out.stdout, /^fails on base: tests\/pair\.test\.sh$/m);
+  assert.match(out.stdout, /^ {2}new test passes on base: weak \(it does not show the change\)$/m);
+  assert.doesNotMatch(out.stdout, /passes on base: (old|strong)/);
+});
+
+test('output that is not TAP: one outcome per file, no test names', () => {
+  const { dir } = repo();
+  writeFileSync(join(dir, 'lib.sh'), 'answer() { echo 2; }\n');
+  writeFileSync(join(dir, 'tests', 'new.test.sh'), '. ./lib.sh; echo "ok 1 - weak"; [ "$(answer)" = 2 ]\n');
+  const out = run(dir);
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^fails on base: tests\/new\.test\.sh$/m);
+  assert.doesNotMatch(out.stdout, /new test passes on base/);
+});
+
 test('the base worktree is removed, the working tree and index are left as they were, and no git hook runs', () => {
   const { dir } = repo();
   const marker = join(makeTempDir(), 'hook-ran');
