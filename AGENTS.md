@@ -133,7 +133,8 @@ became of each finding and each reviewer's resolution rate
 (`review-outcome.ts`, `review-outcome-cli.ts`;
 `docs/REVIEW.md`). `base-check.ts`, `base-check-setting.ts` and `base-check-cli.ts` run the
 tests a change adds or edits against the base commit, where they should
-fail, and report which do not (`docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
+fail, and report which do not, each new test too when the run prints TAP
+(`base-check-tap.ts`; `docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
 them to the council, as images and with the design reference and a design
 checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
