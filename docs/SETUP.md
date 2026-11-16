@@ -87,7 +87,7 @@ when the plan or a write is refused (a folder on the way is a symlink, an
 | `AGENTS.md` | A short letter: about, words, the commands whose check ran, the Preflight, the rules |
 | `CLAUDE.md` | A symlink to `AGENTS.md` |
 | `CONVENTIONS.md` | Only when the owner gives rules |
-| `.claude/skills/` | `full-stop`, `review-loop` and `file-pr`, with each `node src/<name>-cli.ts` rewritten to `weftwork <name>` (and `node src/cli.ts` to `weftwork engine`), and each engine doc (`docs/*.md`) and the PR template to `$(weftwork path)/<path>` |
+| `.claude/skills/` | `full-stop`, `review-loop`, `file-pr` and `improve`, with each `node src/<name>-cli.ts` rewritten to `weftwork <name>` (and `node src/cli.ts` to `weftwork engine`), and each engine doc (`docs/*.md`) and the PR template to `$(weftwork path)/<path>` |
 | `.gitignore` | `.env`, `.env.*` and each stack's folders (`node_modules/`, `__pycache__/`, `.venv/`, `target/`), appended only when missing |
 | `<git common dir>/weftwork/BACKLOG.md` | The local backlog, seeded with the first tasks |
 | `.claude/settings.json` | With `stopHook`: the Stop hook declaring the Preflight, and the guard, as `claude-install-cli.ts` writes them; an existing file that would change is a conflict |

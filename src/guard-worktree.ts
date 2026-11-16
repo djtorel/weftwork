@@ -12,7 +12,8 @@ import { currentBranch, repositoryRoot } from './tree.ts';
 
 const run = promisify(execFile);
 
-async function commonDir(cwd: string): Promise<string | null> {
+/** The absolute common git dir of the clone that holds `cwd`, or null. */
+export async function commonDir(cwd: string): Promise<string | null> {
   try {
     const args = ['-c', 'core.fsmonitor=false', 'rev-parse', '--path-format=absolute', '--git-common-dir'];
     const { stdout } = await run('git', args, { cwd, encoding: 'utf8' });

@@ -50,6 +50,8 @@ export type LedgerTail =
       entries: LedgerEntry[];
       states: StateEntry[];
       reviews: ReviewEntry[];
+      /** Guard lines (e11s01); only the history record reads them (e14s01). */
+      guards: GuardLine[];
       skipped: number;
       truncated: boolean;
     }
@@ -155,6 +157,9 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date): Pro
  * would have changed. A log for the owner, never an input to a count. */
 export type GuardEntry = { guard: 'blocked'; tool: string; target: string };
 
+/** A guard line as read back, with its time. */
+export type GuardLine = GuardEntry & { at: string };
+
 /** Append one guard line, the same way as an entry. Never throws. */
 export async function appendGuard(path: string, entry: GuardEntry, at: Date): Promise<AppendResult> {
   return writeLine(path, { at: at.toISOString(), ...entry });
@@ -197,16 +202,24 @@ function toEntry(data: unknown): LedgerEntry | null {
   return { at, done, exitCode, reason, command, fingerprint };
 }
 
-type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | 'guard' | null;
+type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | { guard: GuardLine } | 'guard' | null;
+
+/** A guard line with every field, or null (it is then ignored, not skipped). */
+function toGuard(data: Record<string, unknown>): GuardLine | null {
+  const { at, guard, tool, target } = data;
+  if (typeof at !== 'string' || guard !== 'blocked' || typeof tool !== 'string' || typeof target !== 'string') return null;
+  return { at, guard, tool, target };
+}
 
 /** A line with a string `state` key is a state line, one with a string
- * `guard` key a guard line, which no reader uses, one with a string `review`
+ * `guard` key a guard line, which only the history record reads, one with a string `review`
  * key a review round; anything else a run. */
 function parseLine(line: string): Parsed {
   try {
     const data: unknown = JSON.parse(line);
     if (isRecord(data) && typeof data.guard === 'string') {
-      return 'guard';
+      const guard = toGuard(data);
+      return guard === null ? 'guard' : { guard };
     }
     if (isRecord(data) && typeof data.state === 'string') {
       const state = toState(data);
@@ -227,6 +240,7 @@ function parseLines(text: string) {
   const entries: LedgerEntry[] = [];
   const states: StateEntry[] = [];
   const reviews: ReviewEntry[] = [];
+  const guards: GuardLine[] = [];
   let skipped = 0;
   for (const line of text.split('\n')) {
     if (line.trim() === '') {
@@ -237,6 +251,8 @@ function parseLines(text: string) {
       skipped += 1;
     } else if (parsed === 'guard') {
       continue;
+    } else if ('guard' in parsed) {
+      guards.push(parsed.guard);
     } else if ('entry' in parsed) {
       entries.push(parsed.entry);
     } else if ('review' in parsed) {
@@ -245,7 +261,7 @@ function parseLines(text: string) {
       states.push(parsed.state);
     }
   }
-  return { entries, states, reviews, skipped };
+  return { entries, states, reviews, guards, skipped };
 }
 
 /**
@@ -300,7 +316,7 @@ export async function readLedgerTail(path: string, maxBytes: number): Promise<Le
     return { ok: true, ...parseLines(text), truncated };
   } catch (error) {
     return isMissing(error)
-      ? { ok: true, entries: [], states: [], reviews: [], skipped: 0, truncated: false }
+      ? { ok: true, entries: [], states: [], reviews: [], guards: [], skipped: 0, truncated: false }
       : { ok: false, error: messageOf(error) };
   } finally {
     await handle?.close();

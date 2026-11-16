@@ -33,7 +33,7 @@ export type Applied = { ok: true; written: string[]; kept: string[]; record: Wri
 export type Written = { path: string; made: 'create' | 'append' | 'overwrite'; link: boolean; before: string | null; after: string };
 
 const maxFileBytes = 1024 * 1024;
-const skillFiles = ['full-stop/SKILL.md', 'review-loop/SKILL.md', 'file-pr/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
+const skillFiles = ['full-stop/SKILL.md', 'review-loop/SKILL.md', 'file-pr/SKILL.md', 'improve/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
 const ignoreHeader = '# Added by weftwork setup.';
 const oldSuffix = '.weftwork-old';
 

@@ -196,6 +196,12 @@ research_stories:
       2026 papers on it, say about keeping a review loop bounded while it
       still catches what matters, and is a score, a council or a
       severity gate the better gate for a change?'
+  - id: R20
+    wave: 5
+    title: Self-improvement from local use
+    question: 'Can weftwork improve itself from its own use, with every
+      record kept on the owner''s machine, and which ways of doing that
+      have evidence from the last year that they work?'
 waves:
   1:
     - R0
@@ -222,6 +228,7 @@ waves:
     - R17
     - R18
     - R19
+    - R20
 hypotheses:
   - id: H1
     claim: 'Evidence over claims: done = declared command the
@@ -453,6 +460,28 @@ hypotheses:
       fail on the base. A score measures the reviewer, never the change'
     tested_by:
       - R19
+  # H32 to H34 added for e14s01 on 2026-11-15 (the owner asked whether
+  # weftwork can improve itself from local use). Outside the H1-H27
+  # criterion.
+  - id: H32
+    claim: 'A workflow improves from its own use only through small
+      changes drawn from outcomes the engine recorded and accepted by
+      the owner; context files, skills or harness edits that the agent
+      writes and judges itself do not reliably help'
+    tested_by:
+      - R20
+  - id: H33
+    claim: 'Usage records kept only on the owner''s machine are enough
+      to find failures that recur across one owner''s tasks, but too
+      few to prove an overall gain'
+    tested_by:
+      - R20
+  - id: H34
+    claim: 'Whatever measures a self-proposed change stays out of the
+      agent''s reach: the evaluator, its inputs and the decision to
+      accept'
+    tested_by:
+      - R20
 key_decisions:
   - decision: Research program before product spec
     rationale: Avoid locking in seed-spec ideas before testing

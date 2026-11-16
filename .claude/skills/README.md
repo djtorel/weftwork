@@ -12,3 +12,6 @@ the commit. `docs/research/R17-practitioner-autonomy.md` explains why.
 
 `convert-project` is our own too: it drives `src/convert-cli.ts`
 (`docs/CONVERT.md`).
+
+`improve` is our own too: it reads `src/history-cli.ts`'s report and proposes
+one small fix for a recurring failure (`docs/HISTORY.md`).

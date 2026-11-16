@@ -146,6 +146,7 @@ decision in the pull request.
 | `weftwork detect` | Report a project's stack, commands, CI and agent files |
 | `weftwork claude-install -- '<cmd>'` | Register the Stop hook and guard for a check command |
 | `weftwork claude-live` | Check that Claude Code runs the Stop hook here |
+| `weftwork history` | Report the failures that recur across your tasks (JSON on stdin; `{}` reports) |
 | `weftwork path` | Print where weftwork is installed (its docs and skills) |
 | `weftwork --help` | List every command, including the ones the agent's skills call |
 
@@ -170,6 +171,7 @@ review:              # docs/REVIEW.md
 ui:                  # docs/UI.md: before and after screenshots for UI changes
   screenshot: npx playwright test e2e/screenshots.spec.ts
   paths: ['web/**']
+history: local       # docs/HISTORY.md: keep a local record of each task
 ```
 
 Your own defaults for every project go in
@@ -198,6 +200,7 @@ conversion too. To remove weftwork itself: `npm uninstall -g weftwork`.
 | [Guard](docs/GUARD.md) and [Ask](docs/ASK.md) | What the agent may not do, and when it asks you |
 | [Review](docs/REVIEW.md), [Base check](docs/BASE-CHECK.md), [UI](docs/UI.md) | The review council and its checks |
 | [Budget](docs/BUDGET.md), [State](docs/STATE.md), [PR proof](docs/PR-PROOF.md) | Ceilings, the handoff, and what a PR proves |
+| [History](docs/HISTORY.md) | The opt-in local record of tasks, and how a recurring failure becomes a fix |
 | [Releasing](docs/RELEASING.md) | Versions, releases and what counts as a breaking change |
 | [Research](docs/research/) | The evidence behind the design ([synthesis](docs/research/SYNTHESIS.md)) |
 

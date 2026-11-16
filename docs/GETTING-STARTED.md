@@ -77,7 +77,7 @@ Setup:
    `<path>.weftwork-old` first.
 
 It writes AGENTS.md (with CLAUDE.md as a symlink), the `full-stop`,
-`review-loop` and `file-pr` skills under `.claude/skills/`, lines for
+`review-loop`, `file-pr` and `improve` skills under `.claude/skills/`, lines for
 `.gitignore`, the local backlog, and, if you ask for it, the Claude Code Stop
 hook and guard in `.claude/settings.json`. It commits nothing. Commit the
 result yourself, or as the first task.
