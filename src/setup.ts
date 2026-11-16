@@ -7,13 +7,12 @@
 import { lstatSync, readlinkSync, renameSync, symlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, join, resolve } from 'node:path';
-import { installStopHook } from './claude-install.ts';
+import { installStopHook, weftworkOnPath } from './claude-install.ts';
 import { installGuardHook } from './claude-guard-install.ts';
 import { isGitRoot } from './claude-settings-file.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
 import { lineDiff } from './setup-diff.ts';
-import { sibling } from './sibling.ts';
 import { agentsLetter, backlog, conventions, ignoreLines, missingLines, preflight, type Answers, type CheckedReport } from './setup-text.ts';
 
 export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflict' | 'rewrite';
@@ -185,9 +184,9 @@ function hookChange(dir: string, check: string): Change | Failure {
   const path = '.claude/settings.json';
   const read = readRegularFile(join(dir, path), { follow: false, maxBytes: maxFileBytes });
   if (!read.ok) return read;
-  const stop = installStopHook(read.file?.text ?? null, sibling('claude-hook-cli'), check);
+  const stop = installStopHook(read.file?.text ?? null, weftworkOnPath, check);
   if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
-  const guard = installGuardHook(stop.text, sibling('guard-cli'));
+  const guard = installGuardHook(stop.text, weftworkOnPath);
   if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
   return fileChange(dir, path, guard.text);
 }

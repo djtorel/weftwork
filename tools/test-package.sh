@@ -57,9 +57,30 @@ git -C repo -c user.name=t -c user.email=t@t commit -q -m init
 [ -f repo/AGENTS.md ] || fail "init wrote no AGENTS.md"
 grep -q 'weftwork engine' repo/.claude/skills/full-stop/SKILL.md \
   || fail "the installed skill does not call the weftwork command"
-hook="$pkg/dist/claude-hook-cli.js"
-grep -qF "$hook" repo/.claude/settings.json \
-  || fail "the Stop hook does not name $hook"
+settings="$work/repo/.claude/settings.json"
+grep -qF "weftwork claude-hook -- " "$settings" \
+  || fail "the Stop hook does not run weftwork claude-hook from PATH"
+# The guard entry as Claude Code runs it: with the package on PATH it runs
+# weftwork guard, which lets a harmless Read through; with no weftwork on
+# PATH it blocks (exit 2) and says how to install it.
+guard="$(node -e 'const s = require(process.argv[1]);
+  console.log(s.hooks.PreToolUse.at(-1).hooks[0].command)' "$settings")"
+read_input='{"tool_name":"Read","tool_input":{"file_path":"x"}}'
+(cd repo && echo "$read_input" | PATH="$work/prefix/bin:$PATH" \
+  CLAUDE_PROJECT_DIR="$work/repo" sh -c "$guard") \
+  || fail "the guard entry with weftwork on PATH did not let a Read through"
+mkdir empty
+set +e
+missing="$(cd repo && echo "$read_input" \
+  | PATH="$work/empty" /bin/sh -c "$guard" 2>&1)"
+status=$?
+set -e
+[ "$status" -eq 2 ] \
+  || fail "the guard entry with no weftwork exited $status, not 2"
+case "$missing" in
+  *"npm install -g weftwork"*) ;;
+  *) fail "the guard entry with no weftwork did not say how to install it" ;;
+esac
 (cd repo && echo '{"command":"true"}' | "$bin" engine) | tail -n 1 \
   | grep -q '"done":true' || fail "the engine did not pass true in the repo"
 

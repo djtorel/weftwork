@@ -21,9 +21,11 @@
 // and cannot be read from here, so the notes say so.
 import {
   isAsInstalled,
+  isEngineFile,
   parseSettings,
   parseStopHook,
   stopListOf,
+  weftworkOnPath,
   type StopHookEntry,
 } from './claude-install.ts';
 import type { LastCall, LastCallRead } from './last-call.ts';
@@ -38,7 +40,8 @@ export type LiveInput = {
   local: SettingsSource;
   project: SettingsSource;
   user: SettingsSource;
-  /** True when a file exists at the absolute path. */
+  /** True when a file exists at the absolute path, or, for `weftwork`
+   * (weftworkOnPath), when the command is on this shell's PATH. */
   exists: (path: string) => boolean;
   lastCall: LastCallRead;
   now: Date;
@@ -76,6 +79,9 @@ const standingNotes = [
     'which can differ from the ones the Claude Code session runs with.',
   'An entry that names the adapter through a symlinked path runs and blocks, ' +
     'but never reads as live: the record holds the resolved path.',
+  'An entry that runs weftwork from PATH was checked against this shell\'s PATH, ' +
+    'which can differ from the one Claude Code runs hooks with; any weftwork ' +
+    'Stop hook file with the same command counts as its call.',
 ];
 
 /** The weftwork entries in one file's Stop list, and how many other Stop hooks
@@ -159,6 +165,14 @@ function sameHandler(a: StopHookEntry, b: StopHookEntry): boolean {
   return handlerKey(a) === handlerKey(b);
 }
 
+/** True when the call record is of `entry`: the same command, run by the same
+ * file, or, for an entry that runs weftwork from PATH, by a weftwork Stop hook
+ * file (the record holds the file that ran, not the command on PATH). */
+function recordOf(entry: StopHookEntry, call: LastCall): boolean {
+  if (entry.command !== call.command) return false;
+  return entry.cliPath === weftworkOnPath ? isEngineFile(call.cliPath, 'claude-hook-cli') : entry.cliPath === call.cliPath;
+}
+
 /** The notes, with a count of distinct handlers in the project settings when
  * there is more than one. Handlers in the local or user file run too, so the
  * count is a floor (review round 5, A-F3). */
@@ -188,7 +202,7 @@ function answerFromRecord(usable: Entry[], input: LiveInput): Verdict {
     return notSeen('no call recorded yet: let a Claude Code session stop once', 'stop-once');
   }
   const when = `${call.at} (${ageOf(call.at, input.now)})`;
-  if (!usable.some((entry) => sameHandler(entry, call))) {
+  if (!usable.some((entry) => recordOf(entry, call))) {
     return notSeen(`the last call, at ${when}, ran another command or adapter`, 'stop-once');
   }
   if (Date.parse(call.at) < newestChange([input.local, input.project, input.user])) {
@@ -223,6 +237,9 @@ function whyNotRegistered(entries: Entry[], others: number, file: string): strin
     return `no weftwork Stop hook in ${file} (${others} other Stop hook(s))`;
   }
   if (!entries.some((entry) => entry.present)) {
+    if (entries.every((entry) => entry.cliPath === weftworkOnPath)) {
+      return 'the entry runs the weftwork command, which is not on PATH: install it with npm install -g weftwork';
+    }
     const paths = entries.map((entry) => entry.cliPath).join(', ');
     return `the entry names ${paths}, which does not exist on this machine: run the install again`;
   }

@@ -6,7 +6,7 @@
 // The settings file is untrusted input. Text of the wrong shape is refused,
 // never repaired or overwritten.
 import { isDeepStrictEqual } from 'node:util';
-import { parseSettings, shellQuote } from './claude-install.ts';
+import { isEngineFile, parseSettings, requireWeftwork, shellQuote, weftworkOnPath } from './claude-install.ts';
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 
@@ -19,14 +19,27 @@ export const guardTimeoutSeconds = 30;
 
 export type GuardInstall = { ok: true; text: string; changed: boolean } | Failure;
 
-/** The hook entry the install writes for the guard at `cliPath`. */
-export function guardEntry(cliPath: string): object {
-  return { type: 'command', command: `node ${shellQuote(cliPath)}`, timeout: guardTimeoutSeconds };
+/** The command of the guard entry: `weftwork guard` from PATH, blocking when
+ * weftwork is missing (claude-install.ts), or node and the guard's file. */
+function guardCommand(cliPath: string): string {
+  return cliPath === weftworkOnPath ? `${requireWeftwork}weftwork guard` : `node ${shellQuote(cliPath)}`;
 }
 
-/** True when `hook` runs the guard at `cliPath`, whatever its other keys. */
+/** The hook entry the install writes for the guard at `cliPath`. */
+export function guardEntry(cliPath: string): object {
+  return { type: 'command', command: guardCommand(cliPath), timeout: guardTimeoutSeconds };
+}
+
+/** `node '<file>'`, as an older install wrote the guard entry. */
+const fileGuard = /^node '((?:[^']|'\\'')*)'$/;
+
+/** True when `hook` runs the guard at `cliPath`, whatever its other keys. An
+ * install from PATH also takes over an entry that names a guard file. */
 function isOurs(hook: unknown, cliPath: string): boolean {
-  return isRecord(hook) && hook.command === `node ${shellQuote(cliPath)}`;
+  if (!isRecord(hook) || typeof hook.command !== 'string') return false;
+  if (hook.command === guardCommand(cliPath)) return true;
+  const file = fileGuard.exec(hook.command)?.[1];
+  return cliPath === weftworkOnPath && file !== undefined && isEngineFile(file.replaceAll("'\\''", "'"), 'guard-cli');
 }
 
 type Items = { ok: true; items: unknown[] } | Failure;
