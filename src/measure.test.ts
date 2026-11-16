@@ -116,6 +116,15 @@ test('AC-B7-7 an agent that reports no cost stops the run, since the cap cannot 
   assert.match(result.stopped ?? '', /no cost/);
 });
 
+test('AC-B7-11 an agent whose stdout is cut has no cost line to trust, so the run stops', async () => {
+  // 16-byte lines: the first 1 MiB kept ends on a whole, earlier cost line.
+  const agent = `yes '{"costUsd":0.1}' | head -n 70000; echo '{"costUsd":9}'`;
+  const result = await runArms([{ name: 'loud', agent }], 5, 60000, async () => {});
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0]?.costUsd, null);
+  assert.match(result.stopped ?? '', /no cost/);
+});
+
 test('AC-B7-8 rows are written as they are made', async () => {
   const written: Row[] = [];
   const result = await runArms([{ name: 'silent', agent: 'exit 3' }], 5, 60000, async (row) => {

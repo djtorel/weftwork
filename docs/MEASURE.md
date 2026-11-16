@@ -132,6 +132,8 @@ The cap is held on the cost each agent reports. A run starts only while the
 total is below `maxSpend`, so the last run can pass the cap by its own
 cost: set a per-run ceiling in the agent command too. A run that reports
 no cost stops the experiment, because the cap cannot be held without it.
+The harness keeps the first 1 MiB of stdout; a run that prints more has
+no cost line it can trust, so it stops the experiment too.
 
 ## Limits
 

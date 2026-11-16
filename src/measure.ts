@@ -141,7 +141,8 @@ export async function runArms(arms: readonly Arm[], maxSpend: number, timeoutMs:
       if (spentUsd >= maxSpend) return { rows, spentUsd, stopped: `spend cap reached: ${spentUsd} of ${maxSpend} USD` };
       const env = { ...process.env, WEFTWORK_TASK: task.id };
       const { acted, judged, ms, at } = await oneRun(task, (fixture) => runCapture(arm.agent, fixture.repo, timeoutMs, task.text, env));
-      const cost = reported(acted.stdout);
+      // Cut stdout lost its last line, so no line in it is the cost report.
+      const cost = acted.stdoutCut ? { costUsd: null, tokens: null } : reported(acted.stdout);
       const row: Row = { experiment: 'agent', task: task.id, arm: arm.name, claimed: acted.reason === 'passed', ...judged, ...cost, ms, at };
       rows.push(row);
       await write(row);
