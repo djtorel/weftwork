@@ -22,13 +22,26 @@ backlog. In a main checkout the backlog's folder is the engine's folder.
 The install command registers the guard together with the Stop hook:
 
 ```bash
-node src/claude-install-cli.ts -- 'npm test'
+weftwork claude-install -- 'npm test'
 ```
 
 It adds one group last in `hooks.PreToolUse` of `.claude/settings.json`,
-with the matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`, the command
-`node '<checkout>/src/guard-cli.ts'` and a 30 s timeout. A second run
-changes nothing. Other `PreToolUse` items stay as they are.
+with the matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`, a 30 s timeout
+and this command:
+
+```sh
+command -v weftwork >/dev/null 2>&1 || { echo 'weftwork: the weftwork command is not on PATH, so this hook cannot run. Install it: npm install -g weftwork' >&2; exit 2; }; weftwork guard
+```
+
+The Stop entry starts the same way and ends with
+`weftwork claude-hook -- '<declared command>'`. Running `weftwork` from
+PATH keeps the entries working after an npm upgrade, a moved checkout or a
+new Node. The check in front matters: a hook that cannot start is a
+non-blocking error, so without it a missing `weftwork` would let every tool
+call through. With it, the call is blocked (exit 2) and the message says
+what to install. A second run changes nothing. An entry an older install
+wrote, `node '<file>/guard-cli.ts'` (or `.js`), is replaced; other
+`PreToolUse` items stay as they are.
 
 ## How it decides
 
@@ -79,7 +92,14 @@ The Bash match is a known partial guard. It reads text, not intent:
 - A command that only reads or mentions a protected path is blocked too.
   Use the Read tool to read the file. To put the path in a commit message
   or a pull request body, write the text to a file and pass the file.
-- A crash of the hook before its code runs (a missing file, a Node that is
-  too old) is a non-blocking error, and the call goes ahead.
+- A missing `weftwork` command blocks (see Install), but a crash after it
+  starts and before the guard's code runs (a Node that is too old, a
+  broken install) is a non-blocking error, and the call goes ahead.
+- The entries run whatever `weftwork` comes first on the PATH Claude Code
+  gives hooks. A program that can write a `weftwork` into an earlier PATH
+  folder, or replace the installed package's files, can replace the guard.
+  Both are outside the project: in a git worktree the guard blocks a file
+  tool that writes outside it (`docs/ASK.md`), but not a Bash command that
+  does.
 - The guard protects only these paths. A protected-paths list beyond the
   engine's own files is backlog item e10.

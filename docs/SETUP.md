@@ -97,13 +97,16 @@ today (H3); one that ran and failed is marked `(fails today)`. The Preflight
 joins the lint, typecheck and test commands that passed. With none, the
 letter says so and there is no Stop hook.
 
-The skills call the `weftwork` command (`src/weftwork-cli.ts`, installed with
-`npm link`; `docs/GETTING-STARTED.md` § 1), so they work from any project and
-from a moved checkout once it is linked again. When `weftwork path` does not
-print this checkout, the plan has a note. The Stop hook and the guard still
-name this checkout by absolute path: a hook that cannot find `weftwork` on
-the PATH of the shell Claude Code runs it in would let every stop and tool
-call through, so set up again after moving the checkout.
+The skills call the `weftwork` command (installed with `npm install -g
+weftwork`, or `npm link` from a checkout; `docs/GETTING-STARTED.md` § 1), so
+they work from any project and from a moved checkout once it is linked
+again. When `weftwork path` does not print this engine, the plan has a note.
+The Stop hook and the guard run `weftwork claude-hook` and `weftwork guard`
+from PATH too, so an npm upgrade, a moved checkout or a new Node needs no new
+setup. A hook that cannot start is a non-blocking error in Claude Code, so
+each entry first checks that `weftwork` is on PATH and exits 2 when it is
+not: the stop or the tool call is blocked with a message that says to run
+`npm install -g weftwork` (`docs/GUARD.md`).
 
 A folder that is not the root of a git repository gets no backlog and no
 Stop hook; a note says so.

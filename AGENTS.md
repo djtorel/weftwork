@@ -110,7 +110,8 @@ breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
 on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
 adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
 the session's tokens from the transcript (`transcript-usage.ts`);
-`claude-install.ts` installs the Stop hook. The guard (`guard.ts`, its PreToolUse hook
+`claude-install.ts` installs the Stop hook, as an entry that runs `weftwork`
+from PATH and blocks when it is missing. The guard (`guard.ts`, its PreToolUse hook
 `guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
 would change the agent's own limits or hooks (`docs/GUARD.md`), and the
 mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
