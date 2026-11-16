@@ -17,8 +17,9 @@ model family, a pull request that says what it proved.
 
 It is TypeScript on Node 26 or later, one package that is both a CLI and a
 library, tested with the built-in `node:test` runner. Claude Code is the first
-host. The next big piece of work is the auto run (backlog item e11), which turns
-the way we work here into a product.
+host. The auto run (backlog e11, the `full-stop` skill) and getting started
+(e12: setting up and converting projects) are built, and this repository runs
+under its own hooks (below).
 
 ## Words
 
@@ -84,6 +85,18 @@ The `full-stop` skill runs steps 2 to 7 for you.
 ```bash
 yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test
 ```
+
+## Hooks
+
+This repository runs under its own engine. `.claude/settings.json` registers
+the Stop hook, which runs the Preflight through the done gate at every stop,
+and the guard (`docs/GUARD.md`). Both name the engine as
+`$CLAUDE_PROJECT_DIR/src/`, so each worktree runs its own copy. They need
+`node_modules`: in a new worktree, run `bash tools/setup.sh` first. Until
+then both hooks crash, and Claude Code lets every call and every stop
+through. The guard blocks any Bash command whose text names a protected path
+(`.claude/settings`, `weftwork.yaml`): read those files with the Read tool,
+and only the owner changes them.
 
 ## Architecture
 
