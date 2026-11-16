@@ -147,6 +147,13 @@ leaves a handoff note; the next session picks it up with the resume check
 To change the reviewers or the round limit, add `review` to a
 `weftwork.yaml` in your project ([`REVIEW.md`](REVIEW.md)).
 
+To have weftwork learn from your tasks, add `history: local` to the same
+file. Each pull request it files then adds a record on your machine. Nothing
+is sent anywhere. Later, `echo '{}' | weftwork history` shows the failures
+that keep coming back, and "Improve." asks the agent to propose one small
+fix for the most common one, in a pull request you can merge or close
+([`HISTORY.md`](HISTORY.md)).
+
 ## 4. Undo
 
 **After the pull request is merged:** revert it. For a conversion, also

@@ -137,6 +137,11 @@ task too ambiguous to follow, or a check it cannot make pass
 ([`docs/ASK.md`](docs/ASK.md)). Everything else it decides, and lists each
 decision in the pull request.
 
+Optionally, weftwork keeps a record of each task on your machine. It never
+uploads it. The record shows which failures keep coming back, and the
+`improve` skill proposes one small, tested fix for the most common one, which
+you merge or close ([`docs/HISTORY.md`](docs/HISTORY.md)).
+
 ## Commands
 
 | Command | What it does |

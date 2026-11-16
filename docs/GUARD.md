@@ -17,6 +17,12 @@ tool call that would change one of these:
 One file in the engine's folder stays writable: `BACKLOG.md`, the local
 backlog. In a main checkout the backlog's folder is the engine's folder.
 
+The local history, `history.jsonl` (`docs/HISTORY.md`), lives in the
+backlog's folder, so the same rules cover it. In a main checkout, the
+engine's folder is protected. From a linked worktree, a file tool that
+writes to it is outside the worktree (`docs/ASK.md`), and a Bash command
+that names its path holds `.git/weftwork`. The engine's own CLI writes it.
+
 ## Install
 
 The install command registers the guard together with the Stop hook:

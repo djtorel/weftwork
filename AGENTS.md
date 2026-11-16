@@ -35,11 +35,13 @@ under its own hooks (below).
 ## Where things are
 
 - Tracked: `src/`, `docs/` (research briefs, bug reports, the security review,
-  `STATE.md`, `BUDGET.md`), `tools/`, `.claude/skills/`, `weftwork.yaml` when
-  present.
+  `STATE.md`, `BUDGET.md`), `tools/`, `.claude/skills/`, `weftwork.yaml` and
+  `weftwork-improvements.yaml` when present.
 - Local, never committed:
   - The backlog: `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"`,
     shared by every worktree of this clone.
+  - The history, when the owner turns it on: `history.jsonl` in the same
+    folder, one record per filed task (`docs/HISTORY.md`).
   - The engine's state, ledger and handoff: `"$(git rev-parse --absolute-git-dir)/weftwork/"`,
     one per worktree (`docs/STATE.md`).
   - `.specs/`: the old bigpowers planning tree, read-only history. The tag
