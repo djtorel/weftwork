@@ -52,6 +52,9 @@ A change to any of these is breaking and needs `!` in the title:
   `docs/`).
 - The keys of `weftwork.yaml` and of the budget file (`docs/BUDGET.md`).
 - The files setup writes into a project and the hook entries it registers.
+  `weftwork update` brings a project's skills to a new version
+  (`docs/SETUP.md` § Update), so a skill change is not breaking by itself;
+  a change that needs the owner to do more than run it is.
 - The skills' commands and the steps they promise.
 
 The package exports no library API yet (`exports` lists only

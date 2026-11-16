@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Pack weftwork as npm would publish it, install the tarball globally into a
 # temporary prefix, and use it as a user would: --version, --help, path,
-# detect, init on a new git repository, and the Claude Code hook install.
+# detect, init on a new git repository, the Claude Code hook install, update,
+# and upgrade against a fake npm.
 # Node does not strip types under node_modules, so this is what proves the
 # build in dist/ works (docs/RELEASING.md).
 # Usage: test-package.sh
@@ -83,5 +84,32 @@ case "$missing" in
 esac
 (cd repo && echo '{"command":"true"}' | "$bin" engine) | tail -n 1 \
   | grep -q '"done":true' || fail "the engine did not pass true in the repo"
+
+# update: a project just set up is up to date; with a skill gone, update
+# --yes brings it back.
+(cd repo && "$bin" update) | grep -q 'up to date' \
+  || fail "update did not find a new setup up to date"
+rm -r repo/.claude/skills/weft-improve
+(cd repo && "$bin" update --yes >/dev/null) || fail "update --yes failed"
+[ -f repo/.claude/skills/weft-improve/SKILL.md ] \
+  || fail "update did not create the missing skill"
+
+# upgrade, with a fake npm first on PATH: it asks for the latest version and
+# installs exactly that one; --check installs nothing.
+mkdir fakenpm
+cat > fakenpm/npm <<'EOF'
+#!/bin/sh
+echo "$*" >> "$(dirname "$0")/calls"
+[ "$1" = view ] && echo 99.0.0
+exit 0
+EOF
+chmod +x fakenpm/npm
+PATH="$work/fakenpm:$PATH" "$bin" upgrade --check | grep -q '99.0.0 is out' \
+  || fail "upgrade --check did not report the newer version"
+! grep -q '^install' fakenpm/calls || fail "upgrade --check ran npm install"
+PATH="$work/fakenpm:$PATH" "$bin" upgrade | grep -q 'Installed weftwork 99.0.0' \
+  || fail "upgrade did not install the newer version"
+grep -qx 'install -g weftwork@99.0.0' fakenpm/calls \
+  || fail "upgrade did not run npm install -g weftwork@99.0.0"
 
 echo "test-package: OK ($tarball)"

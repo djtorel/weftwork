@@ -160,7 +160,12 @@ once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 report and the owner's answers: a dry-run plan, then a write that never
 overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
 `init.ts` and `init-cli.ts` are the same setup from the terminal
-(`weftwork init`, the current folder by default). `convert.ts`,
+(`weftwork init`, the current folder by default). `update.ts` and
+`update-cli.ts` bring a set-up project's skills to this version
+(`weftwork update`): a file that holds a text weftwork shipped, known by its
+sha256 in `skill-hashes.ts`, is replaced, and one the owner changed is kept;
+`upgrade.ts` and `upgrade-cli.ts` install the latest weftwork from npm
+(`weftwork upgrade`; `docs/SETUP.md` § Update). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by

@@ -16,6 +16,7 @@ import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type Setti
 import { isGitRoot, readSettings, userSettingsPath } from './claude-settings-file.ts';
 import { isMissing, messageOf } from './errors.ts';
 import { lastCallPath, readLastCall, type LastCallRead } from './last-call.ts';
+import { behind, planUpdate } from './update.ts';
 
 const usage = 'usage: weftwork claude-live (no arguments; run it in the project root)';
 
@@ -112,8 +113,17 @@ async function reportFor(dir: string): Promise<[LiveReport, GuardReport]> {
   return [stop, guard];
 }
 
-function print(report: LiveReport, guard: GuardReport): void {
-  const notes = report.notes.map((note) => `- ${note}\n`).join('');
+/** A note when the project's weftwork skills are behind this weftwork
+ * (update.ts), or none: a folder weftwork did not set up has no skills to be
+ * behind. */
+function skillsNote(dir: string): string[] {
+  const planned = planUpdate(dir, join(import.meta.dirname, '..'));
+  const count = planned.ok ? behind(planned.plan) : 0;
+  return count === 0 ? [] : [`The skills in .claude/skills are behind this weftwork (${count} change${count === 1 ? '' : 's'}): run weftwork update.`];
+}
+
+function print(report: LiveReport, guard: GuardReport, dir: string): void {
+  const notes = [...report.notes, ...skillsNote(dir)].map((note) => `- ${note}\n`).join('');
   const lines = `weftwork live check: ${labels[report.answer]}\n${report.reason}\n\n`;
   const next = report.next === null ? '' : nextStep[report.next];
   const guardLines = `\nguard: ${guardLabels[guard.answer]}\n${guard.reason}\n${guard.next === null ? '' : guardNext[guard.next]}`;
@@ -131,7 +141,7 @@ async function main(args: string[]): Promise<number> {
     return 1;
   }
   const [report, guard] = await reportFor(dir);
-  print(report, guard);
+  print(report, guard, dir);
   return report.answer === 'live' && (guard.answer === 'ran' || guard.answer === 'not-seen') ? 0 : 1;
 }
 
