@@ -199,6 +199,7 @@ conversion too. To remove weftwork itself: `npm uninstall -g weftwork`.
 | [Guard](docs/GUARD.md) and [Ask](docs/ASK.md) | What the agent may not do, and when it asks you |
 | [Review](docs/REVIEW.md), [Base check](docs/BASE-CHECK.md), [UI](docs/UI.md) | The review council and its checks |
 | [Budget](docs/BUDGET.md), [State](docs/STATE.md), [PR proof](docs/PR-PROOF.md) | Ceilings, the handoff, and what a PR proves |
+| [Measure](docs/MEASURE.md) | The harness that measures the done gate against an oracle |
 | [Releasing](docs/RELEASING.md) | Versions, releases and what counts as a breaking change |
 | [Research](docs/research/) | The evidence behind the design ([synthesis](docs/research/SYNTHESIS.md)) |
 

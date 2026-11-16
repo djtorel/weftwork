@@ -74,6 +74,7 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | UI screenshots | `echo '{"phase":"after"}' \| node src/ui-cli.ts` |
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
 | File overlap | `echo '{"tasks":[{"name":"a","files":["src/a.ts"]},{"name":"b","branch":"main"}]}' \| node src/overlap-cli.ts` |
+| Measure (R10 E1) | `echo '{"out":"/tmp/weftwork-measure.jsonl"}' \| node src/measure-cli.ts` |
 | Test | `npm test` |
 | Typecheck | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint .` |
@@ -161,7 +162,11 @@ move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
 `markdown-text.ts` (`docs/CONVERT.md`). `overlap.ts` and `overlap-cli.ts`
 check, before parallel work, that no two planned tasks can change the same
-file, from file lists, globs or branches (`docs/PARALLEL.md`). Every CLI is a
+file, from file lists, globs or branches (`docs/PARALLEL.md`). `measure-fixture.ts`, `measure.ts` and
+`measure-cli.ts` are the measurement harness: a fixture repository with
+planted defects and a held-out oracle, one row per run, and the first
+experiment, the done gate against scripted false successes; agent arms
+refuse to run without a spend cap (`docs/MEASURE.md`). Every CLI is a
 thin shell over a library function, and `weftwork-cli.ts` runs each one as
 `weftwork <command>`, with `--help` and `--version`. The package's bin is
 `bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when
