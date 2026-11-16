@@ -10,8 +10,9 @@
 # pi per-project install (GSD copy, local agents/settings).
 .pi/
 .bigpowers/
-# Agent worktrees.
+# Agent worktrees. Claude Code puts its own in .claude/worktrees/.
 .worktrees/
+.claude/worktrees/
 
 # Secrets.
 .env
