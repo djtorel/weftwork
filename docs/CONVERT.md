@@ -4,8 +4,8 @@
 
 The third step of backlog e12: move a project off another planning system and
 onto weftwork. It converts bigpowers (`specs/state.yaml`), GSD
-(`.planning/`, the v1.30 layout) and spec-kit (`.specify/` with `specs/`);
-BMAD comes later. It makes the steps of PR #66 general. The
+(`.planning/`, the v1.30 layout), spec-kit (`.specify/` with `specs/`) and
+BMAD (`_bmad/` with `_bmad-output/`, the v6 sprint layout). It makes the steps of PR #66 general. The
 `convert-project` skill drives it in Claude Code, and then runs setup
 (`docs/SETUP.md`) for the new AGENTS.md.
 
@@ -18,8 +18,8 @@ echo '{"path":"/path/to/project"}' | node src/convert-cli.ts
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `path` | the current folder | The project folder, the root of a git repository |
-| `system` | found from the folder | `bigpowers`, `gsd` or `spec-kit`; needed only when the folder has more than one |
-| `tag` | `bigpowers-era`, `gsd-era` or `speckit-era` | The tag put on the last commit that tracks the plans |
+| `system` | found from the folder | `bigpowers`, `gsd`, `spec-kit` or `bmad`; needed only when the folder has more than one |
+| `tag` | `bigpowers-era`, `gsd-era`, `speckit-era` or `bmad-era` | The tag put on the last commit that tracks the plans |
 | `apply` | `false` | Convert; without it the CLI prints the plan and writes nothing |
 
 It prints one JSON line and exits 0. It exits 1, with the reason on stderr,
@@ -32,8 +32,8 @@ Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
 
 ## What it does
 
-The steps below are for bigpowers; "GSD" and "spec-kit" below them say what
-differs.
+The steps below are for bigpowers; "GSD", "spec-kit" and "BMAD" below them
+say what differs.
 
 1. **Tag** `HEAD` with `tag`, so the last tracked copy of the old plans stays
    in the history. Undo: `git tag -d <tag>`.
@@ -104,6 +104,24 @@ folder in `.speckit-specs/`. A feature whose tasks are all ticked is done.
 A project with `.specify/` and no `specs/` is refused: there is nothing to
 convert.
 
+**BMAD.** The plans folder is `_bmad-output/` and its local copy
+`.bmad-output/`; the marker is `_bmad/`. The format is BMAD v6.12.4's: the
+sprint in `implementation-artifacts/sprint-status.yaml`, the story files
+beside it (`1-2-account-management.md`), and the epics in
+`planning-artifacts/epics.md` (or `epics/*.md`). The sprint, the stories and
+the epics files stay behind, even when cited; a cited PRD, architecture or UX
+document moves to `docs/`. `_bmad/` (the installed modules) stays tracked,
+with a note, like spec-kit's `.specify/`. The backlog section is `##
+Converted from BMAD`: each open epic of `development_status` keeps its
+number, with its title and goal from the `## Epic N:` heading of epics.md,
+and each open story (`N-M-slug`, any status but `done`) its title from
+`### Story N.M:`, its status, and a link to its story file when there is
+one. A done epic's open stories are left out with a note; an open epic with
+every story done is one item. Each retrospective action item not `done` is
+an item. With no sprint status, every story in epics.md is open. BMAD v4
+(`.bmad-core/`) and the newer ticket tree (`initiative-*/tickets/tickets.toml`)
+are not converted; the ticket tree is refused with a reason.
+
 Text taken from the old plans is escaped for Markdown before it goes into
 the backlog (`src/markdown-text.ts`): `\`, a backtick, `*`, `<`, `[`, `~`,
 a `&` that starts an entity (`&amp;`, `&#169;`) and a `_` not inside a word
@@ -118,7 +136,8 @@ result, with the new AGENTS.md, in one pull request.
 ## What it refuses
 
 The plan is refused when the folder is not a git repository root, has no
-`specs/state.yaml` (GSD: `.planning/`; spec-kit: `.specify/` and `specs/`), has uncommitted changes in the plans
+`specs/state.yaml` (GSD: `.planning/`; spec-kit: `.specify/` and `specs/`;
+BMAD: `_bmad/` and `_bmad-output/`, not the ticket tree), has uncommitted changes in the plans
 folder (the tag would not hold them), already has the tag or the local copy,
 has more than one system and no `system`, has no plans folder to move, or when a cited file would
 move onto a file that exists. Apply checks all of these again. A file that

@@ -77,3 +77,13 @@ test('AC-e12s03c-05 the CLI finds a spec-kit project by itself, with the tag spe
   assert.equal(answer.plan.tag, 'speckit-era');
   assert.deepEqual(answer.plan.moves.at(-1), { from: 'specs', to: '.speckit-specs' });
 });
+
+test('AC-e12s03c-10 the CLI finds a BMAD project by itself, with the tag bmad-era', () => {
+  const dir = makeTestRepo({ '_bmad/x.yaml': '\n', '_bmad-output/planning-artifacts/epics.md': '## Epic 1: A\n' });
+  const out = convert(dir, {});
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.plan.system, 'bmad');
+  assert.equal(answer.plan.tag, 'bmad-era');
+  assert.deepEqual(answer.plan.moves.at(-1), { from: '_bmad-output', to: '.bmad-output' });
+});

@@ -7,7 +7,7 @@ stop).
 
 Status: the engine, the Claude Code adapter and the auto run ("full stop",
 one request to a ready PR) are built, and so are setting up a new project and
-converting a bigpowers, GSD or spec-kit one. Converting BMAD comes next. To
+converting a bigpowers, GSD, spec-kit or BMAD one. To
 work on weftwork itself, start with [`AGENTS.md`](AGENTS.md); the research is
 in [`docs/research/`](docs/research/), with the synthesis in
 [`SYNTHESIS.md`](docs/research/SYNTHESIS.md).
@@ -23,7 +23,7 @@ npm link
 
 Then open Claude Code in this checkout and say "Set up weftwork in
 /path/to/project", or "Convert /path/to/project to weftwork" for a bigpowers,
-GSD or spec-kit project. In that project, name a task and add "Full stop."
+GSD, spec-kit or BMAD project. In that project, name a task and add "Full stop."
 [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) has each step, what you
 need installed, and how to undo it.
 
