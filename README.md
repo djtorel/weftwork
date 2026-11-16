@@ -79,7 +79,9 @@ weftwork init
 ```
 
 `init` reads the project and runs its test, lint, typecheck and build
-commands once, so it only writes down commands that work. It asks up to
+commands once. AGENTS.md marks a command that failed as `(fails today)`,
+and the Preflight, the check the agent must pass, takes only the ones that
+passed. It asks up to
 five questions, each with a recommended answer (press Enter to keep it).
 Then it shows every file it would write, as a diff, and writes only when you
 say yes. Add `--stop-hook` to install the Claude Code Stop hook and guard,

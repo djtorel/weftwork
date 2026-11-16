@@ -162,7 +162,7 @@ If the tag was pushed, also run `git push origin :refs/tags/bigpowers-era`.
 so one command reverses them (`docs/SETUP.md` § Undo):
 
 ```bash
-echo '{"path":"/path/to/project","undo":true}' | node src/setup-cli.ts
+echo '{"path":"/path/to/project","undo":true}' | weftwork setup
 ```
 
 It removes the files setup created, gives `.gitignore` back its old lines,
