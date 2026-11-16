@@ -160,7 +160,7 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   if ('ok' in ignore) return ignore;
   changes.push(ignore);
   if (linkedEngine() !== resolve(options.engineDir)) {
-    notes.push(`The skills call the weftwork command, which does not run this engine here. Run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
+    notes.push(`The skills call the weftwork command, which does not run this engine here. Install it with npm install -g weftwork, or for a checkout run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
   }
   const common = isGitRoot(dir) ? gitCommonDir(dir) : null;
   if (common === null) {
