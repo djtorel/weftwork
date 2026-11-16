@@ -6,7 +6,7 @@
 // resolver's (launcher.ts); PATH is left out, since this weftwork came from
 // there. weftwork-cli.ts runs the target. docs/INSTALL.md.
 import { spawnSync } from 'node:child_process';
-import { accessSync, constants, realpathSync } from 'node:fs';
+import { accessSync, constants, realpathSync, statSync } from 'node:fs';
 import { devDependencyBin, engineBin } from './launcher.ts';
 
 /** The environment variable a handed-off run gets, so it never hands off again. */
@@ -23,10 +23,12 @@ export function repoOf(cwd: string): Repo | null {
   return top && commonDir ? { top, commonDir } : null;
 }
 
+/** True for an executable regular file (through symlinks), as the lookup's
+ * `[ -f ] && [ -x ]`. */
 function executable(path: string): boolean {
   try {
     accessSync(path, constants.X_OK);
-    return true;
+    return statSync(path).isFile();
   } catch {
     return false;
   }

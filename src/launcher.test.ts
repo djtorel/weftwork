@@ -75,4 +75,12 @@ for (const shell of shells) {
     writeFileSync(join(onPath, 'weftwork'), '#!/bin/sh\nexit 7\n', { mode: 0o755 });
     assert.equal(run(shell, repo, onPath).status, 7);
   });
+
+  test(`${shell}: a folder at a candidate path is passed over, so a hook still blocks (review r1s1)`, () => {
+    const repo = makeTestRepo();
+    mkdirSync(devDependencyBin(repo), { recursive: true });
+    const ran = run(shell, repo, pathDir(false), { WEFTWORK_BIN: repo });
+    assert.equal(ran.status, 2, ran.stderr);
+    assert.equal(ran.stderr, `${missingWeftwork}\n`);
+  });
 }

@@ -48,7 +48,8 @@ export const missingPrefix = 'weftwork: the weftwork command is not';
 /** The resolver as a POSIX shell function named `weftwork`, on one line. It
  * works in sh, bash and zsh. It looks from CLAUDE_PROJECT_DIR when Claude Code
  * sets it, else from the current folder. A later candidate is tried only when
- * an earlier one is not an executable file; PATH is searched without the
+ * an earlier one is not an executable regular file (a folder would exit 126,
+ * which does not block a hook; review r1s1); PATH is searched without the
  * function itself. */
 export const weftworkFunction =
   'weftwork() { ' +
@@ -57,7 +58,7 @@ export const weftworkFunction =
   '_ww_t=$(git -C "$_ww_d" rev-parse --show-toplevel 2>/dev/null); ' +
   'for _ww in "${WEFTWORK_BIN:-}" "${_ww_g:+$_ww_g/weftwork/engine/node_modules/.bin/weftwork}" ' +
   '"${_ww_t:+$_ww_t/node_modules/.bin/weftwork}"; do ' +
-  'if [ -n "$_ww" ] && [ -x "$_ww" ]; then "$_ww" "$@"; return; fi; ' +
+  'if [ -n "$_ww" ] && [ -f "$_ww" ] && [ -x "$_ww" ]; then "$_ww" "$@"; return; fi; ' +
   'done; ' +
   'if (unset -f weftwork; command -v weftwork) >/dev/null 2>&1; then command weftwork "$@"; return; fi; ' +
   `echo '${missingWeftwork}' >&2; return 2; }`;

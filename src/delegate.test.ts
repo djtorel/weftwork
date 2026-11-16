@@ -76,6 +76,12 @@ test('the first executable candidate decides: when it is this weftwork, a later 
   assert.equal(delegateTarget({}, info, ownBin), null);
 });
 
+test('a folder at a candidate path is not handed the command (review r1s1)', () => {
+  const repo = makeTestRepo();
+  mkdirSync(devDependencyBin(repo), { recursive: true });
+  assert.equal(delegateTarget({ WEFTWORK_BIN: repo }, repoOf(repo), ownBin), null);
+});
+
 test('outside a git repository there is no repo, and only WEFTWORK_BIN can be handed the command', () => {
   const dir = makeTempDir();
   assert.equal(repoOf(dir), null);
