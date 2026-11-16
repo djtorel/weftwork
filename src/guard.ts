@@ -114,6 +114,10 @@ export const builtInProtected: readonly ProtectedPattern[] = [
   { pattern: '.opencode/plugins/', except: none },
   { pattern: '.pi/extensions/', except: none },
   { pattern: '.kiro/hooks/', except: none },
+  // A dev dependency's weftwork, which the hooks run (launcher.ts); the
+  // clone's own install is under `.git/` above.
+  { pattern: 'node_modules/.bin/weftwork', except: none },
+  { pattern: 'node_modules/weftwork/', except: none },
   // Shell startup files run at every shell start (R11 S26).
   ...['.bashrc', '.bash_profile', '.zshrc', '.profile'].map((pattern) => ({ pattern, except: none })),
   // Credential files (R11 S29, S30).

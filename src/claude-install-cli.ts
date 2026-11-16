@@ -6,8 +6,9 @@
 // claude-install.ts and claude-settings-file.ts. Exit 0 on success and 1 on
 // any error; this is not a hook, so exit 2 means nothing here.
 //
-// The entries run `weftwork claude-hook` and `weftwork guard` from PATH, and
-// block when weftwork is missing (claude-install.ts, requireWeftwork).
+// The entries run `weftwork claude-hook` and `weftwork guard` as the resolver
+// finds weftwork, and block when it is missing (launcher.ts); a SessionStart
+// entry gives the session's Bash commands the same resolver.
 //
 // SECURITY: the command is shell code that the hook will run, so it comes from
 // the owner at this prompt. The settings file is untrusted input (e10).
@@ -23,8 +24,9 @@ function nextSteps(path: string, guardChanged: boolean): string {
     `${guardChanged ? 'added' : 'unchanged'}: PreToolUse guard in ${path}`,
     '',
     'Next:',
-    '- The entries run the weftwork command from PATH. Where it is missing they',
-    '  block every stop and tool call and say to run npm install -g weftwork.',
+    '- The entries run the weftwork command: this clone\'s own install, a dev',
+    '  dependency or the one on PATH. Where none is found they block every stop',
+    '  and tool call and say how to install it (npx weftwork install).',
     '- If Claude Code shows the workspace trust dialog, accept it. Until you do,',
     '  it does not run the hook.',
     '- Start a new Claude Code session. A session that is already running may not',
@@ -42,7 +44,7 @@ function main(args: string[]): number {
   }
   const result = installInProject(process.cwd(), { stop: weftworkOnPath, guard: weftworkOnPath }, command);
   if (!result.ok) {
-    process.stderr.write(`weftwork install: ${result.error}\n`);
+    process.stderr.write(`weftwork claude-install: ${result.error}\n`);
     return 1;
   }
   process.stdout.write(`${result.action}: ${nextSteps(result.path, result.guardChanged)}`);

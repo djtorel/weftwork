@@ -13,7 +13,7 @@ import { detectProject, type FoundCommand } from './detect.ts';
 import type { Plan } from './setup.ts';
 import type { Answers, CheckedReport, Question } from './setup-text.ts';
 
-export type InitOptions = { path: string; yes: boolean; stopHook: boolean; run: boolean; overwrite: string[] };
+export type InitOptions = { path: string; yes: boolean; stopHook: boolean; local: boolean; run: boolean; overwrite: string[] };
 
 export const initUsage = `Usage: weftwork init [path] [options]
 
@@ -23,6 +23,10 @@ it would write, and write them only when you agree.
   path                 The project folder. Default: the current folder.
   -y, --yes            Take the recommended answers and write without asking.
   --stop-hook          Also register the Claude Code Stop hook and guard.
+  --local              Install weftwork into this clone only, untracked, with
+                       no global install (weftwork install), pin its version,
+                       and register the Claude Code SessionStart entry that
+                       lets the skills find it.
   --no-run             Do not run the project's commands to check them
                        (use it for a project you do not trust).
   --overwrite <path>   Replace this conflicting file; the old one is kept as
@@ -43,6 +47,7 @@ export function parseInitArgs(args: string[], cwd: string): { ok: true; options:
       options: {
         yes: { type: 'boolean', short: 'y', default: false },
         'stop-hook': { type: 'boolean', default: false },
+        local: { type: 'boolean', default: false },
         run: { type: 'boolean', default: true },
         overwrite: { type: 'string', multiple: true, default: [] },
         help: { type: 'boolean', short: 'h', default: false },
@@ -57,7 +62,7 @@ export function parseInitArgs(args: string[], cwd: string): { ok: true; options:
   const [path] = positionals;
   return {
     ok: true,
-    options: { path: resolve(cwd, path ?? '.'), yes: values.yes, stopHook: values['stop-hook'], run: values.run, overwrite: values.overwrite },
+    options: { path: resolve(cwd, path ?? '.'), yes: values.yes, stopHook: values['stop-hook'], local: values.local, run: values.run, overwrite: values.overwrite },
   };
 }
 

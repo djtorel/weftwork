@@ -6,6 +6,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readlinkSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { envHookEntry } from './claude-env-install.ts';
 import { applySetup, planSetup, type Plan } from './setup.ts';
 import type { Answers, CheckedReport } from './setup-text.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -41,8 +42,8 @@ const answers: Answers = {
   tasks: ['Add a --json flag.'],
 };
 
-function plan(dir: string, options: { stopHook?: boolean } = {}): Plan {
-  const result = planSetup(dir, report(dir), answers, { engineDir, stopHook: options.stopHook ?? false });
+function plan(dir: string, options: { stopHook?: boolean; envHook?: boolean } = {}): Plan {
+  const result = planSetup(dir, report(dir), answers, { engineDir, stopHook: options.stopHook ?? false, envHook: options.envHook ?? false });
   assert.ok(result.ok, result.ok ? '' : result.error);
   return result.plan;
 }
@@ -157,6 +158,18 @@ test('AC-e12s02-08 the Stop hook is planned with the Preflight and installed on 
   assert.ok(settings.includes("weftwork claude-hook -- 'go test ./...'"), 'the Stop hook runs weftwork from PATH');
   assert.ok(settings.includes('weftwork guard'), 'the guard runs weftwork from PATH');
   assert.ok(!settings.includes(engineDir), 'no entry names this checkout');
+  const hooks = (JSON.parse(settings) as { hooks: Record<string, unknown> }).hooks;
+  assert.deepEqual(hooks.SessionStart, [{ hooks: [envHookEntry] }], 'the skills get the same resolver');
+});
+
+test('a local setup with no Stop hook still registers the SessionStart entry, and nothing else', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n' });
+  assert.equal(action(plan(dir), '.claude/settings.json'), undefined, 'a plain setup writes no settings');
+  const p = plan(dir, { envHook: true });
+  assert.equal(action(p, '.claude/settings.json'), 'create');
+  assert.ok(applySetup(dir, p, { overwrite: [] }).ok);
+  const settings = JSON.parse(readFileSync(join(dir, '.claude/settings.json'), 'utf8')) as unknown;
+  assert.deepEqual(settings, { hooks: { SessionStart: [{ hooks: [envHookEntry] }] } });
 });
 
 test('AC-e12s02-13 a settings file the owner edited is a conflict with a diff, not silently replaced', () => {

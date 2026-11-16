@@ -4,10 +4,11 @@
 // when it blocks a call or fails to run, so those two are the evidence.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { guardEntry, guardMatcher } from './claude-guard-install.ts';
-import { weftworkOnPath } from './claude-install.ts';
+import { guardEntry, guardMatcher, guardTimeoutSeconds } from './claude-guard-install.ts';
+import { legacyRequireWeftwork, weftworkOnPath } from './claude-install.ts';
 import { guardReport, type GuardInput } from './claude-live-guard.ts';
 import { source } from './claude-live-test-helpers.ts';
+import { missingWeftwork } from './launcher.ts';
 
 const cli = '/opt/weftwork/src/guard-cli.ts';
 const command = `node '${cli}'`;
@@ -65,7 +66,18 @@ test('an entry run from PATH where weftwork is missing: not registered', () => {
   const project = source('.claude/settings.json', settings([{ matcher: guardMatcher, hooks: [guardEntry(weftworkOnPath)] }]));
   const report = guardReport(input({ project, exists: () => false }));
   assert.equal(report.answer, 'not-registered');
-  assert.match(report.reason, /not on PATH/);
+  assert.match(report.reason, /not installed for this project: install it in this clone with npx weftwork install/);
+});
+
+test('a guard entry as 0.2.0 wrote it, weftwork from PATH only, is still as installed', () => {
+  const legacy = {
+    type: 'command',
+    command: `${legacyRequireWeftwork}weftwork guard`,
+    timeout: guardTimeoutSeconds,
+  };
+  const project = source('.claude/settings.json', settings([{ matcher: guardMatcher, hooks: [legacy] }]));
+  const report = guardReport(input({ project, exists: () => true }));
+  assert.equal(report.answer, 'not-seen');
 });
 
 test('a guard group with a narrower matcher: not registered, changed by hand', () => {
@@ -101,10 +113,12 @@ test('the newest event wins across transcripts: a block after a failure is ran',
 });
 
 test('a block by the missing-weftwork check is failing: the guard itself did not run', () => {
-  const stderr = 'weftwork: the weftwork command is not on PATH, so this hook cannot run.';
-  const report = guardReport(input({ transcripts: { ok: true, texts: [blocked('2026-11-15T10:00:00.000Z', command, stderr)] } }));
-  assert.equal(report.answer, 'failing');
-  assert.match(report.reason, /not on PATH/);
+  const older = 'weftwork: the weftwork command is not on PATH, so this hook cannot run.';
+  for (const stderr of [missingWeftwork, older]) {
+    const report = guardReport(input({ transcripts: { ok: true, texts: [blocked('2026-11-15T10:00:00.000Z', command, stderr)] } }));
+    assert.equal(report.answer, 'failing', stderr);
+    assert.match(report.reason, /weftwork command was not installed/);
+  }
 });
 
 test('events of another hook command are not the guard\'s', () => {

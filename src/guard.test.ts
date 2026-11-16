@@ -152,6 +152,9 @@ test('AC-e10s01-01 a file tool that writes a built-in protected path is blocked'
     '.npmrc',
     '.netrc',
     '.aws/credentials',
+    'node_modules/.bin/weftwork',
+    'node_modules/weftwork/dist/guard-cli.js',
+    'packages/app/node_modules/weftwork/package.json',
   ].map((path) => join(f.project, path));
   targets.push(join(f.home, '.ssh', 'id_ed25519'), join(f.home, '.bashrc'));
   for (const target of targets) {
@@ -176,6 +179,8 @@ test('AC-e10s01-02 skill and agent folders, example env files and look-alike nam
     'src/keys.ts',
     'docs/x.key.md',
     '.git/weftwork/BACKLOG.md',
+    'node_modules/.bin/tsc',
+    'node_modules/weftwork-plugin/index.js',
   ];
   for (const target of targets) {
     assert.deepEqual(guardCall(edit('Edit', join(f.project, target)), f.paths), { block: false }, target);

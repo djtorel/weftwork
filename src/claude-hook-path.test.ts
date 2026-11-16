@@ -1,19 +1,24 @@
-// The hook entries that call the `weftwork` command on PATH instead of naming
-// a checkout's file, so they survive an npm upgrade, a moved checkout and a
-// new Node, and that block (exit 2) when the command is missing, since a
-// hook that cannot start is a non-blocking error in Claude Code.
+// The hook entries that call the `weftwork` command, as the resolver finds it
+// (launcher.ts), instead of naming a checkout's file, so they survive an npm
+// upgrade, a moved checkout and a new Node, and that block (exit 2) when the
+// command is missing, since a hook that cannot start is a non-blocking error
+// in Claude Code.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { guardEntry, installGuardHook } from './claude-guard-install.ts';
-import { installStopHook, parseStopHookCommand, stopHookCommand, weftworkOnPath } from './claude-install.ts';
+import { installStopHook, isAsInstalled, legacyRequireWeftwork, parseStopHookCommand, stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { liveReport } from './claude-live.ts';
 import { call, entry, input, settings, source } from './claude-live-test-helpers.ts';
-import { cleanupTempDirs, makeTempDir } from './test-helpers.ts';
+import { engineBin } from './launcher.ts';
+import { gitCommonDir } from './setup.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
+
+const gitPath = spawnSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).stdout.trim();
 
 /** Run a hook entry's command text as Claude Code does, with only `dir` on PATH. */
 function runEntry(command: string, dir: string) {
@@ -88,5 +93,32 @@ test('live check: an entry from PATH with no weftwork on PATH is not registered,
   const project = source('.claude/settings.json', settings([entry('npm test', weftworkOnPath)]));
   const report = liveReport(input({ project, exists: () => false }));
   assert.equal(report.answer, 'not-registered');
-  assert.match(report.reason, /not on PATH.*npm install -g weftwork/);
+  assert.match(report.reason, /not installed for this project: install it in this clone with npx weftwork install, or for every project with npm install -g weftwork/);
+});
+
+test('a Stop entry as 0.2.0 wrote it, weftwork from PATH only, reads back, is as installed, and an install replaces it', () => {
+  const legacy = { type: 'command', command: `${legacyRequireWeftwork}weftwork claude-hook -- 'npm test'`, timeout: 660 };
+  const read = parseStopHookCommand(legacy.command);
+  assert.deepEqual(read, { cliPath: weftworkOnPath, command: 'npm test' });
+  assert.ok(read !== null && isAsInstalled(legacy, read));
+  const result = installStopHook(settings([legacy]), weftworkOnPath, 'npm test');
+  assert.ok(result.ok);
+  assert.equal(result.action, 'replaced');
+  assert.equal(stopEntryOf(result.text), stopHookCommand(weftworkOnPath, 'npm test'));
+});
+
+test('the Stop entry runs the clone\'s own install before the one on PATH', () => {
+  const repo = makeTestRepo();
+  const local = engineBin(gitCommonDir(repo) ?? '');
+  mkdirSync(dirname(local), { recursive: true });
+  writeFileSync(local, '#!/bin/sh\necho "local:$*"\n', { mode: 0o755 });
+  const onPath = fakeWeftwork();
+  writeFileSync(join(onPath, 'git'), `#!/bin/sh\nexec ${JSON.stringify(gitPath)} "$@"\n`, { mode: 0o755 });
+  const ran = spawnSync('/bin/sh', ['-c', stopHookCommand(weftworkOnPath, 'npm test')], {
+    cwd: repo,
+    env: { PATH: onPath, CLAUDE_PROJECT_DIR: repo },
+    encoding: 'utf8',
+    timeout: 20000,
+  });
+  assert.equal(ran.stdout, 'local:claude-hook -- npm test\n', ran.stderr);
 });

@@ -168,7 +168,16 @@ overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
 (`weftwork update`): a file that holds a text weftwork shipped, known by its
 sha256 in `skill-hashes.ts`, is replaced, and one the owner changed is kept;
 `upgrade.ts` and `upgrade-cli.ts` install the latest weftwork from npm
-(`weftwork upgrade`; `docs/SETUP.md` § Update). `convert.ts`,
+(`weftwork upgrade`; `docs/SETUP.md` § Update), into the clone when that is
+the install in use. `launcher.ts` is the one lookup that finds the
+`weftwork` command: WEFTWORK_BIN, the clone's own install under the git
+common dir, a dev dependency, then PATH, as the shell function the hook
+entries hold; `claude-env-install.ts` gives it to the session's Bash
+commands through a SessionStart entry; `install.ts` and `install-cli.ts`
+install into the clone at the version pinned in `weftwork.yaml`
+(`weftwork install`, and `weftwork init --local`); `delegate.ts` hands a
+command from a weftwork that is not the project's own to the one that is
+(`docs/INSTALL.md`). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by

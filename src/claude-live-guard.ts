@@ -12,11 +12,11 @@
 // read as data: the agent's own tool calls put text in them, so they are
 // evidence, not proof, and every reason is escaped before it is printed.
 import { join } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
-import { guardCliOf, guardEntry, guardMatcher } from './claude-guard-install.ts';
+import { guardCliOf, guardMatcher, isGuardAsInstalled } from './claude-guard-install.ts';
 import { parseSettings, weftworkOnPath } from './claude-install.ts';
-import { resolvedAdapter, shown, type SettingsSource } from './claude-live.ts';
+import { installHint, resolvedAdapter, shown, type SettingsSource } from './claude-live.ts';
 import { isRecord } from './json.ts';
+import { missingPrefix } from './launcher.ts';
 
 /** `ran`: it blocked a call; `failing`: it could not run; `not-seen`: no trace. */
 export type GuardAnswer = 'ran' | 'failing' | 'not-seen' | 'not-registered';
@@ -40,9 +40,9 @@ export type GuardInput = {
 type Entry = { command: string; runs: string; asInstalled: boolean };
 type Event = { at: string; kind: 'blocked' | 'failed' | 'missing' };
 
-/** The start of the message the PATH check prints when weftwork is missing
- * (claude-install.ts, requireWeftwork): a block, but not by the guard. */
-const missingMessage = 'weftwork: the weftwork command is not on PATH';
+/** The start of the message the resolver prints when weftwork is missing
+ * (launcher.ts): a block, but not by the guard. */
+const missingMessage = missingPrefix;
 
 /** The guard entries in the PreToolUse list of `text`, or the error. */
 function guardEntries(text: string | null): { ok: true; entries: Entry[]; others: number } | { ok: false; error: string } {
@@ -58,7 +58,7 @@ function guardEntries(text: string | null): { ok: true; entries: Entry[]; others
       const command = isRecord(hook) && typeof hook.command === 'string' ? hook.command : '';
       const cliPath = guardCliOf(command);
       if (cliPath === null) { others += 1; continue; }
-      const asInstalled = isRecord(group) && group.matcher === guardMatcher && isDeepStrictEqual(hook, guardEntry(cliPath));
+      const asInstalled = isRecord(group) && group.matcher === guardMatcher && isGuardAsInstalled(hook, cliPath);
       entries.push({ command, runs: cliPath, asInstalled });
     }
   }
@@ -118,7 +118,7 @@ function rawReport(input: GuardInput): GuardReport {
   const present = entries.filter((entry) => input.exists(entry.runs));
   if (present.length === 0) {
     return entries.every((entry) => entry.runs === weftworkOnPath)
-      ? notRegistered('the guard entry runs the weftwork command, which is not on PATH: install it with npm install -g weftwork')
+      ? notRegistered(`the guard entry runs the weftwork command, which is not installed for this project: ${installHint}`)
       : notRegistered(`the guard entry names ${entries.map((entry) => entry.runs).join(', ')}, which does not exist on this machine`);
   }
   const usable = present.filter((entry) => entry.asInstalled);
@@ -140,7 +140,7 @@ function fromTranscripts(commands: string[], transcripts: Transcripts): GuardRep
   }
   if (event.kind === 'blocked') return { answer: 'ran', reason: `the guard last blocked a call at ${event.at}`, next: null };
   const reason = event.kind === 'missing'
-    ? `at ${event.at} the weftwork command was not on PATH, so the hook blocked the call without running the guard`
+    ? `at ${event.at} the weftwork command was not installed, so the hook blocked the call without running the guard`
     : `at ${event.at} the guard could not run (a non-blocking hook error), so the call went ahead unchecked`;
   return { answer: 'failing', reason, next: 'fix-guard' };
 }

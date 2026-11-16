@@ -8,9 +8,11 @@ import { existsSync, lstatSync, readlinkSync, renameSync, symlinkSync } from 'no
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, join, resolve } from 'node:path';
 import { installStopHook, weftworkOnPath } from './claude-install.ts';
+import { installEnvHook } from './claude-env-install.ts';
 import { installGuardHook } from './claude-guard-install.ts';
 import { isGitRoot } from './claude-settings-file.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
+import { resolved } from './launcher.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
 import { lineDiff } from './setup-diff.ts';
 import { agentsLetter, backlog, conventions, ignoreLines, missingLines, preflight, type Answers, type CheckedReport } from './setup-text.ts';
@@ -24,7 +26,9 @@ export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflic
  * kept, not written. */
 export type Change = { path: string; action: ChangeAction; text?: string; diff?: string; mode?: number; before?: string | null; link?: string };
 export type Plan = { changes: Change[]; notes: string[] };
-export type SetupOptions = { engineDir: string; stopHook: boolean };
+/** `envHook`: register the SessionStart entry even with no Stop hook, for a
+ * project whose weftwork is not on PATH (`weftwork init --local`). */
+export type SetupOptions = { engineDir: string; stopHook: boolean; envHook?: boolean };
 export type Applied = { ok: true; written: string[]; kept: string[]; record: Written[] } | Failure;
 
 /** One write, for undo (setup-undo.ts): `made` is how, `before` the text the
@@ -131,9 +135,10 @@ export function skillTexts(engineDir: string): { ok: true; files: [string, strin
   return { ok: true, files };
 }
 
-/** The checkout the `weftwork` command on PATH runs, or null. */
-function linkedEngine(): string | null {
-  const run = spawnSync('weftwork', ['path'], { encoding: 'utf8', timeout: 10000 });
+/** The folder of the weftwork the resolver finds for `dir` (launcher.ts), or null. */
+function linkedEngine(dir: string): string | null {
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: dir };
+  const run = spawnSync('/bin/sh', ['-c', resolved('path')], { cwd: dir, env, encoding: 'utf8', timeout: 10000 });
   return run.status === 0 ? resolve(run.stdout.trim()) : null;
 }
 
@@ -163,8 +168,8 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   const ignore = ignoreChange(dir, report);
   if ('ok' in ignore) return ignore;
   changes.push(ignore);
-  if (linkedEngine() !== resolve(options.engineDir)) {
-    notes.push(`The skills call the weftwork command, which does not run this engine here. Install it with npm install -g weftwork, or for a checkout run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
+  if (linkedEngine(dir) !== resolve(options.engineDir)) {
+    notes.push(`The skills call the weftwork command, which does not run this engine here. Install it in this clone with npx weftwork install, or for every project with npm install -g weftwork; for a checkout run npm link in ${options.engineDir} (docs/INSTALL.md).`);
   }
   const old = oldSkillFolders.map((name) => `.claude/skills/${name}`).filter((path) => existsSync(join(dir, path)));
   if (old.length > 0) {
@@ -178,26 +183,34 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   changes.push(fileChange(dir, join(common, 'weftwork', 'BACKLOG.md'), backlog(answers)));
   const check = preflight(report);
   if (options.stopHook && check === null) notes.push('No Stop hook: no test, lint or typecheck command passed, so there is no Preflight to declare.');
-  if (options.stopHook && check !== null) {
-    const hook = hookChange(dir, check);
+  const stop = options.stopHook ? check : null;
+  if (stop !== null || options.envHook === true) {
+    const hook = hookChange(dir, stop);
     if ('ok' in hook) return hook;
     changes.push(hook);
   }
   return { ok: true, plan: { changes, notes } };
 }
 
-/** .claude/settings.json with the Stop hook declaring `check` and the guard,
- * as the install writes them (claude-install-cli.ts). An existing file that
- * would change is a conflict, like any other file. */
-function hookChange(dir: string, check: string): Change | Failure {
+/** .claude/settings.json with the Stop hook declaring `check` and the guard
+ * when `check` is not null, and the SessionStart entry, as the install writes
+ * them (claude-install-cli.ts). An existing file that would change is a
+ * conflict, like any other file. */
+function hookChange(dir: string, check: string | null): Change | Failure {
   const path = '.claude/settings.json';
   const read = readRegularFile(join(dir, path), { follow: false, maxBytes: maxFileBytes });
   if (!read.ok) return read;
-  const stop = installStopHook(read.file?.text ?? null, weftworkOnPath, check);
-  if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
-  const guard = installGuardHook(stop.text, weftworkOnPath);
-  if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
-  return fileChange(dir, path, guard.text);
+  let text = read.file?.text ?? null;
+  if (check !== null) {
+    const stop = installStopHook(text, weftworkOnPath, check);
+    if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
+    const guard = installGuardHook(stop.text, weftworkOnPath);
+    if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
+    text = guard.text;
+  }
+  const env = installEnvHook(text);
+  if (!env.ok) return { ok: false, error: `${path}: ${env.error}` };
+  return fileChange(dir, path, env.text);
 }
 
 /** True when the file at `change.path` no longer holds what the plan saw. */
