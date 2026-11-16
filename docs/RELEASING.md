@@ -34,7 +34,11 @@ Nothing is published until the owner merges a Release PR.
 | only `docs:`, `chore:`, `style:`, `refactor:`, `test:` | no release | no release |
 
 `bump-minor-pre-major` in `release-please-config.json` gives the "before
-1.0" column. The first release is 0.1.0. Release 1.0.0 when the public
+1.0" column. The first release is 0.1.0, from `initial-version`: with no
+release tag yet, release-please does not bump the manifest's `0.0.0` but
+uses `initial-version`, and its own default for that is 1.0.0
+(`initialReleaseVersion()` in release-please v17.6.0,
+`src/strategies/base.ts`, read 2026-11-16). Release 1.0.0 when the public
 interface below has settled; to cut it, merge a commit with the footer
 `Release-As: 1.0.0`.
 
