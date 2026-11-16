@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/src/claude-hook-cli.ts\" -- 'yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test'",
+            "timeout": 660
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/src/guard-cli.ts\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
