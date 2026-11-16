@@ -7,7 +7,7 @@
 import { lstatSync, readlinkSync, renameSync, symlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, join, resolve } from 'node:path';
-import { installStopHook, shellQuote } from './claude-install.ts';
+import { installStopHook } from './claude-install.ts';
 import { installGuardHook } from './claude-guard-install.ts';
 import { isGitRoot } from './claude-settings-file.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
@@ -103,9 +103,15 @@ export function ignoreAppend(dir: string, wanted: string[], header: string): Cha
   return { path: '.gitignore', action: 'append', text: old + gap + added, diff: lineDiff('', added), mode: read.file?.mode, before: read.file?.text ?? null };
 }
 
-/** The skills, with each `node src/<cli>.ts` and each engine doc or the PR
- * template naming this engine's checkout, so they work from another
- * repository (as the Stop hook entry does). */
+/** `node src/<name>-cli.ts` as the `weftwork <name>` command, and
+ * `node src/cli.ts` as `weftwork engine` (weftwork-cli.ts). */
+export function commandFor(file: string): string {
+  return file === 'cli.ts' ? 'weftwork engine' : `weftwork ${file.replace(/-cli\.ts$/, '')}`;
+}
+
+/** The skills, with each `node src/<cli>.ts` as a `weftwork` command and each
+ * engine doc or the PR template under `$(weftwork path)`, so they work from
+ * another repository and from a moved checkout once it is linked again. */
 function skillTexts(engineDir: string): { ok: true; files: [string, string][] } | Failure {
   const files: [string, string][] = [];
   for (const name of skillFiles) {
@@ -113,11 +119,17 @@ function skillTexts(engineDir: string): { ok: true; files: [string, string][] } 
     if (!read.ok) return read;
     if (read.file === null) return { ok: false, error: `the engine has no skill file ${name}` };
     const text = read.file.text
-      .replace(/node src\/([\w.-]+\.ts)/g, (_, cli: string) => `node ${shellQuote(join(engineDir, 'src', cli))}`)
-      .replace(/`((?:docs\/[\w.-]+\.md)|\.github\/pull_request_template\.md)`/g, (_, doc: string) => `\`${join(engineDir, doc)}\``);
+      .replace(/node src\/((?:[\w.-]+-)?cli\.ts)/g, (_, cli: string) => commandFor(cli))
+      .replace(/`((?:docs\/[\w.-]+\.md)|\.github\/pull_request_template\.md)`/g, (_, doc: string) => `\`$(weftwork path)/${doc}\``);
     files.push([`.claude/skills/${name}`, text]);
   }
   return { ok: true, files };
+}
+
+/** The checkout the `weftwork` command on PATH runs, or null. */
+function linkedEngine(): string | null {
+  const run = spawnSync('weftwork', ['path'], { encoding: 'utf8', timeout: 10000 });
+  return run.status === 0 ? resolve(run.stdout.trim()) : null;
 }
 
 /** The git common directory of the repository rooted at `dir`. */
@@ -146,6 +158,9 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   const ignore = ignoreChange(dir, report);
   if ('ok' in ignore) return ignore;
   changes.push(ignore);
+  if (linkedEngine() !== resolve(options.engineDir)) {
+    notes.push(`The skills call the weftwork command, which does not run this engine here. Run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
+  }
   const common = isGitRoot(dir) ? gitCommonDir(dir) : null;
   if (common === null) {
     notes.push(`${dir} is not a git repository root: no backlog and no Stop hook. Run git init and set up again.`);

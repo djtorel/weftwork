@@ -64,7 +64,7 @@ when the plan or a write is refused (a folder on the way is a symlink, an
 | `AGENTS.md` | A short letter: about, words, the commands whose check ran, the Preflight, the rules |
 | `CLAUDE.md` | A symlink to `AGENTS.md` |
 | `CONVENTIONS.md` | Only when the owner gives rules |
-| `.claude/skills/` | `full-stop`, `review-loop` and `file-pr`, with each `node src/<cli>.ts`, each engine doc (`docs/*.md`) and the PR template rewritten to this checkout's absolute path |
+| `.claude/skills/` | `full-stop`, `review-loop` and `file-pr`, with each `node src/<name>-cli.ts` rewritten to `weftwork <name>` (and `node src/cli.ts` to `weftwork engine`), and each engine doc (`docs/*.md`) and the PR template to `$(weftwork path)/<path>` |
 | `.gitignore` | `.env`, `.env.*` and each stack's folders (`node_modules/`, `__pycache__/`, `.venv/`, `target/`), appended only when missing |
 | `<git common dir>/weftwork/BACKLOG.md` | The local backlog, seeded with the first tasks |
 | `.claude/settings.json` | With `stopHook`: the Stop hook declaring the Preflight, and the guard, as `claude-install-cli.ts` writes them; an existing file that would change is a conflict |
@@ -74,8 +74,13 @@ today (H3); one that ran and failed is marked `(fails today)`. The Preflight
 joins the lint, typecheck and test commands that passed. With none, the
 letter says so and there is no Stop hook.
 
-The skills and the hook name this checkout by absolute path, so they work on
-this machine only; set up again after moving it.
+The skills call the `weftwork` command (`src/weftwork-cli.ts`, installed with
+`npm link`; `docs/GETTING-STARTED.md` § 1), so they work from any project and
+from a moved checkout once it is linked again. When `weftwork path` does not
+print this checkout, the plan has a note. The Stop hook and the guard still
+name this checkout by absolute path: a hook that cannot find `weftwork` on
+the PATH of the shell Claude Code runs it in would let every stop and tool
+call through, so set up again after moving the checkout.
 
 A folder that is not the root of a git repository gets no backlog and no
 Stop hook; a note says so.
