@@ -42,8 +42,17 @@ The built-in list (`builtInProtected` in `src/guard.ts`):
 | Shell startup files | `.bashrc`, `.bash_profile`, `.zshrc`, `.profile` (R11 S26) |
 | Credential files | `.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa*`, `id_dsa*`, `id_ecdsa*`, `id_ed25519*`, `.npmrc`, `.netrc`, `.pypirc`, `.aws/`, `.ssh/` (R11 S29, S30) |
 
-These stay writable: `.env.example`, `.env.sample`, `.env.template` (they
-hold no secret), and `.git/weftwork/BACKLOG.md`, the local backlog.
+Each built-in entry can leave some paths writable, and the exception holds
+for that entry only:
+
+- `.env.*` leaves `.env.example`, `.env.sample` and `.env.template`
+  writable, since they hold no secret. `.git/hooks/.env.example` is still
+  blocked by `.git/`.
+- `.git/` leaves `.git/weftwork/BACKLOG.md`, the local backlog, writable.
+- `.codex/` leaves `.codex/skills/` and `.codex/agents/` writable, as the
+  skill and agent folders of the other hosts are.
+
+An exception never takes a path off the owner's list.
 
 A pattern matches at any depth. A trailing `/` protects the whole folder.
 `*` and `?` match inside one name. A file tool's path is matched from the
@@ -52,7 +61,8 @@ folder such as `~/.codex/worktrees/` is not protected whole. A path outside
 the project is matched as a whole, so `~/.ssh/id_rsa` is protected.
 
 Skill and agent folders (`.claude/skills/`, `.claude/agents/`,
-`.claude/commands/`, `.agents/`, `.gemini/skills/`) are not on the
+`.claude/commands/`, `.agents/`, `.gemini/skills/`, `.codex/skills/`,
+`.codex/agents/`) are not on the
 built-in list. A skill is an instruction, not a limit or a hook, and
 normal pull requests in a project edit them (in this repository, PR #111
 renamed the skills). To protect them, the owner adds them to

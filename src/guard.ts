@@ -28,6 +28,11 @@ import { userSettingsPath } from './claude-settings-file.ts';
 import { pushToMain } from './guard-push.ts';
 import { isRecord } from './json.ts';
 
+/** One entry of the protected-paths list: a pattern (see matchesNames) and
+ * the patterns it leaves writable. An exception holds for its own entry only,
+ * so it never takes a path off another entry or off the owner's list. */
+export type ProtectedPattern = { pattern: string; except: readonly string[] };
+
 /** What the guard protects, for one project. */
 export type GuardPaths = {
   /** Single files: the setting files and the Claude Code settings. */
@@ -42,11 +47,8 @@ export type GuardPaths = {
   allowedText: string[];
   /** The project root, which the patterns are matched from. */
   root: string;
-  /** Patterns (see matchesNames) that protect a path: the built-in list,
-   * then the owner's. */
-  patterns: string[];
-  /** Patterns for the paths the built-in list leaves writable. */
-  allowedPatterns: string[];
+  /** The protected-paths list: the built-in entries, then the owner's. */
+  patterns: ProtectedPattern[];
 };
 
 /** The worktree an agent works in, for the ask triggers. `allowed` holds the
@@ -85,49 +87,35 @@ const fixedNeedles = [
   'claude-install-cli',
 ];
 
+const none: readonly string[] = [];
+
 /** e10s01: the built-in protected-paths list, the same in every host, since
  * the hosts' own lists differ (R11, docs/GUARD.md). A name matches at any
  * depth; a trailing `/` protects the whole folder; `*` and `?` match inside
  * one name. Skill and agent folders are not on it: normal work edits them, so
- * the owner adds them to `guard.protected` to protect them. */
-export const builtInProtected: readonly string[] = [
-  // Git internals: hooks and config run code (R11 S26, S29).
-  '.git/',
-  // The hosts' hook and settings files (R11 S26, S29; R5; R13).
-  '.claude/hooks/',
-  '.mcp.json',
-  '.codex/',
-  '.gemini/settings.json',
-  'opencode.json',
-  'opencode.jsonc',
-  '.opencode/plugins/',
-  '.pi/extensions/',
-  '.kiro/hooks/',
-  // Shell startup files run at every shell start (R11 S26).
-  '.bashrc',
-  '.bash_profile',
-  '.zshrc',
-  '.profile',
-  // Credential files (R11 S29, S30).
-  '.env',
-  '.env.*',
-  '*.pem',
-  '*.key',
-  '*.p12',
-  'id_rsa*',
-  'id_dsa*',
-  'id_ecdsa*',
-  'id_ed25519*',
-  '.npmrc',
-  '.netrc',
-  '.pypirc',
-  '.aws/',
-  '.ssh/',
-];
-
-/** Paths the built-in list would match that stay writable: example env files
+ * the owner adds them to `guard.protected` to protect them. Example env files
  * hold no secret, and the clone's backlog is the owner's plan. */
-const builtInAllowed: readonly string[] = ['.env.example', '.env.sample', '.env.template', `.git/weftwork/${backlogFile}`];
+export const builtInProtected: readonly ProtectedPattern[] = [
+  // Git internals: hooks and config run code (R11 S26, S29).
+  { pattern: '.git/', except: [`.git/weftwork/${backlogFile}`] },
+  // The hosts' hook and settings files (R11 S26, S29; R5; R13).
+  { pattern: '.claude/hooks/', except: none },
+  { pattern: '.mcp.json', except: none },
+  { pattern: '.codex/', except: ['.codex/skills/', '.codex/agents/'] },
+  { pattern: '.gemini/settings.json', except: none },
+  { pattern: 'opencode.json', except: none },
+  { pattern: 'opencode.jsonc', except: none },
+  { pattern: '.opencode/plugins/', except: none },
+  { pattern: '.pi/extensions/', except: none },
+  { pattern: '.kiro/hooks/', except: none },
+  // Shell startup files run at every shell start (R11 S26).
+  ...['.bashrc', '.bash_profile', '.zshrc', '.profile'].map((pattern) => ({ pattern, except: none })),
+  // Credential files (R11 S29, S30).
+  { pattern: '.env', except: none },
+  { pattern: '.env.*', except: ['.env.example', '.env.sample', '.env.template'] },
+  ...['*.pem', '*.key', '*.p12', 'id_rsa*', 'id_dsa*', 'id_ecdsa*', 'id_ed25519*'].map((pattern) => ({ pattern, except: none })),
+  ...['.npmrc', '.netrc', '.pypirc', '.aws/', '.ssh/'].map((pattern) => ({ pattern, except: none })),
+];
 
 /** True when `pattern` matches `names`, a path split into names: its names
  * match some run of names, which for a file pattern ends the path. */
@@ -141,10 +129,11 @@ function matchesNames(names: string[], pattern: string): boolean {
   return false;
 }
 
-/** True when the names hit a protected pattern and no allowed one. */
+/** True when the names hit an entry of the list and none of its exceptions. */
 function hitsPattern(names: string[], paths: GuardPaths): boolean {
-  if (paths.allowedPatterns.some((pattern) => matchesNames(names, pattern))) return false;
-  return paths.patterns.some((pattern) => matchesNames(names, pattern));
+  return paths.patterns.some(
+    ({ pattern, except }) => matchesNames(names, pattern) && !except.some((allowed) => matchesNames(names, allowed)),
+  );
 }
 
 /** The names of `path` from `root` when it is inside it, else all of them, so
@@ -155,7 +144,8 @@ function namesFrom(path: string, root: string | null): string[] {
 }
 
 /** The protected paths for `project`. `engineDir` is `<git dir>/weftwork`, or
- * null outside a git repository. `extra` is the owner's `guard.protected`. */
+ * null outside a git repository. `extra` is the owner's `guard.protected`,
+ * whose entries have no exceptions. */
 export function guardPaths(project: string, engineDir: string | null, env: NodeJS.ProcessEnv, extra: readonly string[] = []): GuardPaths {
   const files = [
     join(project, 'weftwork.yaml'),
@@ -173,8 +163,7 @@ export function guardPaths(project: string, engineDir: string | null, env: NodeJ
     needles: [...fixedNeedles, ...files, ...dirs],
     allowedText: [...allowed, `weftwork/${backlogFile}`],
     root: project,
-    patterns: [...builtInProtected, ...extra],
-    allowedPatterns: [...builtInAllowed],
+    patterns: [...builtInProtected, ...extra.map((pattern) => ({ pattern, except: none }))],
   };
 }
 
@@ -194,7 +183,7 @@ function isInside(path: string, dir: string): boolean {
 }
 
 /** True when the resolved `path` is a protected file or inside a protected
- * folder, and not an allowed file. */
+ * folder, and not an allowed file, or on the protected-paths list. */
 function isProtected(path: string, paths: GuardPaths): boolean {
   if (paths.allowed.some((file) => canonical(file) === path)) return false;
   if (paths.files.some((file) => canonical(file) === path) || paths.dirs.some((dir) => isInside(path, canonical(dir)))) return true;

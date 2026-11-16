@@ -201,6 +201,22 @@ test('AC-e10s01-04 the owner adds paths, and a path the owner adds is blocked li
   assert.deepEqual(guardCall(edit('Edit', join(project, 'docs/README.md')), paths), { block: false });
 });
 
+test('AC-e10s01-11 an exception holds only for its own built-in entry (review r1m1, r1m2)', () => {
+  const project = makeTempDir();
+  const paths = guardPaths(project, null, { HOME: makeTempDir() }, ['docs/security/', '.env.example']);
+  const blockedTargets = ['.git/hooks/.env.example', 'docs/security/.env.example', '.env.example', '.codex/config.toml'];
+  for (const target of blockedTargets) {
+    assert.equal(guardCall(edit('Write', join(project, target)), paths).block, true, target);
+  }
+  for (const command of ['cp x .git/hooks/.env.example', 'cp x docs/security/.env.example']) {
+    assert.equal(guardCall(bash(command), paths).block, true, command);
+  }
+  const plain = guardPaths(project, null, { HOME: makeTempDir() });
+  for (const target of ['.codex/skills/x/SKILL.md', '.codex/agents/x.toml', '.env.example']) {
+    assert.deepEqual(guardCall(edit('Write', join(project, target)), plain), { block: false }, target);
+  }
+});
+
 test('AC-e10s01-08 a Bash command that names a built-in protected path is blocked, by its text', () => {
   const f = fixture();
   const commands = [
