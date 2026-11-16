@@ -3,9 +3,10 @@
 <!-- story: e12s04 -->
 
 This page takes you from nothing to a first weft-ready run in your own project:
-install weftwork, set up a new project or convert a bigpowers one, give the
-agent its first task, and undo it all if you change your mind. Each step links
-to the page that has the detail.
+install weftwork, set up a new project or convert one planned with
+bigpowers, GSD, GSD 2, spec-kit or BMAD, give the agent its first task, and
+undo it all if you change your mind. Each step links to the page that has the
+detail.
 
 ## 1. Install
 
@@ -20,15 +21,15 @@ weftwork --version
 
 `--version` prints the version, which means `weftwork` is on your PATH. The
 skills setup copies into your project call `weftwork <command>` (`weftwork
-detect`, `weftwork engine`, `weftwork pr-proof`) and find the docs under
+engine`, `weftwork review`, `weftwork pr-proof`) and find the docs under
 `$(weftwork path)`. The Claude Code Stop hook and guard run `weftwork` from
 PATH too; where it is missing they block and say to install it. If npm says
 it cannot write to its global folder, set a prefix you own first (`npm
 config set prefix ~/.local`, with `~/.local/bin` on your PATH). Upgrade:
 `npm install -g weftwork@latest`. Undo: `npm uninstall -g weftwork`.
 
-**From a checkout instead** (to work on weftwork, or before the first npm
-release), you also need Python 3 for weftwork's own Preflight:
+**From a checkout instead** (to work on weftwork, or to use a change that is
+not released yet), you also need Python 3 for weftwork's own Preflight:
 
 ```bash
 git clone https://github.com/djtorel/weftwork.git
@@ -107,14 +108,14 @@ weftwork": the `weft-convert` skill checks the Preflight, shows the plan
 and waits for your yes, and opens the pull request. Either way, it:
 
 1. Tags the last commit that tracks `specs/` as `bigpowers-era` (GSD:
-   `.planning/` as `gsd-era`; spec-kit: `specs/` as `speckit-era`; BMAD:
-   `_bmad-output/` as `bmad-era`; BMAD v4: `docs/stories/` as `bmad-era`).
+   `.planning/` as `gsd-era`; GSD 2: a tracked `.gsd/` as `gsd2-era`;
+   spec-kit: `specs/` as `speckit-era`; BMAD: `_bmad-output/` as `bmad-era`;
+   BMAD v4: `docs/stories/` as `bmad-era`).
 2. Moves the files that code or docs cite (and every bigpowers ADR) into
    `docs/`, and rewrites the citations.
-3. Moves the rest to a gitignored `.specs/` (GSD: `.gsd-planning/`;
-   spec-kit: `.speckit-specs/`; BMAD: `.bmad-output/`; BMAD v4:
-   `.bmad-stories/`). Nothing
-   is deleted.
+3. Moves the rest to a gitignored `.specs/` (GSD: `.gsd-planning/`; GSD 2:
+   `.gsd2-plans/`; spec-kit: `.speckit-specs/`; BMAD: `.bmad-output/`;
+   BMAD v4: `.bmad-stories/`). Nothing is deleted.
 4. Adds the open work to the local backlog with its ids: bigpowers epics and
    stories, GSD roadmap phases, spec-kit features with their open tasks, or
    BMAD epics and stories.
@@ -157,6 +158,10 @@ fix for the most common one, in a pull request you can merge or close
 
 ## 4. Undo
 
+The commands below are for a bigpowers project. For another system, put its
+tag, its plans folder and its local copy (step 2b names each) in place of
+`bigpowers-era`, `specs/` and `.specs`; the plan prints the tag as `tag`.
+
 **After the pull request is merged:** revert it. For a conversion, also
 delete the tag:
 
@@ -188,4 +193,5 @@ git tag -d bigpowers-era
 ```
 
 Then delete the new files that `git status --short` lists, and the
-`## Converted from bigpowers` section of the local backlog.
+`## Converted from bigpowers` section of the local backlog (the section is
+named after the system: `## Converted from GSD`, and so on).

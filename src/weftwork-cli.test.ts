@@ -65,3 +65,9 @@ test('weftwork --help, -h and help print every command, each with what it does',
     }
   }
 });
+
+test('weftwork --help names GSD 2 for convert and the guard for claude-live, as the README does', () => {
+  const help = weftwork(['--help']).stdout;
+  assert.match(help, /^  convert +.*\bGSD 2\b/m);
+  assert.match(help, /^  claude-live +.*\bguard\b/m);
+});

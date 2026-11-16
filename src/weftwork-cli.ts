@@ -17,7 +17,7 @@ const ext = extname(import.meta.filename);
  * (weftwork-cli.test.ts checks it). */
 const about: Record<string, string> = {
   init: 'Set up weftwork in a project (default: the current folder)',
-  convert: 'Convert a bigpowers, GSD, spec-kit or BMAD project (JSON on stdin)',
+  convert: 'Convert a bigpowers, GSD, GSD 2, spec-kit or BMAD project (JSON on stdin)',
   setup: 'Set up a project, or undo a setup (JSON on stdin; what agents call)',
   detect: "Report a project's stack, commands, CI and agent files",
   engine: 'Run a command through the done gate and record it in the ledger',
@@ -34,7 +34,7 @@ const about: Record<string, string> = {
   history: 'Record this task in the local history, or report recurring failures',
   overlap: 'Check that planned parallel tasks change no file in common',
   'claude-install': 'Register the Claude Code Stop hook and guard in this project',
-  'claude-live': 'Check that Claude Code runs the Stop hook in this project',
+  'claude-live': 'Check that Claude Code runs the Stop hook and the guard in this project',
   'claude-hook': 'The Claude Code Stop hook (Claude Code runs it)',
   guard: 'The Claude Code PreToolUse guard (Claude Code runs it)',
   path: 'Print the folder weftwork runs from (its docs and skills)',

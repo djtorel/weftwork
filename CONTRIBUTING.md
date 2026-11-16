@@ -23,11 +23,15 @@ Node.
 2. Branch from an up-to-date `main`: `git checkout -b <type>/<short-name>`.
 3. Make the smallest change that does the task. For behaviour, write the
    test first and watch it fail, then make it pass.
-4. Run Preflight, the same checks CI runs:
+4. Run Preflight:
 
    ```bash
    yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test
    ```
+
+   CI runs the same checks, and also the shell selftests and the package
+   test: `bash tools/check-brief.sh --selftest`, `bash tools/test-setup.sh`
+   and `bash tools/test-package.sh`.
 
 5. Open a pull request with the template. Say what was wrong, what you
    changed, and paste the output that proves it.
@@ -45,7 +49,7 @@ and the release tooling reads it to choose the next
 
 | Title | Release |
 | --- | --- |
-| `fix(engine): ...` | patch |
+| `fix(engine): ...` or `perf(engine): ...` | patch |
 | `feat(engine): ...` | minor |
 | `feat(engine)!: ...` or a `BREAKING CHANGE:` footer | major (minor before 1.0) |
 | `docs:`, `chore:`, `style:`, `refactor:`, `test:` | none |

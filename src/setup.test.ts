@@ -93,6 +93,16 @@ test('AC-e12s02-03 apply writes the files, links CLAUDE.md, turns skill commands
   assert.match(readFileSync(backlogPath, 'utf8'), /- \[ \] Add a --json flag\./);
 });
 
+test('no skill file setup writes names a path that only a weftwork checkout has', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n' });
+  const skills = plan(dir).changes.filter((change) => change.path.startsWith('.claude/skills/'));
+  assert.ok(skills.some((change) => change.path.endsWith('/README.md')), 'the skills README is one of them');
+  for (const { path, text = '' } of skills) {
+    assert.deepEqual(text.match(/\bsrc\/[\w./-]*/g) ?? [], [], `${path} names the engine's src/`);
+    assert.deepEqual(text.match(/(?<!\$\(weftwork path\)\/)\bdocs\/[\w./-]*/g) ?? [], [], `${path} names a doc outside weftwork path`);
+  }
+});
+
 test('AC-e12s02-04 a re-run changes nothing, and a file the owner changed is a conflict with a diff, kept', () => {
   const dir = makeTestRepo({ 'main.go': 'package main\n' });
   assert.ok(applySetup(dir, plan(dir), { overwrite: [] }).ok);

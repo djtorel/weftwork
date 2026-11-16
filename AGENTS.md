@@ -15,8 +15,9 @@ ran and watched pass, the loop has counted ceilings, and a hard stop leaves a
 handoff note. Everything else is light: short tasks, a reviewer from another
 model family, a pull request that says what it proved.
 
-It is TypeScript on Node 26 or later, one package that is both a CLI and a
-library, tested with the built-in `node:test` runner. Claude Code is the first
+It is TypeScript on Node 26 or later, one package with one CLI (`weftwork`)
+and no library API yet (`docs/RELEASING.md`), tested with the built-in
+`node:test` runner. Claude Code is the first
 host. The auto run (backlog e11, the `weft-ready` skill) and getting started
 (e12: setting up and converting projects) are built, and this repository runs
 under its own hooks (below).
