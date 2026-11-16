@@ -109,7 +109,7 @@ The stop rules and the counts do not read guard lines.
 
 In a git worktree the guard also blocks the two mechanical ask triggers:
 a file tool that writes outside the worktree, and a Bash `git push` that
-would update `main` or `master`. `docs/ASK.md` says how they decide and
+would update `main`, `master` or the remote's default branch. `docs/ASK.md` says how they decide and
 what they do not see.
 
 ## The engine still writes
