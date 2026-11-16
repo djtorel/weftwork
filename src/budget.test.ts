@@ -117,6 +117,16 @@ for (const [old, renamed] of [['maxFailures', 'max_failures'], ['stallAfter', 's
   });
 }
 
+test('an old budget key is named as renamed even beside an unknown key', () => {
+  const error = errorOf({ repo: repo('budget:\n  max_failure: 2\n  maxRuns: 4\n') });
+  assert.ok(error.includes('budget.maxRuns was renamed to budget.max_runs'), error);
+});
+
+test('an inherited name such as constructor is an unknown key, not a renamed one', () => {
+  const error = errorOf({ repo: repo('budget:\n  constructor: 4\n') });
+  assert.ok(error.includes('budget.constructor is not a known key'), error);
+});
+
 for (const [name, text, key] of refused) {
   test(`the repository file is refused with ${name}, naming the file and ${key}`, () => {
     const error = errorOf({ repo: repo(text) });

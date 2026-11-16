@@ -39,7 +39,7 @@ const rules: Rule[] = [
     allowed: [],
     found: (path, text) =>
       path.endsWith('.ts')
-        ? new RegExp(`\\\\n[ \\t]+(${budgetKeys}):|\\{(${budgetKeys}):`).test(text)
+        ? new RegExp(`\\\\n[ \\t]+(${budgetKeys}):|budget:[^\\n'"\`]*\\{(${budgetKeys}):`).test(text)
         : /\.(md|ya?ml)$/.test(path) && new RegExp(`^[ \\t]+(${budgetKeys}):`, 'm').test(text),
   },
 ];
@@ -56,7 +56,9 @@ test('each rule catches its old name, and lets the new name and a JSON object th
   assert.deepEqual(retired('docs/X.md', '```yaml\nbudget:\n  maxRuns: 3\n```\n'), ['a camelCase budget key in YAML']);
   assert.deepEqual(retired('src/x.test.ts', "write('budget:\\n  maxFailures: 2\\n')"), ['a camelCase budget key in YAML']);
   assert.deepEqual(retired('src/x.test.ts', "repo('budget: {stallAfter: 2}')"), ['a camelCase budget key in YAML']);
+  assert.deepEqual(retired('src/x.test.ts', "repo('budget: !!seq {maxRuns: 2}')"), ['a camelCase budget key in YAML']);
   assert.deepEqual(retired('src/x.test.ts', "runEngine({ command, maxRuns: 3 })\nconst limits = {\n  maxFailures: 5,\n};"), []);
+  assert.deepEqual(retired('src/x.test.ts', 'const request = {maxRuns: 3};'), [], 'a JSON object with no space after the brace');
   assert.deepEqual(retired('docs/X.md', 'Use weft-ready. budget:\n  max_runs: 3\n'), []);
   assert.deepEqual(retired('CHANGELOG.md', 'full-stop is now weft-ready; review.council is review.reviewers'), []);
   assert.deepEqual(retired('docs/research/R18.md', 'a design council'), []);
