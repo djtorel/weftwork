@@ -141,7 +141,7 @@ test('the rounds done are the highest round number, so rounds cut from the ledge
 });
 
 test('the ceiling is max_rounds, or max_rounds_sensitive for a sensitive change', () => {
-  const review = { council: ['c'], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, sensitivePaths: [] };
+  const review = { reviewers: ['c'], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, sensitivePaths: [] };
   assert.equal(roundCeiling(review, false), 3);
   assert.equal(roundCeiling(review, true), 5);
 });
@@ -167,7 +167,7 @@ test('the exhausted report lists the last round\'s follow-ups too (review round 
   assert.doesNotMatch(exhaustedReport([entry('feat/a', 3)], 3), /follow-up/);
 });
 
-test('ids count each kind across reviewers in council order, as the ledger stores them (e13s05)', () => {
+test('ids count each kind across reviewers in setting order, as the ledger stores them (e13s05)', () => {
   const text = roundReport({ verdict: 'block', round: 1, maxRounds: 3, results: [passed('codex', ['a.ts:1 x'], ['b.ts:1 y']), failed('gemini'), passed('claude', ['c.ts:1 z', 'd.ts:1 w'])] });
   assert.match(text, /^must-fix r1m1 \(codex\): a\.ts:1 x$/m);
   assert.match(text, /^should-fix r1s1 \(codex\): b\.ts:1 y$/m);

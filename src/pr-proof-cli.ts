@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   if (!ledger.ok) return fail(`the ledger cannot be read: ${ledger.error}`);
   // A report, as in the Stop hook: a transcript that cannot be read gives a
   // reason on the budget line, never a different verdict or exit. "" is what
-  // the full-stop skill passes when it finds no transcript.
+  // the weft-ready skill passes when it finds no transcript.
   const tokens: TokenRead =
     transcript === undefined || transcript === ''
       ? { ok: false, error: 'no transcript given' }

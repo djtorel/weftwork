@@ -37,7 +37,7 @@ esac
 if find "$pkg/dist" -name '*.test.js' | grep -q .; then
   fail "the package ships tests"
 fi
-for f in LICENSE README.md docs/SETUP.md .claude/skills/full-stop/SKILL.md \
+for f in LICENSE README.md docs/SETUP.md .claude/skills/weft-ready/SKILL.md \
   .github/pull_request_template.md dist/claude-hook-cli.js; do
   [ -f "$pkg/$f" ] || fail "the package has no $f"
 done
@@ -55,7 +55,7 @@ git -C repo -c user.name=t -c user.email=t@t commit -q -m init
 (cd repo && "$bin" init --yes --stop-hook >/dev/null 2>&1) \
   || fail "init --yes failed"
 [ -f repo/AGENTS.md ] || fail "init wrote no AGENTS.md"
-grep -q 'weftwork engine' repo/.claude/skills/full-stop/SKILL.md \
+grep -q 'weftwork engine' repo/.claude/skills/weft-ready/SKILL.md \
   || fail "the installed skill does not call the weftwork command"
 settings="$work/repo/.claude/settings.json"
 grep -qF "weftwork claude-hook -- " "$settings" \

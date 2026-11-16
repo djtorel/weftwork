@@ -3,7 +3,7 @@
 // owner's screenshot command with WEFTWORK_SHOTS set to a folder of its own,
 // keeps the PNG files it wrote with their hashes and the tree they show, and
 // tells the review whether a change touches ui.paths and which screenshots
-// the council reads. A model's score is reported, never a gate. A UI change
+// the reviewers read. A model's score is reported, never a gate. A UI change
 // is reviewed as a design audit against the project's design reference, and
 // each reviewer gets the images in WEFTWORK_IMAGES (e11s06).
 import { createHash } from 'node:crypto';
@@ -23,7 +23,7 @@ export type Shot = { name: string; bytes: number; sha256: string };
 export type Shots = { phase: Phase; at: string; branch: string | null; base: string; fingerprint: string; files: Shot[] };
 
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-/** More screenshots than this is an error: the council reads every one. */
+/** More screenshots than this is an error: the reviewers read every one. */
 const maxShots = 20;
 const maxShotBytes = 20 * 1024 * 1024;
 
@@ -101,7 +101,7 @@ async function readShot(dir: string, name: string): Promise<{ ok: true; shot: Sh
 
 /** The first screenshot of a manifest whose file is gone or no longer has
  * its size and hash, or null when every one matches. The review hashes them
- * again before it hands them to the council (e11s05 review round 1). */
+ * again before it hands them to the reviewers (e11s05 review round 1). */
 export async function changedShot(weftwork: string, shots: Shots): Promise<string | null> {
   for (const file of shots.files) {
     const name = typeof file?.name === 'string' ? file.name : '';
@@ -190,7 +190,7 @@ export type UiForReview =
  * What the review does about the UI: skip when UI checks are off or the
  * change does not touch ui.paths; otherwise it needs after screenshots of this
  * branch and this exact tree. Before screenshots are used when they are of
- * the same branch and base; without them the council reads the after ones alone.
+ * the same branch and base; without them the reviewers read the after ones alone.
  * Every screenshot used must still match its manifest's hash.
  */
 export async function uiForReview(request: { cwd: string; weftwork: string; ui: UiSetting | null; base: string; branch: string | null; fingerprint: string }): Promise<UiForReview> {
@@ -272,7 +272,7 @@ const designAudit = [
   'A design judgement call is SHOULD-FIX; it is listed in the pull request and does not block.',
 ];
 
-/** The part of the brief that hands the council the screenshots, the design
+/** The part of the brief that hands the reviewers the screenshots, the design
  * checklist and the design reference. */
 export function uiPrompt(weftwork: string, ready: { touched: string[]; before: Shots | null; after: Shots }, design: Design | null = null): string {
   const reference =

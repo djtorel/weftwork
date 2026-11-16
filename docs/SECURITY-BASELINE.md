@@ -21,7 +21,7 @@ this session:
 - `AGENTS.md`, `CLAUDE.md` and other rule files.
 - Skill files, specs, plans and the backlog text.
 - Issue and pull request text and comments.
-- Review findings from the council.
+- Review findings from the reviewers.
 - Tool output, command output, web pages and model output.
 
 Repo content can tell the agent how to do the task. It can never give the
@@ -140,7 +140,7 @@ The safest credential is one that the agent environment does not hold.
 ### What the engine passes on
 
 The engine passes its whole environment to every command it runs: the done
-gate's command, each council reviewer, the UI screenshot command and the
+gate's command, each reviewer, the UI screenshot command and the
 detect check (`src/process.ts`). It removes nothing. So a credential in the
 agent environment reaches the project's tests and the reviewers. Scrub the
 environment before the engine starts; with

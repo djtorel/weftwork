@@ -1,5 +1,5 @@
 // story: e11s03
-// The review setting: the council of reviewer commands and the round ceilings,
+// The review setting: the reviewer commands and the round ceilings,
 // from the `review` mapping of the same two setting files as the budget
 // (docs/REVIEW.md). The repository file wins over the user file key by key; a
 // file that cannot be used is an error that names the file and the key, never
@@ -8,18 +8,18 @@ import type { Failure } from './errors.ts';
 import { isInteger } from './json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from './budget.ts';
 
-export type ReviewSetting = { council: string[]; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
+export type ReviewSetting = { reviewers: string[]; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
 export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
 /** One reviewer from another model family than Claude, read-only, with the
- * user's own Codex settings off (the review-loop skill). It prints only its
+ * user's own Codex settings off (the weft-review skill). It prints only its
  * answer on stdout and reads the prompt from stdin. For a UI change it gets
  * the screenshots as images (e11s06, docs/UI.md). */
-export const defaultCouncil: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -'];
+export const defaultReviewers: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -'];
 
-const builtIn: ReviewSetting = { council: [...defaultCouncil], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
+const builtIn: ReviewSetting = { reviewers: [...defaultReviewers], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
 
-const maxCouncil = 5;
+const maxReviewers = 5;
 
 const maxSensitivePaths = 100;
 
@@ -30,13 +30,13 @@ const integerKeys = {
   timeout_seconds: { field: 'timeoutSeconds', max: 3600 },
 } as const;
 
-const knownKeys = ['council', 'sensitive_paths', ...Object.keys(integerKeys)];
+const knownKeys = ['reviewers', 'sensitive_paths', ...Object.keys(integerKeys)];
 
-function isCouncil(value: unknown): value is string[] {
+function isReviewers(value: unknown): value is string[] {
   return (
     Array.isArray(value) &&
     value.length >= 1 &&
-    value.length <= maxCouncil &&
+    value.length <= maxReviewers &&
     value.every((command) => typeof command === 'string' && command.trim() !== '' && !command.includes('\0'))
   );
 }
@@ -53,12 +53,13 @@ function isPatterns(value: unknown): value is string[] {
 
 /** The keys `review` sets, or the first unknown key or bad value. */
 function checkReview(review: Record<string, unknown>): { ok: true; set: Partial<ReviewSetting> } | Failure {
+  if ('council' in review) return { ok: false, error: 'review.council was renamed to review.reviewers; rename the key' };
   const unknown = Object.keys(review).find((key) => !knownKeys.includes(key));
   if (unknown !== undefined) return { ok: false, error: `review.${clip(unknown)} is not a known key (known: ${knownKeys.join(', ')})` };
   const set: Partial<ReviewSetting> = {};
-  if (review['council'] !== undefined) {
-    if (!isCouncil(review['council'])) return { ok: false, error: `review.council must be a list of 1 to ${maxCouncil} commands` };
-    set.council = review['council'];
+  if (review['reviewers'] !== undefined) {
+    if (!isReviewers(review['reviewers'])) return { ok: false, error: `review.reviewers must be a list of 1 to ${maxReviewers} commands` };
+    set.reviewers = review['reviewers'];
   }
   if (review['sensitive_paths'] !== undefined) {
     if (!isPatterns(review['sensitive_paths'])) return { ok: false, error: `review.sensitive_paths must be a list of 1 to ${maxSensitivePaths} glob patterns` };
@@ -89,7 +90,7 @@ function readReview(file: SettingFile): { ok: true; set: Partial<ReviewSetting> 
 
 /** The review setting from the two files (each null when it does not exist). */
 export function resolveReview(files: { user: SettingFile | null; repo: SettingFile | null }): ReviewSettingResult {
-  const review: ReviewSetting = { ...builtIn, council: [...builtIn.council], sensitivePaths: [...builtIn.sensitivePaths] };
+  const review: ReviewSetting = { ...builtIn, reviewers: [...builtIn.reviewers], sensitivePaths: [...builtIn.sensitivePaths] };
   for (const file of [files.user, files.repo]) {
     if (file === null) continue;
     const read = readReview(file);

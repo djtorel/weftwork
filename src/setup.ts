@@ -4,7 +4,7 @@
 // A file that exists and differs is a conflict, shown as a diff and kept,
 // unless the owner names it; then the old file is moved aside, never deleted.
 // The texts are in setup-text.ts. docs/SETUP.md.
-import { lstatSync, readlinkSync, renameSync, symlinkSync } from 'node:fs';
+import { existsSync, lstatSync, readlinkSync, renameSync, symlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, join, resolve } from 'node:path';
 import { installStopHook, weftworkOnPath } from './claude-install.ts';
@@ -33,7 +33,11 @@ export type Applied = { ok: true; written: string[]; kept: string[]; record: Wri
 export type Written = { path: string; made: 'create' | 'append' | 'overwrite'; link: boolean; before: string | null; after: string };
 
 const maxFileBytes = 1024 * 1024;
-const skillFiles = ['full-stop/SKILL.md', 'review-loop/SKILL.md', 'file-pr/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
+const skillFiles = ['weft-ready/SKILL.md', 'weft-review/SKILL.md', 'weft-pr/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
+
+/** The folders the skills had before they were renamed. Setup never writes or
+ * deletes them; the plan notes the ones still there. */
+const oldSkillFolders = ['full-stop', 'review-loop', 'file-pr'];
 const ignoreHeader = '# Added by weftwork setup.';
 const oldSuffix = '.weftwork-old';
 
@@ -160,6 +164,10 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   changes.push(ignore);
   if (linkedEngine() !== resolve(options.engineDir)) {
     notes.push(`The skills call the weftwork command, which does not run this engine here. Install it with npm install -g weftwork, or for a checkout run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
+  }
+  const old = oldSkillFolders.map((name) => `.claude/skills/${name}`).filter((path) => existsSync(join(dir, path)));
+  if (old.length > 0) {
+    notes.push(`Skills set up under their old names are still here and setup leaves them: ${old.join(', ')}. The new ones are weft-ready, weft-review and weft-pr; delete the old folders by hand.`);
   }
   const common = isGitRoot(dir) ? gitCommonDir(dir) : null;
   if (common === null) {

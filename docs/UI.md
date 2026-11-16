@@ -4,8 +4,8 @@
 
 A change to the UI is reviewed from screenshots as well as from the diff.
 The engine runs the owner's screenshot command, keeps the PNG files it
-wrote, and the review council reads them under the same must-fix rule as
-the code (`docs/REVIEW.md`). The council reviews the change as a design
+wrote, and the reviewers read them under the same must-fix rule as
+the code (`docs/REVIEW.md`). The reviewers review the change as a design
 audit, against the project's design reference when one is set. A model's
 score is reported, never a gate.
 
@@ -89,9 +89,9 @@ screenshot with its path and hash, so the pull request shows them when the
 report is pasted in. Only a must-fix blocks.
 
 Before screenshots are optional in the review. When none were taken on this
-branch and base, the brief says so and the council reads the after ones alone.
+branch and base, the brief says so and the reviewers read the after ones alone.
 
-Before it hands the screenshots to the council, the review reads each PNG
+Before it hands the screenshots to the reviewers, the review reads each PNG
 file again and checks its size and SHA-256 against the manifest. When a file
 is gone or changed, it answers `weftwork review: not run` (exit 4), names the
 file, and no reviewer runs. Take the after screenshots again. For a before
@@ -122,7 +122,7 @@ between two marker lines. It must be a regular file (not a symlink), inside
 the repository once its folders are resolved, valid UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
 review with exit 2, and no reviewer runs; `ui-cli` checks the same file
 before it takes screenshots. Without `ui.design`, the brief says
-there is no design reference, and the council judges consistency against the
+there is no design reference, and the reviewers judge consistency against the
 existing screens.
 
 ### The images
@@ -130,14 +130,14 @@ existing screens.
 For a UI change, each reviewer runs with `WEFTWORK_IMAGES` set to the
 absolute paths of the screenshots, before then after, joined by commas. A
 reviewer that can attach images uses it, so the model gets the images and
-not only their paths. The built-in council does this:
+not only their paths. The built-in reviewer does this:
 
 ```bash
 codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
 ```
 
 `${WEFTWORK_IMAGES:+...}` adds `--image` only for a UI change. Write a
-council entry in `weftwork.yaml` the same way. For a change that is not a UI
+`reviewers` entry in `weftwork.yaml` the same way. For a change that is not a UI
 change, `WEFTWORK_IMAGES` is not set, even when the caller had set it. A
 screenshot path with a comma of its own (in the git directory's path, say)
 stops the review with exit 2.
@@ -155,7 +155,7 @@ claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode don
 gemini --approval-mode plan ${WEFTWORK_IMAGES:+--include-directories "$(git rev-parse --absolute-git-dir)/weftwork/ui"} -p 'Do the review above.'
 ```
 
-Put a line in `review.council` as it is. `src/review-cli.test.ts` runs both
+Put a line in `review.reviewers` as it is. `src/review-cli.test.ts` runs both
 lines from this file with a fake `claude` and `gemini`, and checks that the
 folder they get holds every path in `WEFTWORK_IMAGES`.
 
@@ -199,6 +199,6 @@ does not.
   detail is misread; comparing two screens works better
   (`docs/research/R18-vision-design-judging.md`). Hence the severity rule
   above, and the score never gates. Those measurements are of 2024 and 2025
-  models; none of today's council.
+  models; none of today's reviewers.
 - The screenshot command comes from the setting files, so a repository's
-  `weftwork.yaml` can name any command, as it can for the review council.
+  `weftwork.yaml` can name any command, as it can for the reviewers.

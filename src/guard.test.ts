@@ -105,7 +105,7 @@ test('AC-e11s01-05 a Bash command that names no protected path, or only the back
     'echo \'{"op":"get"}\' | node src/state-cli.ts',
     'cat "$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"',
     `sed -i s/a/b/ ${join(f.engine, 'BACKLOG.md')}`,
-    'cat .claude/skills/full-stop/SKILL.md',
+    'cat .claude/skills/weft-ready/SKILL.md',
   ];
   for (const command of commands) {
     assert.deepEqual(guardCall(bash(command), f.paths), { block: false }, command);
@@ -164,7 +164,7 @@ test('AC-e10s01-01 a file tool that writes a built-in protected path is blocked'
 test('AC-e10s01-02 skill and agent folders, example env files and look-alike names stay writable', () => {
   const f = fixture();
   const targets = [
-    '.claude/skills/full-stop/SKILL.md',
+    '.claude/skills/weft-ready/SKILL.md',
     '.claude/agents/x.md',
     '.claude/commands/x.md',
     '.agents/skills/x/SKILL.md',
@@ -194,10 +194,10 @@ test('AC-e10s01-03 the built-in list matches inside the project only by the path
 test('AC-e10s01-04 the owner adds paths, and a path the owner adds is blocked like a built-in one', () => {
   const project = makeTempDir();
   const paths = guardPaths(project, null, { HOME: makeTempDir() }, ['.claude/skills/', 'docs/security/*.md']);
-  assert.equal(guardCall(edit('Edit', join(project, '.claude/skills/full-stop/SKILL.md')), paths).block, true);
+  assert.equal(guardCall(edit('Edit', join(project, '.claude/skills/weft-ready/SKILL.md')), paths).block, true);
   assert.equal(guardCall(edit('Edit', join(project, 'docs/security/REVIEW.md')), paths).block, true);
   assert.equal(guardCall(edit('Edit', join(project, '.env')), paths).block, true, 'the built-in list stays');
-  assert.equal(guardCall(bash('sed -i s/a/b/ .claude/skills/full-stop/SKILL.md'), paths).block, true);
+  assert.equal(guardCall(bash('sed -i s/a/b/ .claude/skills/weft-ready/SKILL.md'), paths).block, true);
   assert.deepEqual(guardCall(edit('Edit', join(project, 'docs/README.md')), paths), { block: false });
 });
 
@@ -249,7 +249,7 @@ test('AC-e10s01-09 a Bash command that names no protected path is allowed, look-
     'cp .env.example .env.sample',
     'cat .git/weftwork/BACKLOG.md',
     `cat ${join(f.engine, 'BACKLOG.md')}`,
-    'sed -i s/a/b/ .claude/skills/full-stop/SKILL.md',
+    'sed -i s/a/b/ .claude/skills/weft-ready/SKILL.md',
     'npm run typecheck',
   ];
   for (const command of commands) {
