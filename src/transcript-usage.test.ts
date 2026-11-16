@@ -35,6 +35,22 @@ test('AC-e09s04-09 the transcript file is read and summed', () => {
   assert.equal(read.tokens.output, 222);
 });
 
+test('a last line cut inside a multi-byte character skips that line only', () => {
+  // The host is still writing the line: its bytes end on the first byte of
+  // the two-byte "é" (0xC3 0xA9), so the file is not valid UTF-8 as a whole.
+  const cut = join(makeTempDir(), 'cut.jsonl');
+  const line = Buffer.from('{"type":"assistant","message":{"id":"msg_g","usage":{"output_tokens":5},"content":"caf');
+  writeFileSync(cut, Buffer.concat([readFileSync(fixture), line, Buffer.from([0xc3])]));
+  const read = readTranscriptUsage(cut);
+  assert.ok(read.ok, read.ok ? '' : read.error);
+  assert.equal(read.tokens.output, 222);
+  // Only the end may be cut: a bad byte before it still gives no count.
+  writeFileSync(cut, Buffer.concat([line, Buffer.from([0xc3]), Buffer.from('\n'), readFileSync(fixture)]));
+  const bad = readTranscriptUsage(cut);
+  assert.ok(!bad.ok);
+  assert.match(bad.error, /not valid UTF-8/);
+});
+
 test('AC-e09s04-10 a transcript that cannot be used gives a reason, never a throw', () => {
   const dir = makeTempDir();
   const big = join(dir, 'big.jsonl');
