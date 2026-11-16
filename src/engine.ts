@@ -20,6 +20,11 @@
 //
 // Every answer carries `budget` (e09s04), counted from the same ledger read
 // that decided it. The stop rules themselves are in engine-rules.ts.
+//
+// Each call has a run id, written on its run line and its state line, so the
+// PR proof pairs a run with its stop state by id. A refusal also names the
+// last run of the command it read (`after`), since it writes no run line.
+import { randomUUID } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { budgetUsed, type BudgetUsed } from './budget-report.ts';
 import {
@@ -41,10 +46,12 @@ type Decided = Verdict & { state: State; detail?: string };
 /** The engine's answer: what it decided, and the budget used (e09s04). */
 export type Answer = Decided & { budget: BudgetUsed };
 
-/** One state line to write: the answer, the ledger as read, and the number
- * that tripped (or null). `overrideFields` is only set for an override. */
+/** One state line to write: the call's run id, the answer, the ledger as
+ * read, and the number that tripped (or null). `overrideFields` is only set
+ * for an override. */
 type StateWrite = {
   path: string | null;
+  runId: string;
   entries: LedgerEntry[];
   answer: Decided;
   threshold: number | null;
@@ -55,6 +62,8 @@ type StateWrite = {
 function stateLine(write: StateWrite): Omit<StateEntry, 'at'> {
   const { entries, answer, threshold, overrideFields = {} } = write;
   const mine = entries.filter((entry) => entry.command === answer.command);
+  // Only a refusal names the run before it: a run's line names itself.
+  const after = answer.reason === 'not-run' ? mine.at(-1)?.runId : undefined;
   return {
     state: answer.state,
     command: answer.command,
@@ -63,6 +72,8 @@ function stateLine(write: StateWrite): Omit<StateEntry, 'at'> {
     threshold,
     detail: answer.detail ?? null,
     ...overrideFields,
+    runId: write.runId,
+    ...(after === undefined ? {} : { after }),
   };
 }
 
@@ -111,18 +122,19 @@ function classify(verdict: Verdict, read: LedgerForRules, request: GateRequest):
  * worker is blocked. Null when the run may go ahead. */
 async function refusedBeforeRun(
   path: string | null,
+  runId: string,
   before: LedgerForRules,
   request: GateRequest,
 ): Promise<Decided | null> {
   const stop = ceilingStop(before, request);
   if (stop !== null) {
     const answer = refused(request, 'exhausted', stop.detail);
-    await logState({ path, entries: before.entries, answer, threshold: stop.threshold });
+    await logState({ path, runId, entries: before.entries, answer, threshold: stop.threshold });
     return answer;
   }
   if (request.blocked !== undefined) {
     const answer = refused(request, 'blocked', request.blocked);
-    await logState({ path, entries: before.entries, answer, threshold: null });
+    await logState({ path, runId, entries: before.entries, answer, threshold: null });
     return answer;
   }
   return null;
@@ -137,31 +149,32 @@ async function refusedBeforeRun(
  */
 export async function runEngine(request: GateRequest, signal?: AbortSignal): Promise<Answer> {
   const path = await ledgerPath(request.cwd);
-  const { answer, read } = await decide(path, request, signal);
+  const { answer, read } = await decide(path, randomUUID(), request, signal);
   return { ...answer, budget: budgetUsed(path === null ? null : read, request) };
 }
 
 async function decide(
   path: string | null,
+  runId: string,
   request: GateRequest,
   signal: AbortSignal | undefined,
 ): Promise<{ answer: Decided; read: LedgerForRules }> {
   const before = await readEntries(path, request.maxRuns);
-  const refusal = await refusedBeforeRun(path, before, request);
+  const refusal = await refusedBeforeRun(path, runId, before, request);
   if (refusal !== null) {
     return { answer: refusal, read: before };
   }
-  const { verdict, writeProblem } = await runLoggedGate(request, path, signal);
+  const { verdict, writeProblem } = await runLoggedGate(request, path, runId, signal);
   const read = await readEntries(path, request.maxRuns);
   // A run whose line was not written is missing from the ledger (e09s02).
   const after = { ...read, problem: read.problem ?? writeProblem };
   const [answer, threshold] = classify(verdict, after, request);
-  const overridden = await overrideAnswer({ path, entries: after.entries, answer, threshold }, verdict);
+  const overridden = await overrideAnswer({ path, runId, entries: after.entries, answer, threshold }, verdict);
   if (overridden !== null) {
     return { answer: overridden, read: after };
   }
   if (answer.state !== 'failed') {
-    await logState({ path, entries: after.entries, answer, threshold });
+    await logState({ path, runId, entries: after.entries, answer, threshold });
   }
   return { answer, read: after };
 }

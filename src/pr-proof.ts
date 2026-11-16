@@ -33,6 +33,17 @@ function whyNot(last: LedgerEntry | undefined, stop: StateEntry | undefined, fin
   return null;
 }
 
+/** The stop state of `last`, or of a refusal after it. A run with an id is
+ * paired by id: its own state line, or a refusal that names it as the run
+ * before. An older line has no id, so it is paired by time, which a clock
+ * step can get wrong. With no run, any state of the command. */
+function stopOf(states: StateEntry[], command: string, last: LedgerEntry | undefined): StateEntry | undefined {
+  const mine = states.filter((entry) => entry.command === command);
+  const id = last?.runId;
+  if (id === undefined) return mine.findLast((entry) => last === undefined || entry.at >= last.at);
+  return mine.findLast((entry) => entry.runId === id || entry.after === id);
+}
+
 /** The last run of the command as the ledger logged it. A stop state is its
  * own line: a refusal (blocked, or a ceiling before the run) logs a state and
  * no run, so a state is never paired with a run by guess (review round 1). */
@@ -61,8 +72,7 @@ function budgetLine(entries: LedgerEntry[], last: LedgerEntry | undefined, comma
 export function prProof(input: ProofInput): Proof {
   const { entries, states, command, fingerprint } = input;
   const last = entries.findLast((entry) => entry.command === command);
-  // The stop state of the last run, or of a refusal after it.
-  const stop = states.findLast((entry) => entry.command === command && (last === undefined || entry.at >= last.at));
+  const stop = stopOf(states, command, last);
   const why = whyNot(last, stop, fingerprint);
   const lines = [`weftwork done gate: ${why === null ? 'ready' : 'draft'}`, `command: ${terminalSafe(command)}`, runLine(last)];
   if (stop !== undefined && stop.state !== 'done') {

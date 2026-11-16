@@ -33,7 +33,16 @@ commands by text. When the engine logged a stop state for the
 command after its last run (blocked, stalled, exhausted, killed,
 overridden), a `stopped:` line names it and a `detail:` line shows the
 stop rule's detail, such as the ceiling that was reached. A refusal logs a
-state and no run, so the two lines are never merged. On `ready`, `budget:`
+state and no run, so the two lines are never merged.
+
+Each engine call writes a run id (`runId`) on its run line and its state
+line. A refusal writes no run line, so its state line also names the last
+run of the command that the engine read before it (`after`). The proof
+pairs the last run with a stop state by these ids: the run's own state
+line, or a refusal that names the run. A ledger line from before run ids
+has no `runId`, so for such a run the proof uses time: a state at or after
+the run's time. A wall clock that steps back can make that pairing wrong;
+the ids do not depend on the clock. On `ready`, `budget:`
 counts the runs of any command since the `done` before the pass, and the
 failed runs of this command before it; on `draft`, it counts up to now.
 It reads the last 1 MiB of the ledger, as the stop rules do (F3). Tokens are

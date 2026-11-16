@@ -20,6 +20,12 @@ export type StateEntry = {
    * and who wrote the record. The author is a claim, not proof (T4). */
   kind?: OverrideKind;
   author?: string;
+  /** The engine call that wrote the line: for a run's own state, the run
+   * line's id. Absent on a line from before run ids. */
+  runId?: string;
+  /** Only on a refusal: the id of the last run of the command the engine
+   * read before it, so the PR proof pairs the two by id, not by time. */
+  after?: string;
 };
 
 export type OverrideKind = 'override' | 'false-alarm';
@@ -39,17 +45,16 @@ const isOptionalKind = (value: unknown): value is OverrideKind | undefined =>
 const isOptionalText = (value: unknown): value is string | undefined =>
   value === undefined || typeof value === 'string';
 
-/** `kind` and `author` only when present, so an e06s04 line stays as it was. */
-function optionalFields(
-  kind: OverrideKind | undefined,
-  author: string | undefined,
-): Pick<StateEntry, 'kind' | 'author'> {
-  return { ...(kind === undefined ? {} : { kind }), ...(author === undefined ? {} : { author }) };
+type Optional = Pick<StateEntry, 'kind' | 'author' | 'runId' | 'after'>;
+
+/** The optional fields only when present, so an older line stays as it was. */
+function optionalFields(fields: Optional): Optional {
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
 /** The state line in `data`, or null when a field is missing or wrong. */
 export function toState(data: Record<string, unknown>): StateEntry | null {
-  const { at, state, command, runs, failStreak, threshold, detail, kind, author } = data;
+  const { at, state, command, runs, failStreak, threshold, detail, kind, author, runId, after } = data;
   if (typeof at !== 'string' || typeof state !== 'string' || !knownStates.includes(state)) {
     return null;
   }
@@ -59,11 +64,11 @@ export function toState(data: Record<string, unknown>): StateEntry | null {
   if (!isNullableInt(threshold) || !isNullableText(detail)) {
     return null;
   }
-  if (!isOptionalKind(kind) || !isOptionalText(author)) {
+  if (!isOptionalKind(kind) || !isOptionalText(author) || !isOptionalText(runId) || !isOptionalText(after)) {
     return null;
   }
   const fields = { at, state: state as State, command, runs, failStreak };
-  return { ...fields, threshold, detail, ...optionalFields(kind, author) };
+  return { ...fields, threshold, detail, ...optionalFields({ kind, author, runId, after }) };
 }
 
 /** The `overridden` lines for one command, by kind (e06s05). A line with no
