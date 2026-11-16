@@ -136,7 +136,7 @@ or `sensitive` set says why in a `sensitive:` line.
 | 0 | `weftwork review: pass` | No must-fix from any reviewer that answered | File the PR; list the should-fix findings in it |
 | 1 | `weftwork review: block` | A must-fix | Fix it, pass the done gate again, review again |
 | 3 | `weftwork review: no verdict` | Every reviewer failed, or the tree changed during the review | Fix the cause, or review with a fresh-context subagent and say so in the PR |
-| 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree, or the change touches `ui.paths` and there are no after screenshots of this tree (`docs/UI.md`) | Run the engine first, or take the after screenshots |
+| 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree, or the change touches `ui.paths` and there are no after screenshots of this tree, or a screenshot no longer matches its hash (`docs/UI.md`) | Run the engine first, or take the screenshots again |
 | 5 | `weftwork review: exhausted` | The rounds on this branch reached the ceiling | Open the PR with the unresolved findings listed |
 | 2 | none | Bad input, no git working tree, a bad setting file, a ledger it cannot read or write, a snapshot git cannot make, or no base when `base` or `sensitive_paths` needs one; the reason is on stderr | Fix the cause |
 
