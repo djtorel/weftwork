@@ -7,10 +7,10 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, git, isolatedEnv, makeTempDir, makeTestRepo, writePng } from './test-helpers.ts';
-import { ledgerPath } from './ledger.ts';
+import { ledgerPath, weftworkDir } from './ledger.ts';
 
 after(cleanupTempDirs);
 
@@ -179,6 +179,19 @@ test('at the round ceiling: exit 5, the last round\'s findings again, and no rev
   assert.equal(readFileSync(log, 'utf8'), 'run\n');
 });
 
+test('a detached HEAD: exit 2 every time, the reason on stderr, and no reviewer runs, since rounds are counted per branch', () => {
+  const log = join(makeTempDir(), 'runs');
+  const repo = readyRepo(`${council(`echo run >> ${log}; echo 'VERDICT: APPROVE'`)}  max_rounds: 1\n`);
+  git(repo, 'checkout', '--detach');
+  for (let run = 0; run < 2; run++) {
+    const out = review(repo);
+    assert.equal(out.status, 2, out.stdout);
+    assert.equal(out.stdout, '');
+    assert.match(out.stderr, /^review: HEAD is detached; review rounds are counted per branch, so check out a branch first$/m);
+  }
+  assert.equal(existsSync(log), false);
+});
+
 test('a sensitive change gets max_rounds_sensitive', () => {
   const repo = readyRepo(`${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n`);
   assert.equal(review(repo, { sensitive: true }).status, 0);
@@ -345,7 +358,13 @@ test('ui.design adds the design reference to the brief (e11s06)', () => {
 test('a ui.design file that does not exist: exit 2, and no reviewer runs (e11s06)', () => {
   const marker = join(makeTempDir(), 'ran');
   const repo = uiChangedRepo(`touch ${marker}; echo 'VERDICT: APPROVE'`, '  design: DESIGN.md\n');
+  // The file is there for the screenshots (ui-cli checks it too) and gone by
+  // the review; it is ignored, so the tree the screenshots show is the same.
+  writeFileSync(join(repo, '.gitignore'), 'DESIGN.md\n');
+  writeFileSync(join(repo, 'DESIGN.md'), '# Design\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
   assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  rmSync(join(repo, 'DESIGN.md'));
   const out = review(repo);
   assert.equal(out.status, 2, out.stdout);
   assert.match(out.stderr, /ui\.design: .*DESIGN\.md does not exist/);
@@ -368,16 +387,94 @@ test('a change that is not a UI change: WEFTWORK_IMAGES is not set (e11s06)', ()
   assert.equal(readFileSync(seen, 'utf8'), 'unset');
 });
 
+/** The council entry for `host` that docs/UI.md gives: the line that starts with it. */
+function documentedEntry(host: string): string {
+  const line = readFileSync(join(import.meta.dirname, '..', 'docs', 'UI.md'), 'utf8')
+    .split('\n')
+    .find((text) => text.startsWith(`${host} `));
+  assert.ok(line !== undefined, `docs/UI.md gives no ${host} council entry`);
+  return line;
+}
+
+/** A fake `name` on PATH: it checks the brief is on stdin, writes its
+ * arguments one per line and then WEFTWORK_IMAGES, and approves. */
+function fakeHost(name: string): { path: string; seen: string } {
+  const bin = makeTempDir();
+  const seen = join(makeTempDir(), 'seen');
+  writeFileSync(join(bin, name), `#!/bin/sh\ngrep -q 'Review the diff' || exit 9\nprintf '%s\\n' "$@" "images=\${WEFTWORK_IMAGES-unset}" > ${seen}\necho 'VERDICT: APPROVE'\n`, { mode: 0o755 });
+  return { path: `${bin}:${process.env['PATH'] ?? ''}`, seen };
+}
+
+for (const [host, flag] of [['claude', '--add-dir'], ['gemini', '--include-directories']] as const) {
+  test(`the ${host} council entry in docs/UI.md opens the folder that holds every screenshot for a UI change only (e11s06 follow-up)`, () => {
+    const fake = fakeHost(host);
+    const repo = uiChangedRepo(documentedEntry(host));
+    assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+    const out = node(reviewCli, repo, { command: verify, brief: 'Review the diff.' }, { PATH: fake.path });
+    assert.equal(out.status, 0, out.stdout + out.stderr);
+    const args = readFileSync(fake.seen, 'utf8').trimEnd().split('\n');
+    const images = (args.at(-1) ?? '').replace(/^images=/, '').split(',');
+    const dir = args[args.indexOf(flag) + 1] ?? '';
+    assert.ok(args.includes(flag), args.join(' '));
+    assert.ok(images.length > 0 && images.every((image) => image.startsWith(`${dir}/`)), `${dir} does not hold ${images.join(', ')}`);
+
+    const plain = fakeHost(host);
+    const other = readyRepo(council(documentedEntry(host)));
+    assert.equal(node(reviewCli, other, { command: verify, brief: 'Review the diff.' }, { PATH: plain.path }).status, 0);
+    const plainArgs = readFileSync(plain.seen, 'utf8').trimEnd().split('\n');
+    assert.equal(plainArgs.includes(flag), false, plainArgs.join(' '));
+    assert.equal(plainArgs.at(-1), 'images=unset');
+  });
+}
+
 test('a ui.design path through a symlinked folder outside the repository: exit 2 (e11s06, review round 1)', () => {
   const outside = makeTempDir();
   writeFileSync(join(outside, 'DESIGN.md'), 'secret\n');
   const marker = join(makeTempDir(), 'ran');
   const repo = uiChangedRepo(`touch ${marker}; echo 'VERDICT: APPROVE'`, '  design: out/DESIGN.md\n');
-  symlinkSync(outside, join(repo, 'out'));
+  // The link comes after the screenshots (ui-cli refuses it too); it is
+  // ignored, so the tree the screenshots show is the same.
+  writeFileSync(join(repo, '.gitignore'), 'out\n');
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  mkdirSync(join(repo, 'out'));
+  writeFileSync(join(repo, 'out', 'DESIGN.md'), '# Design\n');
   assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  rmSync(join(repo, 'out'), { recursive: true });
+  symlinkSync(outside, join(repo, 'out'));
   const out = review(repo);
   assert.equal(out.status, 2, out.stdout);
   assert.match(out.stderr, /ui\.design: .* is outside the repository/);
+  assert.equal(existsSync(marker), false);
+});
+
+test('an after screenshot changed since its manifest: exit 4, and no reviewer runs (e11s05 review round 1)', async () => {
+  const marker = join(makeTempDir(), 'ran');
+  const repo = uiChangedRepo(`touch ${marker}; echo 'VERDICT: APPROVE'`);
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  writeFileSync(join((await weftworkDir(repo)) as string, 'ui', 'after', 'home.png'), Buffer.from('89504e470d0a1a0a6368616e676564', 'hex'));
+  const out = review(repo);
+  assert.equal(out.status, 4, out.stdout + out.stderr);
+  assert.match(out.stdout, /^weftwork review: not run$/m);
+  assert.match(out.stdout, /^why: the after screenshot home\.png does not match its hash in the manifest$/m);
+  assert.match(out.stdout, /^next: echo '\{"phase":"after"\}' \| node src\/ui-cli\.ts$/m);
+  assert.equal(existsSync(marker), false);
+});
+
+test('a before screenshot gone since its manifest: exit 4, and no reviewer runs (e11s05 review round 1)', async () => {
+  const marker = join(makeTempDir(), 'ran');
+  const repo = makeTestRepo();
+  mkdirSync(join(repo, 'web'));
+  writeFileSync(join(repo, 'web', 'a.html'), '<p>a</p>\n');
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(`touch ${marker}; echo 'VERDICT: APPROVE'`)}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-q', '-m', 'base');
+  assert.equal(node(uiCli, repo, { phase: 'before' }).status, 0);
+  writeFileSync(join(repo, 'web', 'a.html'), '<p>b</p>\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  rmSync(join((await weftworkDir(repo)) as string, 'ui', 'before', 'home.png'));
+  const out = review(repo);
+  assert.equal(out.status, 4, out.stdout + out.stderr);
+  assert.match(out.stdout, /^why: the before screenshot home\.png does not match its hash in the manifest$/m);
   assert.equal(existsSync(marker), false);
 });

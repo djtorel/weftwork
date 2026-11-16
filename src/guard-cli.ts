@@ -1,4 +1,4 @@
-// story: e11s01
+// story: e11s01, e10s01
 // Thin shell for the Claude Code PreToolUse hook that runs the guard: the
 // host's JSON on stdin, exit 2 and the reason on stderr to block the tool
 // call, exit 0 and no output to let it go. Logic lives in guard.ts.
@@ -11,6 +11,9 @@
 //
 // e11s04: with a git worktree, the guard also blocks the mechanical ask
 // triggers, a file write outside the worktree and a push to main (docs/ASK.md).
+//
+// e10s01: the owner's `guard.protected` adds to the protected-paths list. A
+// setting file the guard cannot use blocks every call it watches.
 //
 // Each block is a guard line in the ledger. A failed log write does not turn a
 // block into an allow; the reason says the log failed.
@@ -27,6 +30,7 @@ import {
   type HookOutput,
 } from './claude-hook.ts';
 import { guardCall, guardPaths } from './guard.ts';
+import { loadGuard } from './guard-setting.ts';
 import { guardWorktree } from './guard-worktree.ts';
 import { appendGuard, weftworkDir } from './ledger.ts';
 
@@ -66,9 +70,11 @@ async function run(): Promise<HookOutput> {
   if (!text.ok) return blockStop(`unreadable hook input: ${text.error}`);
   const input = parse(text.text);
   if (!input.ok) return blockStop('unreadable hook input: input is not JSON');
+  const setting = await loadGuard(dir.dir, process.env);
+  if (!setting.ok) return blockStop(`the guard setting cannot be used, so the guard blocks every call it watches until the owner fixes it: ${setting.error}`);
   const engineDir = await weftworkDir(dir.dir);
   const worktree = await guardWorktree(dir.dir, process.env);
-  const answer = guardCall(input.value, guardPaths(dir.dir, engineDir, process.env), worktree);
+  const answer = guardCall(input.value, guardPaths(dir.dir, engineDir, process.env, setting.protected), worktree);
   if (!answer.block) return allow;
   const entry = { guard: 'blocked' as const, tool: answer.tool, target: answer.target };
   const logged = engineDir === null ? null : await appendGuard(join(engineDir, 'ledger.jsonl'), entry, new Date());

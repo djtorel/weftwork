@@ -51,9 +51,19 @@ deleting data, or anything outside this repository.
    `echo '{"phase":"after"}' | node src/ui-cli.ts`; the review needs it.
 5. **Review.** Use the `review-loop` skill. Fix what it finds, prove each fix.
 6. **File.** Rebase onto the latest `main`, run Preflight through the engine
-   again, then get the proof block with the same command string:
-   `echo '{"command":"<Preflight>"}' | node src/pr-proof-cli.ts`
-   (`docs/PR-PROOF.md`). Paste its output, and the base check's, into the
+   again, then get the proof block with the same command string and this
+   session's transcript, so the budget line shows the tokens
+   (`docs/PR-PROOF.md`):
+
+   ```bash
+   node -e 'console.log(JSON.stringify({ command: process.argv[1], transcript: process.argv[2] }))' \
+     "<Preflight>" \
+     "$(ls "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/projects/*/"$CLAUDE_CODE_SESSION_ID".jsonl 2>/dev/null | head -n 1)" \
+     | node src/pr-proof-cli.ts
+   ```
+
+   Outside Claude Code, `echo '{"command":"<Preflight>"}' | node src/pr-proof-cli.ts`
+   gives the same block without tokens. Paste its output, and the base check's, into the
    PR's Proof block as it is,
    and the output of `node src/decision-cli.ts list` into its Decisions.
    Exit 0: push and open the PR with the `file-pr` skill. Exit 1: the gate
