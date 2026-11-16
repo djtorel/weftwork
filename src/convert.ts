@@ -1,5 +1,5 @@
 // story: e12s03, e12s03b, e12s03c
-// Convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project, the steps of PR #66 made general: tag
+// Convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project, the steps of PR #66 made general: tag
 // the last commit that tracks the plans folder (specs/ or .planning/), move
 // the files that tracked code or docs cite (and bigpowers' ADRs, which are
 // decisions) into docs/ and rewrite the citations, move the rest into a
@@ -15,7 +15,7 @@ import { backlogSection, sectionTitle, type BigpowersEpic } from './convert-back
 import { gsdSection, gsdSectionTitle } from './convert-gsd.ts';
 import { gsd2Section, gsd2SectionTitle } from './convert-gsd2.ts';
 import { speckitLocal, speckitSection, speckitSectionTitle } from './convert-speckit.ts';
-import { bmadLocal, bmadSection, bmadSectionTitle } from './convert-bmad.ts';
+import { bmadLocal, bmadSection, bmadSectionTitle, bmadV4Local, bmadV4Section, bmadV4SectionTitle } from './convert-bmad.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
@@ -24,7 +24,7 @@ import { changedSincePlan, gitCommonDir, ignoreAppend, pathRefusal, type Change 
 import { backlog } from './setup-text.ts';
 
 export type Move = { from: string; to: string };
-export type SystemName = 'bigpowers' | 'gsd' | 'gsd2' | 'spec-kit' | 'bmad';
+export type SystemName = 'bigpowers' | 'gsd' | 'gsd2' | 'spec-kit' | 'bmad' | 'bmad-v4';
 export type ConvertPlan = { system: SystemName; tag: string; moves: Move[]; changes: Change[]; notes: string[] };
 export type Converted = { ok: true; tag: string; moved: Move[]; written: string[]; kept: string[] } | Failure;
 
@@ -168,7 +168,77 @@ const systems: Record<SystemName, System> = {
         ? "_bmad-output/ uses BMAD's ticket tree (tickets.toml), which is not converted yet; only the v6 sprint layout is"
         : null,
   },
+  'bmad-v4': {
+    name: 'BMAD v4',
+    // The default; systemFor reads devStoryLocation from core-config.yaml.
+    root: 'docs/stories',
+    marker: '.bmad-core',
+    local: bmadV4Local,
+    // Every story file is BMAD's own; the PRD and architecture are in docs/
+    // already and stay there.
+    planOwned: /^/,
+    alwaysMove: '',
+    title: bmadV4SectionTitle,
+    section: (dir, tag, notes) => {
+      notes.push('.bmad-core/ stays tracked: the installed BMAD v4 agents, tasks, templates and core-config.yaml. Drop it, and the agent commands that run BMAD, once nothing else calls them.');
+      const config = bmadV4Config(dir);
+      if (!config.ok) return bmadV4Section({ epics: [], stories: {}, prd: '' }, tag, notes);
+      notes.push(`${config.prd} stays in place: it is a document, not a plan.`);
+      const stories: Record<string, string> = {};
+      for (const name of namesIn(join(dir, config.stories))) {
+        const text = readText(join(dir, config.stories, name));
+        if (text !== null) stories[name] = text;
+      }
+      const epics = config.epicFiles.map((path) => (pathRefusal(dir, path) === null ? readText(join(dir, path)) : null)).filter((text): text is string => text !== null);
+      return bmadV4Section({ epics, stories, prd: config.prd }, tag, notes);
+    },
+    layoutRefusal: (dir) => {
+      const config = bmadV4Config(dir);
+      return config.ok ? null : config.error;
+    },
+  },
 };
+
+/** A plain relative path inside the project: no `.` or `..` part. */
+const plainPath = (value: unknown): value is string =>
+  typeof value === 'string' && /^[\w.-]+(\/[\w.-]+)*$/.test(value) && !value.split('/').some((part) => part === '.' || part === '..');
+
+type BmadV4Config = { ok: true; stories: string; prd: string; epicFiles: string[] } | Failure;
+
+/** The story folder and the PRD's epic files of a BMAD v4 project, from
+ * .bmad-core/core-config.yaml (v4.44.3), with its defaults for a key it
+ * does not set: the sharded epics (prdShardedLocation, epicFilePattern)
+ * when prdSharded is not false and any exist, else prdFile. */
+function bmadV4Config(dir: string): BmadV4Config {
+  const problems: string[] = [];
+  const config = readYaml(join(dir, '.bmad-core', 'core-config.yaml'), problems);
+  if (problems.length > 0) return { ok: false, error: problems[0] };
+  const top = isRecord(config) ? config : {};
+  const prd = isRecord(top.prd) ? top.prd : {};
+  const values = {
+    devStoryLocation: top.devStoryLocation ?? 'docs/stories',
+    prdFile: prd.prdFile ?? 'docs/prd.md',
+    prdShardedLocation: prd.prdShardedLocation ?? 'docs/prd',
+  };
+  for (const [key, value] of Object.entries(values)) {
+    if (!plainPath(value)) return { ok: false, error: `.bmad-core/core-config.yaml: ${key} ${JSON.stringify(value)} is not a plain path inside the project` };
+  }
+  const pattern = typeof prd.epicFilePattern === 'string' ? prd.epicFilePattern : 'epic-{n}*.md';
+  const epicFile = new RegExp(`^${escaped(pattern).replace(/\\\*/g, '.*').replace(/\\\{n\\\}/g, '\\d+')}$`);
+  const shard = values.prdShardedLocation as string;
+  const shards = prd.prdSharded === false ? [] : namesIn(join(dir, shard)).filter((name) => epicFile.test(name)).sort().map((name) => `${shard}/${name}`);
+  const prdFile = values.prdFile as string;
+  return { ok: true, stories: values.devStoryLocation as string, prd: shards.length > 0 ? `${shard}/` : prdFile, epicFiles: shards.length > 0 ? shards : [prdFile] };
+}
+
+/** `name`'s system for the project in `dir`: BMAD v4's plans folder is its
+ * devStoryLocation. */
+function systemFor(dir: string, name: SystemName): System {
+  const system = systems[name];
+  if (name !== 'bmad-v4') return system;
+  const config = bmadV4Config(dir);
+  return config.ok ? { ...system, root: config.stories } : system;
+}
 
 function isFolder(path: string): boolean {
   try {
@@ -295,9 +365,9 @@ function refusal(dir: string, system: System, tag: string): string | null {
   const { root, local } = system;
   if (!isGitRoot(dir)) return `${dir} is not a git repository root`;
   if (!exists(join(dir, system.marker))) return `${dir} has no ${system.name} ${system.marker === root ? `${root}/` : system.marker}`;
-  if (!exists(join(dir, root))) return `${dir} has no ${root}/ to convert`;
   const layout = system.layoutRefusal?.(dir) ?? null;
   if (layout !== null) return layout;
+  if (!exists(join(dir, root))) return `${dir} has no ${root}/ to convert`;
   if (pathRefusal(dir, `${root}/x`) !== null || !lstatSync(join(dir, root)).isDirectory()) return `${root} is not a plain folder`;
   if (isBacklogOnly(dir, system)) return null;
   if (!git(dir, ['check-ref-format', `refs/tags/${tag}`]).ok) return `${tag} is not a valid tag name`;
@@ -311,7 +381,7 @@ function refusal(dir: string, system: System, tag: string): string | null {
 
 /** The plan for converting the `system` project in `dir`. Writes nothing. */
 export function planConvert(dir: string, options: { system: SystemName; tag: string }): { ok: true; plan: ConvertPlan } | Failure {
-  const system = systems[options.system];
+  const system = systemFor(dir, options.system);
   const { root } = system;
   const refused = refusal(dir, system, options.tag);
   if (refused !== null) return { ok: false, error: refused };
@@ -385,7 +455,7 @@ function move(dir: string, { from, to }: Move): Failure | null {
  * (keeping any file changed since the plan), then move the plans folder to
  * its local name. */
 export function applyConvert(dir: string, plan: ConvertPlan): Converted {
-  const system = systems[plan.system];
+  const system = systemFor(dir, plan.system);
   const refused = refusal(dir, system, plan.tag);
   if (refused !== null) return { ok: false, error: refused };
   // A backlog-only plan (tag '') applies only while the folder is untracked.

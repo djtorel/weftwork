@@ -6,8 +6,10 @@
 // anything else means a draft with a handoff (the full-stop skill).
 // docs/PR-PROOF.md.
 import { loopRuns } from './breaker.ts';
+import { tokensText } from './budget-report.ts';
 import { terminalSafe } from './cli-io.ts';
 import { failingRun, type LedgerEntry, type StateEntry } from './ledger.ts';
+import type { TokenRead } from './transcript-usage.ts';
 
 export type ProofInput = {
   entries: LedgerEntry[];
@@ -15,6 +17,10 @@ export type ProofInput = {
   command: string;
   /** The fingerprint of the tree now. */
   fingerprint: string;
+  /** The session's tokens, or why they are not counted. Shown on the budget
+   * line; never part of the verdict. Omitted: no tokens part (the review CLI
+   * reads only the verdict). */
+  tokens?: TokenRead;
 };
 
 /** `text` is plain lines, one field per line, for the PR template's Proof
@@ -31,6 +37,17 @@ function whyNot(last: LedgerEntry | undefined, stop: StateEntry | undefined, fin
   if (stop !== undefined && stop.state !== 'done') return 'the engine stopped after the last run of this command';
   if (last.fingerprint !== fingerprint) return 'the tree changed after the last run; run the engine again';
   return null;
+}
+
+/** The stop state of `last`, or of a refusal after it. A run with an id is
+ * paired by id: its own state line, or a refusal that names it as the run
+ * before. An older line has no id, so it is paired by time, which a clock
+ * step can get wrong. With no run, any state of the command. */
+function stopOf(states: StateEntry[], command: string, last: LedgerEntry | undefined): StateEntry | undefined {
+  const mine = states.filter((entry) => entry.command === command);
+  const id = last?.runId;
+  if (id === undefined) return mine.findLast((entry) => last === undefined || entry.at >= last.at);
+  return mine.findLast((entry) => entry.runId === id || entry.after === id);
 }
 
 /** The last run of the command as the ledger logged it. A stop state is its
@@ -59,10 +76,9 @@ function budgetLine(entries: LedgerEntry[], last: LedgerEntry | undefined, comma
 
 /** The proof for `command` from the ledger and the current tree. */
 export function prProof(input: ProofInput): Proof {
-  const { entries, states, command, fingerprint } = input;
+  const { entries, states, command, fingerprint, tokens } = input;
   const last = entries.findLast((entry) => entry.command === command);
-  // The stop state of the last run, or of a refusal after it.
-  const stop = states.findLast((entry) => entry.command === command && (last === undefined || entry.at >= last.at));
+  const stop = stopOf(states, command, last);
   const why = whyNot(last, stop, fingerprint);
   const lines = [`weftwork done gate: ${why === null ? 'ready' : 'draft'}`, `command: ${terminalSafe(command)}`, runLine(last)];
   if (stop !== undefined && stop.state !== 'done') {
@@ -70,6 +86,7 @@ export function prProof(input: ProofInput): Proof {
     if (stop.detail !== null) lines.push(`detail: ${terminalSafe(stop.detail)}`);
   }
   if (why !== null) lines.push(`why: ${why}`);
-  lines.push(budgetLine(entries, last, command, why === null));
+  const budget = budgetLine(entries, last, command, why === null);
+  lines.push(tokens === undefined ? budget : `${budget}, ${tokensText(tokens)}`);
   return { ready: why === null, text: `${lines.join('\n')}\n`, why };
 }

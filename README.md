@@ -99,7 +99,8 @@ never merges.
 ## Convert an existing project
 
 A project planned with bigpowers (`specs/state.yaml`), GSD (`.planning/`),
-GSD 2 (`.gsd/`), spec-kit (`.specify/`) or BMAD (`_bmad/`) keeps its open
+GSD 2 (`.gsd/`), spec-kit (`.specify/`) or BMAD (`_bmad/`, or v4's
+`.bmad-core/`) keeps its open
 work. The conversion tags the old plans, moves the docs that code cites into
 `docs/`, untracks the rest, and adds the open items to the backlog:
 
@@ -145,7 +146,7 @@ decision in the pull request.
 | `weftwork convert` | Convert a bigpowers, GSD, spec-kit or BMAD project (JSON on stdin) |
 | `weftwork detect` | Report a project's stack, commands, CI and agent files |
 | `weftwork claude-install -- '<cmd>'` | Register the Stop hook and guard for a check command |
-| `weftwork claude-live` | Check that Claude Code runs the Stop hook here |
+| `weftwork claude-live` | Check that Claude Code runs the Stop hook and the guard here |
 | `weftwork path` | Print where weftwork is installed (its docs and skills) |
 | `weftwork --help` | List every command, including the ones the agent's skills call |
 

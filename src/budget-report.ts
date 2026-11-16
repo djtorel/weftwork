@@ -41,12 +41,17 @@ export function budgetLine(budget: BudgetUsed, tokens: TokenRead): string {
   const ceiling = (limit: number | null) => (limit === null ? 'no ceiling' : `ceiling ${limit}`);
   const runs = budget.runs === null ? 'runs not counted' : `${budget.runs} runs in this loop`;
   const failures = budget.failures === null ? 'failures not counted' : `${budget.failures} failed in a row`;
-  const used = tokens.ok
-    ? `tokens ${tokens.tokens.input} input, ${tokens.tokens.output} output, ` +
-      `${tokens.tokens.cacheRead} cache read, ${tokens.tokens.cacheWrite} cache write`
-    : `tokens not counted (${terminalSafe(tokens.error)})`;
   return (
     `budget: ${runs} (${ceiling(budget.maxRuns)}), ` +
-    `${failures} (${ceiling(budget.maxFailures)}), ${used}`
+    `${failures} (${ceiling(budget.maxFailures)}), ${tokensText(tokens)}`
   );
+}
+
+/** The tokens part of a budget line: the counts, or why they are not
+ * counted. The PR proof uses it too (docs/PR-PROOF.md). */
+export function tokensText(tokens: TokenRead): string {
+  return tokens.ok
+    ? `tokens ${tokens.tokens.input} input, ${tokens.tokens.output} output, ` +
+        `${tokens.tokens.cacheRead} cache read, ${tokens.tokens.cacheWrite} cache write`
+    : `tokens not counted (${terminalSafe(tokens.error)})`;
 }

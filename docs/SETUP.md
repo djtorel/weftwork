@@ -93,7 +93,11 @@ when the plan or a write is refused (a folder on the way is a symlink, an
 | `.claude/settings.json` | With `stopHook`: the Stop hook declaring the Preflight, and the guard, as `claude-install-cli.ts` writes them; an existing file that would change is a conflict |
 
 Commands in AGENTS.md: only those whose check ran, so each one resolves
-today (H3); one that ran and failed is marked `(fails today)`. The Preflight
+today (H3); one that ran and failed is marked `(fails today)`. In a
+monorepo each package's commands are checked in the package's folder, and a
+`## Packages` section lists, one line per package, those that resolve; a
+package with none is left out. It lists at most 20 packages, in path order,
+then one line that says how many more are not listed. The Preflight
 joins the lint, typecheck and test commands that passed. With none, the
 letter says so and there is no Stop hook.
 
