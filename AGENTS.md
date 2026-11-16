@@ -79,6 +79,8 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Preflight | `yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test` |
 | Setup | `bash tools/setup.sh` (fresh clone; Preflight needs `node_modules`) |
 | Install the command | `npm link` (then `weftwork <command>` runs `src/<command>-cli.ts`) |
+| Build the package | `npm run build` (`dist/`; `npm pack` runs it) |
+| Package test | `bash tools/test-package.sh` (pack, install, use; CI runs it) |
 | CI | `.github/workflows/ci.yml` |
 
 ## Preflight
@@ -109,11 +111,16 @@ no-progress breaker (`breaker.ts`), the budget setting (`budget.ts`) and the bud
 on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
 adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
 the session's tokens from the transcript (`transcript-usage.ts`);
-`claude-install.ts` installs the Stop hook. The guard (`guard.ts`, its PreToolUse hook
+`claude-install.ts` installs the Stop hook, as an entry that runs `weftwork`
+from PATH and blocks when it is missing, and keeps an entry that names
+`"$CLAUDE_PROJECT_DIR/src/..."`, as this repository's does. The guard (`guard.ts`, its PreToolUse hook
 `guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
 would change the agent's own limits or hooks (`docs/GUARD.md`), and the
 mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
-and a push to main (`guard-push.ts`). `decision.ts` and `decision-cli.ts` log
+and a push to main (`guard-push.ts`). The live check (`claude-live.ts`,
+`claude-live-guard.ts` and the CLI `claude-live-cli.ts`) says whether Claude
+Code runs the Stop hook, from the call record, and the guard, from the session
+transcripts (`docs/GUARD.md`). `decision.ts` and `decision-cli.ts` log
 each choice the agent makes without the owner, for the PR's Decisions
 section (`docs/ASK.md`). The state writer is `state-file.ts` (set one field of a
 YAML file and keep every other byte), with the file half in `state-write.ts`
@@ -140,13 +147,19 @@ stack, commands, CI, agent files and planning system, and run each command
 once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 `setup-diff.ts`, `setup-about.ts`, `setup-undo.ts` and `setup-cli.ts` set up a new or plain project from that
 report and the owner's answers: a dry-run plan, then a write that never
-overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`). `convert.ts`,
+overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
+`init.ts` and `init-cli.ts` are the same setup from the terminal
+(`weftwork init`, the current folder by default). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
 `markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
-thin shell over a library function, and `weftwork-cli.ts` (the package's
-`weftwork` bin) runs each one as `weftwork <command>`.
+thin shell over a library function, and `weftwork-cli.ts` runs each one as
+`weftwork <command>`, with `--help` and `--version`. The package's bin is
+`bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when
+installed from npm, where Node strips no types; `sibling.ts` names another
+engine file with the right extension. Releases are cut by release-please
+and published with npm trusted publishing (`docs/RELEASING.md`).
 
 ## Rules
 

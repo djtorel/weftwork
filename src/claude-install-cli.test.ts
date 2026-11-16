@@ -20,14 +20,22 @@ import {
 import { join } from 'node:path';
 import { guardEntry, guardMatcher } from './claude-guard-install.ts';
 import { hookTimeoutSeconds } from './claude-hook.ts';
+import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { isRecord } from './json.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
 const installCli = join(import.meta.dirname, 'claude-install-cli.ts');
-const adapterCli = join(import.meta.dirname, 'claude-hook-cli.ts');
-const guardCli = join(import.meta.dirname, 'guard-cli.ts');
+
+/** PATH with a `weftwork` that runs this checkout first, as npm link would
+ * put it: the entries the install writes run weftwork from PATH. */
+function pathWithWeftwork(): string {
+  const dir = makeTempDir();
+  const cli = join(import.meta.dirname, 'weftwork-cli.ts');
+  writeFileSync(join(dir, 'weftwork'), `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(cli)} "$@"\n`, { mode: 0o755 });
+  return `${dir}:${process.env.PATH ?? ''}`;
+}
 
 type Run = { status: number | null; stdout: string; stderr: string };
 
@@ -63,10 +71,10 @@ test('AC-e07s03-07 a repository with no .claude directory gets the entry', () =>
   assert.match(run.stdout, /^added/);
   assert.match(run.stdout, /trust/i);
   assert.match(run.stdout, /new Claude Code session/);
-  assert.match(run.stdout, /this machine/);
+  assert.match(run.stdout, /from PATH/);
   const group = firstStopGroup(readSettings(repo));
   assert.deepEqual(group.hooks, [
-    { type: 'command', command: `node '${adapterCli}' -- 'npm test'`, timeout: hookTimeoutSeconds },
+    { type: 'command', command: stopHookCommand(weftworkOnPath, 'npm test'), timeout: hookTimeoutSeconds },
   ]);
 });
 
@@ -84,10 +92,11 @@ test('AC-e07s03-07 the written entry runs the real adapter and blocks a failing 
     input: '{}',
     encoding: 'utf8',
     // An empty XDG_CONFIG_HOME: never the real user budget file (e09s01, R6).
-    env: { ...process.env, CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir() },
+    env: { ...process.env, PATH: pathWithWeftwork(), CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir() },
     timeout: 30000,
   });
   assert.equal(run.status, 2, run.stderr);
+  assert.doesNotMatch(run.stderr, /not on PATH/, 'the adapter ran and blocked, not the missing-command check');
 });
 
 test('AC-e11s01-13 the install registers the guard, and the entry blocks a Write to weftwork.yaml', () => {
@@ -97,10 +106,10 @@ test('AC-e11s01-13 the install registers the guard, and the entry blocks a Write
   assert.match(run.stdout, /PreToolUse guard/);
   const hooks = readSettings(repo).hooks;
   assert.ok(isRecord(hooks) && Array.isArray(hooks.PreToolUse));
-  assert.deepEqual(hooks.PreToolUse, [{ matcher: guardMatcher, hooks: [guardEntry(guardCli)] }]);
-  const entry = guardEntry(guardCli) as { command: string };
+  assert.deepEqual(hooks.PreToolUse, [{ matcher: guardMatcher, hooks: [guardEntry(weftworkOnPath)] }]);
+  const entry = guardEntry(weftworkOnPath) as { command: string };
   const input = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: join(repo, 'weftwork.yaml') } });
-  const env = { ...process.env, CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir(), HOME: makeTempDir() };
+  const env = { ...process.env, PATH: pathWithWeftwork(), CLAUDE_PROJECT_DIR: repo, XDG_CONFIG_HOME: makeTempDir(), HOME: makeTempDir() };
   const guard = spawnSync('sh', ['-c', entry.command], { cwd: repo, input, encoding: 'utf8', env, timeout: 30000 });
   assert.equal(guard.status, 2, guard.stderr);
   assert.match(guard.stderr, /weftwork\.yaml is protected/);

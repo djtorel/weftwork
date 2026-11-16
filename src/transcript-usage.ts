@@ -7,8 +7,9 @@
 // one message streamed in parts is written as several lines with the same
 // `message.id` and the same usage, so each id counts once (the last line
 // wins). The host writes the file while it runs, so the last line can be cut
-// off; a line that is not JSON is skipped. The sum is a report, never a
-// verdict: every problem is a returned reason (e09s04 choice 2).
+// off, even inside a multi-byte character; a line that is not JSON is
+// skipped. The sum is a report, never a verdict: every problem is a returned
+// reason (e09s04 choice 2).
 import { isAbsolute } from 'node:path';
 import { isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
@@ -72,7 +73,8 @@ export function sumUsage(text: string): TokenUsage {
 
 /** Read the transcript at `path` (the raw `transcript_path` value) and sum it.
  * Only an absolute path to a regular file of at most maxTranscriptBytes is
- * read, without following a symlink and without blocking on a FIFO. */
+ * read, without following a symlink and without blocking on a FIFO. Its end
+ * may be cut inside a character: the host can be writing the last line. */
 export function readTranscriptUsage(path: unknown): TokenRead {
   if (typeof path !== 'string' || path === '') {
     return { ok: false, error: 'the hook input has no transcript_path' };
@@ -80,7 +82,7 @@ export function readTranscriptUsage(path: unknown): TokenRead {
   if (!isAbsolute(path)) {
     return { ok: false, error: 'transcript_path is not an absolute path' };
   }
-  const read = readRegularFile(path, { follow: false, maxBytes: maxTranscriptBytes });
+  const read = readRegularFile(path, { follow: false, maxBytes: maxTranscriptBytes, cutEnd: true });
   if (!read.ok) return read;
   if (read.file === null) return { ok: false, error: `no transcript at ${path}` };
   return { ok: true, tokens: sumUsage(read.file.text) };
