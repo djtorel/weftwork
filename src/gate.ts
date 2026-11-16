@@ -12,7 +12,9 @@ import { fingerprintTree, type FingerprintResult } from './tree.ts';
 /** `blocked`, `stallAfter` and `maxFailures` (e06s04), `maxRuns` (e09s02)
  * and `reserveRuns` (e09s03) are read for the engine; `runGate` ignores them.
  * `reserveRuns` is never parsed from the request: only the budget setting
- * files set it (applyBudget). */
+ * files set it (applyBudget). `stopHook` is never parsed either: only the
+ * Stop hook sets it (hookRequest). The run's ledger line then names `cwd`,
+ * and the engine may reuse such a pass (reuse.ts). */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -22,6 +24,7 @@ export type GateRequest = {
   maxFailures?: number;
   maxRuns?: number;
   reserveRuns?: number;
+  stopHook?: boolean;
 };
 
 export type Reason =
@@ -212,9 +215,10 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
-  const path = await ledgerPath(cwd);
-  const result = path === null ? null : await appendEntry(path, verdict, new Date());
+async function record(request: GateRequest, verdict: Verdict): Promise<LoggedVerdict> {
+  const path = await ledgerPath(request.cwd);
+  const hookDir = request.stopHook === true ? request.cwd : undefined;
+  const result = path === null ? null : await appendEntry(path, verdict, new Date(), hookDir);
   if (result?.ok) {
     return { verdict, writeProblem: null };
   }
@@ -227,7 +231,7 @@ async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
 /** `runGate`, and why the ledger line could not be written: the run is then
  * missing from the ledger, so the engine cannot count the loop (e09s02). */
 export async function runLoggedGate(request: GateRequest, signal?: AbortSignal): Promise<LoggedVerdict> {
-  return record(request.cwd, await decide(request, signal));
+  return record(request, await decide(request, signal));
 }
 
 /**

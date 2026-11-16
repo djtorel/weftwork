@@ -36,6 +36,9 @@ export type LedgerEntry = {
   reason: string;
   command: string;
   fingerprint: string | null;
+  /** Set only on a run by the Stop hook: the directory it ran in. The hook
+   * reuses only such a pass (claude-hook.ts, reuse.ts). */
+  hookDir?: string;
 };
 
 export type AppendResult = { ok: true } | { ok: false; error: string };
@@ -138,8 +141,9 @@ export async function writeLine(path: string, line: object): Promise<AppendResul
   }
 }
 
-/** Append one entry for `verdict`. Never throws. */
-export async function appendEntry(path: string, verdict: Verdict, at: Date): Promise<AppendResult> {
+/** Append one entry for `verdict`, with `hookDir` for a run by the Stop hook.
+ * Never throws. */
+export async function appendEntry(path: string, verdict: Verdict, at: Date, hookDir?: string): Promise<AppendResult> {
   const entry: LedgerEntry = {
     at: at.toISOString(),
     done: verdict.done,
@@ -147,6 +151,7 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date): Pro
     reason: verdict.reason,
     command: verdict.command,
     fingerprint: verdict.fingerprint,
+    ...(hookDir === undefined ? {} : { hookDir }),
   };
   return writeLine(path, entry);
 }
@@ -194,7 +199,8 @@ function toEntry(data: unknown): LedgerEntry | null {
   if (typeof reason !== 'string' || typeof command !== 'string' || !isFingerprint(fingerprint)) {
     return null;
   }
-  return { at, done, exitCode, reason, command, fingerprint };
+  const hook = typeof data.hookDir === 'string' ? { hookDir: data.hookDir } : {};
+  return { at, done, exitCode, reason, command, fingerprint, ...hook };
 }
 
 type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | 'guard' | null;

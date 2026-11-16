@@ -20,8 +20,14 @@
 //
 // Every answer carries `budget` (e09s04), counted from the same ledger read
 // that decided it. The stop rules themselves are in engine-rules.ts.
+//
+// One exception to C4, for the Stop hook only (`stopHook`): after the
+// refusals, a pass the hook itself ran on the same tree is reused and the
+// command does not run again (reuse.ts). It writes no line, so it is not a
+// run in the budget. The engine CLI never reuses a pass.
 import { dirname, join } from 'node:path';
 import { budgetUsed, type BudgetUsed } from './budget-report.ts';
+import { terminalSafe } from './cli-io.ts';
 import {
   ceilingStop,
   note,
@@ -33,6 +39,7 @@ import {
 import { runLoggedGate, type GateRequest, type Verdict } from './gate.ts';
 import { appendState, failingRun, ledgerPath, type LedgerEntry, type StateEntry } from './ledger.ts';
 import { takeOverride, type Override } from './override.ts';
+import { reusablePass } from './reuse.ts';
 import type { State } from './states.ts';
 
 /** A verdict, the state the run ended in, and a short text for some states. */
@@ -151,6 +158,10 @@ async function decide(
   if (refusal !== null) {
     return { answer: refusal, read: before };
   }
+  const reused = request.stopHook === true ? await reusedAnswer(path, request) : null;
+  if (reused !== null) {
+    return { answer: reused, read: before };
+  }
   const { verdict, writeProblem } = await runLoggedGate(request, signal);
   const read = await readEntries(path, request.maxRuns);
   // A run whose line was not written is missing from the ledger (e09s02).
@@ -164,6 +175,24 @@ async function decide(
     await logState({ path, entries: after.entries, answer, threshold });
   }
   return { answer, read: after };
+}
+
+/** A done answer from the Stop hook's own pass on this tree, or null. The
+ * detail names the pass's time. */
+async function reusedAnswer(path: string | null, request: GateRequest): Promise<Decided | null> {
+  const pass = await reusablePass(path, request.command, request.cwd);
+  if (pass === null) {
+    return null;
+  }
+  return {
+    done: true,
+    exitCode: pass.exitCode,
+    reason: 'passed',
+    command: request.command,
+    fingerprint: pass.fingerprint,
+    state: 'done',
+    detail: `reused the pass of ${terminalSafe(pass.at)} on this tree`,
+  };
 }
 
 /**

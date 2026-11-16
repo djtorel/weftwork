@@ -157,7 +157,7 @@ test('AC-e07s01-12 one command after -- becomes the request', () => {
   const result = hookRequest(['--', 'npm test'], '/work/repo');
   assert.deepEqual(result, {
     ok: true,
-    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: engineTimeoutMs },
+    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: engineTimeoutMs, stopHook: true },
   });
 });
 

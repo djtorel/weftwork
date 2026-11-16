@@ -183,7 +183,10 @@ export function hookRequest(args: string[], dir: string): HookRequest {
   }
   // parseRequest takes the engine CLI's JSON text, so one rule refuses a blank
   // command on both paths and the two cannot drift.
-  return parseRequest(JSON.stringify({ command, timeoutMs: engineTimeoutMs }), dir);
+  const parsed = parseRequest(JSON.stringify({ command, timeoutMs: engineTimeoutMs }), dir);
+  // Only the hook sets stopHook: it marks the run's ledger line and lets the
+  // engine reuse the hook's own pass on the same tree (reuse.ts).
+  return parsed.ok ? { ok: true, request: { ...parsed.request, stopHook: true } } : parsed;
 }
 
 /** Allow the stop, with a message for the user. */
@@ -235,7 +238,7 @@ export function hookAnswer(answer: Answer, tokens: TokenRead): HookOutput {
   const budget = budgetLine(answer.budget, tokens);
   switch (answer.state) {
     case 'done':
-      return allow(`weftwork: done. ${budget}`);
+      return allow(`weftwork: done${answer.detail === undefined ? '' : `, ${answer.detail}`}. ${budget}`);
     case 'failed':
       return blockFailed(answer, budget);
     case 'blocked':
