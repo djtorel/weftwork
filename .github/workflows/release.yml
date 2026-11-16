@@ -10,14 +10,19 @@ name: release
 "on":
   push:
     branches: [main]
+  # Run it by hand (Actions > release > Run workflow, or gh workflow run
+  # release.yml --ref main), for example right after the release app is set
+  # up, when no push to main has happened since.
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   release-please:
-    # Skipped until the owner sets up the release app (docs/RELEASING.md).
-    if: vars.RELEASE_APP_CLIENT_ID != ''
+    # Skipped until the owner sets up the release app (docs/RELEASING.md),
+    # and on any branch but main, since a manual run can name another one.
+    if: vars.RELEASE_APP_CLIENT_ID != '' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
