@@ -17,7 +17,7 @@ model family, a pull request that says what it proved.
 
 It is TypeScript on Node 26 or later, one package that is both a CLI and a
 library, tested with the built-in `node:test` runner. Claude Code is the first
-host. The auto run (backlog e11, the `full-stop` skill) and getting started
+host. The auto run (backlog e11, the `weft-ready` skill) and getting started
 (e12: setting up and converting projects) are built, and this repository runs
 under its own hooks (below).
 
@@ -47,7 +47,7 @@ under its own hooks (below).
 
 ## How work happens
 
-1. The owner names a task, often with "full stop" (finish to a ready PR) and a
+1. The owner names a task, often with "weft ready" (finish to a ready PR) and a
    backlog id or a sentence. Run `node src/resume-cli.ts` first when picking up
    earlier work.
 2. Branch from an up-to-date `main`: `git checkout -b <type>/<short-name>`. A
@@ -55,12 +55,12 @@ under its own hooks (below).
 3. Make the smallest change that does the task. For behaviour, write the test
    first and watch it fail, then make it pass.
 4. Prove it: run the task's check and Preflight, and keep the output.
-5. Review with the `review-loop` skill (Codex, read-only, at most 3 rounds).
-6. File the PR with the `file-pr` skill, wait for CI, fix real failures. Stop
+5. Review with the `weft-review` skill (Codex, read-only, at most 3 rounds).
+6. File the PR with the `weft-pr` skill, wait for CI, fix real failures. Stop
    when it is ready. The owner merges.
 7. Update the backlog: tick the task and add any follow-ups you found.
 
-The `full-stop` skill runs steps 2 to 7 for you.
+The `weft-ready` skill runs steps 2 to 7 for you.
 
 ## Commands
 
@@ -136,7 +136,7 @@ and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `pr-proof-cli.ts` print a pull request's Proof block from the ledger and the
 tree, with the session's tokens from its transcript when given one, and say
 whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
-and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
+and `review-cli.ts` run one round of the reviewers set in `weftwork.yaml`
 (`review-setting.ts`), count the rounds in the ledger (`review-ledger.ts`),
 and snapshot what each round is of, check that a must-fix names a real file
 and line, and scope later rounds to what changed (`review-scope.ts`), and record what
@@ -147,7 +147,7 @@ tests a change adds or edits against the base commit, where they should
 fail, and report which do not, each new test too when the run prints TAP
 (`base-check-tap.ts`; `docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
-them to the council, as images and with the design reference and a design
+them to the reviewers, as images and with the design reference and a design
 checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
 `detect-stacks.ts`, `detect-packages.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
 stack, commands, CI, agent files and planning system, and run each command

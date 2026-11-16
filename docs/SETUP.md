@@ -6,7 +6,7 @@ The second step of backlog e12: put weftwork into a new or plain project
 folder (one with no other planning system). It detects the project
 (`docs/DETECT.md`), asks the owner only what detection cannot answer, shows
 the full plan as a dry run, and writes only when told to. The
-`setup-project` skill drives it in Claude Code.
+`weft-setup` skill drives it in Claude Code.
 
 ## From the terminal: `weftwork init`
 
@@ -87,7 +87,7 @@ when the plan or a write is refused (a folder on the way is a symlink, an
 | `AGENTS.md` | A short letter: about, words, the commands whose check ran, the Preflight, the rules |
 | `CLAUDE.md` | A symlink to `AGENTS.md` |
 | `CONVENTIONS.md` | Only when the owner gives rules |
-| `.claude/skills/` | `full-stop`, `review-loop` and `file-pr`, with each `node src/<name>-cli.ts` rewritten to `weftwork <name>` (and `node src/cli.ts` to `weftwork engine`), and each engine doc (`docs/*.md`) and the PR template to `$(weftwork path)/<path>` |
+| `.claude/skills/` | `weft-ready`, `weft-review` and `weft-pr`, with each `node src/<name>-cli.ts` rewritten to `weftwork <name>` (and `node src/cli.ts` to `weftwork engine`), and each engine doc (`docs/*.md`) and the PR template to `$(weftwork path)/<path>` |
 | `.gitignore` | `.env`, `.env.*` and each stack's folders (`node_modules/`, `__pycache__/`, `.venv/`, `target/`), appended only when missing |
 | `<git common dir>/weftwork/BACKLOG.md` | The local backlog, seeded with the first tasks |
 | `.claude/settings.json` | With `stopHook`: the Stop hook declaring the Preflight, and the guard, as `claude-install-cli.ts` writes them; an existing file that would change is a conflict |
@@ -126,6 +126,11 @@ appended to (`append`); `link` is the symlink. A file that changed between
 the plan and the write is kept and listed in `kept`, `CLAUDE.md` included:
 a file edited, a symlink pointed elsewhere, or a file created where the plan
 saw none, even when `overwrite` names it.
+
+The skills were renamed: `full-stop`, `review-loop` and `file-pr` are now
+`weft-ready`, `weft-review` and `weft-pr`. Setting up again writes the new
+folders and leaves the old ones, and the plan has a note that names each old
+folder still there, to delete by hand.
 
 ## Undo
 

@@ -1,5 +1,5 @@
 // story: e11s03
-// One review round by the council (docs/REVIEW.md). The engine sends each
+// One review round by the reviewers (docs/REVIEW.md). The engine sends each
 // reviewer the brief and a fixed reply format, reads the findings back and
 // decides the round: only a must-fix blocks, and a reviewer that fails or
 // times out counts as neither a pass nor a block. The engine, not the agent,
@@ -177,19 +177,19 @@ async function runReviewer(command: string, cwd: string, prompt: string, timeout
   return parsed.ok ? { name, ...parsed } : { name, ok: false, error: parsed.error };
 }
 
-/** Run the council on `prompt`, at most maxParallelReviewers at once, and
- * return the results in council order. `env` is each reviewer's
+/** Run the reviewers on `prompt`, at most maxParallelReviewers at once, and
+ * return the results in setting order. `env` is each reviewer's
  * environment (e11s06: WEFTWORK_IMAGES for a UI change). */
-export async function runCouncil(review: ReviewSetting, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
+export async function runReviewers(review: ReviewSetting, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
   const results: ReviewerResult[] = [];
   let next = 0;
   const worker = async () => {
-    while (next < review.council.length) {
+    while (next < review.reviewers.length) {
       const index = next++;
-      results[index] = await runReviewer(review.council[index] ?? '', cwd, prompt, review.timeoutSeconds, env);
+      results[index] = await runReviewer(review.reviewers[index] ?? '', cwd, prompt, review.timeoutSeconds, env);
     }
   };
-  await Promise.all(Array.from({ length: Math.min(maxParallelReviewers, review.council.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(maxParallelReviewers, review.reviewers.length) }, worker));
   return results;
 }
 
@@ -207,7 +207,7 @@ export function roundReport(round: { verdict: RoundVerdict; round: number; maxRo
     const followUps = result.ok && result.followUp.length > 0 ? `, ${result.followUp.length} follow-up` : '';
     lines.push(result.ok ? `${label}: ${result.mustFix.length} must-fix, ${result.shouldFix.length} should-fix${followUps}` : `${label}: failed, ${terminalSafe(result.error)}`);
   });
-  // Ids count each kind across reviewers in council order, the order
+  // Ids count each kind across reviewers in setting order, the order
   // storedFindings logs them in (e13s05, review-outcome.ts); past the 50 it
   // keeps, a finding has no id (review round 1).
   const count = { m: 0, s: 0, f: 0 };

@@ -1,9 +1,9 @@
 ---
-name: setup-project
+name: weft-setup
 description: Use when the user asks to set up weftwork in a project folder, new or plain (no other planning system).
 ---
 
-# Setup Project
+# Weft Setup
 
 Put weftwork into a project folder the user names. Never read another project
 without the user's say-so: the folder they name is that say-so.

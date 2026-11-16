@@ -13,12 +13,12 @@ question that is not asked can do harm that a review cannot undo.
 | --- | --- |
 | A file write outside the worktree | The guard (PreToolUse), for Edit, Write, MultiEdit and NotebookEdit |
 | A push to `main`, `master` or the remote's default branch | The guard (PreToolUse), for Bash `git push` |
-| An irreversible or destructive action (delete data, rewrite shared history, deploy, publish) | The `full-stop` skill |
-| A security-sensitive change (auth, secrets, permissions, the guard itself) | The `full-stop` skill |
-| Any other effect outside the worktree (another repository, a service, a message) | The `full-stop` skill |
-| A task or plan too broken or ambiguous to follow | The `full-stop` skill |
+| An irreversible or destructive action (delete data, rewrite shared history, deploy, publish) | The `weft-ready` skill |
+| A security-sensitive change (auth, secrets, permissions, the guard itself) | The `weft-ready` skill |
+| Any other effect outside the worktree (another repository, a service, a message) | The `weft-ready` skill |
+| A task or plan too broken or ambiguous to follow | The `weft-ready` skill |
 | Spend past the budget (the engine answers exhausted) | The engine (`docs/BUDGET.md`) |
-| A change the agent cannot prove, or a check it cannot make pass | The `full-stop` skill |
+| A change the agent cannot prove, or a check it cannot make pass | The `weft-ready` skill |
 
 On a trigger the run ends blocked: the agent writes the handoff
 (`node src/handoff-cli.ts`), runs the engine with `"blocked":"<why>"`,

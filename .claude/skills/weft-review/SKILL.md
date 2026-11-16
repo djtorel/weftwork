@@ -1,13 +1,13 @@
 ---
-name: review-loop
-description: Use when the user says "review loop", and as the review step of full-stop.
+name: weft-review
+description: Use when the user says "weft review", and as the review step of weft-ready.
 ---
 
-# Review Loop
+# Weft Review
 
-Have a council of reviewer models, from another family by default, review
+Have reviewer models, from another family by default, review
 your change, read-only, in a loop, before the pull request. The engine runs
-the council, reads the findings and counts the rounds (`docs/REVIEW.md`).
+the reviewers, reads the findings and counts the rounds (`docs/REVIEW.md`).
 Make the smallest changes that answer real findings, and fight scope creep:
 push back with evidence when a finding is wrong or not needed.
 
@@ -38,10 +38,10 @@ Find the base: `git fetch origin` then `git merge-base HEAD origin/main`. The
 change is base to working tree, untracked files included. Use the same diff
 command every round. State the intent and what is out of scope in one or two
 sentences. Run Preflight through the engine first
-(`echo '{"command":"<Preflight>"}' | node src/cli.ts`): the council runs only
+(`echo '{"command":"<Preflight>"}' | node src/cli.ts`): the reviewers run only
 when the done gate passed on this tree.
 
-## 2. Run the council
+## 2. Run the reviewers
 
 Write the brief to a temporary folder outside the repository, never inside
 it, and send it with the same command string the engine ran:
@@ -122,10 +122,10 @@ only.
 - Stuck: a must-fix stays disputed after two replies, or the engine answers
   `exhausted`. The ceiling is not approval. Put both sides in the PR in two
   or three lines each. A must-fix still open with no written dispute makes
-  the PR a draft (`full-stop`, Ready).
+  the PR a draft (`weft-ready`, Ready).
 
 Paste the last round's report into the PR as it is, and add:
-`Reviewed with review-loop: <N> rounds. Verdict: <pass|stuck>`. List every
+`Reviewed with weft-review: <N> rounds. Verdict: <pass|stuck>`. List every
 unresolved finding, every declined one with its reason, and every follow-up.
 Paste `echo '{"report":true}' | node src/review-outcome-cli.ts` under it.
 Leave the temporary folder for the system to clean; do not `rm -rf` it (a

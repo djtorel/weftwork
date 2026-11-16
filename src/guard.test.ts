@@ -105,7 +105,7 @@ test('AC-e11s01-05 a Bash command that names no protected path, or only the back
     'echo \'{"op":"get"}\' | node src/state-cli.ts',
     'cat "$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"',
     `sed -i s/a/b/ ${join(f.engine, 'BACKLOG.md')}`,
-    'cat .claude/skills/full-stop/SKILL.md',
+    'cat .claude/skills/weft-ready/SKILL.md',
   ];
   for (const command of commands) {
     assert.deepEqual(guardCall(bash(command), f.paths), { block: false }, command);

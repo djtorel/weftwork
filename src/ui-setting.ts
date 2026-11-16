@@ -1,7 +1,7 @@
 // story: e11s05, e11s06
 // The UI setting: the command that writes screenshots and the paths that make
 // a change a UI change, from the `ui` mapping of the same two setting files as
-// the budget (docs/UI.md), and the design reference the council reviews
+// the budget (docs/UI.md), and the design reference the reviewers check
 // against (e11s06). The repository file wins over the user file key by
 // key. No `ui` mapping in either file means UI checks are off.
 import type { Failure } from './errors.ts';

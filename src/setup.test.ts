@@ -56,7 +56,7 @@ test('AC-e12s02-01 the plan is a dry run: it lists every file and writes none', 
   assert.equal(action(p, 'CLAUDE.md'), 'link');
   assert.equal(action(p, 'CONVENTIONS.md'), 'create');
   assert.equal(action(p, '.gitignore'), 'append');
-  assert.equal(action(p, '.claude/skills/full-stop/SKILL.md'), 'create');
+  assert.equal(action(p, '.claude/skills/weft-ready/SKILL.md'), 'create');
   assert.ok(p.changes.some((change) => change.path.endsWith('weftwork/BACKLOG.md') && change.action === 'create'));
   assert.equal(existsSync(join(dir, 'AGENTS.md')), false);
   assert.equal(existsSync(join(dir, '.claude')), false);
@@ -81,13 +81,13 @@ test('AC-e12s02-03 apply writes the files, links CLAUDE.md, turns skill commands
   assert.equal(readlinkSync(join(dir, 'CLAUDE.md')), 'AGENTS.md');
   assert.equal(readFileSync(join(dir, 'CONVENTIONS.md'), 'utf8'), '# Conventions\n\n- Wrap errors with context.\n');
   assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), '.env\n\n# Added by weftwork setup.\n.env.*\n');
-  const skill = readFileSync(join(dir, '.claude/skills/full-stop/SKILL.md'), 'utf8');
+  const skill = readFileSync(join(dir, '.claude/skills/weft-ready/SKILL.md'), 'utf8');
   assert.ok(skill.includes("echo '{\"command\":\"<Preflight>\"}' | weftwork engine"), 'the skill runs the engine as a command');
   assert.ok(skill.includes('| weftwork pr-proof'), 'each CLI is a weftwork command');
   assert.doesNotMatch(skill, /node src\/|node '/);
   assert.doesNotMatch(skill, new RegExp(engineDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'the skill does not name this checkout');
   assert.ok(skill.includes('`$(weftwork path)/docs/ASK.md`'), 'engine docs are under weftwork path');
-  const filePr = readFileSync(join(dir, '.claude/skills/file-pr/SKILL.md'), 'utf8');
+  const filePr = readFileSync(join(dir, '.claude/skills/weft-pr/SKILL.md'), 'utf8');
   assert.ok(filePr.includes('`$(weftwork path)/.github/pull_request_template.md`'));
   const backlogPath = join(dir, '.git', 'weftwork', 'BACKLOG.md');
   assert.match(readFileSync(backlogPath, 'utf8'), /- \[ \] Add a --json flag\./);
@@ -231,4 +231,20 @@ test('AC-e12s02-26 the plan notes a weftwork command that is missing or runs ano
   assert.equal(linked(null).length, 1);
   assert.equal(linked('/somewhere/else').length, 1);
   assert.deepEqual(linked(engineDir), []);
+});
+
+test('skills set up under their old names (full-stop, review-loop, file-pr) are kept, with a note to delete them', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n', '.claude/skills/full-stop/SKILL.md': '# old\n', '.claude/skills/file-pr/SKILL.md': '# old\n' });
+  const p = plan(dir);
+  assert.equal(action(p, '.claude/skills/weft-ready/SKILL.md'), 'create');
+  const note = p.notes.find((line) => line.includes('old names'));
+  assert.ok(note, p.notes.join('\n'));
+  assert.match(note, /\.claude\/skills\/full-stop, \.claude\/skills\/file-pr/);
+  assert.doesNotMatch(note, /review-loop/);
+  assert.ok(p.changes.every((change) => !change.path.includes('full-stop')), 'setup never touches the old folders');
+});
+
+test('no old skill folders: no note about them', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n' });
+  assert.ok(plan(dir).notes.every((line) => !line.includes('old names')));
 });

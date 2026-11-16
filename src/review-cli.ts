@@ -1,7 +1,7 @@
 // story: e11s03
 // Thin shell for one review round: JSON `{"command": "...", "brief": "...",
 // "sensitive": false}` on stdin, the round's report on stdout. It runs the
-// council only after the engine's done gate passed for `command` on this
+// reviewers only after the engine's done gate passed for `command` on this
 // tree, and counts the round in the ledger. Logic lives in review.ts.
 // docs/REVIEW.md.
 //
@@ -17,7 +17,7 @@ import { prProof } from './pr-proof.ts';
 import type { RoundVerdict } from './review-ledger.ts';
 import { loadReview } from './review-setting.ts';
 import { groundResults, roundScope, ruleFiles } from './review-scope.ts';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review.ts';
 import { currentBranch, fingerprintTree } from './tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './ui.ts';
 import { loadUi, type UiSetting } from './ui-setting.ts';
@@ -92,7 +92,7 @@ async function main(): Promise<void> {
     if (!images.ok) return fail(images.error);
     env['WEFTWORK_IMAGES'] = images.value;
   }
-  const replies = await runCouncil(setting.review, cwd, reviewPrompt(prompt), env);
+  const replies = await runReviewers(setting.review, cwd, reviewPrompt(prompt), env);
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const grounded = await groundResults(scope.root, replies);

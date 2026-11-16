@@ -137,6 +137,6 @@ export function renderPlan(dir: string, plan: Plan): string {
 export function renderWritten(written: string[], kept: string[], notes: string[]): string {
   const lines = [...written.map((path) => `  wrote     ${path}`), ...kept.map((path) => `  kept      ${path}`)];
   if (notes.length > 0) lines.push('', 'Notes:', ...notes.map((note) => `  - ${note}`));
-  lines.push('', 'Next: commit these files, then open Claude Code here, name a task and add "Full stop."');
+  lines.push('', 'Next: commit these files, then open Claude Code here, name a task and add "Weft ready."');
   return `${lines.join('\n')}\n`;
 }

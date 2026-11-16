@@ -22,7 +22,7 @@ const about: Record<string, string> = {
   detect: "Report a project's stack, commands, CI and agent files",
   engine: 'Run a command through the done gate and record it in the ledger',
   'pr-proof': "Print a pull request's Proof block from the ledger",
-  review: 'Run one review round with the review council',
+  review: 'Run one review round with the reviewers',
   'review-outcome': 'Record what became of a review finding, or report them',
   'base-check': 'Run the tests a change adds or edits against the base commit',
   ui: 'Take before or after screenshots of a UI change',

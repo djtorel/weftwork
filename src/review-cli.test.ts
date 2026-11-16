@@ -1,6 +1,6 @@
 // story: e11s03
 // The review CLI as a real process in a temporary repository: the engine CLI
-// passes the done gate, then the review CLI runs the council from
+// passes the done gate, then the review CLI runs the reviewers from
 // weftwork.yaml and counts the round in the ledger. Exit 0 pass, 1 block,
 // 3 no verdict, 4 the done gate has not passed, 5 the round ceiling, 2 when
 // it cannot run.
@@ -31,13 +31,13 @@ function readyRepo(review: string): string {
   return repo;
 }
 
-const council = (...commands: string[]) => `  council:\n${commands.map((c) => `    - ${JSON.stringify(c)}\n`).join('')}`;
+const reviewers = (...commands: string[]) => `  reviewers:\n${commands.map((c) => `    - ${JSON.stringify(c)}\n`).join('')}`;
 const review = (repo: string, extra: object = {}) => node(reviewCli, repo, { command: verify, brief: 'Review the diff.', ...extra });
 
 test('the done gate has not passed: exit 4, and no reviewer runs', () => {
   const marker = join(makeTempDir(), 'ran');
   const repo = makeTestRepo();
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(`touch ${marker}; echo 'VERDICT: APPROVE'`)}`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(`touch ${marker}; echo 'VERDICT: APPROVE'`)}`);
   const out = review(repo);
   assert.equal(out.status, 4, out.stderr);
   assert.match(out.stdout, /^weftwork review: not run$/m);
@@ -46,7 +46,7 @@ test('the done gate has not passed: exit 4, and no reviewer runs', () => {
 });
 
 test('a reviewer reads the brief and the reply format on stdin; an approval passes: exit 0', () => {
-  const repo = readyRepo(council("grep -c -e 'Review the diff' -e 'VERDICT: APPROVE or CHANGES' | grep -qx 2 && echo 'VERDICT: APPROVE'"));
+  const repo = readyRepo(reviewers("grep -c -e 'Review the diff' -e 'VERDICT: APPROVE or CHANGES' | grep -qx 2 && echo 'VERDICT: APPROVE'"));
   const out = review(repo);
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^weftwork review: pass$/m);
@@ -55,7 +55,7 @@ test('a reviewer reads the brief and the reply format on stdin; an approval pass
 });
 
 test('a must-fix blocks: exit 1, and the round is counted in the ledger', async () => {
-  const repo = readyRepo(council("printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\nSHOULD-FIX b.ts:2 meh\\n'"));
+  const repo = readyRepo(reviewers("printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\nSHOULD-FIX b.ts:2 meh\\n'"));
   const out = review(repo);
   assert.equal(out.status, 1, out.stderr);
   assert.match(out.stdout, /^weftwork review: block$/m);
@@ -65,7 +65,7 @@ test('a must-fix blocks: exit 1, and the round is counted in the ledger', async 
 });
 
 test('a must-fix whose file or line does not exist does not block: it is reported as a should-fix (e13s02)', () => {
-  const repo = readyRepo(council("printf 'VERDICT: CHANGES\\nMUST-FIX nope.ts:1 made up\\nMUST-FIX tracked.txt:9 past the end\\n'"));
+  const repo = readyRepo(reviewers("printf 'VERDICT: CHANGES\\nMUST-FIX nope.ts:1 made up\\nMUST-FIX tracked.txt:9 past the end\\n'"));
   const out = review(repo);
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^weftwork review: pass$/m);
@@ -74,7 +74,7 @@ test('a must-fix whose file or line does not exist does not block: it is reporte
 });
 
 test('a follow-up is reported and stored, and never blocks (e13s02)', async () => {
-  const repo = readyRepo(council("printf 'VERDICT: APPROVE\\nFOLLOW-UP tracked.txt:1 an old bug\\n'"));
+  const repo = readyRepo(reviewers("printf 'VERDICT: APPROVE\\nFOLLOW-UP tracked.txt:1 an old bug\\n'"));
   const out = review(repo);
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^follow-up r\d+f\d+ \(printf\): tracked\.txt:1 an old bug$/m);
@@ -84,7 +84,7 @@ test('a follow-up is reported and stored, and never blocks (e13s02)', async () =
 });
 
 test('the report shows the lines changed from the base, and from round 2 the size at round 1 (e13s02)', () => {
-  const repo = readyRepo(council("echo 'VERDICT: APPROVE'"));
+  const repo = readyRepo(reviewers("echo 'VERDICT: APPROVE'"));
   const one = review(repo);
   assert.equal(one.status, 0, one.stderr);
   assert.match(one.stdout, /^diff: \d+ lines changed from the base$/m);
@@ -102,7 +102,7 @@ test('round 2 is told the files changed since round 1 and the open must-fix find
   const prompt = join(dir, 'prompt');
   const reviewer = `cat > ${prompt}; n=$(cat ${count} 2>/dev/null || echo 0); echo $((n+1)) > ${count}; if [ $n = 0 ]; then printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\n'; else printf 'VERDICT: CHANGES\\nMUST-FIX other.txt:1 new\\n'; fi`;
   const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'other.txt': 'other\n' });
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(reviewer)}`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(reviewer)}`);
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
   assert.equal(review(repo).status, 1);
   assert.doesNotMatch(readFileSync(prompt, 'utf8'), /This is round/);
@@ -119,7 +119,7 @@ test('round 2 is told the files changed since round 1 and the open must-fix find
 
 test('review.sensitive_paths: a change to a matching file gets max_rounds_sensitive, and the report says which file (e13s02)', () => {
   const repo = makeTestRepo();
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
   mkdirSync(join(repo, 'auth'));
   writeFileSync(join(repo, 'auth', 'login.ts'), 'x\n');
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
@@ -134,7 +134,7 @@ test('review.sensitive_paths: a change to a matching file gets max_rounds_sensit
 test('a base of HEAD cannot hide a committed change to a sensitive path: the default base decides (e13s02, review round 1)', () => {
   const repo = makeTestRepo();
   git(repo, 'checkout', '-q', '-b', 'feat/x');
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
   mkdirSync(join(repo, 'auth'));
   writeFileSync(join(repo, 'auth', 'login.ts'), 'x\n');
   git(repo, 'add', '-A');
@@ -148,7 +148,7 @@ test('a base of HEAD cannot hide a committed change to a sensitive path: the def
 test('every reviewer gets the audit checklist; a sensitive change also gets the security audit (e13s03)', () => {
   const prompt = join(makeTempDir(), 'prompt');
   const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'AGENTS.md': 'rules\n' });
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(`cat > ${prompt}; echo 'VERDICT: APPROVE'`)}`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(`cat > ${prompt}; echo 'VERDICT: APPROVE'`)}`);
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
   assert.equal(review(repo).status, 0);
   const plain = readFileSync(prompt, 'utf8');
@@ -161,7 +161,7 @@ test('every reviewer gets the audit checklist; a sensitive change also gets the 
 });
 
 test('a change the brief marks sensitive says so in the report (e13s02)', () => {
-  const repo = readyRepo(council("echo 'VERDICT: APPROVE'"));
+  const repo = readyRepo(reviewers("echo 'VERDICT: APPROVE'"));
   const out = review(repo, { sensitive: true });
   assert.match(out.stdout, /^sensitive: yes, the brief asked$/m);
   assert.doesNotMatch(review(repo).stdout, /^sensitive:/m);
@@ -169,7 +169,7 @@ test('a change the brief marks sensitive says so in the report (e13s02)', () => 
 
 test('at the round ceiling: exit 5, the last round\'s findings again, and no reviewer runs', () => {
   const log = join(makeTempDir(), 'runs');
-  const repo = readyRepo(`${council(`echo run >> ${log}; printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\n'`)}  max_rounds: 1\n`);
+  const repo = readyRepo(`${reviewers(`echo run >> ${log}; printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\n'`)}  max_rounds: 1\n`);
   assert.equal(review(repo).status, 1);
   const out = review(repo);
   assert.equal(out.status, 5, out.stderr);
@@ -193,7 +193,7 @@ test('a detached HEAD: exit 2 every time, the reason on stderr, and no reviewer 
 });
 
 test('a sensitive change gets max_rounds_sensitive', () => {
-  const repo = readyRepo(`${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n`);
+  const repo = readyRepo(`${reviewers("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n`);
   assert.equal(review(repo, { sensitive: true }).status, 0);
   const second = review(repo, { sensitive: true });
   assert.equal(second.status, 0, second.stderr);
@@ -202,17 +202,17 @@ test('a sensitive change gets max_rounds_sensitive', () => {
 });
 
 test('a reviewer that fails counts as neither pass nor block', () => {
-  const one = readyRepo(council('exit 3', "echo 'VERDICT: APPROVE'"));
+  const one = readyRepo(reviewers('exit 3', "echo 'VERDICT: APPROVE'"));
   const out = review(one);
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^reviewer 1, exit: failed, exit 3$/m);
 
-  const big = readyRepo(council("echo 'VERDICT: APPROVE'; head -c 1100000 /dev/zero | tr '\\0' x"));
+  const big = readyRepo(reviewers("echo 'VERDICT: APPROVE'; head -c 1100000 /dev/zero | tr '\\0' x"));
   const cut = review(big);
   assert.equal(cut.status, 3, cut.stderr);
   assert.match(cut.stdout, /^reviewer 1, echo: failed, the reply is larger than 1048576 bytes$/m);
 
-  const none = readyRepo(`${council('sleep 5', 'echo no verdict here')}  timeout_seconds: 1\n`);
+  const none = readyRepo(`${reviewers('sleep 5', 'echo no verdict here')}  timeout_seconds: 1\n`);
   const all = review(none);
   assert.equal(all.status, 3, all.stderr);
   assert.match(all.stdout, /^weftwork review: no verdict$/m);
@@ -221,7 +221,7 @@ test('a reviewer that fails counts as neither pass nor block', () => {
 });
 
 test('a reviewer that changes the tree: no verdict, since the review was not of this tree', () => {
-  const repo = readyRepo(council("echo two > tracked.txt; echo 'VERDICT: APPROVE'"));
+  const repo = readyRepo(reviewers("echo two > tracked.txt; echo 'VERDICT: APPROVE'"));
   const out = review(repo);
   assert.equal(out.status, 3, out.stderr);
   assert.match(out.stdout, /^why: the tree changed during the review; a reviewer must be read-only$/m);
@@ -230,7 +230,7 @@ test('a reviewer that changes the tree: no verdict, since the review was not of 
 test('at most 2 reviewers run at once', () => {
   const log = join(makeTempDir(), 'log');
   const one = `echo s >> ${log}; sleep 0.4; echo e >> ${log}; echo 'VERDICT: APPROVE'`;
-  const repo = readyRepo(council(one, one, one));
+  const repo = readyRepo(reviewers(one, one, one));
   assert.equal(review(repo).status, 0);
   let running = 0;
   let most = 0;
@@ -267,7 +267,7 @@ function uiChangedRepo(reviewer: string, extra = ''): string {
   const repo = makeTestRepo();
   mkdirSync(join(repo, 'web'));
   writeFileSync(join(repo, 'web', 'a.html'), '<p>a</p>\n');
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(reviewer)}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n${extra}`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(reviewer)}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n${extra}`);
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
   return repo;
 }
@@ -283,7 +283,7 @@ test('a change to ui.paths without after screenshots of this tree: exit 4, and n
   assert.equal(existsSync(marker), false);
 });
 
-test('with after screenshots: the council reads their paths, a score is reported, and only a must-fix gates (e11s05)', () => {
+test('with after screenshots: the reviewers read their paths, a score is reported, and only a must-fix gates (e11s05)', () => {
   const repo = uiChangedRepo("grep -c -e 'ui/after/home.png' -e 'before: none were taken' | grep -qx 2 && printf 'VERDICT: APPROVE\\nUI-SCORE: 1\\n'");
   assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
   const out = review(repo);
@@ -303,7 +303,7 @@ test('after screenshots of an older tree do not count (e11s05)', () => {
 
 test('a change that does not touch ui.paths needs no screenshots (e11s05)', () => {
   const repo = makeTestRepo();
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}ui:\n  screenshot: 'exit 1'\n  paths: ['web/**']\n`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers("echo 'VERDICT: APPROVE'")}ui:\n  screenshot: 'exit 1'\n  paths: ['web/**']\n`);
   assert.equal(node(engineCli, repo, { command: verify }).status, 0);
   assert.equal(review(repo).status, 0);
 });
@@ -312,7 +312,7 @@ test('before screenshots of another base are not used as the baseline (e11s05, r
   const repo = makeTestRepo();
   mkdirSync(join(repo, 'web'));
   writeFileSync(join(repo, 'web', 'a.html'), '<p>a</p>\n');
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("grep -q 'before: none were taken' && echo 'VERDICT: APPROVE'")}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers("grep -q 'before: none were taken' && echo 'VERDICT: APPROVE'")}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
   git(repo, 'add', '-A');
   git(repo, 'commit', '-q', '-m', 'old base');
   assert.equal(node(uiCli, repo, { phase: 'before' }).status, 0);
@@ -381,7 +381,7 @@ test('each reviewer gets the screenshots in WEFTWORK_IMAGES, comma-separated, be
 
 test('a change that is not a UI change: WEFTWORK_IMAGES is not set (e11s06)', () => {
   const seen = join(makeTempDir(), 'images');
-  const repo = readyRepo(council(`printf '%s' "\${WEFTWORK_IMAGES-unset}" > ${seen}; echo 'VERDICT: APPROVE'`));
+  const repo = readyRepo(reviewers(`printf '%s' "\${WEFTWORK_IMAGES-unset}" > ${seen}; echo 'VERDICT: APPROVE'`));
   // One the engine's own caller set is not passed on (review round 1).
   assert.equal(node(reviewCli, repo, { command: verify, brief: 'Review the diff.' }, { WEFTWORK_IMAGES: '/stale.png' }).status, 0);
   assert.equal(readFileSync(seen, 'utf8'), 'unset');

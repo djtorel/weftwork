@@ -91,7 +91,7 @@ It writes `AGENTS.md` (with `CLAUDE.md` linked to it), the agent's skills in
 `.claude/skills/`, a few `.gitignore` lines and a local backlog. Commit
 them, then open Claude Code in the project and name a task:
 
-> Add a README. Full stop.
+> Add a README. Weft ready.
 
 The agent takes it to a pull request that is ready to merge and stops. It
 never merges.
@@ -120,7 +120,7 @@ one is kept as `AGENTS.md.weftwork-old`).
 
 ```mermaid
 flowchart LR
-  task["You: a task + 'Full stop.'"] --> branch[Branch from main]
+  task["You: a task + 'Weft ready.'"] --> branch[Branch from main]
   branch --> change[Smallest change, test first]
   change --> gate{"Done gate:<br/>the engine runs<br/>your checks"}
   gate -- fail --> change
@@ -166,7 +166,7 @@ budget:              # docs/BUDGET.md
   maxFailures: 3
 review:              # docs/REVIEW.md
   max_rounds: 3
-  council:
+  reviewers:
     - codex exec --ignore-user-config --sandbox read-only --ephemeral -
 ui:                  # docs/UI.md: before and after screenshots for UI changes
   screenshot: npx playwright test e2e/screenshots.spec.ts
@@ -194,10 +194,10 @@ conversion too. To remove weftwork itself: `npm uninstall -g weftwork`.
 
 | Page | About |
 | --- | --- |
-| [Getting started](docs/GETTING-STARTED.md) | From install to the first full stop, step by step |
+| [Getting started](docs/GETTING-STARTED.md) | From install to the first weft-ready run, step by step |
 | [Setup](docs/SETUP.md) and [Convert](docs/CONVERT.md) | What `init` and `convert` read, ask and write |
 | [Guard](docs/GUARD.md) and [Ask](docs/ASK.md) | What the agent may not do, and when it asks you |
-| [Review](docs/REVIEW.md), [Base check](docs/BASE-CHECK.md), [UI](docs/UI.md) | The review council and its checks |
+| [Review](docs/REVIEW.md), [Base check](docs/BASE-CHECK.md), [UI](docs/UI.md) | The reviewers and their checks |
 | [Budget](docs/BUDGET.md), [State](docs/STATE.md), [PR proof](docs/PR-PROOF.md) | Ceilings, the handoff, and what a PR proves |
 | [Measure](docs/MEASURE.md) | The harness that measures the done gate against an oracle |
 | [Releasing](docs/RELEASING.md) | Versions, releases and what counts as a breaking change |
@@ -212,6 +212,6 @@ privately ([`SECURITY.md`](SECURITY.md)).
 
 ## License
 
-[MIT](LICENSE). The `full-stop`, `review-loop` and `file-pr` skills are
+[MIT](LICENSE). The `weft-ready`, `weft-review` and `weft-pr` skills are
 adapted from Theo Browne's [tstack](https://github.com/t3dotgg/tstack) (MIT;
 see [`.claude/skills/README.md`](.claude/skills/README.md)).

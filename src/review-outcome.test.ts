@@ -58,7 +58,7 @@ function node(script: string, cwd: string, input: object) {
 
 test('the CLI records an outcome for an id the ledger has, refuses one it does not, and reports them', () => {
   const repo = makeTestRepo();
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n  council:\n    - "printf 'VERDICT: CHANGES\\\\nMUST-FIX tracked.txt:1 bad\\\\n'"\n`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n  reviewers:\n    - "printf 'VERDICT: CHANGES\\\\nMUST-FIX tracked.txt:1 bad\\\\n'"\n`);
   assert.equal(node(engineCli, repo, { command: 'true' }).status, 0);
   const round1 = node(reviewCli, repo, { command: 'true', brief: 'Review.' });
   assert.equal(round1.status, 1, round1.stderr);

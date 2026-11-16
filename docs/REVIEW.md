@@ -1,10 +1,10 @@
-# The review council
+# The reviewers
 
 <!-- story: e11s03, e13s02, e13s03, e13s05 -->
 
-Before a pull request, a council of reviewer models reads the change. The
+Before a pull request, one or more reviewer models read the change. The
 engine runs the reviewers, reads their findings and counts the rounds, so
-the round ceiling does not depend on the agent's prose. The `review-loop`
+the round ceiling does not depend on the agent's prose. The `weft-review`
 skill calls it.
 
 ```bash
@@ -13,7 +13,7 @@ echo '{"command":"npm test","brief":"Review only. ..."}' | node src/review-cli.t
 
 | Field | What it is |
 | --- | --- |
-| `command` | The verify command, the exact string the engine ran. The council runs only when the done gate passed for it on this tree (`docs/PR-PROOF.md`). |
+| `command` | The verify command, the exact string the engine ran. The reviewers run only when the done gate passed for it on this tree (`docs/PR-PROOF.md`). |
 | `brief` | What the reviewers read: the repository, the base, the intent, what is out of scope, the checks run. The engine adds the audit checklist and the reply format after it. |
 | `base` | The commit the change is measured from, for the UI check (`docs/UI.md`), the diff size and `sensitive_paths`. Optional; by default the merge base of `HEAD` with `origin/HEAD`, `origin/main` or `main`. |
 | `sensitive` | `true` for a change to security, permissions, auth, data loss or concurrency: the ceiling is then `max_rounds_sensitive`. Optional, `false` by default. `sensitive_paths` can also set it, from the files. |
@@ -27,7 +27,7 @@ The guard blocks the agent from editing either file (`docs/GUARD.md`).
 ```yaml
 ---
 review:
-  council:
+  reviewers:
     - codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
   max_rounds: 3
   max_rounds_sensitive: 5
@@ -38,7 +38,7 @@ review:
 
 | Key | What it is | Range | Built-in |
 | --- | --- | --- | --- |
-| `council` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode (`docs/UI.md` gives `claude -p` and `gemini -p` entries that also get the screenshots). A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
+| `reviewers` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode (`docs/UI.md` gives `claude -p` and `gemini -p` entries that also get the screenshots). A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
 | `max_rounds` | Rounds on one branch | 1 to 10 | 3 |
 | `max_rounds_sensitive` | Rounds on one branch for a `sensitive` change | 1 to 10 | 5 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | 1200 |
@@ -164,7 +164,7 @@ review lines.
 
 Each finding in a report has an id: `r<round>` then `m` (must-fix), `s`
 (should-fix) or `f` (follow-up), then its place among that kind, counted
-across reviewers in council order, as the ledger stores them:
+across reviewers in setting order, as the ledger stores them:
 
 ```text
 must-fix r1m1 (codex): src/a.ts:12 the error path exits 0. Fix: return 1
@@ -205,7 +205,7 @@ reported, 2 when it cannot (an unknown id, a bad outcome, no evidence).
   true.
 - Outcomes are the agent's own record. A finding marked `fixed` that was
   not fixed is not caught here; the next round and the PR reviewer can.
-- The council commands come from the setting files, so a repository's
+- The reviewer commands come from the setting files, so a repository's
   `weftwork.yaml` can name any command for the review to run, as it can for
   the verify command through the Claude Code hook.
 - The ledger is the guard's to protect (`docs/GUARD.md`). An agent that gets
