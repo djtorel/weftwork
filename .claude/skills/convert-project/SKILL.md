@@ -1,11 +1,11 @@
 ---
 name: convert-project
-description: Use when the user asks to convert a project from bigpowers (a specs/state.yaml) or GSD (a .planning/ folder) to weftwork.
+description: Use when the user asks to convert a project from bigpowers (a specs/state.yaml), GSD (a .planning/ folder) or spec-kit (a .specify/ folder) to weftwork.
 ---
 
 # Convert Project
 
-Move a bigpowers or GSD project the user names onto weftwork, in one pull request.
+Move a bigpowers, GSD or spec-kit project the user names onto weftwork, in one pull request.
 Never read another project without the user's say-so: the folder they name is
 that say-so. `docs/CONVERT.md` has the details.
 
@@ -14,11 +14,14 @@ that say-so. `docs/CONVERT.md` has the details.
 2. **Show the plan.** Run, from this repository,
    `echo '{"path":"<folder>"}' | node src/convert-cli.ts`. Show the user the
    tag, every move, every change with its `diff`, and the `notes`. Change
-   nothing yet. A folder with both needs `"system":"bigpowers"` or `"gsd"`.
+   nothing yet. A folder with more than one needs `"system"`: `"bigpowers"`, `"gsd"` or
+   `"spec-kit"`.
 3. **Ask once** whether to apply it. Apply only on a yes: the same request
    with `"apply":true`. Report `tag`, `moved`, `written` and `kept`.
 4. **Work the notes.** For each file that still names `specs/` (GSD:
-   `.planning/`), check what calls it. Drop a tool or CI step that exists only
+   `.planning/`), check what calls it. For spec-kit, carry the constitution's
+   principles into AGENTS.md or CONVENTIONS.md, then drop `.specify/` and
+   the spec-kit agent commands if nothing else calls them. Drop a tool or CI step that exists only
    for the old system; point the rest at the new place. Carry the decisions a
    note names into AGENTS.md or `docs/`. Run Preflight and fix what the move broke.
 5. **New AGENTS.md.** Use the `setup-project` skill on the same folder, and

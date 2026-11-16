@@ -232,3 +232,49 @@ test('AC-e12s03-17 a tracked file that names the plans folder as a quoted string
   assert.ok(notes.some((note) => note === 'tools/state.ts names "specs" as a string: a path built in code (join(\'specs\', ...)) breaks when specs/ moves; check it.'), notes.join('\n'));
   assert.ok(!notes.some((note) => note.startsWith('tools/other.py')), notes.join('\n'));
 });
+
+function speckitRepo(): string {
+  return makeTestRepo({
+    '.specify/memory/constitution.md': '# Constitution\n\n## Core Principles\n',
+    '.specify/templates/spec-template.md': '# Feature Specification: [FEATURE NAME]\n',
+    'specs/001-albums/spec.md': '# Feature Specification: Albums\n',
+    'specs/001-albums/tasks.md': '- [x] T001 Set up in a.py\n- [ ] T002 [US1] Make albums in b.py\n',
+    'specs/001-albums/contracts/albums.yaml': 'openapi: 3.1.0\n',
+    'specs/002-done/tasks.md': '- [x] T001 Done in c.py\n',
+    'README.md': 'API: specs/001-albums/contracts/albums.yaml. Plan: specs/001-albums/spec.md.\n',
+  });
+}
+
+test('AC-e12s03c-03 a spec-kit project: tag, cited contracts into docs/, specs/ to .speckit-specs/, open features to the backlog, notes for .specify/', () => {
+  const dir = speckitRepo();
+  const result = planConvert(dir, { system: 'spec-kit', tag: 'speckit-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  const p = result.plan;
+  assert.deepEqual(p.moves, [
+    { from: 'specs/001-albums/contracts/albums.yaml', to: 'docs/001-albums/contracts/albums.yaml' },
+    { from: 'specs', to: '.speckit-specs' },
+  ]);
+  assert.ok(p.notes.some((note) => note.startsWith('.specify/memory/constitution.md holds the project')), p.notes.join('\n'));
+  assert.ok(p.notes.some((note) => note.startsWith('.specify/ stays tracked')), p.notes.join('\n'));
+  const applied = applyConvert(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(readFileSync(join(dir, 'docs/001-albums/contracts/albums.yaml'), 'utf8'), 'openapi: 3.1.0\n');
+  assert.equal(readFileSync(join(dir, 'README.md'), 'utf8'), 'API: docs/001-albums/contracts/albums.yaml. Plan: specs/001-albums/spec.md.\n');
+  assert.equal(existsSync(join(dir, 'specs')), false);
+  assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.speckit-specs\/$/m);
+  const backlogText = readFileSync(commonBacklog(dir), 'utf8');
+  assert.match(backlogText, /- \[ \] \*\*001-albums Albums\.\*\*\n {2}Open task T002 \\\[US1\] Make albums in b\.py\n/);
+  assert.doesNotMatch(backlogText, /002-done/);
+});
+
+test('AC-e12s03c-04 the spec-kit plan refuses: no .specify/, no specs/, a dirty specs/', () => {
+  const refuse = (dir: string): string | null => {
+    const result = planConvert(dir, { system: 'spec-kit', tag: 'speckit-era' });
+    return result.ok ? null : result.error;
+  };
+  assert.match(String(refuse(makeTestRepo())), /no spec-kit \.specify/);
+  assert.match(String(refuse(makeTestRepo({ '.specify/memory/constitution.md': '#\n' }))), /no specs\/ to convert/);
+  const dirty = speckitRepo();
+  writeFileSync(join(dirty, 'specs/001-albums/tasks.md'), 'changed\n');
+  assert.match(String(refuse(dirty)), /specs\/ has uncommitted changes/);
+});
