@@ -1,11 +1,11 @@
 ---
 name: convert-project
-description: Use when the user asks to convert a project from bigpowers (a specs/state.yaml), GSD (a .planning/ folder), spec-kit (a .specify/ folder) or BMAD (a _bmad/ folder) to weftwork.
+description: Use when the user asks to convert a project from bigpowers (a specs/state.yaml), GSD (a .planning/ folder), GSD 2 (a .gsd/ folder), spec-kit (a .specify/ folder) or BMAD (a _bmad/ folder) to weftwork.
 ---
 
 # Convert Project
 
-Move a bigpowers, GSD, spec-kit or BMAD project the user names onto weftwork, in one pull request.
+Move a bigpowers, GSD, GSD 2, spec-kit or BMAD project the user names onto weftwork, in one pull request.
 Never read another project without the user's say-so: the folder they name is
 that say-so. `docs/CONVERT.md` has the details.
 
@@ -15,7 +15,8 @@ that say-so. `docs/CONVERT.md` has the details.
    `echo '{"path":"<folder>"}' | node src/convert-cli.ts`. Show the user the
    tag, every move, every change with its `diff`, and the `notes`. Change
    nothing yet. A folder with more than one needs `"system"`: `"bigpowers"`, `"gsd"`,
-   `"spec-kit"` or `"bmad"`.
+   `"gsd2"`, `"spec-kit"` or `"bmad"`. A GSD 2 project whose `.gsd/` git
+   does not track gets only the backlog: no tag, nothing moved.
 3. **Ask once** whether to apply it. Apply only on a yes: the same request
    with `"apply":true`. Report `tag`, `moved`, `written` and `kept`.
 4. **Work the notes.** For each file that still names `specs/` (GSD:

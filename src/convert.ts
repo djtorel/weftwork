@@ -1,5 +1,5 @@
 // story: e12s03, e12s03b, e12s03c
-// Convert a bigpowers, GSD, spec-kit or BMAD project, the steps of PR #66 made general: tag
+// Convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project, the steps of PR #66 made general: tag
 // the last commit that tracks the plans folder (specs/ or .planning/), move
 // the files that tracked code or docs cite (and bigpowers' ADRs, which are
 // decisions) into docs/ and rewrite the citations, move the rest into a
@@ -13,6 +13,7 @@ import { parse } from 'yaml';
 import { isGitRoot } from './claude-settings-file.ts';
 import { backlogSection, sectionTitle, type BigpowersEpic } from './convert-backlog.ts';
 import { gsdSection, gsdSectionTitle } from './convert-gsd.ts';
+import { gsd2Section, gsd2SectionTitle } from './convert-gsd2.ts';
 import { speckitLocal, speckitSection, speckitSectionTitle } from './convert-speckit.ts';
 import { bmadLocal, bmadSection, bmadSectionTitle } from './convert-bmad.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
@@ -23,7 +24,7 @@ import { changedSincePlan, gitCommonDir, ignoreAppend, pathRefusal, type Change 
 import { backlog } from './setup-text.ts';
 
 export type Move = { from: string; to: string };
-export type SystemName = 'bigpowers' | 'gsd' | 'spec-kit' | 'bmad';
+export type SystemName = 'bigpowers' | 'gsd' | 'gsd2' | 'spec-kit' | 'bmad';
 export type ConvertPlan = { system: SystemName; tag: string; moves: Move[]; changes: Change[]; notes: string[] };
 export type Converted = { ok: true; tag: string; moved: Move[]; written: string[]; kept: string[] } | Failure;
 
@@ -40,7 +41,11 @@ type System = {
   planOwned: RegExp;
   alwaysMove: string;
   title: string;
-  section: (dir: string, tag: string, notes: string[]) => string;
+  /** The section; `where` is where the old plans are after the conversion. */
+  section: (dir: string, tag: string, notes: string[], where: string) => string;
+  /** True when a plans folder git does not track is converted to the backlog
+   * only: no tag, no move (GSD 2 ignores .gsd/ by default). */
+  untrackedRoot?: boolean;
   /** Why this project's layout cannot be converted, or null. */
   layoutRefusal?: (dir: string) => string | null;
 };
@@ -80,6 +85,39 @@ const systems: Record<SystemName, System> = {
         if (text !== null) plans[path] = text;
       }
       return gsdSection(readText(join(dir, '.planning', 'ROADMAP.md')), folders, tag, files, plans);
+    },
+  },
+  gsd2: {
+    name: 'GSD 2',
+    root: '.gsd',
+    marker: '.gsd',
+    local: '.gsd2-plans',
+    // .gsd/ is GSD 2's own: rendered from its database, so all of it stays.
+    planOwned: /^/,
+    alwaysMove: '',
+    title: gsd2SectionTitle,
+    untrackedRoot: true,
+    section: (dir, tag, notes, where) => {
+      for (const name of ['DECISIONS.md', 'KNOWLEDGE.md']) {
+        if (exists(join(dir, '.gsd', name))) notes.push(`.gsd/${name} holds GSD 2's ${name === 'DECISIONS.md' ? 'decisions' : 'project knowledge'}; carry what is still in force into AGENTS.md or docs/.`);
+      }
+      const base = join(dir, '.gsd', 'milestones');
+      const milestones = namesIn(base)
+        .filter((name) => /^M\d+/.test(name) && isFolder(join(base, name)))
+        .map((name) => {
+          const files = namesIn(join(base, name));
+          const roadmap = files.find((file) => /^M\d+.*-ROADMAP\.md$/.test(file));
+          const slicesDir = join(base, name, 'slices');
+          const slices = namesIn(slicesDir)
+            .filter((slice) => /^S\d+/.test(slice) && isFolder(join(slicesDir, slice)))
+            .map((slice) => {
+              const plan = namesIn(join(slicesDir, slice)).find((file) => /^S\d+.*-PLAN\.md$/.test(file));
+              const doneTasks = namesIn(join(slicesDir, slice, 'tasks')).flatMap((file) => /^(T\d+).*-SUMMARY\.md$/.exec(file)?.[1] ?? []);
+              return { dir: slice, plan: plan === undefined ? null : readText(join(slicesDir, slice, plan)), doneTasks };
+            });
+          return { dir: name, roadmap: roadmap === undefined ? null : readText(join(base, name, roadmap)), summary: files.some((file) => /^M\d+.*-SUMMARY\.md$/.test(file)), slices };
+        });
+      return gsd2Section(milestones, tag, where);
     },
   },
   'spec-kit': {
@@ -246,6 +284,12 @@ export function systemsIn(dir: string): SystemName[] {
   return (Object.keys(systems) as SystemName[]).filter((name) => exists(join(dir, systems[name].marker)));
 }
 
+/** True when `system` converts `dir` to the backlog only: its plans folder
+ * holds no file git tracks. */
+function isBacklogOnly(dir: string, system: System): boolean {
+  return system.untrackedRoot === true && git(dir, ['ls-files', '--', system.root]).out === '';
+}
+
 /** Why `dir` cannot be converted from `system` with `tag`, or null. */
 function refusal(dir: string, system: System, tag: string): string | null {
   const { root, local } = system;
@@ -255,6 +299,7 @@ function refusal(dir: string, system: System, tag: string): string | null {
   const layout = system.layoutRefusal?.(dir) ?? null;
   if (layout !== null) return layout;
   if (pathRefusal(dir, `${root}/x`) !== null || !lstatSync(join(dir, root)).isDirectory()) return `${root} is not a plain folder`;
+  if (isBacklogOnly(dir, system)) return null;
   if (!git(dir, ['check-ref-format', `refs/tags/${tag}`]).ok) return `${tag} is not a valid tag name`;
   if (git(dir, ['rev-parse', '-q', '--verify', `refs/tags/${tag}`]).ok) return `the tag ${tag} exists; pass another "tag"`;
   if (!git(dir, ['rev-parse', '-q', '--verify', 'HEAD']).ok) return 'the repository has no commit to tag';
@@ -271,6 +316,13 @@ export function planConvert(dir: string, options: { system: SystemName; tag: str
   const refused = refusal(dir, system, options.tag);
   if (refused !== null) return { ok: false, error: refused };
   const notes: string[] = [];
+  if (isBacklogOnly(dir, system)) {
+    notes.push(`${root}/ is not tracked by git: there is no tag to make and nothing to move; only the backlog is written. ${root}/ stays where it is.`);
+    const common = gitCommonDir(dir);
+    if (common === null) return { ok: false, error: 'the git common directory was not found' };
+    const change = backlogChange(join(common, 'weftwork', 'BACKLOG.md'), system.section(dir, '', notes, root), system.title, notes);
+    return { ok: true, plan: { system: options.system, tag: '', moves: [], changes: [change], notes } };
+  }
   const files = planFiles(dir, root);
   const known = new Set(files);
   const tracked = git(dir, ['ls-files', '-z']).out.split('\0').filter((path) => path !== '' && !path.startsWith(`${root}/`));
@@ -312,7 +364,7 @@ export function planConvert(dir: string, options: { system: SystemName; tag: str
   changes.push(ignore);
   const common = gitCommonDir(dir);
   if (common === null) return { ok: false, error: 'the git common directory was not found' };
-  changes.push(backlogChange(join(common, 'weftwork', 'BACKLOG.md'), system.section(dir, options.tag, notes), system.title, notes));
+  changes.push(backlogChange(join(common, 'weftwork', 'BACKLOG.md'), system.section(dir, options.tag, notes, system.local), system.title, notes));
   const moves = [...[...moved].map(([from, to]) => ({ from, to })), { from: root, to: system.local }];
   return { ok: true, plan: { system: options.system, tag: options.tag, moves, changes, notes } };
 }
@@ -333,9 +385,12 @@ function move(dir: string, { from, to }: Move): Failure | null {
  * (keeping any file changed since the plan), then move the plans folder to
  * its local name. */
 export function applyConvert(dir: string, plan: ConvertPlan): Converted {
-  const refused = refusal(dir, systems[plan.system], plan.tag);
+  const system = systems[plan.system];
+  const refused = refusal(dir, system, plan.tag);
   if (refused !== null) return { ok: false, error: refused };
-  if (!git(dir, ['tag', plan.tag, 'HEAD']).ok) return { ok: false, error: `the tag ${plan.tag} could not be made` };
+  // A backlog-only plan (tag '') applies only while the folder is untracked.
+  if (plan.tag === '' && !isBacklogOnly(dir, system)) return { ok: false, error: `${system.root}/ is tracked now; plan again` };
+  if (plan.tag !== '' && !git(dir, ['tag', plan.tag, 'HEAD']).ok) return { ok: false, error: `the tag ${plan.tag} could not be made` };
   const moved: Move[] = [];
   const written: string[] = [];
   const kept: string[] = [];

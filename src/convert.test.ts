@@ -7,7 +7,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { applyConvert, planConvert, type ConvertPlan } from './convert.ts';
 import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -320,4 +320,48 @@ test('AC-e12s03c-09 the BMAD plan refuses: no _bmad/, no _bmad-output/, and the 
   assert.match(String(refuse(makeTestRepo({ '_bmad/x.yaml': '\n' }))), /no _bmad-output\/ to convert/);
   const tree = makeTestRepo({ '_bmad/x.yaml': '\n', '_bmad-output/initiative-shop/tickets/tickets.toml': '\n' });
   assert.match(String(refuse(tree)), /ticket tree .*is not converted yet/);
+});
+
+const gsd2Roadmap = '# M001: Flight\n\n**Vision:** Fly.\n\n## Slices\n\n- [x] **S01: Physics**\n- [ ] **S02: Controls**\n';
+const gsd2Files = {
+  '.gsd/PROJECT.md': '# Flight\n',
+  '.gsd/DECISIONS.md': '# Decisions\n',
+  '.gsd/milestones/M001/M001-ROADMAP.md': gsd2Roadmap,
+  '.gsd/milestones/M001/slices/S02/S02-PLAN.md': '# S02: Controls\n\n## Tasks\n\n- [ ] **T01: Keys**\n- [ ] **T02: Mouse**\n',
+  '.gsd/milestones/M001/slices/S02/tasks/T01-SUMMARY.md': '# T01\n',
+};
+
+test('AC-e12s03b-16 a GSD 2 project with .gsd/ ignored: backlog only, no tag, nothing moved', () => {
+  const dir = makeTestRepo({ '.gitignore': '.gsd\n', 'README.md': 'Flight.\n' });
+  for (const [path, text] of Object.entries(gsd2Files)) {
+    mkdirSync(join(dir, path, '..'), { recursive: true });
+    writeFileSync(join(dir, path), text);
+  }
+  const result = planConvert(dir, { system: 'gsd2', tag: 'gsd2-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  const p = result.plan;
+  assert.equal(p.tag, '');
+  assert.deepEqual(p.moves, []);
+  assert.deepEqual(p.changes.map((change) => change.action), ['create']);
+  assert.ok(p.notes.some((note) => note.startsWith('.gsd/ is not tracked by git')), p.notes.join('\n'));
+  assert.ok(p.notes.some((note) => note.startsWith('.gsd/DECISIONS.md holds')), p.notes.join('\n'));
+  const applied = applyConvert(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(execFileSync('git', ['tag'], { cwd: dir, encoding: 'utf8' }), '');
+  assert.ok(existsSync(join(dir, '.gsd/milestones/M001/M001-ROADMAP.md')));
+  const backlogText = readFileSync(commonBacklog(dir), 'utf8');
+  assert.match(backlogText, /### M001: Flight\n\nGoal: Fly\.\nOld spec: `\.gsd\/milestones\/M001\/`\n\n- \[ \] \*\*S02: Controls\.\*\*\n {2}Open task T02: Mouse\n/);
+  assert.match(backlogText, /The old plans stay in `\.gsd\/`, which git does not track\./);
+});
+
+test('AC-e12s03b-17 a GSD 2 project that tracks .gsd/: tag gsd2-era and .gsd/ to .gsd2-plans/, as for GSD', () => {
+  const dir = makeTestRepo({ ...gsd2Files, 'README.md': 'Flight.\n' });
+  const result = planConvert(dir, { system: 'gsd2', tag: 'gsd2-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  assert.deepEqual(result.plan.moves, [{ from: '.gsd', to: '.gsd2-plans' }]);
+  const applied = applyConvert(dir, result.plan);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(execFileSync('git', ['tag'], { cwd: dir, encoding: 'utf8' }), 'gsd2-era\n');
+  assert.ok(existsSync(join(dir, '.gsd2-plans/milestones/M001/M001-ROADMAP.md')));
+  assert.match(readFileSync(commonBacklog(dir), 'utf8'), /Old spec: `\.gsd2-plans\/milestones\/M001\/slices\/S02\/`/);
 });

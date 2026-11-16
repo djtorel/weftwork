@@ -4,7 +4,7 @@
 
 The third step of backlog e12: move a project off another planning system and
 onto weftwork. It converts bigpowers (`specs/state.yaml`), GSD
-(`.planning/`, the v1.30 layout), spec-kit (`.specify/` with `specs/`) and
+(`.planning/`, the v1.30 layout), GSD 2 (`.gsd/`), spec-kit (`.specify/` with `specs/`) and
 BMAD (`_bmad/` with `_bmad-output/`, the v6 sprint layout). It makes the steps of PR #66 general. The
 `convert-project` skill drives it in Claude Code, and then runs setup
 (`docs/SETUP.md`) for the new AGENTS.md.
@@ -18,8 +18,8 @@ echo '{"path":"/path/to/project"}' | node src/convert-cli.ts
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `path` | the current folder | The project folder, the root of a git repository |
-| `system` | found from the folder | `bigpowers`, `gsd`, `spec-kit` or `bmad`; needed only when the folder has more than one |
-| `tag` | `bigpowers-era`, `gsd-era`, `speckit-era` or `bmad-era` | The tag put on the last commit that tracks the plans |
+| `system` | found from the folder | `bigpowers`, `gsd`, `gsd2`, `spec-kit` or `bmad`; needed only when the folder has more than one |
+| `tag` | `bigpowers-era`, `gsd-era`, `gsd2-era`, `speckit-era` or `bmad-era` | The tag put on the last commit that tracks the plans |
 | `apply` | `false` | Convert; without it the CLI prints the plan and writes nothing |
 
 It prints one JSON line and exits 0. It exits 1, with the reason on stderr,
@@ -32,8 +32,8 @@ Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
 
 ## What it does
 
-The steps below are for bigpowers; "GSD", "spec-kit" and "BMAD" below them
-say what differs.
+The steps below are for bigpowers; "GSD", "GSD 2", "spec-kit" and "BMAD"
+below them say what differs.
 
 1. **Tag** `HEAD` with `tag`, so the last tracked copy of the old plans stays
    in the history. Undo: `git tag -d <tag>`.
@@ -84,7 +84,24 @@ list becomes an item marked `Not on the roadmap.` The title is the first line
 of the plan's `<objective>` (GSD's `templates/phase-prompt.md`), cut to 120
 characters; a plan with no objective, or an empty one, gets no title. A phase
 ticked or `Complete` on the roadmap stays done. Nothing else in a plan is
-read; GSD 2's `.gsd/` layout is not converted.
+read.
+
+**GSD 2.** The plans folder is `.gsd/`, as GSD 2 (v3.0.0) renders it from its
+database. GSD 2 puts `.gsd` in `.gitignore` by default, and then there is
+nothing tracked to tag or move: the plan has no tag (`"tag": ""`), no moves,
+and only the backlog change, with a note, and `.gsd/` stays where it is. A
+project that tracks `.gsd/` is converted like GSD: tag `gsd2-era`, `.gsd/`
+to the gitignored `.gsd2-plans/`; all of `.gsd/` is GSD 2's own, so nothing
+moves to `docs/`. `DECISIONS.md` or `KNOWLEDGE.md` in `.gsd/` is a note.
+The backlog section is `## Converted from GSD 2`: each milestone folder
+(`milestones/M001/`) with no `M001-SUMMARY.md` and an unticked slice keeps
+its id, with the title from `# M001: <title>` in `M001-ROADMAP.md`, its
+`**Vision:**` as `Goal:` and its `## Success Criteria` as `Done when:`; each
+unticked slice (`- [ ] **S02: Title**`) has its `After this:` line, each open
+task of `slices/S02/S02-PLAN.md` (an unticked `- [ ] **T01: Title**` with no
+`tasks/T01-SUMMARY.md`), and a link to its folder. Template guidance in HTML
+comments is skipped. The format is gsd-build/gsd-2 v3.0.0's
+`templates/roadmap.md`, `templates/plan.md` and `paths.ts`.
 
 **spec-kit.** The plans folder is `specs/`, one folder per feature
 (`specs/001-name/`), and its local copy `.speckit-specs/`; the marker is
