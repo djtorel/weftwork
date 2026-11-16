@@ -17,6 +17,7 @@ import { checkCommands } from './detect-check.ts';
 import { detectProject } from './detect.ts';
 import { isInteger } from './json.ts';
 import { applySetup, planSetup } from './setup.ts';
+import { projectDescription } from './setup-about.ts';
 import { parseAnswers, setupQuestions } from './setup-text.ts';
 
 const defaultTimeoutSeconds = 120;
@@ -57,7 +58,7 @@ async function main(): Promise<void> {
       ? detected.report.commands.map((command) => ({ ...command, check: { status: 'skipped' as const, exitCode: null, why: '"run" is false' } }))
       : await checkCommands(detected.report.commands, dir, timeout);
   const report = { ...detected.report, commands };
-  if (parsed === null) return printAnswer({ ok: true, report, questions: setupQuestions(basename(dir), report) }, 0);
+  if (parsed === null) return printAnswer({ ok: true, report, questions: setupQuestions(basename(dir), report, projectDescription(dir)) }, 0);
   const planned = planSetup(dir, report, parsed.answers, { engineDir, stopHook: input.stopHook === true });
   if (!planned.ok) return fail(planned.error, 1);
   const { changes, notes } = planned.plan;

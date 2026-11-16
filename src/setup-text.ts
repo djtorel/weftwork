@@ -20,11 +20,13 @@ const maxItems = 20;
 const maxItemLength = 500;
 
 /** The interview: only what detection cannot answer (H2), each question with a
- * recommended answer the owner can take as it is. */
-export function setupQuestions(name: string, report: CheckedReport): Question[] {
+ * recommended answer the owner can take as it is. `description` is what the
+ * project says it is (setup-about.ts). */
+export function setupQuestions(name: string, report: CheckedReport, description: string | null = null): Question[] {
   const kind = report.languages.length > 0 ? `a ${report.languages.join(' and ')} project` : 'a project';
+  const about = description === null ? `${name} is ${kind}.` : `${name} is ${kind}: ${description}`;
   return [
-    { id: 'about', question: 'What is this project, and who is it for? One or two sentences.', recommended: `${name} is ${kind}.` },
+    { id: 'about', question: 'What is this project, and who is it for? One or two sentences.', recommended: about },
     { id: 'words', question: 'Which words matter here, each with what it means? One per line, as "word: meaning".', recommended: [] },
     {
       id: 'never',

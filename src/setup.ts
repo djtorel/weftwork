@@ -19,9 +19,10 @@ export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflic
 
 /** One planned change. `path` is from the project folder, or absolute for the
  * backlog in the git directory. `text` is what is written; `diff` is what the
- * owner reviews; `before` is the file's text when planned (null: no file), so
- * a file changed since then is kept, not written. */
-export type Change = { path: string; action: ChangeAction; text?: string; diff?: string; mode?: number; before?: string | null };
+ * owner reviews; `before` is the file's text when planned (null: no file), or
+ * `link` the target when it was a symlink, so a file changed since then is
+ * kept, not written. */
+export type Change = { path: string; action: ChangeAction; text?: string; diff?: string; mode?: number; before?: string | null; link?: string };
 export type Plan = { changes: Change[]; notes: string[] };
 export type SetupOptions = { engineDir: string; stopHook: boolean };
 export type Applied = { ok: true; written: string[]; kept: string[] } | Failure;
@@ -65,12 +66,16 @@ function linkChange(dir: string): Change {
   const path = 'CLAUDE.md';
   try {
     const stat = lstatSync(join(dir, path));
-    if (stat.isSymbolicLink() && readlinkSync(join(dir, path)) === 'AGENTS.md') return { path, action: 'unchanged' };
+    if (stat.isSymbolicLink()) {
+      const link = readlinkSync(join(dir, path));
+      if (link === 'AGENTS.md') return { path, action: 'unchanged' };
+      return { path, action: 'conflict', diff: `(a symlink to ${link}; becomes a symlink to AGENTS.md)`, link };
+    }
     const read = readRegularFile(join(dir, path), { follow: false, maxBytes: maxFileBytes });
-    const before = read.ok && read.file !== null ? read.file.text : '';
-    return { path, action: 'conflict', diff: `${lineDiff(before, '')}\n(becomes a symlink to AGENTS.md)` };
+    if (!read.ok || read.file === null) return { path, action: 'conflict', diff: `(${read.ok ? 'not a regular file' : read.error})` };
+    return { path, action: 'conflict', diff: `${lineDiff(read.file.text, '')}\n(becomes a symlink to AGENTS.md)`, before: read.file.text };
   } catch (error) {
-    if (isMissing(error)) return { path, action: 'link', diff: '(a symlink to AGENTS.md)' };
+    if (isMissing(error)) return { path, action: 'link', diff: '(a symlink to AGENTS.md)', before: null };
     return { path, action: 'conflict', diff: `(${messageOf(error)})` };
   }
 }
@@ -168,6 +173,13 @@ function hookChange(dir: string, engineDir: string, check: string): Change | Fai
 
 /** True when the file at `change.path` no longer holds what the plan saw. */
 export function changedSincePlan(dir: string, change: Change): boolean {
+  if (change.link !== undefined) {
+    try {
+      return readlinkSync(absolute(dir, change.path)) !== change.link;
+    } catch {
+      return true;
+    }
+  }
   if (change.before === undefined) return false;
   const read = readRegularFile(absolute(dir, change.path), { follow: false, maxBytes: maxFileBytes });
   return !read.ok || (read.file?.text ?? null) !== change.before;
