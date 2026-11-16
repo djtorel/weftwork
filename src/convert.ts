@@ -1,5 +1,5 @@
 // story: e12s03, e12s03b, e12s03c
-// Convert a bigpowers, GSD or spec-kit project, the steps of PR #66 made general: tag
+// Convert a bigpowers, GSD, spec-kit or BMAD project, the steps of PR #66 made general: tag
 // the last commit that tracks the plans folder (specs/ or .planning/), move
 // the files that tracked code or docs cite (and bigpowers' ADRs, which are
 // decisions) into docs/ and rewrite the citations, move the rest into a
@@ -14,6 +14,7 @@ import { isGitRoot } from './claude-settings-file.ts';
 import { backlogSection, sectionTitle, type BigpowersEpic } from './convert-backlog.ts';
 import { gsdSection, gsdSectionTitle } from './convert-gsd.ts';
 import { speckitLocal, speckitSection, speckitSectionTitle } from './convert-speckit.ts';
+import { bmadLocal, bmadSection, bmadSectionTitle } from './convert-bmad.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
@@ -22,7 +23,7 @@ import { changedSincePlan, gitCommonDir, ignoreAppend, pathRefusal, type Change 
 import { backlog } from './setup-text.ts';
 
 export type Move = { from: string; to: string };
-export type SystemName = 'bigpowers' | 'gsd' | 'spec-kit';
+export type SystemName = 'bigpowers' | 'gsd' | 'spec-kit' | 'bmad';
 export type ConvertPlan = { system: SystemName; tag: string; moves: Move[]; changes: Change[]; notes: string[] };
 export type Converted = { ok: true; tag: string; moved: Move[]; written: string[]; kept: string[] } | Failure;
 
@@ -40,6 +41,8 @@ type System = {
   alwaysMove: string;
   title: string;
   section: (dir: string, tag: string, notes: string[]) => string;
+  /** Why this project's layout cannot be converted, or null. */
+  layoutRefusal?: (dir: string) => string | null;
 };
 
 const systems: Record<SystemName, System> = {
@@ -99,6 +102,33 @@ const systems: Record<SystemName, System> = {
         .map((name) => ({ dir: name, spec: readText(join(dir, 'specs', name, 'spec.md')), tasks: readText(join(dir, 'specs', name, 'tasks.md')) }));
       return speckitSection(features, tag);
     },
+  },
+  bmad: {
+    name: 'BMAD',
+    root: '_bmad-output',
+    marker: '_bmad',
+    local: bmadLocal,
+    // The sprint, the stories and the epics; a cited PRD, architecture or UX
+    // document moves to docs/.
+    planOwned: /^implementation-artifacts\/|^planning-artifacts\/epics[^/]*\.md$|^planning-artifacts\/epics\//,
+    alwaysMove: '',
+    title: bmadSectionTitle,
+    section: (dir, tag, notes) => {
+      notes.push('_bmad/ stays tracked: the installed BMAD modules and their config. Drop it, and the agent commands that run BMAD, once nothing else calls them.');
+      const planning = join(dir, '_bmad-output', 'planning-artifacts');
+      const implementation = join(dir, '_bmad-output', 'implementation-artifacts');
+      const epicFiles = [
+        ...namesIn(planning).filter((name) => /^epics?\b.*\.md$/i.test(name)).map((name) => join(planning, name)),
+        ...namesIn(join(planning, 'epics')).filter((name) => name.endsWith('.md')).map((name) => join(planning, 'epics', name)),
+      ].sort();
+      const epics = epicFiles.map(readText).filter((text): text is string => text !== null);
+      const status = readYaml(join(implementation, 'sprint-status.yaml'), notes);
+      return bmadSection({ status, epics, storyFiles: namesIn(implementation) }, tag, notes);
+    },
+    layoutRefusal: (dir) =>
+      namesIn(join(dir, '_bmad-output')).some((name) => /^initiative-/.test(name)) || exists(join(dir, '_bmad-output', 'backlog'))
+        ? "_bmad-output/ uses BMAD's ticket tree (tickets.toml), which is not converted yet; only the v6 sprint layout is"
+        : null,
   },
 };
 
@@ -222,6 +252,8 @@ function refusal(dir: string, system: System, tag: string): string | null {
   if (!isGitRoot(dir)) return `${dir} is not a git repository root`;
   if (!exists(join(dir, system.marker))) return `${dir} has no ${system.name} ${system.marker === root ? `${root}/` : system.marker}`;
   if (!exists(join(dir, root))) return `${dir} has no ${root}/ to convert`;
+  const layout = system.layoutRefusal?.(dir) ?? null;
+  if (layout !== null) return layout;
   if (pathRefusal(dir, `${root}/x`) !== null || !lstatSync(join(dir, root)).isDirectory()) return `${root} is not a plain folder`;
   if (!git(dir, ['check-ref-format', `refs/tags/${tag}`]).ok) return `${tag} is not a valid tag name`;
   if (git(dir, ['rev-parse', '-q', '--verify', `refs/tags/${tag}`]).ok) return `the tag ${tag} exists; pass another "tag"`;

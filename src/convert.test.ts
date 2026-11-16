@@ -278,3 +278,46 @@ test('AC-e12s03c-04 the spec-kit plan refuses: no .specify/, no specs/, a dirty 
   writeFileSync(join(dirty, 'specs/001-albums/tasks.md'), 'changed\n');
   assert.match(String(refuse(dirty)), /specs\/ has uncommitted changes/);
 });
+
+function bmadRepo(): string {
+  return makeTestRepo({
+    '_bmad/bmm/config.yaml': 'project_name: Plants\n',
+    '_bmad-output/planning-artifacts/prd.md': '# PRD\n',
+    '_bmad-output/planning-artifacts/architecture.md': '# Architecture\n',
+    '_bmad-output/planning-artifacts/epics.md': '## Epic 1: Accounts\n\nSign up.\n\n### Story 1.1: Log in\n\n### Story 1.2: Profile\n',
+    '_bmad-output/implementation-artifacts/sprint-status.yaml': 'development_status:\n  epic-1: in-progress\n  1-1-log-in: done\n  1-2-profile: in-progress\n',
+    '_bmad-output/implementation-artifacts/1-2-profile.md': '# Story 1.2: Profile\n\nStatus: in-progress\n',
+    'README.md': 'Design: _bmad-output/planning-artifacts/architecture.md. Plan: _bmad-output/planning-artifacts/epics.md.\n',
+  });
+}
+
+test('AC-e12s03c-08 a BMAD v6 project: tag, cited docs into docs/, _bmad-output/ to .bmad-output/, open stories to the backlog, a note for _bmad/', () => {
+  const dir = bmadRepo();
+  const result = planConvert(dir, { system: 'bmad', tag: 'bmad-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  const p = result.plan;
+  assert.deepEqual(p.moves, [
+    { from: '_bmad-output/planning-artifacts/architecture.md', to: 'docs/planning-artifacts/architecture.md' },
+    { from: '_bmad-output', to: '.bmad-output' },
+  ]);
+  assert.ok(p.notes.some((note) => note.startsWith('_bmad/ stays tracked')), p.notes.join('\n'));
+  const applied = applyConvert(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(readFileSync(join(dir, 'docs/planning-artifacts/architecture.md'), 'utf8'), '# Architecture\n');
+  assert.equal(existsSync(join(dir, '_bmad-output')), false);
+  assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.bmad-output\/$/m);
+  const backlogText = readFileSync(commonBacklog(dir), 'utf8');
+  assert.match(backlogText, /### Epic 1: Accounts\n\nGoal: Sign up\.\nOld spec: `\.bmad-output\/planning-artifacts\/`\n\n- \[ \] \*\*Story 1\.2 Profile\.\*\* Status: in-progress\n {2}Old spec: `\.bmad-output\/implementation-artifacts\/1-2-profile\.md`/);
+  assert.doesNotMatch(backlogText, /Story 1\.1/);
+});
+
+test('AC-e12s03c-09 the BMAD plan refuses: no _bmad/, no _bmad-output/, and the ticket-tree layout', () => {
+  const refuse = (dir: string): string | null => {
+    const result = planConvert(dir, { system: 'bmad', tag: 'bmad-era' });
+    return result.ok ? null : result.error;
+  };
+  assert.match(String(refuse(makeTestRepo())), /no BMAD _bmad/);
+  assert.match(String(refuse(makeTestRepo({ '_bmad/x.yaml': '\n' }))), /no _bmad-output\/ to convert/);
+  const tree = makeTestRepo({ '_bmad/x.yaml': '\n', '_bmad-output/initiative-shop/tickets/tickets.toml': '\n' });
+  assert.match(String(refuse(tree)), /ticket tree .*is not converted yet/);
+});
