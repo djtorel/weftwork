@@ -66,10 +66,10 @@ result yourself, or as the first task.
 To run it without Claude Code, and for every option, see
 [`SETUP.md`](SETUP.md). [`DETECT.md`](DETECT.md) says what it reads.
 
-## 2b. Convert a bigpowers or GSD project
+## 2b. Convert a bigpowers, GSD or spec-kit project
 
-A bigpowers project has `specs/state.yaml`; a GSD project has `.planning/`.
-spec-kit and BMAD cannot be converted yet. Open Claude Code in the weftwork checkout and say:
+A bigpowers project has `specs/state.yaml`; a GSD project has `.planning/`;
+a spec-kit project has `.specify/`. BMAD cannot be converted yet. Open Claude Code in the weftwork checkout and say:
 
 > Convert /path/to/project to weftwork
 
@@ -78,13 +78,14 @@ new branch, then runs `src/convert-cli.ts`. It shows the plan first and
 changes nothing until you say yes. Then it:
 
 1. Tags the last commit that tracks `specs/` as `bigpowers-era` (GSD:
-   `.planning/` as `gsd-era`).
+   `.planning/` as `gsd-era`; spec-kit: `specs/` as `speckit-era`).
 2. Moves the files that code or docs cite (and every bigpowers ADR) into
    `docs/`, and rewrites the citations.
-3. Moves the rest to a gitignored `.specs/` (GSD: `.gsd-planning/`). Nothing
+3. Moves the rest to a gitignored `.specs/` (GSD: `.gsd-planning/`;
+   spec-kit: `.speckit-specs/`). Nothing
    is deleted.
 4. Adds the open work to the local backlog with its ids: bigpowers epics and
-   stories, or GSD roadmap phases.
+   stories, GSD roadmap phases, or spec-kit features with their open tasks.
 5. Runs setup (step 2a) for a new AGENTS.md, and opens one pull request with
    Preflight green.
 

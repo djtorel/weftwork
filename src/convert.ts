@@ -1,5 +1,5 @@
-// story: e12s03, e12s03b
-// Convert a bigpowers or GSD project, the steps of PR #66 made general: tag
+// story: e12s03, e12s03b, e12s03c
+// Convert a bigpowers, GSD or spec-kit project, the steps of PR #66 made general: tag
 // the last commit that tracks the plans folder (specs/ or .planning/), move
 // the files that tracked code or docs cite (and bigpowers' ADRs, which are
 // decisions) into docs/ and rewrite the citations, move the rest into a
@@ -13,6 +13,7 @@ import { parse } from 'yaml';
 import { isGitRoot } from './claude-settings-file.ts';
 import { backlogSection, sectionTitle, type BigpowersEpic } from './convert-backlog.ts';
 import { gsdSection, gsdSectionTitle } from './convert-gsd.ts';
+import { speckitLocal, speckitSection, speckitSectionTitle } from './convert-speckit.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
@@ -21,7 +22,7 @@ import { changedSincePlan, gitCommonDir, ignoreAppend, pathRefusal, type Change 
 import { backlog } from './setup-text.ts';
 
 export type Move = { from: string; to: string };
-export type SystemName = 'bigpowers' | 'gsd';
+export type SystemName = 'bigpowers' | 'gsd' | 'spec-kit';
 export type ConvertPlan = { system: SystemName; tag: string; moves: Move[]; changes: Change[]; notes: string[] };
 export type Converted = { ok: true; tag: string; moved: Move[]; written: string[]; kept: string[] } | Failure;
 
@@ -78,7 +79,36 @@ const systems: Record<SystemName, System> = {
       return gsdSection(readText(join(dir, '.planning', 'ROADMAP.md')), folders, tag, files, plans);
     },
   },
+  'spec-kit': {
+    name: 'spec-kit',
+    root: 'specs',
+    marker: '.specify',
+    local: speckitLocal,
+    // Each feature's own spec, plan, tasks and checklists; a cited contract,
+    // data model or research file moves to docs/.
+    planOwned: /^[^/]+\/(spec|plan|tasks|quickstart)\.md$|^[^/]+\/checklists\//,
+    alwaysMove: '',
+    title: speckitSectionTitle,
+    section: (dir, tag, notes) => {
+      if (exists(join(dir, '.specify', 'memory', 'constitution.md'))) {
+        notes.push('.specify/memory/constitution.md holds the project principles; carry those still in force into AGENTS.md or CONVENTIONS.md.');
+      }
+      notes.push(".specify/ stays tracked: spec-kit's templates, scripts and memory. Drop it, and the agent commands that run spec-kit, once nothing else calls them.");
+      const features = namesIn(join(dir, 'specs'))
+        .filter((name) => isFolder(join(dir, 'specs', name)))
+        .map((name) => ({ dir: name, spec: readText(join(dir, 'specs', name, 'spec.md')), tasks: readText(join(dir, 'specs', name, 'tasks.md')) }));
+      return speckitSection(features, tag);
+    },
+  },
 };
+
+function isFolder(path: string): boolean {
+  try {
+    return lstatSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
 
 /** The names in folder `path`; none when it is missing or not a folder
  * (no phases folder: every phase links to ROADMAP.md). */
@@ -191,6 +221,7 @@ function refusal(dir: string, system: System, tag: string): string | null {
   const { root, local } = system;
   if (!isGitRoot(dir)) return `${dir} is not a git repository root`;
   if (!exists(join(dir, system.marker))) return `${dir} has no ${system.name} ${system.marker === root ? `${root}/` : system.marker}`;
+  if (!exists(join(dir, root))) return `${dir} has no ${root}/ to convert`;
   if (pathRefusal(dir, `${root}/x`) !== null || !lstatSync(join(dir, root)).isDirectory()) return `${root} is not a plain folder`;
   if (!git(dir, ['check-ref-format', `refs/tags/${tag}`]).ok) return `${tag} is not a valid tag name`;
   if (git(dir, ['rev-parse', '-q', '--verify', `refs/tags/${tag}`]).ok) return `the tag ${tag} exists; pass another "tag"`;

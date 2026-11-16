@@ -140,7 +140,7 @@ once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 `setup-diff.ts`, `setup-about.ts`, `setup-undo.ts` and `setup-cli.ts` set up a new or plain project from that
 report and the owner's answers: a dry-run plan, then a write that never
 overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`). `convert.ts`,
-`convert-backlog.ts`, `convert-gsd.ts` and `convert-cli.ts` convert a bigpowers or GSD project: tag,
+`convert-backlog.ts`, `convert-gsd.ts`, `convert-speckit.ts` and `convert-cli.ts` convert a bigpowers, GSD or spec-kit project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
 `markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a

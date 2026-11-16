@@ -1,10 +1,11 @@
 # Convert a project
 
-<!-- story: e12s03, e12s03b -->
+<!-- story: e12s03, e12s03b, e12s03c -->
 
 The third step of backlog e12: move a project off another planning system and
-onto weftwork. It converts bigpowers (`specs/state.yaml`) and GSD
-(`.planning/`, the v1.30 layout); spec-kit and BMAD come later. It makes the steps of PR #66 general. The
+onto weftwork. It converts bigpowers (`specs/state.yaml`), GSD
+(`.planning/`, the v1.30 layout) and spec-kit (`.specify/` with `specs/`);
+BMAD comes later. It makes the steps of PR #66 general. The
 `convert-project` skill drives it in Claude Code, and then runs setup
 (`docs/SETUP.md`) for the new AGENTS.md.
 
@@ -17,8 +18,8 @@ echo '{"path":"/path/to/project"}' | node src/convert-cli.ts
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `path` | the current folder | The project folder, the root of a git repository |
-| `system` | found from the folder | `bigpowers` or `gsd`; needed only when the folder has both |
-| `tag` | `bigpowers-era`, or `gsd-era` | The tag put on the last commit that tracks the plans |
+| `system` | found from the folder | `bigpowers`, `gsd` or `spec-kit`; needed only when the folder has more than one |
+| `tag` | `bigpowers-era`, `gsd-era` or `speckit-era` | The tag put on the last commit that tracks the plans |
 | `apply` | `false` | Convert; without it the CLI prints the plan and writes nothing |
 
 It prints one JSON line and exits 0. It exits 1, with the reason on stderr,
@@ -31,7 +32,8 @@ Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
 
 ## What it does
 
-The steps below are for bigpowers; "GSD" below them says what differs.
+The steps below are for bigpowers; "GSD" and "spec-kit" below them say what
+differs.
 
 1. **Tag** `HEAD` with `tag`, so the last tracked copy of the old plans stays
    in the history. Undo: `git tag -d <tag>`.
@@ -84,6 +86,24 @@ characters; a plan with no objective, or an empty one, gets no title. A phase
 ticked or `Complete` on the roadmap stays done. Nothing else in a plan is
 read; GSD 2's `.gsd/` layout is not converted.
 
+**spec-kit.** The plans folder is `specs/`, one folder per feature
+(`specs/001-name/`), and its local copy `.speckit-specs/`; the marker is
+`.specify/`. Each feature's own `spec.md`, `plan.md`, `tasks.md`,
+`quickstart.md` and `checklists/` stay behind, even when cited; a cited
+contract, data model or research file moves to `docs/`. `.specify/`
+(spec-kit's templates, scripts and `memory/constitution.md`) stays tracked,
+with a note: carry the constitution's principles into AGENTS.md or
+CONVENTIONS.md, then drop `.specify/` and the spec-kit agent commands once
+nothing else calls them. The backlog section is `## Converted from
+spec-kit`: one item per feature folder with an open task, or with no tasks
+yet, keeping its folder name, with the title from `# Feature
+Specification: <name>` in `spec.md`, the `SC-` lines of its `## Success
+Criteria` as `Done when:`, each open top-level task of `tasks.md` (`- [ ]
+T012 [P] [US1] ...`, up to 20 and a count of the rest), and a link to its
+folder in `.speckit-specs/`. A feature whose tasks are all ticked is done.
+A project with `.specify/` and no `specs/` is refused: there is nothing to
+convert.
+
 Text taken from the old plans is escaped for Markdown before it goes into
 the backlog (`src/markdown-text.ts`): `\`, a backtick, `*`, `<`, `[`, `~`,
 a `&` that starts an entity (`&amp;`, `&#169;`) and a `_` not inside a word
@@ -98,9 +118,9 @@ result, with the new AGENTS.md, in one pull request.
 ## What it refuses
 
 The plan is refused when the folder is not a git repository root, has no
-`specs/state.yaml` (GSD: `.planning/`), has uncommitted changes in the plans
+`specs/state.yaml` (GSD: `.planning/`; spec-kit: `.specify/` and `specs/`), has uncommitted changes in the plans
 folder (the tag would not hold them), already has the tag or the local copy,
-has both systems and no `system`, or when a cited file would
+has more than one system and no `system`, has no plans folder to move, or when a cited file would
 move onto a file that exists. Apply checks all of these again. A file that
 changed between the plan and the write is kept and listed in `kept`.
 

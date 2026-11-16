@@ -62,7 +62,18 @@ test('AC-e12s03b-06 the CLI finds a GSD project by itself; both systems need "sy
   const both = makeTestRepo({ '.planning/ROADMAP.md': '\n', 'specs/state.yaml': '---\n' });
   const refused = convert(both, {});
   assert.equal(refused.status, 1);
-  assert.match(refused.stderr, /both bigpowers and GSD/);
+  assert.match(refused.stderr, /plans of bigpowers and gsd; pass "system"/);
   assert.equal(JSON.parse(convert(both, { system: 'bigpowers' }).stdout).plan.system, 'bigpowers');
-  assert.equal(convert(both, { system: 'spec-kit' }).status, 2);
+  assert.equal(convert(both, { system: 'nope' }).status, 2);
+});
+
+// story: e12s03c
+test('AC-e12s03c-05 the CLI finds a spec-kit project by itself, with the tag speckit-era', () => {
+  const dir = makeTestRepo({ '.specify/memory/constitution.md': '# Rules\n', 'specs/001-a/tasks.md': '- [ ] T001 Do it in a.py\n' });
+  const out = convert(dir, {});
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.plan.system, 'spec-kit');
+  assert.equal(answer.plan.tag, 'speckit-era');
+  assert.deepEqual(answer.plan.moves.at(-1), { from: 'specs', to: '.speckit-specs' });
 });
