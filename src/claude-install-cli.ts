@@ -8,12 +8,12 @@
 //
 // SECURITY: the command is shell code that the hook will run, so it comes from
 // the owner at this prompt. The settings file is untrusted input (e10).
-import { join } from 'node:path';
 import { installInProject } from './claude-settings-file.ts';
+import { sibling } from './sibling.ts';
 
 const usage = "usage: node claude-install-cli.ts -- '<declared command>'";
-const adapter = join(import.meta.dirname, 'claude-hook-cli.ts');
-const guard = join(import.meta.dirname, 'guard-cli.ts');
+const adapter = sibling('claude-hook-cli');
+const guard = sibling('guard-cli');
 
 /** What the owner does next, printed after a successful install. */
 function nextSteps(path: string, guardChanged: boolean): string {
