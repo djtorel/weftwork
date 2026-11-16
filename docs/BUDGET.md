@@ -31,7 +31,7 @@ budget:
 ```
 
 The engine ignores other top-level keys here. The `review` key sets the
-review council (`docs/REVIEW.md`), and `history` turns the local history on
+reviewers (`docs/REVIEW.md`), and `history` turns the local history on
 (`docs/HISTORY.md`).
 
 The engine reads both files on every run: from the engine CLI
@@ -230,6 +230,8 @@ read and cache write, summed from the transcript file that the host names
 in `transcript_path` of the Stop input. Each assistant message counts once,
 since the host writes one message streamed in parts as several lines with
 the same id. There are no dollars: a price table per model goes stale.
+The PR proof shows the same counts when it is given the transcript path
+(`docs/PR-PROOF.md`, Tokens).
 
 The hook shows one line:
 
@@ -240,7 +242,7 @@ budget: 2 runs in this loop (no ceiling), 2 failed in a row (ceiling 5), tokens 
 | Answer | Where the line goes |
 | --- | --- |
 | `failed` (the stop is blocked) | The second line of the reason on stderr, which the agent reads. A handover detail stays the last line. |
-| `done` | The `systemMessage` on stdout: `weftwork: done. budget: ...` |
+| `done` | The `systemMessage` on stdout: `weftwork: done. budget: ...`, or `weftwork: done, reused the pass of <time> on this tree. budget: ...` for a reused pass |
 | Any other state | The second line of the `systemMessage` warning. |
 
 The `systemMessage` is shown to the user, not to the agent (Claude Code hooks
@@ -252,8 +254,43 @@ The tokens are `not counted`, with the reason, when the Stop input has no
 file is not a regular file (a symlink is not followed), is larger than
 64 MiB (67108864 bytes) or is not valid UTF-8. The answer is the same
 either way. Lines that are not JSON, such as a last line the host has not
-finished writing, are skipped. The host writes the transcript while the
+finished writing, are skipped. That last line can end inside a multi-byte
+character; the file is then still read, and only that line is skipped. The host writes the transcript while the
 session runs, so the last turn can be missing from the count.
+
+### A reused pass
+
+The Stop hook runs at every stop. When the tree has not changed since its
+own last pass, it does not run the command again. It allows the stop and
+says `reused the pass of <time> on this tree`. All of these must be true:
+
+- The last run of the exact command string in the ledger is `done`.
+- No stop state other than `done` follows that run (the PR proof's rule,
+  `docs/PR-PROOF.md`).
+- The run saw the tree as it is now: the fingerprint of the tracked and
+  the untracked, not ignored, files is the same.
+- The Stop hook itself ran that pass, in the same project directory and
+  the same environment. The run line keeps `hookKey`, a SHA-256 of the
+  directory and every environment variable. A pass from the engine CLI has
+  no key and is never reused: the agent sets its environment and its
+  `cwd`. A hook call the agent starts itself, such as with a fake check
+  first on `PATH`, has another environment, so its pass is not reused
+  either.
+
+Any doubt runs the command as before: no ledger, a ledger or a tree that
+cannot be read, a changed file, another command, a later failure, or a
+change to any environment variable of the hook. The
+stop rules still answer first: a ceiling that is reached answers
+`exhausted`, not the reused pass.
+
+A reused pass is not a run. It writes no line, so `runs` and `failures`
+stay as the ledger has them, and the budget line counts from the ledger as
+read before the check. The engine CLI never reuses a pass: it runs the
+command every time.
+
+The fingerprint does not cover ignored files (such as `node_modules` or
+build output), the git `HEAD`, or anything outside the tree. A change there
+alone does not run the command again.
 
 ## Limits of this setting
 
@@ -262,7 +299,11 @@ session runs, so the last turn can be missing from the count.
   can raise `maxRuns`.
 - The agent can edit or delete the ledger. A forged `done` line, or a
   deleted ledger, opens a new loop, as erasing failures resets the
-  failure ceiling (T3, e10).
+  failure ceiling (T3, e10). A forged pass line with the current
+  fingerprint and `hookKey`, or a hook call with the host's exact
+  environment rebuilt on purpose, also lets the Stop hook allow a stop
+  without a run (A reused pass), so the stop is as strong as the guard that protects
+  the ledger (`docs/GUARD.md`), as the PR proof is.
 - Any `done` opens a new loop, whatever its command. On the engine CLI the
   agent writes the request, so it can send a command that passes, such as
   `true`, between failures and start the count again. This is the same

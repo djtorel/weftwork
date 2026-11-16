@@ -1,12 +1,13 @@
 # Convert a project
 
-<!-- story: e12s03, e12s03b, e12s03c -->
+<!-- story: e12s03, e12s03b, e12s03c, e12s03d -->
 
 The third step of backlog e12: move a project off another planning system and
 onto weftwork. It converts bigpowers (`specs/state.yaml`), GSD
 (`.planning/`, the v1.30 layout), GSD 2 (`.gsd/`), spec-kit (`.specify/` with `specs/`) and
-BMAD (`_bmad/` with `_bmad-output/`, the v6 sprint layout). It makes the steps of PR #66 general. The
-`convert-project` skill drives it in Claude Code, and then runs setup
+BMAD (`_bmad/` with `_bmad-output/`, the v6 sprint layout; or v4's
+`.bmad-core/` with `docs/stories/`). It makes the steps of PR #66 general. The
+`weft-convert` skill drives it in Claude Code, and then runs setup
 (`docs/SETUP.md`) for the new AGENTS.md.
 
 ## Run it
@@ -18,8 +19,8 @@ echo '{"path":"/path/to/project"}' | node src/convert-cli.ts
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `path` | the current folder | The project folder, the root of a git repository |
-| `system` | found from the folder | `bigpowers`, `gsd`, `gsd2`, `spec-kit` or `bmad`; needed only when the folder has more than one |
-| `tag` | `bigpowers-era`, `gsd-era`, `gsd2-era`, `speckit-era` or `bmad-era` | The tag put on the last commit that tracks the plans |
+| `system` | found from the folder | `bigpowers`, `gsd`, `gsd2`, `spec-kit`, `bmad` or `bmad-v4`; needed only when the folder has more than one |
+| `tag` | `bigpowers-era`, `gsd-era`, `gsd2-era`, `speckit-era` or `bmad-era` (both BMAD) | The tag put on the last commit that tracks the plans |
 | `apply` | `false` | Convert; without it the CLI prints the plan and writes nothing |
 
 It prints one JSON line and exits 0. It exits 1, with the reason on stderr,
@@ -32,8 +33,8 @@ Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
 
 ## What it does
 
-The steps below are for bigpowers; "GSD", "GSD 2", "spec-kit" and "BMAD"
-below them say what differs.
+The steps below are for bigpowers; "GSD", "GSD 2", "spec-kit", "BMAD" and
+"BMAD v4" below them say what differs.
 
 1. **Tag** `HEAD` with `tag`, so the last tracked copy of the old plans stays
    in the history. Undo: `git tag -d <tag>`.
@@ -135,9 +136,39 @@ and each open story (`N-M-slug`, any status but `done`) its title from
 `### Story N.M:`, its status, and a link to its story file when there is
 one. A done epic's open stories are left out with a note; an open epic with
 every story done is one item. Each retrospective action item not `done` is
-an item. With no sprint status, every story in epics.md is open. BMAD v4
-(`.bmad-core/`) and the newer ticket tree (`initiative-*/tickets/tickets.toml`)
-are not converted; the ticket tree is refused with a reason.
+an item. With no sprint status, every story in epics.md is open. The newer
+ticket tree (`_bmad-output/initiative-*/tickets/tickets.toml`, or
+`_bmad-output/backlog/`) is refused with a reason: its file format has no
+public release or template to build it from yet.
+
+**BMAD v4.** The marker is `.bmad-core/`. The format is BMAD-METHOD
+v4.44.3's, the last v4 release (tag `v4.44.3`, commit `4c4f6dc`, 2025-10-30;
+the `V4` branch has no later commit), read with `gh api` from
+`bmad-code-org/BMAD-METHOD`: `bmad-core/core-config.yaml`,
+`bmad-core/templates/story-tmpl.yaml`, `bmad-core/templates/prd-tmpl.yaml`,
+`bmad-core/tasks/create-next-story.md`,
+`bmad-core/tasks/create-brownfield-story.md` and
+`bmad-core/tasks/shard-doc.md`. The plans folder is the story folder,
+`devStoryLocation` in `.bmad-core/core-config.yaml` (`docs/stories` by
+default), and its local copy `.bmad-stories/`. Every story file is BMAD's
+own, so nothing in it moves to `docs/`. The PRD, the architecture and the QA
+files are in `docs/` already and stay there, tracked; so does `.bmad-core/`,
+with a note. A `devStoryLocation`, `prdFile` or `prdShardedLocation` that is
+not a plain path inside the project is refused. The backlog section is `##
+Converted from BMAD v4`. The epics come from the sharded PRD
+(`prdShardedLocation`, files that match `epicFilePattern`, `docs/prd/epic-1-*.md`)
+when `prdSharded` is not false and such files exist, else from `prdFile`
+(`docs/prd.md`): `# Epic N Title` or `## Epic N Title` (a colon after the
+number is allowed), its first paragraph as `Goal:`, and `## Story N.M Title`
+or `### Story N.M Title`. A story file is `<epic>.<story>.<slug>.md` (or
+`<epic>.<story>.story.md`); its status is the line under `## Status`, or the
+rest of `## Status: Draft`. A story is open when its status is not `Done`
+(story-tmpl.yaml has Draft, Approved, InProgress, Review and Done; the dev
+agent also writes `Ready for Review`). A PRD story with no story file is open
+as `no story file yet`, since v4 writes story files one at a time. Each open
+epic keeps its number, title and goal, a `PRD:` link, and each open story its
+status and a link to its file in `.bmad-stories/`. An epic whose stories are
+all `Done` is left out. A v4 project with no story folder yet is refused.
 
 Text taken from the old plans is escaped for Markdown before it goes into
 the backlog (`src/markdown-text.ts`): `\`, a backtick, `*`, `<`, `[`, `~`,
@@ -154,7 +185,8 @@ result, with the new AGENTS.md, in one pull request.
 
 The plan is refused when the folder is not a git repository root, has no
 `specs/state.yaml` (GSD: `.planning/`; spec-kit: `.specify/` and `specs/`;
-BMAD: `_bmad/` and `_bmad-output/`, not the ticket tree), has uncommitted changes in the plans
+BMAD: `_bmad/` and `_bmad-output/`, not the ticket tree; BMAD v4:
+`.bmad-core/` and the story folder), has uncommitted changes in the plans
 folder (the tag would not hold them), already has the tag or the local copy,
 has more than one system and no `system`, has no plans folder to move, or when a cited file would
 move onto a file that exists. Apply checks all of these again. A file that

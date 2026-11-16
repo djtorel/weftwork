@@ -4,12 +4,19 @@
 // answers, the AGENTS.md letter, CONVENTIONS.md, the local backlog and the
 // .gitignore lines. Pure: no file is read or written here. docs/SETUP.md.
 import type { CheckedCommand } from './detect-check.ts';
-import type { ProjectReport } from './detect.ts';
+import type { PackageReport, ProjectReport } from './detect.ts';
 import { isRecord } from './json.ts';
 import type { Failure } from './errors.ts';
+import { codeSpan } from './markdown-text.ts';
+
+/** One package of a monorepo, with each command checked in its folder. */
+export type CheckedPackage = Omit<PackageReport, 'commands'> & { commands: CheckedCommand[] };
 
 /** The report setup reads: detect's, with each command checked (H3). */
-export type CheckedReport = Omit<ProjectReport, 'commands'> & { commands: CheckedCommand[] };
+export type CheckedReport = Omit<ProjectReport, 'commands' | 'packages'> & { commands: CheckedCommand[]; packages: CheckedPackage[] };
+
+/** The most packages the letter lists, so it stays short. */
+const maxLetterPackages = 20;
 
 /** The owner's answers. Every list item is one line. */
 export type Answers = { about: string; words: string[]; never: string[]; rules: string[]; tasks: string[] };
@@ -61,8 +68,24 @@ export function parseAnswers(value: unknown): { ok: true; answers: Answers } | F
 }
 
 /** The commands whose check ran, so each one resolves today (H3). */
-export function resolvedCommands(report: CheckedReport): CheckedCommand[] {
+export function resolvedCommands(report: { commands: CheckedCommand[] }): CheckedCommand[] {
   return report.commands.filter((command) => command.check.status === 'passed' || command.check.status === 'failed');
+}
+
+const failsToday = (command: CheckedCommand): string => (command.check.status === 'failed' ? ' (fails today)' : '');
+
+/** One line per package with a command that resolves, at most
+ * maxLetterPackages, then how many more there are. A path with a line break
+ * is left out: it cannot be one line. */
+function packageLines(report: CheckedReport): string[] {
+  const lines = report.packages
+    .filter((found) => !/[\0-\x1f\x7f]/.test(found.path))
+    .map((found) => ({ path: found.path, commands: resolvedCommands(found) }))
+    .filter((found) => found.commands.length > 0)
+    .map((found) => `- ${codeSpan(found.path)}: ${found.commands.map((command) => `${command.kind} ${codeSpan(command.command)}${failsToday(command)}`).join(', ')}`);
+  const more = lines.length - maxLetterPackages;
+  if (more <= 0) return lines;
+  return [...lines.slice(0, maxLetterPackages), `- ${more} more ${more === 1 ? 'package is' : 'packages are'} not listed, to keep this file short.`];
 }
 
 /** The Preflight: every test, lint and typecheck command that passed. */
@@ -82,9 +105,11 @@ export function agentsLetter(name: string, report: CheckedReport, answers: Answe
   if (answers.words.length > 0) parts.push('## Words', bullets(answers.words));
   const commands = resolvedCommands(report);
   if (commands.length > 0) {
-    const rows = commands.map((command) => `| ${command.kind}${command.check.status === 'failed' ? ' (fails today)' : ''} | \`${command.command}\` |`);
+    const rows = commands.map((command) => `| ${command.kind}${failsToday(command)} | \`${command.command}\` |`);
     parts.push('## Commands', ['| Action | Command |', '| ------ | ------- |', ...rows].join('\n'));
   }
+  const packages = packageLines(report);
+  if (packages.length > 0) parts.push('## Packages', "Each command runs in its package's folder.", packages.join('\n'));
   const check = preflight(report);
   parts.push('## Preflight', check === null ? 'None yet: no test, lint or typecheck command passed when this file was written.' : `\`\`\`bash\n${check}\n\`\`\``);
   if (answers.never.length > 0) parts.push('## Rules', bullets(answers.never));

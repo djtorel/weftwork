@@ -5,7 +5,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cliEnv } from './hook-cli-test-helpers.ts';
 import { ledgerPath, readLedger } from './ledger.ts';
@@ -68,6 +68,22 @@ test('AC-e11s01-10 a fault blocks: no project dir, input that is not JSON', () =
   const notJson = runGuard('{', repo);
   assert.equal(notJson.status, 2);
   assert.match(notJson.stderr, /not JSON/);
+});
+
+test('AC-e10s01-10 the hook blocks a path from guard.protected, and a guard setting it cannot use blocks every call', () => {
+  const repo = makeTestRepo();
+  const setting = join(repo, 'weftwork.yaml');
+  writeFileSync(setting, "---\nguard:\n  protected: ['.claude/skills/']\n");
+  const skill = join(repo, '.claude', 'skills', 'x', 'SKILL.md');
+  const write = runGuard(toolInput(repo, 'Write', { file_path: skill, content: 'x' }), repo);
+  assert.equal(write.status, 2, write.stderr);
+  assert.ok(write.stderr.includes(skill), write.stderr);
+  const other = runGuard(toolInput(repo, 'Write', { file_path: join(repo, 'src', 'a.ts'), content: 'x' }), repo);
+  assert.equal(other.status, 0, other.stderr);
+  writeFileSync(setting, '---\nguard:\n  allow: [x]\n');
+  const bad = runGuard(toolInput(repo, 'Bash', { command: 'npm test' }), repo);
+  assert.equal(bad.status, 2, bad.stderr);
+  assert.match(bad.stderr, /guard\.allow is not a known key/);
 });
 
 test('AC-e11s04-10 the hook blocks a push to main and a write outside the worktree, and logs each', async () => {

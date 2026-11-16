@@ -4,6 +4,8 @@
 // one per review round (review-ledger.ts).
 // e06s04 adds state lines (one per terminal state), the capped tail reader
 // the stop rules use (security review F3) and failingRun.
+// ledger-file.ts holds the file half: the regular-file open, the line
+// writer and the tail reader.
 // The counts ledger: a plain file, one JSON object per line, that only the
 // engine writes. It lives in the git dir, which git never lists, so a write
 // never changes the tree fingerprint. It is a log for counts and the
@@ -16,16 +18,18 @@
 // a second entry (C3).
 import { execFile } from 'node:child_process';
 import { constants } from 'node:fs';
-import { mkdir, open, type FileHandle } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import type { FileHandle } from 'node:fs/promises';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { Verdict } from './gate.ts';
 import { isMissing, messageOf } from './errors.ts';
 import { isRecord } from './json.ts';
+import { openRegular, tailText, writeLine, type AppendResult } from './ledger-file.ts';
 import { toState, type StateEntry } from './ledger-state.ts';
 import { toReview, type ReviewEntry } from './review-ledger.ts';
 
 export { overrideCounts, type OverrideKind, type StateEntry } from './ledger-state.ts';
+export { ignoreCloseError, openRegular, tailText, writeLine, type AppendResult } from './ledger-file.ts';
 
 const run = promisify(execFile);
 
@@ -36,9 +40,13 @@ export type LedgerEntry = {
   reason: string;
   command: string;
   fingerprint: string | null;
+  /** The engine call that wrote the line; absent on a line from before run
+   * ids, or from runGate outside the engine. */
+  runId?: string;
+  /** Set only on a run by the Stop hook: the key of the directory and the
+   * environment it ran in. The hook reuses only such a pass (reuse.ts). */
+  hookKey?: string;
 };
-
-export type AppendResult = { ok: true } | { ok: false; error: string };
 
 export type LedgerRead =
   | { ok: true; entries: LedgerEntry[]; skipped: number }
@@ -92,56 +100,15 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
   return dir === null ? null : join(dir, 'ledger.jsonl');
 }
 
-/** A failed close must not reach a caller that promises never to throw: on the
- * hook path a rejection would turn into a block (review A-F3, B-F9; round 5,
- * B-6). The file's own result is what the caller gets. */
-export function ignoreCloseError(): void {}
-
-/**
- * Open the ledger without blocking, and only if it is a regular file. The agent
- * can replace the file (T3), and opening a FIFO blocks until the other end is
- * opened, in a thread nothing can abort. A process stuck there cannot even
- * leave with process.exit, so the Stop hook would hang until the host cuts it
- * off and lets the stop go ahead (BUG-007). With O_NONBLOCK the open returns
- * at once, and a FIFO, a device or a directory is refused. override.ts does the
- * same for override.json.
- */
-export async function openRegular(path: string, flags: number, mode?: number): Promise<FileHandle> {
-  const handle = await open(path, flags | constants.O_NONBLOCK, mode);
-  try {
-    if (!(await handle.stat()).isFile()) {
-      throw new Error(`${path} is not a regular file`);
-    }
-    return handle;
-  } catch (error) {
-    await handle.close().catch(ignoreCloseError);
-    throw error;
-  }
-}
-
-/**
- * Append one line in a single write. The leading newline ends any torn line
- * a crashed writer left, so the line starts on its own line. The directory is
- * made 0700 and the file 0600, since a line may hold a command string that
- * holds a secret (T8). Never throws.
- */
-export async function writeLine(path: string, line: object): Promise<AppendResult> {
-  let handle: FileHandle | undefined;
-  try {
-    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-    const flags = constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT;
-    handle = await openRegular(path, flags, 0o600);
-    await handle.appendFile(`\n${JSON.stringify(line)}\n`);
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: messageOf(error) };
-  } finally {
-    await handle?.close().catch(ignoreCloseError);
-  }
-}
-
-/** Append one entry for `verdict`. Never throws. */
-export async function appendEntry(path: string, verdict: Verdict, at: Date): Promise<AppendResult> {
+/** Append one entry for `verdict`, with the engine call's `runId` when
+ * given, and `hookKey` for a run by the Stop hook. Never throws. */
+export async function appendEntry(
+  path: string,
+  verdict: Verdict,
+  at: Date,
+  runId?: string,
+  hookKey?: string,
+): Promise<AppendResult> {
   const entry: LedgerEntry = {
     at: at.toISOString(),
     done: verdict.done,
@@ -149,6 +116,8 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date): Pro
     reason: verdict.reason,
     command: verdict.command,
     fingerprint: verdict.fingerprint,
+    ...(runId === undefined ? {} : { runId }),
+    ...(hookKey === undefined ? {} : { hookKey }),
   };
   return writeLine(path, entry);
 }
@@ -192,14 +161,18 @@ function toEntry(data: unknown): LedgerEntry | null {
   if (!isRecord(data)) {
     return null;
   }
-  const { at, done, exitCode, reason, command, fingerprint } = data;
+  const { at, done, exitCode, reason, command, fingerprint, runId } = data;
   if (typeof at !== 'string' || typeof done !== 'boolean' || !isExitCode(exitCode)) {
     return null;
   }
   if (typeof reason !== 'string' || typeof command !== 'string' || !isFingerprint(fingerprint)) {
     return null;
   }
-  return { at, done, exitCode, reason, command, fingerprint };
+  if (runId !== undefined && typeof runId !== 'string') {
+    return null;
+  }
+  const hook = typeof data.hookKey === 'string' ? { hookKey: data.hookKey } : {};
+  return { at, done, exitCode, reason, command, fingerprint, ...(runId === undefined ? {} : { runId }), ...hook };
 }
 
 type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | { guard: GuardLine } | 'guard' | null;
@@ -291,23 +264,6 @@ export async function readLedger(path: string): Promise<LedgerRead> {
  * fragment before the first newline is dropped, not counted, and `truncated`
  * is true. Also returns the state lines. Never throws.
  */
-/** The last `maxBytes` bytes of an open file, cut to whole lines. */
-export async function tailText(
-  handle: FileHandle,
-  maxBytes: number,
-): Promise<{ text: string; truncated: boolean }> {
-  const { size } = await handle.stat();
-  const length = Math.min(size, maxBytes);
-  const buffer = Buffer.alloc(length);
-  const { bytesRead } = await handle.read(buffer, 0, length, size - length);
-  const text = buffer.toString('utf8', 0, bytesRead);
-  if (size <= maxBytes) {
-    return { text, truncated: false };
-  }
-  const cut = text.indexOf('\n');
-  return { text: cut === -1 ? '' : text.slice(cut + 1), truncated: true };
-}
-
 export async function readLedgerTail(path: string, maxBytes: number): Promise<LedgerTail> {
   let handle: FileHandle | undefined;
   try {

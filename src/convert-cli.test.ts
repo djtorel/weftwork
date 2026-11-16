@@ -88,6 +88,17 @@ test('AC-e12s03c-10 the CLI finds a BMAD project by itself, with the tag bmad-er
   assert.deepEqual(answer.plan.moves.at(-1), { from: '_bmad-output', to: '.bmad-output' });
 });
 
+// story: e12s03d
+test('AC-e12s03d-06 the CLI finds a BMAD v4 project by itself, with the tag bmad-era', () => {
+  const dir = makeTestRepo({ '.bmad-core/core-config.yaml': 'devStoryLocation: docs/stories\n', 'docs/stories/1.1.repo.md': '# Story 1.1: Repo\n\n## Status\n\nDraft\n' });
+  const out = convert(dir, {});
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.plan.system, 'bmad-v4');
+  assert.equal(answer.plan.tag, 'bmad-era');
+  assert.deepEqual(answer.plan.moves.at(-1), { from: 'docs/stories', to: '.bmad-stories' });
+});
+
 // story: e12s03b
 test('AC-e12s03b-18 the CLI finds a GSD 2 project by itself', () => {
   const dir = makeTestRepo({ '.gsd/milestones/M001/M001-ROADMAP.md': '# M001: A\n\n## Slices\n\n- [ ] **S01: B**\n' });

@@ -3,13 +3,13 @@
 // owner's screenshot command with WEFTWORK_SHOTS set to a folder of its own,
 // keeps the PNG files it wrote with their hashes and the tree they show, and
 // tells the review whether a change touches ui.paths and which screenshots
-// the council reads. A model's score is reported, never a gate. A UI change
+// the reviewers read. A model's score is reported, never a gate. A UI change
 // is reviewed as a design audit against the project's design reference, and
 // each reviewer gets the images in WEFTWORK_IMAGES (e11s06).
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, open, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { join, matchesGlob, relative } from 'node:path';
+import { basename, join, matchesGlob, relative } from 'node:path';
 import { terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
 import { runCommand } from './process.ts';
@@ -23,7 +23,7 @@ export type Shot = { name: string; bytes: number; sha256: string };
 export type Shots = { phase: Phase; at: string; branch: string | null; base: string; fingerprint: string; files: Shot[] };
 
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-/** More screenshots than this is an error: the council reads every one. */
+/** More screenshots than this is an error: the reviewers read every one. */
 const maxShots = 20;
 const maxShotBytes = 20 * 1024 * 1024;
 
@@ -82,14 +82,38 @@ async function readPngs(dir: string): Promise<{ ok: true; files: Shot[] } | Fail
   // WEFTWORK_IMAGES joins the paths with commas (e11s06).
   if (comma !== undefined) return { ok: false, error: `${terminalSafe(comma)} has a comma in its name` };
   for (const name of names) {
-    const stat = await lstat(join(dir, name));
-    if (!stat.isFile() || stat.size > maxShotBytes) return { ok: false, error: `${terminalSafe(name)} is not a PNG file of at most ${maxShotBytes} bytes` };
-    const handle = await open(join(dir, name), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-    const bytes = await handle.readFile().finally(() => handle.close());
-    if (!bytes.subarray(0, 8).equals(pngSignature)) return { ok: false, error: `${terminalSafe(name)} is not a PNG file` };
-    files.push({ name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
+    const shot = await readShot(dir, name);
+    if (!shot.ok) return shot;
+    files.push(shot.shot);
   }
   return { ok: true, files };
+}
+
+/** One screenshot file, read without following a symlink, with its size and hash. */
+async function readShot(dir: string, name: string): Promise<{ ok: true; shot: Shot } | Failure> {
+  const stat = await lstat(join(dir, name));
+  if (!stat.isFile() || stat.size > maxShotBytes) return { ok: false, error: `${terminalSafe(name)} is not a PNG file of at most ${maxShotBytes} bytes` };
+  const handle = await open(join(dir, name), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  const bytes = await handle.readFile().finally(() => handle.close());
+  if (!bytes.subarray(0, 8).equals(pngSignature)) return { ok: false, error: `${terminalSafe(name)} is not a PNG file` };
+  return { ok: true, shot: { name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') } };
+}
+
+/** The first screenshot of a manifest whose file is gone or no longer has
+ * its size and hash, or null when every one matches. The review hashes them
+ * again before it hands them to the reviewers (e11s05 review round 1). */
+export async function changedShot(weftwork: string, shots: Shots): Promise<string | null> {
+  for (const file of shots.files) {
+    const name = typeof file?.name === 'string' ? file.name : '';
+    if (name === '' || name !== basename(name)) return name;
+    try {
+      const read = await readShot(shotsDir(weftwork, shots.phase), name);
+      if (!read.ok || read.shot.sha256 !== file.sha256 || read.shot.bytes !== file.bytes) return name;
+    } catch {
+      return name;
+    }
+  }
+  return null;
 }
 
 export type TakeResult = { kind: 'taken'; shots: Shots } | { kind: 'refused' | 'failed'; why: string } | { kind: 'error'; error: string };
@@ -98,10 +122,16 @@ export type TakeResult = { kind: 'taken'; shots: Shots } | { kind: 'refused' | '
  * Take one phase's screenshots: run ui.screenshot in `cwd` with WEFTWORK_SHOTS
  * set to an emptied folder, check what it wrote, and keep a manifest with the
  * tree it shows. Before screenshots are refused once the tree changes
- * ui.paths, since they would show the change. Never rejects.
+ * ui.paths, since they would show the change. A ui.design file the review
+ * could not use is an error before the command runs, so a bad path fails
+ * here and not at review time (e11s06). Never rejects.
  */
 export async function takeShots(request: { cwd: string; weftwork: string; ui: UiSetting; phase: Phase; base: string; branch: string | null }): Promise<TakeResult> {
   const { cwd, ui, phase } = request;
+  if (ui.design !== undefined) {
+    const design = await readDesign(cwd, ui.design);
+    if (!design.ok) return { kind: 'error', error: design.error };
+  }
   if (phase === 'before') {
     const changed = await changedPaths(cwd, request.base);
     if (!changed.ok) return { kind: 'error', error: changed.error };
@@ -153,14 +183,15 @@ export function shotLines(weftwork: string, shots: Shots): string[] {
 export type UiForReview =
   | { kind: 'skip' }
   | { kind: 'ready'; touched: string[]; before: Shots | null; after: Shots }
-  | { kind: 'missing'; why: string }
+  | { kind: 'missing'; why: string; next?: string }
   | { kind: 'error'; error: string };
 
 /**
  * What the review does about the UI: skip when UI checks are off or the
  * change does not touch ui.paths; otherwise it needs after screenshots of this
  * branch and this exact tree. Before screenshots are used when they are of
- * the same branch and base; without them the council reads the after ones alone.
+ * the same branch and base; without them the reviewers read the after ones alone.
+ * Every screenshot used must still match its manifest's hash.
  */
 export async function uiForReview(request: { cwd: string; weftwork: string; ui: UiSetting | null; base: string; branch: string | null; fingerprint: string }): Promise<UiForReview> {
   if (request.ui === null) return { kind: 'skip' };
@@ -175,6 +206,15 @@ export async function uiForReview(request: { cwd: string; weftwork: string; ui: 
   const before = await readShots(request.weftwork, 'before');
   // Before screenshots of another branch or base (after a rebase) are no baseline (review round 1).
   const same = before !== null && before.branch === request.branch && before.base === request.base;
+  const mismatch = (shots: Shots, name: string) => `the ${shots.phase} screenshot ${terminalSafe(name)} does not match its hash in the manifest`;
+  const afterChanged = await changedShot(request.weftwork, after);
+  if (afterChanged !== null) return { kind: 'missing', why: mismatch(after, afterChanged) };
+  if (same) {
+    const beforeChanged = await changedShot(request.weftwork, before);
+    if (beforeChanged !== null) {
+      return { kind: 'missing', why: mismatch(before, beforeChanged), next: `take the before screenshots again on the base tree, or remove ${terminalSafe(shotsDir(request.weftwork, 'before'))} to review without them` };
+    }
+  }
   return { kind: 'ready', touched, before: same ? before : null, after };
 }
 
@@ -232,7 +272,7 @@ const designAudit = [
   'A design judgement call is SHOULD-FIX; it is listed in the pull request and does not block.',
 ];
 
-/** The part of the brief that hands the council the screenshots, the design
+/** The part of the brief that hands the reviewers the screenshots, the design
  * checklist and the design reference. */
 export function uiPrompt(weftwork: string, ready: { touched: string[]; before: Shots | null; after: Shots }, design: Design | null = null): string {
   const reference =

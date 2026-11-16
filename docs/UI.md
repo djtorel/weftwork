@@ -4,8 +4,8 @@
 
 A change to the UI is reviewed from screenshots as well as from the diff.
 The engine runs the owner's screenshot command, keeps the PNG files it
-wrote, and the review council reads them under the same must-fix rule as
-the code (`docs/REVIEW.md`). The council reviews the change as a design
+wrote, and the reviewers read them under the same must-fix rule as
+the code (`docs/REVIEW.md`). The reviewers review the change as a design
 audit, against the project's design reference when one is set. A model's
 score is reported, never a gate.
 
@@ -48,6 +48,11 @@ echo '{"phase":"after"}' | node src/ui-cli.ts
 default it is the merge base of HEAD with `origin/HEAD`, `origin/main` or
 `main`, the first that exists.
 
+When `ui.design` is set, the engine first checks that file under the rules
+of the review (below). A file that is missing or cannot be used stops it
+with exit 2 before the command runs, so a bad path fails here and not at
+review time.
+
 The engine empties `<git dir>/weftwork/ui/<phase>/`, runs `screenshot` in
 the working tree with `WEFTWORK_SHOTS` set to that folder, and checks what
 it wrote: at least one and at most 20 `.png` files, each with the PNG
@@ -60,7 +65,7 @@ SHA-256, the branch, the base commit, and the fingerprint of the tree they show.
 | 0 | `weftwork ui: off` | No `ui` mapping; nothing ran |
 | 1 | `weftwork ui: refused` | Before screenshots, but the tree already changes `ui.paths`, so they would show the change. The command does not run. |
 | 1 | `weftwork ui: failed` | The command failed or timed out, wrote no PNG, wrote a file that is not one, or changed the tree |
-| 2 | none | Bad input, no git working tree, a bad setting file; the reason is on stderr |
+| 2 | none | Bad input, no git working tree, a bad setting file, a `ui.design` file the review cannot use; the reason is on stderr |
 
 Take the before screenshots before the first edit to a UI file, and the
 after ones once the done gate passed on the final tree.
@@ -84,7 +89,14 @@ screenshot with its path and hash, so the pull request shows them when the
 report is pasted in. Only a must-fix blocks.
 
 Before screenshots are optional in the review. When none were taken on this
-branch and base, the brief says so and the council reads the after ones alone.
+branch and base, the brief says so and the reviewers read the after ones alone.
+
+Before it hands the screenshots to the reviewers, the review reads each PNG
+file again and checks its size and SHA-256 against the manifest. When a file
+is gone or changed, it answers `weftwork review: not run` (exit 4), names the
+file, and no reviewer runs. Take the after screenshots again. For a before
+screenshot, take them again on the base tree, or remove the before folder to
+review without them.
 
 ### The design audit
 
@@ -108,8 +120,9 @@ reliably (e11s07, `docs/research/R18-vision-design-judging.md`).
 When `ui.design` is set, the engine reads that file and puts it in the brief
 between two marker lines. It must be a regular file (not a symlink), inside
 the repository once its folders are resolved, valid UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
-review with exit 2, and no reviewer runs. Without `ui.design`, the brief says
-there is no design reference, and the council judges consistency against the
+review with exit 2, and no reviewer runs; `ui-cli` checks the same file
+before it takes screenshots. Without `ui.design`, the brief says
+there is no design reference, and the reviewers judge consistency against the
 existing screens.
 
 ### The images
@@ -117,17 +130,55 @@ existing screens.
 For a UI change, each reviewer runs with `WEFTWORK_IMAGES` set to the
 absolute paths of the screenshots, before then after, joined by commas. A
 reviewer that can attach images uses it, so the model gets the images and
-not only their paths. The built-in council does this:
+not only their paths. The built-in reviewer does this:
 
 ```bash
 codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
 ```
 
 `${WEFTWORK_IMAGES:+...}` adds `--image` only for a UI change. Write a
-council entry in `weftwork.yaml` the same way. For a change that is not a UI
+`reviewers` entry in `weftwork.yaml` the same way. For a change that is not a UI
 change, `WEFTWORK_IMAGES` is not set, even when the caller had set it. A
 screenshot path with a comma of its own (in the git directory's path, say)
 stops the review with exit 2.
+
+### Claude Code and Gemini CLI reviewers
+
+Neither `claude -p` nor `gemini -p` has a flag that attaches an image.
+Both have a file tool that reads an image and gives it to the model, and
+the brief tells each reviewer to open each screenshot. The screenshots are
+in `<git dir>/weftwork/ui/`, which is outside the working tree in a git
+worktree, so the entry adds that folder for a UI change only:
+
+```bash
+claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES:+--add-dir "$(git rev-parse --absolute-git-dir)/weftwork/ui"}
+gemini --approval-mode plan ${WEFTWORK_IMAGES:+--include-directories "$(git rev-parse --absolute-git-dir)/weftwork/ui"} -p 'Do the review above.'
+```
+
+Put a line in `review.reviewers` as it is. `src/review-cli.test.ts` runs both
+lines from this file with a fake `claude` and `gemini`, and checks that the
+folder they get holds every path in `WEFTWORK_IMAGES`.
+
+- **Claude Code** (`claude --help`, 2.1.325; code.claude.com/docs/en/cli-reference
+  and the Agent SDK's Read tool, through Context7; both read 2026-11-15).
+  The brief comes on stdin. `--tools` keeps only the read tools and Bash;
+  `dontAsk` denies each call that would ask for permission; and
+  `--setting-sources ""` loads no user or project settings that could
+  allow more. Checked by hand with 2.1.325 on 2026-11-15: the reviewer ran
+  `git status` and `git diff --stat`, Write, `touch` and
+  `git diff --output=<file>` were denied, and it read a screenshot in an
+  added folder (and could not read it without `--add-dir`).
+- **Gemini CLI** (`gemini --help`, 0.68.0; github.com/google-gemini/gemini-cli
+  `docs/cli/cli-reference.md`, `docs/tools/file-system.md` and
+  `docs/reference/commands.md`, through Context7; all read 2026-11-15).
+  `-p` adds its text after the brief on stdin. `plan` is the read-only
+  mode: it runs no shell command, so this reviewer reads the files but
+  cannot run `git diff`, and the engine does not add the diff to the
+  brief. With this entry, put the diff in the brief yourself.
+  `read_file` reads images. This entry is NOT
+  checked with a real model: the docs say git-aware filtering hides `.git/`
+  from `@` paths, and if it hides the screenshots from `read_file` too,
+  this reviewer reviews the diff without them.
 
 ## A programmatic check wins
 
@@ -141,12 +192,13 @@ does not.
 - The images stay in the engine's folder; the pull request lists them by
   path and hash, it does not embed them.
 - A reviewer that cannot take `WEFTWORK_IMAGES` must open the image files by
-  path. One that can do neither reviews the diff alone, and should say so.
+  path, as the Claude Code and Gemini CLI entries above do. One that can do
+  neither reviews the diff alone, and should say so.
 - Vision models judge visual design weakly: absolute scores rarely match
   people, zero-shot critiques are often wrong, and fine colour and spatial
   detail is misread; comparing two screens works better
   (`docs/research/R18-vision-design-judging.md`). Hence the severity rule
   above, and the score never gates. Those measurements are of 2024 and 2025
-  models; none of today's council.
+  models; none of today's reviewers.
 - The screenshot command comes from the setting files, so a repository's
-  `weftwork.yaml` can name any command, as it can for the review council.
+  `weftwork.yaml` can name any command, as it can for the reviewers.

@@ -2,14 +2,14 @@
 
 <!-- story: e12s04 -->
 
-This page takes you from nothing to a first "full stop" in your own project:
+This page takes you from nothing to a first weft-ready run in your own project:
 install weftwork, set up a new project or convert a bigpowers one, give the
 agent its first task, and undo it all if you change your mind. Each step links
 to the page that has the detail.
 
 ## 1. Install
 
-You need git and Node 26 or later with npm. For the first full stop you also
+You need git and Node 26 or later with npm. For the first weft-ready run you also
 need Claude Code, the GitHub CLI `gh` signed in, and the Codex CLI (the
 default reviewer, from another model family).
 
@@ -58,7 +58,7 @@ With no path, `init` sets up the current folder. Add `--stop-hook` for the
 Claude Code Stop hook and guard, and `--no-run` for a project you do not
 trust (`weftwork init --help` lists every option). From a weftwork checkout
 you can also open Claude Code there and say "Set up weftwork in
-/path/to/project"; the `setup-project` skill runs the same setup.
+/path/to/project"; the `weft-setup` skill runs the same setup.
 
 Setup:
 
@@ -76,8 +76,8 @@ Setup:
    unless you name it, and then it moves the old file to
    `<path>.weftwork-old` first.
 
-It writes AGENTS.md (with CLAUDE.md as a symlink), the `full-stop`,
-`review-loop`, `file-pr` and `improve` skills under `.claude/skills/`, lines for
+It writes AGENTS.md (with CLAUDE.md as a symlink), the `weft-ready`,
+`weft-review`, `weft-pr` and `weft-improve` skills under `.claude/skills/`, lines for
 `.gitignore`, the local backlog, and, if you ask for it, the Claude Code Stop
 hook and guard in `.claude/settings.json`. It commits nothing. Commit the
 result yourself, or as the first task.
@@ -91,7 +91,7 @@ A bigpowers project has `specs/state.yaml`; a GSD project has `.planning/`;
 a GSD 2 project has `.gsd/` (when git does not track it, only the backlog is
 written);
 a spec-kit project has `.specify/`; a BMAD v6 project has `_bmad/` and
-`_bmad-output/`. On a new branch of the project, with its Preflight passing:
+`_bmad-output/`; a BMAD v4 project has `.bmad-core/` and `docs/stories/`. On a new branch of the project, with its Preflight passing:
 
 ```bash
 cd /path/to/project
@@ -103,16 +103,17 @@ weftwork init                              # a new AGENTS.md (step 2a)
 If the project already has an AGENTS.md, `init` keeps it as a conflict; run
 `weftwork init --overwrite AGENTS.md` to replace it. From a weftwork checkout
 you can instead open Claude Code there and say "Convert /path/to/project to
-weftwork": the `convert-project` skill checks the Preflight, shows the plan
+weftwork": the `weft-convert` skill checks the Preflight, shows the plan
 and waits for your yes, and opens the pull request. Either way, it:
 
 1. Tags the last commit that tracks `specs/` as `bigpowers-era` (GSD:
    `.planning/` as `gsd-era`; spec-kit: `specs/` as `speckit-era`; BMAD:
-   `_bmad-output/` as `bmad-era`).
+   `_bmad-output/` as `bmad-era`; BMAD v4: `docs/stories/` as `bmad-era`).
 2. Moves the files that code or docs cite (and every bigpowers ADR) into
    `docs/`, and rewrites the citations.
 3. Moves the rest to a gitignored `.specs/` (GSD: `.gsd-planning/`;
-   spec-kit: `.speckit-specs/`; BMAD: `.bmad-output/`). Nothing
+   spec-kit: `.speckit-specs/`; BMAD: `.bmad-output/`; BMAD v4:
+   `.bmad-stories/`). Nothing
    is deleted.
 4. Adds the open work to the local backlog with its ids: bigpowers epics and
    stories, GSD roadmap phases, spec-kit features with their open tasks, or
@@ -123,15 +124,15 @@ and waits for your yes, and opens the pull request. Either way, it:
 
 Detail and what it refuses: [`CONVERT.md`](CONVERT.md).
 
-## 3. Your first full stop
+## 3. Your first weft-ready run
 
 The backlog is `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"` in
 your project (`.git/weftwork/BACKLOG.md` in a plain clone). It is local, so
 it is never committed. Open Claude Code in your project and name a task:
 
-> Add a README. Full stop.
+> Add a README. Weft ready.
 
-The `full-stop` skill takes it to a pull request that is ready to merge,
+The `weft-ready` skill takes it to a pull request that is ready to merge,
 without asking you more than it must. It branches from `main`, makes the
 change, proves it with the Preflight through the engine's done gate, has
 Codex review it (at most 3 rounds), opens the pull request with a Proof block
@@ -150,7 +151,7 @@ To change the reviewers or the round limit, add `review` to a
 To have weftwork learn from your tasks, add `history: local` to the same
 file. Each pull request it files then adds a record on your machine. Nothing
 is sent anywhere. Later, `echo '{}' | weftwork history` shows the failures
-that keep coming back, and "Improve." asks the agent to propose one small
+that keep coming back, and "Weft improve." asks the agent to propose one small
 fix for the most common one, in a pull request you can merge or close
 ([`HISTORY.md`](HISTORY.md)).
 

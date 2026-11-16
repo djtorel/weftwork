@@ -1,5 +1,5 @@
 // story: e12s03, e12s03b, e12s03c
-// Thin shell for converting a bigpowers, GSD (1 or 2), spec-kit or BMAD project: JSON on stdin, every
+// Thin shell for converting a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: JSON on stdin, every
 // key optional, `{"path", "system", "tag", "apply"}`, and one JSON line on
 // stdout. "system" is found from the folder when only one is there. Without
 // "apply" it prints the plan, a dry run that writes nothing; with
@@ -11,7 +11,7 @@ import { resolve } from 'node:path';
 import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
 import { applyConvert, planConvert, systemsIn, type SystemName } from './convert.ts';
 
-const defaultTags: Record<SystemName, string> = { bigpowers: 'bigpowers-era', gsd: 'gsd-era', gsd2: 'gsd2-era', 'spec-kit': 'speckit-era', bmad: 'bmad-era' };
+const defaultTags: Record<SystemName, string> = { bigpowers: 'bigpowers-era', gsd: 'gsd-era', gsd2: 'gsd2-era', 'spec-kit': 'speckit-era', bmad: 'bmad-era', 'bmad-v4': 'bmad-era' };
 const isSystem = (value: unknown): value is SystemName => typeof value === 'string' && Object.hasOwn(defaultTags, value);
 
 function fail(error: string, code = 2): void {
@@ -22,7 +22,7 @@ function fail(error: string, code = 2): void {
 /** Why the request is bad, or null. */
 function badRequest(input: Record<string, unknown>): string | null {
   const { path, system, tag, apply } = input;
-  if (system !== undefined && !isSystem(system)) return '"system" must be "bigpowers", "gsd", "gsd2", "spec-kit" or "bmad"';
+  if (system !== undefined && !isSystem(system)) return '"system" must be "bigpowers", "gsd", "gsd2", "spec-kit", "bmad" or "bmad-v4"';
   if (path !== undefined && (typeof path !== 'string' || path === '' || path.includes('\0'))) return '"path" must be a non-empty string';
   if (tag !== undefined && (typeof tag !== 'string' || tag === '' || tag.startsWith('-'))) return '"tag" must be a tag name';
   if (apply !== undefined && typeof apply !== 'boolean') return '"apply" must be true or false';

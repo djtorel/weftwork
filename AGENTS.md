@@ -17,7 +17,7 @@ model family, a pull request that says what it proved.
 
 It is TypeScript on Node 26 or later, one package that is both a CLI and a
 library, tested with the built-in `node:test` runner. Claude Code is the first
-host. The auto run (backlog e11, the `full-stop` skill) and getting started
+host. The auto run (backlog e11, the `weft-ready` skill) and getting started
 (e12: setting up and converting projects) are built, and this repository runs
 under its own hooks (below).
 
@@ -35,8 +35,9 @@ under its own hooks (below).
 ## Where things are
 
 - Tracked: `src/`, `docs/` (research briefs, bug reports, the security review,
-  `STATE.md`, `BUDGET.md`), `tools/`, `.claude/skills/`, `weftwork.yaml` and
-  `weftwork-improvements.yaml` when present.
+  `SECURITY-BASELINE.md`, `STATE.md`, `BUDGET.md`), `tools/`,
+  `.claude/skills/`, `weftwork.yaml` and `weftwork-improvements.yaml` when
+  present.
 - Local, never committed:
   - The backlog: `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"`,
     shared by every worktree of this clone.
@@ -49,7 +50,7 @@ under its own hooks (below).
 
 ## How work happens
 
-1. The owner names a task, often with "full stop" (finish to a ready PR) and a
+1. The owner names a task, often with "weft ready" (finish to a ready PR) and a
    backlog id or a sentence. Run `node src/resume-cli.ts` first when picking up
    earlier work.
 2. Branch from an up-to-date `main`: `git checkout -b <type>/<short-name>`. A
@@ -57,12 +58,12 @@ under its own hooks (below).
 3. Make the smallest change that does the task. For behaviour, write the test
    first and watch it fail, then make it pass.
 4. Prove it: run the task's check and Preflight, and keep the output.
-5. Review with the `review-loop` skill (Codex, read-only, at most 3 rounds).
-6. File the PR with the `file-pr` skill, wait for CI, fix real failures. Stop
+5. Review with the `weft-review` skill (Codex, read-only, at most 3 rounds).
+6. File the PR with the `weft-pr` skill, wait for CI, fix real failures. Stop
    when it is ready. The owner merges.
 7. Update the backlog: tick the task and add any follow-ups you found.
 
-The `full-stop` skill runs steps 2 to 7 for you.
+The `weft-ready` skill runs steps 2 to 7 for you.
 
 ## Commands
 
@@ -75,6 +76,8 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Finding outcomes | `echo '{"report":true}' \| node src/review-outcome-cli.ts` |
 | UI screenshots | `echo '{"phase":"after"}' \| node src/ui-cli.ts` |
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
+| File overlap | `echo '{"tasks":[{"name":"a","files":["src/a.ts"]},{"name":"b","branch":"main"}]}' \| node src/overlap-cli.ts` |
+| Measure (R10 E1) | `echo '{"out":"/tmp/weftwork-measure.jsonl"}' \| node src/measure-cli.ts` |
 | History report | `echo '{}' \| node src/history-cli.ts` |
 | Test | `npm test` |
 | Typecheck | `npm run typecheck` (no emit; Node runs `.ts` directly) |
@@ -108,17 +111,25 @@ and only the owner changes them.
 
 `src/` holds the gate library (`gate.ts`), the working-tree fingerprint
 (`tree.ts`) and the thin CLI (`cli.ts`); `engine.ts` runs the loop, with the
-stop rules (`engine-rules.ts`), the ledger (`ledger.ts`), the no-progress
-breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
+stop rules (`engine-rules.ts`), the ledger (`ledger.ts`, with its file
+half, the open, line writer and tail reader, in `ledger-file.ts`), the
+no-progress breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
 on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
 adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
 the session's tokens from the transcript (`transcript-usage.ts`);
 `claude-install.ts` installs the Stop hook, as an entry that runs `weftwork`
-from PATH and blocks when it is missing. The guard (`guard.ts`, its PreToolUse hook
+from PATH and blocks when it is missing, and keeps an entry that names
+`"$CLAUDE_PROJECT_DIR/src/..."`, as this repository's does. `reuse.ts` lets the Stop hook reuse its own pass on an unchanged tree
+without a new run (`docs/BUDGET.md`). The guard (`guard.ts`, its PreToolUse hook
 `guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
-would change the agent's own limits or hooks (`docs/GUARD.md`), and the
+would change the agent's own limits or hooks, or a path on its protected-paths
+list (git internals, host hooks and settings, credential files, and the
+owner's `guard.protected`, read by `guard-setting.ts`; `docs/GUARD.md`), and the
 mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
-and a push to main (`guard-push.ts`). `decision.ts` and `decision-cli.ts` log
+and a push to main (`guard-push.ts`). The live check (`claude-live.ts`,
+`claude-live-guard.ts` and the CLI `claude-live-cli.ts`) says whether Claude
+Code runs the Stop hook, from the call record, and the guard, from the session
+transcripts (`docs/GUARD.md`). `decision.ts` and `decision-cli.ts` log
 each choice the agent makes without the owner, for the PR's Decisions
 section (`docs/ASK.md`). The state writer is `state-file.ts` (set one field of a
 YAML file and keep every other byte), with the file half in `state-write.ts`
@@ -127,8 +138,9 @@ and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `handoff.ts` and `handoff-cli.ts` write the handoff block; `resume.ts` and
 `resume-cli.ts` check it at session start (`docs/STATE.md`). `pr-proof.ts` and
 `pr-proof-cli.ts` print a pull request's Proof block from the ledger and the
-tree, and say whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
-and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
+tree, with the session's tokens from its transcript when given one, and say
+whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
+and `review-cli.ts` run one round of the reviewers set in `weftwork.yaml`
 (`review-setting.ts`), count the rounds in the ledger (`review-ledger.ts`),
 and snapshot what each round is of, check that a must-fix names a real file
 and line, and scope later rounds to what changed (`review-scope.ts`), and record what
@@ -136,9 +148,10 @@ became of each finding and each reviewer's resolution rate
 (`review-outcome.ts`, `review-outcome-cli.ts`;
 `docs/REVIEW.md`). `base-check.ts`, `base-check-setting.ts` and `base-check-cli.ts` run the
 tests a change adds or edits against the base commit, where they should
-fail, and report which do not (`docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
+fail, and report which do not, each new test too when the run prints TAP
+(`base-check-tap.ts`; `docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
-them to the council, as images and with the design reference and a design
+them to the reviewers, as images and with the design reference and a design
 checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
 `detect-stacks.ts`, `detect-packages.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
 stack, commands, CI, agent files and planning system, and run each command
@@ -148,10 +161,16 @@ report and the owner's answers: a dry-run plan, then a write that never
 overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
 `init.ts` and `init-cli.ts` are the same setup from the terminal
 (`weftwork init`, the current folder by default). `convert.ts`,
-`convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project: tag,
+`convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
-`markdown-text.ts` (`docs/CONVERT.md`). `history.ts`, `history-setting.ts`,
+`markdown-text.ts` (`docs/CONVERT.md`). `overlap.ts` and `overlap-cli.ts`
+check, before parallel work, that no two planned tasks can change the same
+file, from file lists, globs or branches (`docs/PARALLEL.md`). `measure-fixture.ts`, `measure.ts` and
+`measure-cli.ts` are the measurement harness: a fixture repository with
+planted defects and a held-out oracle, one row per run, and the first
+experiment, the done gate against scripted false successes; agent arms
+refuse to run without a spend cap (`docs/MEASURE.md`). `history.ts`, `history-setting.ts`,
 `history-store.ts`, `history-report.ts`, `history-improve.ts` and
 `history-cli.ts` keep the opt-in local history: one record per filed task,
 counted from the ledger and kept in the common git dir; a report of the

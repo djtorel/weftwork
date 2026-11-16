@@ -74,6 +74,14 @@ for (const [name, command, why] of [
   });
 }
 
+test('a ui.design file that does not exist: exit 2 before the command runs, so a bad path fails sooner (e11s06)', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': `---\nui:\n  screenshot: ${JSON.stringify(`${writePng('home.png')}; touch ran`)}\n  paths: ['web/**']\n  design: DESIGN.md\n` });
+  const out = ui(repo, { phase: 'after' });
+  assert.equal(out.status, 2, out.stdout);
+  assert.match(out.stderr, /^ui: ui\.design: .*DESIGN\.md does not exist$/m);
+  assert.equal(existsSync(join(repo, 'ran')), false);
+});
+
 test('a bad phase: exit 2 with the reason on stderr', () => {
   const out = ui(makeTestRepo(), { phase: 'during' });
   assert.equal(out.status, 2);

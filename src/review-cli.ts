@@ -1,22 +1,23 @@
 // story: e11s03
 // Thin shell for one review round: JSON `{"command": "...", "brief": "...",
 // "sensitive": false}` on stdin, the round's report on stdout. It runs the
-// council only after the engine's done gate passed for `command` on this
+// reviewers only after the engine's done gate passed for `command` on this
 // tree, and counts the round in the ledger. Logic lives in review.ts.
 // docs/REVIEW.md.
 //
 // Exit 0 pass, 1 block (fix the must-fix findings, pass the gate, review
 // again), 3 no verdict (every reviewer failed, or the tree changed during the
 // review), 4 the done gate has not passed (no reviewer ran), 5 the round
-// ceiling (no reviewer ran), 2 when it cannot run, with the reason on stderr
-// and nothing on stdout.
+// ceiling (no reviewer ran), 2 when it cannot run (a detached HEAD among the
+// causes, since rounds are counted per branch), with the reason on stderr and
+// nothing on stdout.
 import { readJsonObject, terminalSafe } from './cli-io.ts';
 import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } from './ledger.ts';
 import { prProof } from './pr-proof.ts';
 import type { RoundVerdict } from './review-ledger.ts';
 import { loadReview } from './review-setting.ts';
 import { groundResults, roundScope, ruleFiles } from './review-scope.ts';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review.ts';
 import { currentBranch, fingerprintTree } from './tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './ui.ts';
 import { loadUi, type UiSetting } from './ui-setting.ts';
@@ -54,6 +55,7 @@ async function main(): Promise<void> {
   if (!ledger.ok) return fail(`the ledger cannot be read: ${ledger.error}`);
   const branch = await currentBranch(cwd);
   if (!branch.ok) return fail(`the branch cannot be read: ${branch.error}`);
+  if (branch.branch === null) return fail('HEAD is detached; review rounds are counted per branch, so check out a branch first');
 
   const proof = prProof({ entries: ledger.entries, states: ledger.states, command, fingerprint: tree.fingerprint });
   if (!proof.ready) return answer(`weftwork review: not run\nwhy: the done gate has not passed: ${proof.why}\n`, 4);
@@ -68,7 +70,7 @@ async function main(): Promise<void> {
   if (roundsDone(rounds) >= maxRounds) return answer(exhaustedReport(rounds, maxRounds), 5);
   const shots = await uiCheck(cwd, weftwork, ui.ui, base, branch.branch, tree.fingerprint);
   if (shots.kind === 'error') return fail(shots.error);
-  if (shots.kind === 'missing') return answer(`weftwork review: not run\nwhy: ${terminalSafe(shots.why)}\nnext: echo '{"phase":"after"}' | node src/ui-cli.ts\n`, 4);
+  if (shots.kind === 'missing') return answer(`weftwork review: not run\nwhy: ${terminalSafe(shots.why)}\nnext: ${shots.next ?? `echo '{"phase":"after"}' | node src/ui-cli.ts`}\n`, 4);
   const ready = shots.kind === 'ready' ? shots : null;
   let design: Design | null = null;
   if (ready !== null && ui.ui?.design !== undefined) {
@@ -90,7 +92,7 @@ async function main(): Promise<void> {
     if (!images.ok) return fail(images.error);
     env['WEFTWORK_IMAGES'] = images.value;
   }
-  const replies = await runCouncil(setting.review, cwd, reviewPrompt(prompt), env);
+  const replies = await runReviewers(setting.review, cwd, reviewPrompt(prompt), env);
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const grounded = await groundResults(scope.root, replies);

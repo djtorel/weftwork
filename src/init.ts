@@ -4,12 +4,12 @@
 // JSON, the folder is the current one unless named, the questions are asked
 // in the terminal, and the plan is shown as text before anything is written.
 // init-cli.ts is the thin shell; this file holds what it can test alone.
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
-import { checkCommands } from './detect-check.ts';
-import { detectProject } from './detect.ts';
+import { checkCommands, type CheckedCommand } from './detect-check.ts';
+import { detectProject, type FoundCommand } from './detect.ts';
 import type { Plan } from './setup.ts';
 import type { Answers, CheckedReport, Question } from './setup-text.ts';
 
@@ -61,15 +61,17 @@ export function parseInitArgs(args: string[], cwd: string): { ok: true; options:
   };
 }
 
-/** The project report with each command checked once, or marked skipped when
- * `run` is false (as setup-cli.ts does it). */
+/** The project report with each command checked once, a package's in its own
+ * folder, or marked skipped when `run` is false (as setup-cli.ts does it). */
 export async function checkedReport(dir: string, run: boolean, timeoutMs: number): Promise<{ ok: true; report: CheckedReport } | Failure> {
   const detected = await detectProject(dir);
   if (!detected.ok) return detected;
-  const commands = run
-    ? await checkCommands(detected.report.commands, dir, timeoutMs)
-    : detected.report.commands.map((command) => ({ ...command, check: { status: 'skipped' as const, exitCode: null, why: '"run" is false' } }));
-  return { ok: true, report: { ...detected.report, commands } };
+  const check = async (commands: FoundCommand[], cwd: string): Promise<CheckedCommand[]> =>
+    run ? await checkCommands(commands, cwd, timeoutMs) : commands.map((command) => ({ ...command, check: { status: 'skipped' as const, exitCode: null, why: '"run" is false' } }));
+  const commands = await check(detected.report.commands, dir);
+  const packages = [];
+  for (const found of detected.report.packages) packages.push({ ...found, commands: await check(found.commands, join(dir, found.path)) });
+  return { ok: true, report: { ...detected.report, commands, packages } };
 }
 
 /** Ask one line and get the reply. */
@@ -135,6 +137,6 @@ export function renderPlan(dir: string, plan: Plan): string {
 export function renderWritten(written: string[], kept: string[], notes: string[]): string {
   const lines = [...written.map((path) => `  wrote     ${path}`), ...kept.map((path) => `  kept      ${path}`)];
   if (notes.length > 0) lines.push('', 'Notes:', ...notes.map((note) => `  - ${note}`));
-  lines.push('', 'Next: commit these files, then open Claude Code here, name a task and add "Full stop."');
+  lines.push('', 'Next: commit these files, then open Claude Code here, name a task and add "Weft ready."');
   return `${lines.join('\n')}\n`;
 }
