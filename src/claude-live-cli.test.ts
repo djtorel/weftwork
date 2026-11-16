@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { stopHookCommand } from './claude-install.ts';
+import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -17,11 +17,21 @@ const checkCli = join(import.meta.dirname, 'claude-live-cli.ts');
 const installCli = join(import.meta.dirname, 'claude-install-cli.ts');
 const hookCli = join(import.meta.dirname, 'claude-hook-cli.ts');
 
+/** A folder with a `weftwork` command that runs this checkout, as npm link or
+ * npm install -g would put on PATH: the install writes entries that run it. */
+function weftworkBin(): string {
+  const dir = makeTempDir();
+  const cli = join(import.meta.dirname, 'weftwork-cli.ts');
+  writeFileSync(join(dir, 'weftwork'), `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(cli)} "$@"\n`, { mode: 0o755 });
+  return dir;
+}
+
 /** An environment with a fresh, empty home and config home (so the hook never
- * reads the real user budget file, e09s01 spec R6) and no CLAUDE_CONFIG_DIR,
- * unless `configDir` names one. */
+ * reads the real user budget file, e09s01 spec R6), no CLAUDE_CONFIG_DIR
+ * unless `configDir` names one, and this checkout's weftwork first on PATH. */
 function cleanEnv(configDir: string | null = null): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, HOME: makeTempDir(), XDG_CONFIG_HOME: makeTempDir() };
+  const path = `${weftworkBin()}:${process.env.PATH ?? ''}`;
+  const env: NodeJS.ProcessEnv = { ...process.env, PATH: path, HOME: makeTempDir(), XDG_CONFIG_HOME: makeTempDir() };
   delete env.CLAUDE_CONFIG_DIR;
   delete env.CLAUDE_PROJECT_DIR;
   if (configDir !== null) {
@@ -51,7 +61,7 @@ test('AC-e07s04-08 not registered, then registered but not seen, then live', () 
   const none = run([checkCli], { cwd: repo, env });
   assert.equal(none.status, 1, none.stderr);
   assert.match(none.stdout, /not registered/);
-  assert.match(none.stdout, /claude-install-cli\.ts/);
+  assert.match(none.stdout, /weftwork claude-install -- /);
 
   assert.equal(run([installCli, '--', 'true'], { cwd: repo, env }).status, 0);
   const unseen = run([checkCli], { cwd: repo, env });
@@ -158,7 +168,7 @@ test('the next step fits the reason: a changed copy, and a project file the inst
   const env = cleanEnv();
   run([installCli, '--', 'true'], { cwd: repo, env });
   callHook(repo, env, 'true');
-  const copy = { type: 'command', command: stopHookCommand(hookCli, 'true'), timeout: 660, async: true };
+  const copy = { type: 'command', command: stopHookCommand(weftworkOnPath, 'true'), timeout: 660, async: true };
   writeFileSync(join(repo, '.claude', 'settings.local.json'), JSON.stringify({ hooks: { Stop: [{ hooks: [copy] }] } }));
   const changed = run([checkCli], { cwd: repo, env });
   assert.match(changed.stdout, /remove the changed copy/);

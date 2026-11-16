@@ -32,8 +32,8 @@ your project call `weftwork <command>` (`weftwork detect`, `weftwork engine`,
 it cannot write to its global folder, set a prefix you own first
 (`npm config set prefix ~/.local`, with `~/.local/bin` on your PATH). If you
 move the checkout, run `npm link` again there. The Claude Code Stop hook and
-guard still name the checkout by absolute path, so also set each project up
-again (step 2) if you use them. Undo: `npm unlink -g weftwork`.
+guard run `weftwork` from PATH too; where it is missing they block and say
+to install it. Undo: `npm unlink -g weftwork`.
 
 ## 2a. Set up a new or plain project
 

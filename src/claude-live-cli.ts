@@ -5,15 +5,15 @@
 // settings ($CLAUDE_CONFIG_DIR/settings.json, else ~/.claude/settings.json)
 // and the call record, following symlinks as Claude Code does. Logic lives in
 // claude-live.ts. It writes nothing.
+import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { weftworkOnPath } from './claude-install.ts';
 import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type SettingsSource } from './claude-live.ts';
 import { isGitRoot, readSettings, userSettingsPath } from './claude-settings-file.ts';
 import { lastCallPath, readLastCall, type LastCallRead } from './last-call.ts';
-import { sibling } from './sibling.ts';
 
-const usage = 'usage: node claude-live-cli.ts (no arguments; run it in the project root)';
-const installCli = sibling('claude-install-cli');
+const usage = 'usage: weftwork claude-live (no arguments; run it in the project root)';
 
 const labels: Record<LiveAnswer, string> = {
   live: 'live',
@@ -22,7 +22,8 @@ const labels: Record<LiveAnswer, string> = {
 };
 
 const nextStep: Record<NextStep, string> = {
-  'run-install': `Next: run the install here: node ${installCli} -- '<declared command>'\n`,
+  'run-install': "Next: run the install here: weftwork claude-install -- '<declared command>'\n" +
+    '(npm install -g weftwork first if the weftwork command is missing).\n',
   'fix-settings':
     'Next: fix the settings file named above by hand so it is valid JSON of the right\n' +
     'shape. The install does not edit a file it cannot read.\n',
@@ -34,6 +35,13 @@ const nextStep: Record<NextStep, string> = {
     'Next: start Claude Code in this directory, accept the workspace trust dialog if it\n' +
     'appears, and let a session stop once.\n',
 };
+
+/** True for a file at `path`, or, for an entry that runs weftwork from PATH,
+ * when this shell finds the command. */
+function exists(path: string): boolean {
+  if (path !== weftworkOnPath) return existsSync(path);
+  return spawnSync('/bin/sh', ['-c', 'command -v weftwork'], { stdio: 'ignore', timeout: 10000 }).status === 0;
+}
 
 /** One settings file as the report names it: by its path. */
 function source(path: string | null): SettingsSource {
@@ -57,7 +65,7 @@ async function reportFor(dir: string): Promise<LiveReport> {
     local: source(join(dir, '.claude', 'settings.local.json')),
     project: source(join(dir, '.claude', 'settings.json')),
     user: source(userSettingsPath(process.env)),
-    exists: existsSync,
+    exists,
     lastCall: await lastCallOf(dir),
     now: new Date(),
   });
