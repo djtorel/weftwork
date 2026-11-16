@@ -181,7 +181,7 @@ test('at the round ceiling: exit 5, the last round\'s findings again, and no rev
 
 test('a detached HEAD: exit 2 every time, the reason on stderr, and no reviewer runs, since rounds are counted per branch', () => {
   const log = join(makeTempDir(), 'runs');
-  const repo = readyRepo(`${council(`echo run >> ${log}; echo 'VERDICT: APPROVE'`)}  max_rounds: 1\n`);
+  const repo = readyRepo(`${reviewers(`echo run >> ${log}; echo 'VERDICT: APPROVE'`)}  max_rounds: 1\n`);
   git(repo, 'checkout', '--detach');
   for (let run = 0; run < 2; run++) {
     const out = review(repo);
@@ -387,12 +387,12 @@ test('a change that is not a UI change: WEFTWORK_IMAGES is not set (e11s06)', ()
   assert.equal(readFileSync(seen, 'utf8'), 'unset');
 });
 
-/** The council entry for `host` that docs/UI.md gives: the line that starts with it. */
+/** The reviewers entry for `host` that docs/UI.md gives: the line that starts with it. */
 function documentedEntry(host: string): string {
   const line = readFileSync(join(import.meta.dirname, '..', 'docs', 'UI.md'), 'utf8')
     .split('\n')
     .find((text) => text.startsWith(`${host} `));
-  assert.ok(line !== undefined, `docs/UI.md gives no ${host} council entry`);
+  assert.ok(line !== undefined, `docs/UI.md gives no ${host} reviewers entry`);
   return line;
 }
 
@@ -406,7 +406,7 @@ function fakeHost(name: string): { path: string; seen: string } {
 }
 
 for (const [host, flag] of [['claude', '--add-dir'], ['gemini', '--include-directories']] as const) {
-  test(`the ${host} council entry in docs/UI.md opens the folder that holds every screenshot for a UI change only (e11s06 follow-up)`, () => {
+  test(`the ${host} reviewers entry in docs/UI.md opens the folder that holds every screenshot for a UI change only (e11s06 follow-up)`, () => {
     const fake = fakeHost(host);
     const repo = uiChangedRepo(documentedEntry(host));
     assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
@@ -419,7 +419,7 @@ for (const [host, flag] of [['claude', '--add-dir'], ['gemini', '--include-direc
     assert.ok(images.length > 0 && images.every((image) => image.startsWith(`${dir}/`)), `${dir} does not hold ${images.join(', ')}`);
 
     const plain = fakeHost(host);
-    const other = readyRepo(council(documentedEntry(host)));
+    const other = readyRepo(reviewers(documentedEntry(host)));
     assert.equal(node(reviewCli, other, { command: verify, brief: 'Review the diff.' }, { PATH: plain.path }).status, 0);
     const plainArgs = readFileSync(plain.seen, 'utf8').trimEnd().split('\n');
     assert.equal(plainArgs.includes(flag), false, plainArgs.join(' '));
@@ -465,7 +465,7 @@ test('a before screenshot gone since its manifest: exit 4, and no reviewer runs 
   const repo = makeTestRepo();
   mkdirSync(join(repo, 'web'));
   writeFileSync(join(repo, 'web', 'a.html'), '<p>a</p>\n');
-  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(`touch ${marker}; echo 'VERDICT: APPROVE'`)}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(`touch ${marker}; echo 'VERDICT: APPROVE'`)}ui:\n  screenshot: ${JSON.stringify(writePng('home.png'))}\n  paths: ['web/**']\n`);
   git(repo, 'add', '-A');
   git(repo, 'commit', '-q', '-m', 'base');
   assert.equal(node(uiCli, repo, { phase: 'before' }).status, 0);

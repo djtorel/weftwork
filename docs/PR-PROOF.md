@@ -69,7 +69,7 @@ Claude Code writes the transcript to
 `~/.claude/projects/<project>/<session-id>.jsonl` and sets
 `CLAUDE_CODE_SESSION_ID` in the environment of each Bash command (Claude
 Code docs, sessions and env-vars, read 2026-11-15). So an agent in Claude
-Code finds its own transcript, and the `full-stop` skill passes it:
+Code finds its own transcript, and the `weft-ready` skill passes it:
 
 ```bash
 node -e 'console.log(JSON.stringify({ command: process.argv[1], transcript: process.argv[2] }))' \

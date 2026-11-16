@@ -101,7 +101,7 @@ async function readShot(dir: string, name: string): Promise<{ ok: true; shot: Sh
 
 /** The first screenshot of a manifest whose file is gone or no longer has
  * its size and hash, or null when every one matches. The review hashes them
- * again before it hands them to the council (e11s05 review round 1). */
+ * again before it hands them to the reviewers (e11s05 review round 1). */
 export async function changedShot(weftwork: string, shots: Shots): Promise<string | null> {
   for (const file of shots.files) {
     const name = typeof file?.name === 'string' ? file.name : '';
@@ -190,12 +190,8 @@ export type UiForReview =
  * What the review does about the UI: skip when UI checks are off or the
  * change does not touch ui.paths; otherwise it needs after screenshots of this
  * branch and this exact tree. Before screenshots are used when they are of
-<<<<<<< HEAD
- * the same branch and base; without them the council reads the after ones alone.
- * Every screenshot used must still match its manifest's hash.
-=======
  * the same branch and base; without them the reviewers read the after ones alone.
->>>>>>> e442e87 (refactor(engine)!: rename the skills to weft-ready, weft-review, weft-pr, weft-setup and weft-convert, and review.council to review.reviewers)
+ * Every screenshot used must still match its manifest's hash.
  */
 export async function uiForReview(request: { cwd: string; weftwork: string; ui: UiSetting | null; base: string; branch: string | null; fingerprint: string }): Promise<UiForReview> {
   if (request.ui === null) return { kind: 'skip' };

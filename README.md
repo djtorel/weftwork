@@ -23,7 +23,8 @@ engine enforces the parts that matter:
   a draft pull request and writes a note the next session picks up.
 
 > **Status:** before 1.0. Claude Code is the only agent host so far. It works
-> on new projects and converts bigpowers, GSD, spec-kit and BMAD projects.
+> on new projects and converts bigpowers, GSD, GSD 2, spec-kit and BMAD
+> projects.
 > Expect changes between minor versions until 1.0
 > ([`docs/RELEASING.md`](docs/RELEASING.md)).
 
@@ -96,6 +97,22 @@ them, then open Claude Code in the project and name a task:
 The agent takes it to a pull request that is ready to merge and stops. It
 never merges.
 
+## Skills
+
+Setup puts three skills in `.claude/skills/`. Each starts on its own phrase,
+so none clashes with another skill pack that you have installed.
+
+| Skill | Say | What it does |
+| --- | --- | --- |
+| `weft-ready` | "… Weft ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
+| `weft-review` | "Weft review." | Only the review: reviewers from another model family, read-only, at most 3 rounds. |
+| `weft-pr` | "Weft PR." | Only the pull request, with its Proof and Decisions sections. |
+
+Two more skills, `weft-setup` and `weft-convert`, are not copied into
+projects. They do what `weftwork init` and `weftwork convert` do, from
+Claude Code in a weftwork checkout: open it there and say "Set up weftwork
+in /path/to/project" or "Convert /path/to/project to weftwork".
+
 ## Convert an existing project
 
 A project planned with bigpowers (`specs/state.yaml`), GSD (`.planning/`),
@@ -143,10 +160,12 @@ decision in the pull request.
 | Command | What it does |
 | --- | --- |
 | `weftwork init [path]` | Set up weftwork in a project (default: the current folder) |
-| `weftwork convert` | Convert a bigpowers, GSD, spec-kit or BMAD project (JSON on stdin) |
+| `weftwork convert` | Convert a bigpowers, GSD, GSD 2, spec-kit or BMAD project (JSON on stdin) |
 | `weftwork detect` | Report a project's stack, commands, CI and agent files |
 | `weftwork claude-install -- '<cmd>'` | Register the Stop hook and guard for a check command |
 | `weftwork claude-live` | Check that Claude Code runs the Stop hook and the guard here |
+| `weftwork overlap` | Check that planned parallel tasks change no file in common (JSON on stdin) |
+| `weftwork measure` | Measure the done gate against seeded false successes (JSON on stdin) |
 | `weftwork path` | Print where weftwork is installed (its docs and skills) |
 | `weftwork --help` | List every command, including the ones the agent's skills call |
 
@@ -195,8 +214,10 @@ conversion too. To remove weftwork itself: `npm uninstall -g weftwork`.
 | Page | About |
 | --- | --- |
 | [Getting started](docs/GETTING-STARTED.md) | From install to the first weft-ready run, step by step |
-| [Setup](docs/SETUP.md) and [Convert](docs/CONVERT.md) | What `init` and `convert` read, ask and write |
+| [Setup](docs/SETUP.md), [Convert](docs/CONVERT.md) and [Detect](docs/DETECT.md) | What `init` and `convert` read, ask and write |
 | [Guard](docs/GUARD.md) and [Ask](docs/ASK.md) | What the agent may not do, and when it asks you |
+| [Security baseline](docs/SECURITY-BASELINE.md) | Repository content is data, each host's boundary, and keeping credentials out |
+| [Parallel work](docs/PARALLEL.md) | The file-overlap check before parallel tasks |
 | [Review](docs/REVIEW.md), [Base check](docs/BASE-CHECK.md), [UI](docs/UI.md) | The reviewers and their checks |
 | [Budget](docs/BUDGET.md), [State](docs/STATE.md), [PR proof](docs/PR-PROOF.md) | Ceilings, the handoff, and what a PR proves |
 | [Measure](docs/MEASURE.md) | The harness that measures the done gate against an oracle |
