@@ -59,7 +59,7 @@ test('a must-fix blocks: exit 1, and the round is counted in the ledger', async 
   const out = review(repo);
   assert.equal(out.status, 1, out.stderr);
   assert.match(out.stdout, /^weftwork review: block$/m);
-  assert.match(out.stdout, /^must-fix \(printf\): tracked\.txt:1 bad$/m);
+  assert.match(out.stdout, /^must-fix r\d+m\d+ \(printf\): tracked\.txt:1 bad$/m);
   const ledger = readFileSync((await ledgerPath(repo)) as string, 'utf8');
   assert.match(ledger, /"review":"block","branch":"main","round":1,"maxRounds":3/);
 });
@@ -69,15 +69,15 @@ test('a must-fix whose file or line does not exist does not block: it is reporte
   const out = review(repo);
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^weftwork review: pass$/m);
-  assert.match(out.stdout, /^should-fix \(printf\): nope\.ts:1 made up \[not grounded: nope\.ts is not a file in the repository\]$/m);
-  assert.match(out.stdout, /^should-fix \(printf\): tracked\.txt:9 past the end \[not grounded: line 9 is past the end of tracked\.txt, 1 line\]$/m);
+  assert.match(out.stdout, /^should-fix r\d+s\d+ \(printf\): nope\.ts:1 made up \[not grounded: nope\.ts is not a file in the repository\]$/m);
+  assert.match(out.stdout, /^should-fix r\d+s\d+ \(printf\): tracked\.txt:9 past the end \[not grounded: line 9 is past the end of tracked\.txt, 1 line\]$/m);
 });
 
 test('a follow-up is reported and stored, and never blocks (e13s02)', async () => {
   const repo = readyRepo(council("printf 'VERDICT: APPROVE\\nFOLLOW-UP tracked.txt:1 an old bug\\n'"));
   const out = review(repo);
   assert.equal(out.status, 0, out.stderr);
-  assert.match(out.stdout, /^follow-up \(printf\): tracked\.txt:1 an old bug$/m);
+  assert.match(out.stdout, /^follow-up r\d+f\d+ \(printf\): tracked\.txt:1 an old bug$/m);
   const ledger = readFileSync((await ledgerPath(repo)) as string, 'utf8');
   assert.match(ledger, /"followUp":\["\(printf\): tracked\.txt:1 an old bug"\]/);
   assert.match(ledger, /"tree":"[0-9a-f]{40,64}","diffLines":\d+/);
@@ -114,7 +114,7 @@ test('round 2 is told the files changed since round 1 and the open must-fix find
   assert.match(text, /^This is round 2\. Review only what changed since round 1/m);
   assert.match(text, /^Files changed since round 1:\n- tracked\.txt$/m);
   assert.match(text, /^Must-fix findings open after round 1:\n- \(cat\): tracked\.txt:1 bad$/m);
-  assert.match(two.stdout, /^must-fix \(cat\): other\.txt:1 new \[new, on a file unchanged since round 1\]$/m);
+  assert.match(two.stdout, /^must-fix r\d+m\d+ \(cat\): other\.txt:1 new \[new, on a file unchanged since round 1\]$/m);
 });
 
 test('review.sensitive_paths: a change to a matching file gets max_rounds_sensitive, and the report says which file (e13s02)', () => {
@@ -175,7 +175,7 @@ test('at the round ceiling: exit 5, the last round\'s findings again, and no rev
   assert.equal(out.status, 5, out.stderr);
   assert.match(out.stdout, /^weftwork review: exhausted$/m);
   assert.match(out.stdout, /^why: 1 round on this branch, the ceiling is 1$/m);
-  assert.match(out.stdout, /^unresolved must-fix \(echo\): tracked\.txt:1 bad$/m);
+  assert.match(out.stdout, /^unresolved must-fix r\d+m\d+ \(echo\): tracked\.txt:1 bad$/m);
   assert.equal(readFileSync(log, 'utf8'), 'run\n');
 });
 
