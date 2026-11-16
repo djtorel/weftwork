@@ -7,7 +7,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { applyConvert, planConvert, type ConvertPlan } from './convert.ts';
 import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
@@ -165,6 +165,59 @@ test('AC-e12s03-14 a .gitignore that cites a moved spec still gets .specs/; the 
   assert.ok(applyConvert(dir, p).ok);
   assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.specs\/$/m);
   assert.ok(p.notes.some((note) => note.startsWith('.gitignore still names specs/')));
+});
+
+// A linked worktree is deleted after its pull request; the untracked .specs/
+// would go with it, so convert copies it into the main checkout as well.
+function worktreeOf(main: string): string {
+  const linked = join(makeTempDir(), 'wt');
+  git(main, 'worktree', 'add', '-q', '-b', 'convert', linked);
+  return linked;
+}
+
+test('AC-e12s03-20 in a linked worktree the plan copies the local folder to the main checkout, and apply does', () => {
+  const main = bigpowersRepo();
+  const linked = worktreeOf(main);
+  const p = plan(linked);
+  assert.equal(p.copy, join(realpathSync(main), '.specs'));
+  assert.ok(p.notes.some((note) => note.includes('copied to') && note.includes('main checkout')));
+  assert.equal(plan(main).copy, null);
+  const applied = applyConvert(linked, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(applied.copied, join(realpathSync(main), '.specs'));
+  assert.equal(readFileSync(join(main, '.specs/notes.md'), 'utf8'), 'not cited\n');
+  assert.equal(readFileSync(join(main, '.specs/epics/e02-open/epic.yaml'), 'utf8'), epic);
+  assert.equal(readFileSync(join(linked, '.specs/notes.md'), 'utf8'), 'not cited\n');
+  rmSync(linked, { recursive: true, force: true });
+  assert.equal(readFileSync(join(main, '.specs/state.yaml'), 'utf8'), '---\nactive_flow: null\n');
+});
+
+test('AC-e12s03-22 a main checkout path with a quote, a newline and non-ASCII letters gets the copy', () => {
+  const main = join(makeTempDir(), 'n\u00e4me "q"\nx');
+  mkdirSync(main);
+  git(main, 'init', '-q', '-b', 'main');
+  mkdirSync(join(main, 'specs'));
+  writeFileSync(join(main, 'specs/state.yaml'), '---\n');
+  git(main, 'add', '-A');
+  git(main, 'commit', '-q', '-m', 'init');
+  const p = plan(worktreeOf(main));
+  assert.equal(p.copy, join(realpathSync(main), '.specs'));
+});
+
+test('AC-e12s03-21 "copy": false keeps the local folder in the worktree only; a local folder in the main checkout is a refusal', () => {
+  const main = bigpowersRepo();
+  const linked = worktreeOf(main);
+  const kept = planConvert(linked, { system: 'bigpowers', tag: 'bigpowers-era', copy: false });
+  assert.ok(kept.ok);
+  assert.equal(kept.plan.copy, null);
+  assert.ok(kept.plan.notes.some((note) => note.includes('deleted with it')));
+  const applied = applyConvert(linked, kept.plan);
+  assert.ok(applied.ok);
+  assert.equal(applied.copied, null);
+  assert.equal(existsSync(join(main, '.specs')), false);
+  const other = bigpowersRepo();
+  mkdirSync(join(other, '.specs'));
+  assert.match(String(refusal(worktreeOf(other))), /\.specs exists in the main checkout/);
 });
 
 // story: e12s03b

@@ -21,15 +21,36 @@ echo '{"path":"/path/to/project"}' | node src/convert-cli.ts
 | `path` | the current folder | The project folder, the root of a git repository |
 | `system` | found from the folder | `bigpowers`, `gsd`, `gsd2`, `spec-kit`, `bmad` or `bmad-v4`; needed only when the folder has more than one |
 | `tag` | `bigpowers-era`, `gsd-era`, `gsd2-era`, `speckit-era` or `bmad-era` (both BMAD) | The tag put on the last commit that tracks the plans |
+| `copy` | `true` | In a linked worktree, also copy the local folder (`.specs/`) to the main checkout (§ Worktrees); `false` keeps it in the worktree only |
 | `apply` | `false` | Convert; without it the CLI prints the plan and writes nothing |
 
 It prints one JSON line and exits 0. It exits 1, with the reason on stderr,
 when the conversion is refused, and 2 for bad input.
 
-Without `apply`: `{"ok":true,"plan":{"system","tag","moves","changes","notes"}}`.
+Without `apply`: `{"ok":true,"plan":{"system","tag","moves","copy","changes","notes"}}`;
+`copy` is the folder in the main checkout that apply copies the local folder
+to, or null.
 Each change has a `path`, an `action` (`rewrite`, `append`, `create`,
 `unchanged`) and a `diff`. With `apply`:
-`{"ok":true,"tag","moved","written","kept","notes"}`.
+`{"ok":true,"tag","moved","written","kept","copied","notes"}`.
+
+## Worktrees
+
+The local folder (`.specs/` for bigpowers) is gitignored, so no commit and no
+pull request carries it. When the conversion runs in a linked git worktree,
+that folder lives only in the worktree, and removing the worktree after the
+pull request deletes it. So in a linked worktree, apply also copies the local
+folder to the main checkout (the first entry of `git worktree list`), at the
+same path, after the move. The plan names the copy in `copy` and in a note.
+The main checkout shows the copy as untracked until the change is merged
+there, since its `.gitignore` gets the line only then.
+
+The plan refuses when the main checkout has that folder already: move it, or
+pass `"copy": false`. With `"copy": false`, or in a repository with no main
+checkout (a bare one), the folder stays in the worktree only, and a note says
+it is deleted with the worktree. In the main checkout itself, and for a
+GSD 2 project converted to the backlog only, nothing is copied. If the copy
+fails, apply has done the rest and says so; copy the folder by hand.
 
 ## What it does
 

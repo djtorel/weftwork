@@ -1,6 +1,6 @@
 // story: e12s03, e12s03b, e12s03c
 // Thin shell for converting a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: JSON on stdin, every
-// key optional, `{"path", "system", "tag", "apply"}`, and one JSON line on
+// key optional, `{"path", "system", "tag", "copy", "apply"}`, and one JSON line on
 // stdout. "system" is found from the folder when only one is there. Without
 // "apply" it prints the plan, a dry run that writes nothing; with
 // "apply": true it converts. Logic lives in convert.ts. docs/CONVERT.md.
@@ -21,10 +21,11 @@ function fail(error: string, code = 2): void {
 
 /** Why the request is bad, or null. */
 function badRequest(input: Record<string, unknown>): string | null {
-  const { path, system, tag, apply } = input;
+  const { path, system, tag, copy, apply } = input;
   if (system !== undefined && !isSystem(system)) return '"system" must be "bigpowers", "gsd", "gsd2", "spec-kit", "bmad" or "bmad-v4"';
   if (path !== undefined && (typeof path !== 'string' || path === '' || path.includes('\0'))) return '"path" must be a non-empty string';
   if (tag !== undefined && (typeof tag !== 'string' || tag === '' || tag.startsWith('-'))) return '"tag" must be a tag name';
+  if (copy !== undefined && typeof copy !== 'boolean') return '"copy" must be true or false';
   if (apply !== undefined && typeof apply !== 'boolean') return '"apply" must be true or false';
   return null;
 }
@@ -40,11 +41,11 @@ async function main(): Promise<void> {
   if (found.length > 1) return fail(`the folder has plans of ${found.join(' and ')}; pass "system"`, 1);
   // With neither, bigpowers gives the refusal that names what is missing.
   const system = found[0] ?? 'bigpowers';
-  const planned = planConvert(dir, { system, tag: typeof input.tag === 'string' ? input.tag : defaultTags[system] });
+  const planned = planConvert(dir, { system, tag: typeof input.tag === 'string' ? input.tag : defaultTags[system], copy: input.copy !== false });
   if (!planned.ok) return fail(planned.error, 1);
-  const { tag, moves, changes, notes } = planned.plan;
+  const { tag, moves, changes, notes, copy } = planned.plan;
   if (input.apply !== true) {
-    return printAnswer({ ok: true, plan: { system, tag, moves, changes: changes.map(({ path, action, diff }) => ({ path, action, diff })), notes } }, 0);
+    return printAnswer({ ok: true, plan: { system, tag, moves, copy, changes: changes.map(({ path, action, diff }) => ({ path, action, diff })), notes } }, 0);
   }
   const applied = applyConvert(dir, planned.plan);
   if (!applied.ok) return fail(applied.error, 1);
