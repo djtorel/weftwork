@@ -48,6 +48,11 @@ echo '{"phase":"after"}' | node src/ui-cli.ts
 default it is the merge base of HEAD with `origin/HEAD`, `origin/main` or
 `main`, the first that exists.
 
+When `ui.design` is set, the engine first checks that file under the rules
+of the review (below). A file that is missing or cannot be used stops it
+with exit 2 before the command runs, so a bad path fails here and not at
+review time.
+
 The engine empties `<git dir>/weftwork/ui/<phase>/`, runs `screenshot` in
 the working tree with `WEFTWORK_SHOTS` set to that folder, and checks what
 it wrote: at least one and at most 20 `.png` files, each with the PNG
@@ -60,7 +65,7 @@ SHA-256, the branch, the base commit, and the fingerprint of the tree they show.
 | 0 | `weftwork ui: off` | No `ui` mapping; nothing ran |
 | 1 | `weftwork ui: refused` | Before screenshots, but the tree already changes `ui.paths`, so they would show the change. The command does not run. |
 | 1 | `weftwork ui: failed` | The command failed or timed out, wrote no PNG, wrote a file that is not one, or changed the tree |
-| 2 | none | Bad input, no git working tree, a bad setting file; the reason is on stderr |
+| 2 | none | Bad input, no git working tree, a bad setting file, a `ui.design` file the review cannot use; the reason is on stderr |
 
 Take the before screenshots before the first edit to a UI file, and the
 after ones once the done gate passed on the final tree.
@@ -86,6 +91,13 @@ report is pasted in. Only a must-fix blocks.
 Before screenshots are optional in the review. When none were taken on this
 branch and base, the brief says so and the council reads the after ones alone.
 
+Before it hands the screenshots to the council, the review reads each PNG
+file again and checks its size and SHA-256 against the manifest. When a file
+is gone or changed, it answers `weftwork review: not run` (exit 4), names the
+file, and no reviewer runs. Take the after screenshots again. For a before
+screenshot, take them again on the base tree, or remove the before folder to
+review without them.
+
 ### The design audit
 
 The brief for a UI change also holds a design checklist and a severity rule
@@ -108,7 +120,8 @@ reliably (e11s07, `docs/research/R18-vision-design-judging.md`).
 When `ui.design` is set, the engine reads that file and puts it in the brief
 between two marker lines. It must be a regular file (not a symlink), inside
 the repository once its folders are resolved, valid UTF-8, at most 64 KiB. A file that is missing or cannot be used stops the
-review with exit 2, and no reviewer runs. Without `ui.design`, the brief says
+review with exit 2, and no reviewer runs; `ui-cli` checks the same file
+before it takes screenshots. Without `ui.design`, the brief says
 there is no design reference, and the council judges consistency against the
 existing screens.
 

@@ -135,8 +135,8 @@ export function roundVerdict(results: ReviewerResult[]): RoundVerdict {
   return answered.some((result) => result.mustFix.length > 0) ? 'block' : 'pass';
 }
 
-/** The rounds already run on `branch`. A detached HEAD has no rounds to
- * count, so each round there is its first. */
+/** The rounds already run on `branch`. A detached HEAD (null) has none;
+ * review-cli.ts refuses to run a round there, so the ceiling holds. */
 export function roundsOn(reviews: ReviewEntry[], branch: string | null): ReviewEntry[] {
   return branch === null ? [] : reviews.filter((review) => review.branch === branch);
 }
