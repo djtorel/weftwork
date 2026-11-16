@@ -55,24 +55,127 @@ test('a reviewer reads the brief and the reply format on stdin; an approval pass
 });
 
 test('a must-fix blocks: exit 1, and the round is counted in the ledger', async () => {
-  const repo = readyRepo(council("printf 'VERDICT: CHANGES\\nMUST-FIX a.ts:1 bad\\nSHOULD-FIX b.ts:2 meh\\n'"));
+  const repo = readyRepo(council("printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\nSHOULD-FIX b.ts:2 meh\\n'"));
   const out = review(repo);
   assert.equal(out.status, 1, out.stderr);
   assert.match(out.stdout, /^weftwork review: block$/m);
-  assert.match(out.stdout, /^must-fix \(printf\): a\.ts:1 bad$/m);
+  assert.match(out.stdout, /^must-fix r\d+m\d+ \(printf\): tracked\.txt:1 bad$/m);
   const ledger = readFileSync((await ledgerPath(repo)) as string, 'utf8');
   assert.match(ledger, /"review":"block","branch":"main","round":1,"maxRounds":3/);
 });
 
+test('a must-fix whose file or line does not exist does not block: it is reported as a should-fix (e13s02)', () => {
+  const repo = readyRepo(council("printf 'VERDICT: CHANGES\\nMUST-FIX nope.ts:1 made up\\nMUST-FIX tracked.txt:9 past the end\\n'"));
+  const out = review(repo);
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^weftwork review: pass$/m);
+  assert.match(out.stdout, /^should-fix r\d+s\d+ \(printf\): nope\.ts:1 made up \[not grounded: nope\.ts is not a file in the repository\]$/m);
+  assert.match(out.stdout, /^should-fix r\d+s\d+ \(printf\): tracked\.txt:9 past the end \[not grounded: line 9 is past the end of tracked\.txt, 1 line\]$/m);
+});
+
+test('a follow-up is reported and stored, and never blocks (e13s02)', async () => {
+  const repo = readyRepo(council("printf 'VERDICT: APPROVE\\nFOLLOW-UP tracked.txt:1 an old bug\\n'"));
+  const out = review(repo);
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^follow-up r\d+f\d+ \(printf\): tracked\.txt:1 an old bug$/m);
+  const ledger = readFileSync((await ledgerPath(repo)) as string, 'utf8');
+  assert.match(ledger, /"followUp":\["\(printf\): tracked\.txt:1 an old bug"\]/);
+  assert.match(ledger, /"tree":"[0-9a-f]{40,64}","diffLines":\d+/);
+});
+
+test('the report shows the lines changed from the base, and from round 2 the size at round 1 (e13s02)', () => {
+  const repo = readyRepo(council("echo 'VERDICT: APPROVE'"));
+  const one = review(repo);
+  assert.equal(one.status, 0, one.stderr);
+  assert.match(one.stdout, /^diff: \d+ lines changed from the base$/m);
+  writeFileSync(join(repo, 'big.txt'), 'x\n'.repeat(400));
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const two = review(repo);
+  assert.equal(two.status, 0, two.stderr);
+  assert.match(two.stdout, /^diff: \d+ lines changed from the base, \d+ at round 1$/m);
+  assert.match(two.stdout, /^diff growth: past twice round 1 and 200 lines more; cut the diff before the next round$/m);
+});
+
+test('round 2 is told the files changed since round 1 and the open must-fix findings; a new must-fix on an unchanged file is marked and still blocks (e13s02)', () => {
+  const dir = makeTempDir();
+  const count = join(dir, 'count');
+  const prompt = join(dir, 'prompt');
+  const reviewer = `cat > ${prompt}; n=$(cat ${count} 2>/dev/null || echo 0); echo $((n+1)) > ${count}; if [ $n = 0 ]; then printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\n'; else printf 'VERDICT: CHANGES\\nMUST-FIX other.txt:1 new\\n'; fi`;
+  const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'other.txt': 'other\n' });
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(reviewer)}`);
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(review(repo).status, 1);
+  assert.doesNotMatch(readFileSync(prompt, 'utf8'), /This is round/);
+  writeFileSync(join(repo, 'tracked.txt'), 'fixed\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const two = review(repo);
+  assert.equal(two.status, 1, two.stderr);
+  const text = readFileSync(prompt, 'utf8');
+  assert.match(text, /^This is round 2\. Review only what changed since round 1/m);
+  assert.match(text, /^Files changed since round 1:\n- tracked\.txt$/m);
+  assert.match(text, /^Must-fix findings open after round 1:\n- \(cat\): tracked\.txt:1 bad$/m);
+  assert.match(two.stdout, /^must-fix r\d+m\d+ \(cat\): other\.txt:1 new \[new, on a file unchanged since round 1\]$/m);
+});
+
+test('review.sensitive_paths: a change to a matching file gets max_rounds_sensitive, and the report says which file (e13s02)', () => {
+  const repo = makeTestRepo();
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
+  mkdirSync(join(repo, 'auth'));
+  writeFileSync(join(repo, 'auth', 'login.ts'), 'x\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const one = review(repo);
+  assert.equal(one.status, 0, one.stderr);
+  assert.match(one.stdout, /^round: 1 of 2$/m);
+  assert.match(one.stdout, /^sensitive: yes, auth\/login\.ts matches review\.sensitive_paths$/m);
+  assert.equal(review(repo).status, 0);
+  assert.equal(review(repo).status, 5);
+});
+
+test('a base of HEAD cannot hide a committed change to a sensitive path: the default base decides (e13s02, review round 1)', () => {
+  const repo = makeTestRepo();
+  git(repo, 'checkout', '-q', '-b', 'feat/x');
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n  sensitive_paths: ['auth/**']\n`);
+  mkdirSync(join(repo, 'auth'));
+  writeFileSync(join(repo, 'auth', 'login.ts'), 'x\n');
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-q', '-m', 'auth');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const out = review(repo, { base: 'HEAD' });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^round: 1 of 2$/m);
+});
+
+test('every reviewer gets the audit checklist; a sensitive change also gets the security audit (e13s03)', () => {
+  const prompt = join(makeTempDir(), 'prompt');
+  const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'AGENTS.md': 'rules\n' });
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${council(`cat > ${prompt}; echo 'VERDICT: APPROVE'`)}`);
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  assert.equal(review(repo).status, 0);
+  const plain = readFileSync(prompt, 'utf8');
+  assert.match(plain, /^Audit the change for each of these, in this order:$/m);
+  assert.match(plain, /^3\. Rules: the project rules in AGENTS\.md;/m);
+  assert.doesNotMatch(plain, /^5\. Security:/m);
+  assert.ok(plain.indexOf('Audit the change') < plain.indexOf('VERDICT: APPROVE or CHANGES'));
+  assert.equal(review(repo, { sensitive: true }).status, 0);
+  assert.match(readFileSync(prompt, 'utf8'), /^5\. Security:/m);
+});
+
+test('a change the brief marks sensitive says so in the report (e13s02)', () => {
+  const repo = readyRepo(council("echo 'VERDICT: APPROVE'"));
+  const out = review(repo, { sensitive: true });
+  assert.match(out.stdout, /^sensitive: yes, the brief asked$/m);
+  assert.doesNotMatch(review(repo).stdout, /^sensitive:/m);
+});
+
 test('at the round ceiling: exit 5, the last round\'s findings again, and no reviewer runs', () => {
   const log = join(makeTempDir(), 'runs');
-  const repo = readyRepo(`${council(`echo run >> ${log}; printf 'VERDICT: CHANGES\\nMUST-FIX a.ts:1 bad\\n'`)}  max_rounds: 1\n`);
+  const repo = readyRepo(`${council(`echo run >> ${log}; printf 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\n'`)}  max_rounds: 1\n`);
   assert.equal(review(repo).status, 1);
   const out = review(repo);
   assert.equal(out.status, 5, out.stderr);
   assert.match(out.stdout, /^weftwork review: exhausted$/m);
   assert.match(out.stdout, /^why: 1 round on this branch, the ceiling is 1$/m);
-  assert.match(out.stdout, /^unresolved must-fix \(echo\): a\.ts:1 bad$/m);
+  assert.match(out.stdout, /^unresolved must-fix r\d+m\d+ \(echo\): tracked\.txt:1 bad$/m);
   assert.equal(readFileSync(log, 'utf8'), 'run\n');
 });
 

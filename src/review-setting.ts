@@ -8,7 +8,7 @@ import type { Failure } from './errors.ts';
 import { isInteger } from './json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from './budget.ts';
 
-export type ReviewSetting = { council: string[]; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number };
+export type ReviewSetting = { council: string[]; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
 export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
 /** One reviewer from another model family than Claude, read-only, with the
@@ -17,9 +17,11 @@ export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
  * the screenshots as images (e11s06, docs/UI.md). */
 export const defaultCouncil: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -'];
 
-const builtIn: ReviewSetting = { council: [...defaultCouncil], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200 };
+const builtIn: ReviewSetting = { council: [...defaultCouncil], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
 
 const maxCouncil = 5;
+
+const maxSensitivePaths = 100;
 
 /** Each integer key: its field and its range. */
 const integerKeys = {
@@ -28,7 +30,7 @@ const integerKeys = {
   timeout_seconds: { field: 'timeoutSeconds', max: 3600 },
 } as const;
 
-const knownKeys = ['council', ...Object.keys(integerKeys)];
+const knownKeys = ['council', 'sensitive_paths', ...Object.keys(integerKeys)];
 
 function isCouncil(value: unknown): value is string[] {
   return (
@@ -36,6 +38,16 @@ function isCouncil(value: unknown): value is string[] {
     value.length >= 1 &&
     value.length <= maxCouncil &&
     value.every((command) => typeof command === 'string' && command.trim() !== '' && !command.includes('\0'))
+  );
+}
+
+/** e13s02: glob patterns, as `ui.paths`, whose files make a change sensitive. */
+function isPatterns(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 1 &&
+    value.length <= maxSensitivePaths &&
+    value.every((pattern) => typeof pattern === 'string' && pattern.trim() !== '' && !pattern.includes('\0'))
   );
 }
 
@@ -47,6 +59,10 @@ function checkReview(review: Record<string, unknown>): { ok: true; set: Partial<
   if (review['council'] !== undefined) {
     if (!isCouncil(review['council'])) return { ok: false, error: `review.council must be a list of 1 to ${maxCouncil} commands` };
     set.council = review['council'];
+  }
+  if (review['sensitive_paths'] !== undefined) {
+    if (!isPatterns(review['sensitive_paths'])) return { ok: false, error: `review.sensitive_paths must be a list of 1 to ${maxSensitivePaths} glob patterns` };
+    set.sensitivePaths = review['sensitive_paths'];
   }
   for (const [key, { field, max }] of Object.entries(integerKeys)) {
     const value = review[key];
@@ -73,7 +89,7 @@ function readReview(file: SettingFile): { ok: true; set: Partial<ReviewSetting> 
 
 /** The review setting from the two files (each null when it does not exist). */
 export function resolveReview(files: { user: SettingFile | null; repo: SettingFile | null }): ReviewSettingResult {
-  const review: ReviewSetting = { ...builtIn, council: [...builtIn.council] };
+  const review: ReviewSetting = { ...builtIn, council: [...builtIn.council], sensitivePaths: [...builtIn.sensitivePaths] };
   for (const file of [files.user, files.repo]) {
     if (file === null) continue;
     const read = readReview(file);

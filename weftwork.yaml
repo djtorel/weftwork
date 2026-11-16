@@ -1,0 +1,9 @@
+---
+# The base check (docs/BASE-CHECK.md): each test file a change adds or edits
+# runs on the base commit, where it should fail.
+proof:
+  tests:
+    - 'src/**/*.test.ts'
+  run: 'node --test "$@"'
+  share:
+    - node_modules
