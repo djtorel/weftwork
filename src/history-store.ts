@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // The history file and its inputs (docs/HISTORY.md). The file is
 // `<common git dir>/weftwork/history.jsonl`, next to the clone's backlog: a
 // linked worktree's own git dir goes when the worktree is removed, the

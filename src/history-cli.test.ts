@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // The history CLI (history-cli.ts): `{"record":true}` writes one record of
 // the current branch to the clone's common git dir when the owner has set
 // `history: local`, and is a no-op otherwise; `{}` reports. The record outlives

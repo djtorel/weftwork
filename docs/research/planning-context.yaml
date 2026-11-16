@@ -460,7 +460,7 @@ hypotheses:
       fail on the base. A score measures the reviewer, never the change'
     tested_by:
       - R19
-  # H32 to H34 added for e14s01 on 2026-11-15 (the owner asked whether
+  # H32 to H34 added for e15s01 on 2026-11-15 (the owner asked whether
   # weftwork can improve itself from local use). Outside the H1-H27
   # criterion.
   - id: H32

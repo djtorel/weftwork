@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // Local history (docs/HISTORY.md): one record per task, counted by the engine
 // from its own ledger lines, never from the agent's account of the task.
 // R20 found that what an agent learns helps only when it comes from outcomes
@@ -53,8 +53,13 @@ export function safeName(text: string): string {
   return name === '' ? 'unknown' : name;
 }
 
-function bump(counts: Record<string, number>, key: string): void {
-  counts[key] = (counts[key] ?? 0) + 1;
+/** Counts by name in a Map, then a plain object with each name as an own
+ * key: a name such as `constructor` or `__proto__` must not reach
+ * Object.prototype (review r1s1). */
+function countBy(keys: string[]): Record<string, number> {
+  const counts = new Map<string, number>();
+  for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
+  return Object.fromEntries(counts);
 }
 
 /** The longest run of failed entries in a row for one command. */
@@ -70,12 +75,12 @@ function longestStreak(entries: LedgerEntry[]): number {
 }
 
 function stopCounts(states: StateEntry[]): Record<string, number> {
-  const stops: Record<string, number> = {};
+  const keys: string[] = [];
   for (const line of states) {
-    if (stopStates.has(line.state)) bump(stops, line.state);
-    if (line.state === 'overridden') bump(stops, `overridden-${line.kind ?? 'unknown'}`);
+    if (stopStates.has(line.state)) keys.push(line.state);
+    if (line.state === 'overridden') keys.push(`overridden-${line.kind ?? 'unknown'}`);
   }
-  return stops;
+  return countBy(keys);
 }
 
 /** The record of one task: the ledger lines since the branch began, and the
@@ -85,8 +90,7 @@ export function summarize(input: SummaryInput): TaskRecord {
   const recent = <T extends { at: string }>(lines: T[]): T[] => (since === null ? lines : lines.filter((line) => line.at >= since));
   const entries = recent(input.entries);
   const rounds = recent(input.reviews).filter((round) => round.branch === input.branch);
-  const guards: Record<string, number> = {};
-  for (const line of recent(input.guards)) bump(guards, safeName(basename(line.target)));
+  const guards = countBy(recent(input.guards).map((line) => safeName(basename(line.target))));
   const last = rounds.at(-1);
   return {
     history: 1,

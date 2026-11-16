@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // The history setting (docs/HISTORY.md): the top-level `history` key of the
 // same two setting files as the budget, `local` or `off`. Off unless the
 // owner sets it: an agent cannot turn on its own record, since the guard

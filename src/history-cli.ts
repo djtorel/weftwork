@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // Thin shell for local history (docs/HISTORY.md). JSON on stdin:
 //   {"record": true, "model": "<id>"}  record this branch's task, when the
 //                                      owner set `history: local`

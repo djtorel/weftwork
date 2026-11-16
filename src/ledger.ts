@@ -50,7 +50,7 @@ export type LedgerTail =
       entries: LedgerEntry[];
       states: StateEntry[];
       reviews: ReviewEntry[];
-      /** Guard lines (e11s01); only the history record reads them (e14s01). */
+      /** Guard lines (e11s01); only the history record reads them (e15s01). */
       guards: GuardLine[];
       skipped: number;
       truncated: boolean;

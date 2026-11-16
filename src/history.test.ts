@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // Local history (history.ts): one record per task, counted by the engine from
 // its own ledger, kept in the clone's common git dir so it outlives the
 // worktree, and a report of the failure classes that recur across tasks
@@ -56,6 +56,15 @@ test('a clean task has no class, and no since counts every line', () => {
 test('a guard target is cut to a safe name, so no path or control text reaches a class', () => {
   const record = summarize({ ...base, since: null, entries: [], states: [], reviews: [], guards: [guard('2026-11-15T10:00:00.000Z', '/x/\u001b[31mbad name;rm -rf')] });
   assert.deepEqual(Object.keys(record.guards), ['_31mbad_name_rm_-rf']);
+});
+
+test('a guard target named like an Object property is counted as a name, and the record reads back (review r1s1)', () => {
+  const guards = ['constructor', 'constructor', '__proto__', 'toString'].map((target) => guard('2026-11-15T10:00:00.000Z', target));
+  const record = summarize({ ...base, since: null, entries: [], states: [], reviews: [], guards });
+  assert.deepEqual(Object.entries(record.guards), [['constructor', 2], ['__proto__', 1], ['toString', 1]]);
+  const parsed = parseHistory(`${JSON.stringify(record)}\n`);
+  assert.equal(parsed.skipped, 0);
+  assert.deepEqual(classesOf(parsed.records[0] as TaskRecord), ['guard:constructor', 'guard:__proto__', 'guard:toString']);
 });
 
 const record = (branch: string, at: string, extra: Partial<TaskRecord> = {}): TaskRecord => ({

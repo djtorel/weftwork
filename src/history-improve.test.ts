@@ -1,4 +1,4 @@
-// story: e14s01
+// story: e15s01
 // Accepted improvements (history-improve.ts): the owner merges a change with
 // an entry in weftwork-improvements.yaml naming the failure class it targets,
 // and the history report counts that class in the tasks before and after,
@@ -43,6 +43,9 @@ test('the one-sided Fisher test gives the chance of so few occurrences after if 
   assert.equal(fisherFewer({ before: 6, beforeTasks: 8, after: 0, afterTasks: 8 }).toFixed(5), '0.00350');
   assert.equal(fisherFewer({ before: 1, beforeTasks: 4, after: 1, afterTasks: 4 }).toFixed(4), '0.7857');
   assert.equal(fisherFewer({ before: 0, beforeTasks: 5, after: 0, afterTasks: 5 }), 1);
+  // The two examples docs/HISTORY.md and R20 give for 10 tasks a side (review r1s3).
+  assert.equal(fisherFewer({ before: 6, beforeTasks: 10, after: 1, afterTasks: 10 }).toFixed(3), '0.029');
+  assert.equal(fisherFewer({ before: 6, beforeTasks: 10, after: 2, afterTasks: 10 }).toFixed(3), '0.085');
 });
 
 test('the effect counts the class before and after the date, and labels it only with enough tasks', () => {

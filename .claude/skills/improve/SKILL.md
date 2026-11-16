@@ -38,7 +38,7 @@ R20 found what works and what does not. Follow it:
 2. Pick the class in the most tasks. Read what the ledger and the pull
    requests of its branches show about why it happened. If the cause
    differs across branches, say so and stop: there is no one fix.
-3. Make the change on a new `improve/<class>-<short-name>` branch through
+3. Make the change on a new `improve/<short-name>` branch through
    `full-stop`. For a check, its test must fail on the base, so the base
    check (`docs/BASE-CHECK.md`) shows the change catches the failure, and
    Preflight must pass, so nothing else broke.
