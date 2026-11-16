@@ -398,7 +398,7 @@ test('an after screenshot changed since its manifest: exit 4, and no reviewer ru
   const marker = join(makeTempDir(), 'ran');
   const repo = uiChangedRepo(`touch ${marker}; echo 'VERDICT: APPROVE'`);
   assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
-  writeFileSync(join((await weftworkDir(repo)) as string, 'ui', 'after', 'home.png'), '\x89PNG\r\n\x1a\nchanged');
+  writeFileSync(join((await weftworkDir(repo)) as string, 'ui', 'after', 'home.png'), Buffer.from('89504e470d0a1a0a6368616e676564', 'hex'));
   const out = review(repo);
   assert.equal(out.status, 4, out.stdout + out.stderr);
   assert.match(out.stdout, /^weftwork review: not run$/m);
