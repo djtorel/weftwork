@@ -1,9 +1,9 @@
 ---
-name: weft-review
-description: Use when the user says "weft review", and as the review step of weft-ready.
+name: second-opinion
+description: Use when the user says "second opinion", and as the review step of all-ready.
 ---
 
-# Weft Review
+# Second Opinion
 
 Have reviewer models, from another family by default, review
 your change, read-only, in a loop, before the pull request. The engine runs
@@ -122,10 +122,10 @@ only.
 - Stuck: a must-fix stays disputed after two replies, or the engine answers
   `exhausted`. The ceiling is not approval. Put both sides in the PR in two
   or three lines each. A must-fix still open with no written dispute makes
-  the PR a draft (`weft-ready`, Ready).
+  the PR a draft (`all-ready`, Ready).
 
 Paste the last round's report into the PR as it is, and add:
-`Reviewed with weft-review: <N> rounds. Verdict: <pass|stuck>`. List every
+`Reviewed with second-opinion: <N> rounds. Verdict: <pass|stuck>`. List every
 unresolved finding, every declined one with its reason, and every follow-up.
 Paste `echo '{"report":true}' | node src/review-outcome-cli.ts` under it.
 Leave the temporary folder for the system to clean; do not `rm -rf` it (a

@@ -3,7 +3,7 @@
 // does not report its proof: the ledger says whether the last run of the
 // verify command was done, and the tree fingerprint says whether that run saw
 // the tree as it is now. Ready means the PR may be opened as ready for review;
-// anything else means a draft with a handoff (the weft-ready skill).
+// anything else means a draft with a handoff (the all-ready skill).
 // docs/PR-PROOF.md.
 import { loopRuns } from './breaker.ts';
 import { tokensText } from './budget-report.ts';

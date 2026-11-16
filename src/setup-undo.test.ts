@@ -47,7 +47,7 @@ test('AC-e12s02-20 undo removes what setup created and restores what it appended
   const undone = await undoSetup(dir);
   assert.ok(undone.ok, undone.ok ? '' : undone.error);
   assert.deepEqual(undone.kept, []);
-  for (const path of ['AGENTS.md', 'CONVENTIONS.md', '.claude/skills/weft-ready/SKILL.md', '.claude/settings.json', 'CLAUDE.md.weftwork-old']) assert.ok(gone(join(dir, path)), path);
+  for (const path of ['AGENTS.md', 'CONVENTIONS.md', '.claude/skills/all-ready/SKILL.md', '.claude/settings.json', 'CLAUDE.md.weftwork-old']) assert.ok(gone(join(dir, path)), path);
   assert.ok(gone(join(dir, '.git', 'weftwork', 'BACKLOG.md')));
   assert.equal(readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), '# Old notes\n');
   assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), '.env\n');

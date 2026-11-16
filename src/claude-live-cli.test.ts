@@ -81,7 +81,7 @@ test('the live check notes skills behind this weftwork, and says nothing of skil
   const repo = makeTestRepo(Object.fromEntries(texts.files));
   const current = run([checkCli], { cwd: repo, env: cleanEnv() });
   assert.doesNotMatch(current.stdout, /weftwork update/);
-  rmSync(join(repo, '.claude/skills/weft-improve'), { recursive: true });
+  rmSync(join(repo, '.claude/skills/retro'), { recursive: true });
   const stale = run([checkCli], { cwd: repo, env: cleanEnv() });
   assert.match(stale.stdout, /- The skills in \.claude\/skills are behind this weftwork \(1 change\): run weftwork update\./);
 });

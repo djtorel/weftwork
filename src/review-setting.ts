@@ -12,7 +12,7 @@ export type ReviewSetting = { reviewers: string[]; maxRounds: number; maxRoundsS
 export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
 /** One reviewer from another model family than Claude, read-only, with the
- * user's own Codex settings off (the weft-review skill). It prints only its
+ * user's own Codex settings off (the second-opinion skill). It prints only its
  * answer on stdout and reads the prompt from stdin. For a UI change it gets
  * the screenshots as images (e11s06, docs/UI.md). */
 export const defaultReviewers: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -'];

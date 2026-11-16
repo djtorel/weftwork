@@ -1,9 +1,9 @@
 ---
-name: weft-ready
-description: Trigger this if the user says 'weft ready', even as a closing "Weft ready." after the task. Takes the task to a pull request that is ready to merge, and never merges it.
+name: all-ready
+description: Trigger this if the user says 'all ready', even as a closing "All ready." after the task. Takes the task to a pull request that is ready to merge, and never merges it.
 ---
 
-# Weft Ready
+# All Ready
 
 The user is not watching this thread. Take the task from its current state to
 an open pull request that is ready to merge, then stop. Never merge it. Your
@@ -49,7 +49,7 @@ deleting data, or anything outside this repository.
    behaviour, also run it and look; green mocked tests do not prove a
    user-facing change. For a UI change, then run
    `echo '{"phase":"after"}' | node src/ui-cli.ts`; the review needs it.
-5. **Review.** Use the `weft-review` skill. Fix what it finds, prove each fix.
+5. **Review.** Use the `second-opinion` skill. Fix what it finds, prove each fix.
 6. **File.** Rebase onto the latest `main`, run Preflight through the engine
    again, then get the proof block with the same command string and this
    session's transcript, so the budget line shows the tokens
@@ -66,7 +66,7 @@ deleting data, or anything outside this repository.
    gives the same block without tokens. Paste its output, and the base check's, into the
    PR's Proof block as it is,
    and the output of `node src/decision-cli.ts list` into its Decisions.
-   Exit 0: push and open the PR with the `weft-pr` skill. Exit 1: the gate
+   Exit 0: push and open the PR with the `pr-it` skill. Exit 1: the gate
    says draft; fix it and run the engine again, or stop early (below).
 7. **Wait for CI.** `gh pr checks <number> --watch --interval 15`. Fix real
    failures, prove the fix, push, and wait again. Tell a flaky run from a real
@@ -83,7 +83,7 @@ The PR is ready when all of these hold on its latest commit:
 
 - Your proof covers every change in the diff.
 - Preflight passed locally and the required CI checks are green.
-- `weft-review` agreed, or the items still disputed are listed in the PR,
+- `second-opinion` agreed, or the items still disputed are listed in the PR,
   each must-fix with a written dispute and its evidence. A must-fix that is
   open with no dispute makes the PR a draft.
 - The branch is up to date with `main` and GitHub reports it mergeable.

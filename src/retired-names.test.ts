@@ -21,13 +21,14 @@ type Rule = { name: string; now: string; allowed: string[]; found: (path: string
 const rules: Rule[] = [
   {
     name: 'an old skill name',
-    now: 'weft-ready, weft-review, weft-pr, weft-setup or weft-convert',
+    now: 'all-ready, all-in, second-opinion, pr-it, retro, bootstrap or migrate',
     // setup.ts notes old skill folders still in a project; SETUP.md says what
     // they became; the skills README credits tstack, where two had these names;
+    // the weft- names came between 0.1.0 and 0.2.0;
     // skill-hashes.ts keeps the texts shipped under them, so `weftwork update`
     // can delete an old folder the owner never changed (update.test.ts).
     allowed: ['src/setup.ts', 'src/setup.test.ts', 'docs/SETUP.md', '.claude/skills/README.md', 'src/skill-hashes.ts', 'src/update.test.ts'],
-    found: (_path, text) => /\b(full-stop|review-loop|file-pr|setup-project|convert-project)\b/.test(text),
+    found: (_path, text) => /\b(full-stop|review-loop|file-pr|setup-project|convert-project|weft-(ready|review|pr|improve|setup|convert))\b/.test(text),
   },
   {
     name: 'the review council',
@@ -56,6 +57,7 @@ function retired(path: string, text: string): string[] {
 
 test('each rule catches its old name, and lets the new name and a JSON object through', () => {
   assert.deepEqual(retired('docs/ASK.md', 'Use the full-stop skill.'), ['an old skill name']);
+  assert.deepEqual(retired('README.md', 'End the task with weft-ready.'), ['an old skill name']);
   assert.deepEqual(retired('README.md', 'The council reviews it.'), ['the review council']);
   assert.deepEqual(retired('docs/X.md', '```yaml\nbudget:\n  maxRuns: 3\n```\n'), ['a camelCase budget key in YAML']);
   assert.deepEqual(retired('src/x.test.ts', "write('budget:\\n  maxFailures: 2\\n')"), ['a camelCase budget key in YAML']);
@@ -63,8 +65,8 @@ test('each rule catches its old name, and lets the new name and a JSON object th
   assert.deepEqual(retired('src/x.test.ts', "repo('budget: !!seq {maxRuns: 2}')"), ['a camelCase budget key in YAML']);
   assert.deepEqual(retired('src/x.test.ts', "runEngine({ command, maxRuns: 3 })\nconst limits = {\n  maxFailures: 5,\n};"), []);
   assert.deepEqual(retired('src/x.test.ts', 'const request = {maxRuns: 3};'), [], 'a JSON object with no space after the brace');
-  assert.deepEqual(retired('docs/X.md', 'Use weft-ready. budget:\n  max_runs: 3\n'), []);
-  assert.deepEqual(retired('CHANGELOG.md', 'full-stop is now weft-ready; review.council is review.reviewers'), []);
+  assert.deepEqual(retired('docs/X.md', 'Use all-ready. budget:\n  max_runs: 3\n'), []);
+  assert.deepEqual(retired('CHANGELOG.md', 'full-stop is now all-ready; review.council is review.reviewers'), []);
   assert.deepEqual(retired('docs/research/R18.md', 'a design council'), []);
 });
 

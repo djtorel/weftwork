@@ -38,7 +38,8 @@ esac
 if find "$pkg/dist" -name '*.test.js' | grep -q .; then
   fail "the package ships tests"
 fi
-for f in LICENSE README.md docs/SETUP.md .claude/skills/weft-ready/SKILL.md \
+for f in LICENSE README.md docs/SETUP.md .claude/skills/all-ready/SKILL.md \
+  .claude/skills/all-in/SKILL.md \
   .github/pull_request_template.md dist/claude-hook-cli.js; do
   [ -f "$pkg/$f" ] || fail "the package has no $f"
 done
@@ -56,7 +57,8 @@ git -C repo -c user.name=t -c user.email=t@t commit -q -m init
 (cd repo && "$bin" init --yes --stop-hook >/dev/null 2>&1) \
   || fail "init --yes failed"
 [ -f repo/AGENTS.md ] || fail "init wrote no AGENTS.md"
-grep -q 'weftwork engine' repo/.claude/skills/weft-ready/SKILL.md \
+grep -q 'weftwork engine' repo/.claude/skills/all-ready/SKILL.md \
+  .claude/skills/all-in/SKILL.md \
   || fail "the installed skill does not call the weftwork command"
 settings="$work/repo/.claude/settings.json"
 grep -qF "weftwork claude-hook -- " "$settings" \
@@ -89,9 +91,9 @@ esac
 # --yes brings it back.
 (cd repo && "$bin" update) | grep -q 'up to date' \
   || fail "update did not find a new setup up to date"
-rm -r repo/.claude/skills/weft-improve
+rm -r repo/.claude/skills/retro
 (cd repo && "$bin" update --yes >/dev/null) || fail "update --yes failed"
-[ -f repo/.claude/skills/weft-improve/SKILL.md ] \
+[ -f repo/.claude/skills/retro/SKILL.md ] \
   || fail "update did not create the missing skill"
 
 # upgrade, with a fake npm first on PATH: it asks for the latest version and

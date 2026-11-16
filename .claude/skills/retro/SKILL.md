@@ -1,9 +1,9 @@
 ---
-name: weft-improve
-description: Use when the user says "weft improve", or asks what weftwork's history shows or what to fix in the workflow.
+name: retro
+description: Use when the user says "retro", or asks what weftwork's history shows or what to fix in the workflow.
 ---
 
-# Weft Improve
+# Retro
 
 Turn a failure that keeps coming back into one small, proven fix that the
 owner can accept or refuse. The engine keeps the record; you propose; the
@@ -42,7 +42,7 @@ R20 found what works and what does not. Follow it:
    requests of its branches show about why it happened. If the cause
    differs across branches, say so and stop: there is no one fix.
 3. Make the change on a new `improve/<short-name>` branch through
-   `weft-ready`. For a check, its test must fail on the base, so the base
+   `all-ready`. For a check, its test must fail on the base, so the base
    check (`docs/BASE-CHECK.md`) shows the change catches the failure, and
    Preflight must pass, so nothing else broke.
 4. Add one entry to `weftwork-improvements.yaml` at the root in the same

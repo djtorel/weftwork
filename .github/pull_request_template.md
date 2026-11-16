@@ -18,7 +18,7 @@ they showed; screenshots for UI. -->
 
 ## Review
 
-<!-- "Reviewed with weft-review: N rounds. Verdict: ...", the last round's
+<!-- "Reviewed with second-opinion: N rounds. Verdict: ...", the last round's
 report from node src/review-cli.ts (docs/REVIEW.md), and every unresolved or
 declined finding with its reason. -->
 

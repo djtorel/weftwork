@@ -33,12 +33,12 @@ export type Applied = { ok: true; written: string[]; kept: string[]; record: Wri
 export type Written = { path: string; made: 'create' | 'append' | 'overwrite'; link: boolean; before: string | null; after: string };
 
 const maxFileBytes = 1024 * 1024;
-const skillFiles = ['weft-ready/SKILL.md', 'weft-review/SKILL.md', 'weft-pr/SKILL.md', 'weft-improve/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
+const skillFiles = ['all-ready/SKILL.md', 'all-in/SKILL.md', 'second-opinion/SKILL.md', 'pr-it/SKILL.md', 'retro/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
 
 /** The folders the skills had before they were renamed. Setup never writes or
  * deletes them; the plan notes the ones still there, and `weftwork update`
  * deletes one that holds only a text weftwork shipped (update.ts). */
-export const oldSkillFolders = ['full-stop', 'review-loop', 'file-pr'];
+export const oldSkillFolders = ['full-stop', 'review-loop', 'file-pr', 'weft-ready', 'weft-review', 'weft-pr', 'weft-improve'];
 const ignoreHeader = '# Added by weftwork setup.';
 const oldSuffix = '.weftwork-old';
 
@@ -168,7 +168,7 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   }
   const old = oldSkillFolders.map((name) => `.claude/skills/${name}`).filter((path) => existsSync(join(dir, path)));
   if (old.length > 0) {
-    notes.push(`Skills set up under their old names are still here and setup leaves them: ${old.join(', ')}. The new ones are weft-ready, weft-review and weft-pr; weftwork update deletes an old folder you did not change.`);
+    notes.push(`Skills set up under their old names are still here and setup leaves them: ${old.join(', ')}. The new ones are all-ready, all-in, second-opinion, pr-it and retro; weftwork update deletes an old folder you did not change.`);
   }
   const common = isGitRoot(dir) ? gitCommonDir(dir) : null;
   if (common === null) {

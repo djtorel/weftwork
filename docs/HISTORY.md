@@ -32,7 +32,7 @@ files (`docs/GUARD.md`).
 
 ## The record
 
-The `weft-pr` skill records the task when it files the pull request:
+The `pr-it` skill records the task when it files the pull request:
 
 ```bash
 echo '{"record":true,"model":"<model id>"}' | node src/history-cli.ts
@@ -87,7 +87,7 @@ detached HEAD, or a file it cannot read or write. The reason is on stderr.
 
 ## From a class to a fix
 
-The `weft-improve` skill reads the report, takes the most common class and
+The `retro` skill reads the report, takes the most common class and
 proposes one change for it, in its own pull request:
 
 - Prefer a check (a test, a lint rule, a Preflight step, a hook) over a

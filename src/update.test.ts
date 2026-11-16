@@ -7,7 +7,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { skillTexts } from './setup.ts';
+import { oldSkillFolders, skillTexts } from './setup.ts';
 import { shippedSkillTexts } from './skill-hashes.ts';
 import { applyUpdate, behind, planUpdate, sha256, type Shipped, type UpdatePlan } from './update.ts';
 import { cleanupTempDirs, makeTestRepo } from './test-helpers.ts';
@@ -56,6 +56,28 @@ test('every skill text setup writes now is in the table of shipped texts', () =>
   }
 });
 
+test('each skill folder weftwork ever shipped is a skill of this version or an old folder that update deletes', () => {
+  const now = new Set([...current().keys()].map((name) => name.split('/')[0]));
+  for (const name of Object.keys(shippedSkillTexts).filter((name) => name.includes('/'))) {
+    const folder = name.split('/')[0];
+    assert.ok(now.has(folder) || oldSkillFolders.includes(folder), `add '${folder}' to oldSkillFolders in src/setup.ts`);
+  }
+});
+
+test('a project set up under the weft- names gets them deleted, since it holds only shipped texts', () => {
+  const [name, hashes] = ['weft-ready/SKILL.md', shippedSkillTexts['weft-ready/SKILL.md']];
+  assert.ok(hashes !== undefined && hashes.length > 0, 'the weft-ready texts stay in the table');
+  const shippedOld = '# the weft-ready skill, as shipped\n';
+  const dir = makeTestRepo({ [`.claude/skills/${name}`]: shippedOld });
+  const p = plan(dir, shippedWith({ [name]: shippedOld }));
+  assert.equal(action(p, `.claude/skills/${name}`), 'delete');
+  assert.equal(action(p, '.claude/skills/all-ready/SKILL.md'), 'create');
+  assert.equal(action(p, '.claude/skills/all-in/SKILL.md'), 'create');
+  const applied = applyUpdate(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(existsSync(join(dir, '.claude/skills/weft-ready')), false);
+});
+
 test('a project set up by this version is up to date, and the plan writes nothing', () => {
   const p = plan(setUp());
   assert.equal(behind(p), 0);
@@ -63,39 +85,39 @@ test('a project set up by this version is up to date, and the plan writes nothin
 });
 
 test('a skill file that holds a text an older version shipped is updated in place, with no file moved aside', () => {
-  const old = older('weft-ready/SKILL.md');
-  const dir = setUp({ '.claude/skills/weft-ready/SKILL.md': old });
-  const p = plan(dir, shippedWith({ 'weft-ready/SKILL.md': old }));
-  assert.equal(action(p, '.claude/skills/weft-ready/SKILL.md'), 'update');
+  const old = older('all-ready/SKILL.md');
+  const dir = setUp({ '.claude/skills/all-ready/SKILL.md': old });
+  const p = plan(dir, shippedWith({ 'all-ready/SKILL.md': old }));
+  assert.equal(action(p, '.claude/skills/all-ready/SKILL.md'), 'update');
   assert.equal(behind(p), 1);
   const applied = applyUpdate(dir, p);
   assert.ok(applied.ok, applied.ok ? '' : applied.error);
-  assert.deepEqual(applied.written, ['.claude/skills/weft-ready/SKILL.md']);
-  assert.equal(readFileSync(join(dir, '.claude/skills/weft-ready/SKILL.md'), 'utf8'), current().get('weft-ready/SKILL.md'));
-  assert.equal(existsSync(join(dir, '.claude/skills/weft-ready/SKILL.md.weftwork-old')), false);
+  assert.deepEqual(applied.written, ['.claude/skills/all-ready/SKILL.md']);
+  assert.equal(readFileSync(join(dir, '.claude/skills/all-ready/SKILL.md'), 'utf8'), current().get('all-ready/SKILL.md'));
+  assert.equal(existsSync(join(dir, '.claude/skills/all-ready/SKILL.md.weftwork-old')), false);
   assert.equal(behind(plan(dir)), 0, 'a second update has nothing to do');
 });
 
 test('a skill file the owner changed is kept, with a diff, and never written', () => {
-  const dir = setUp({ '.claude/skills/weft-pr/SKILL.md': '# my own PR skill\n' });
+  const dir = setUp({ '.claude/skills/pr-it/SKILL.md': '# my own PR skill\n' });
   const p = plan(dir);
-  const change = p.changes.find((c) => c.path === '.claude/skills/weft-pr/SKILL.md');
+  const change = p.changes.find((c) => c.path === '.claude/skills/pr-it/SKILL.md');
   assert.equal(change?.action, 'edited');
   assert.match(change?.diff ?? '', /my own PR skill/);
   assert.equal(behind(p), 0);
   const applied = applyUpdate(dir, p);
   assert.ok(applied.ok);
-  assert.equal(readFileSync(join(dir, '.claude/skills/weft-pr/SKILL.md'), 'utf8'), '# my own PR skill\n');
+  assert.equal(readFileSync(join(dir, '.claude/skills/pr-it/SKILL.md'), 'utf8'), '# my own PR skill\n');
 });
 
 test('a skill this version adds is created', () => {
   const dir = setUp();
-  rmSync(join(dir, '.claude/skills/weft-improve'), { recursive: true });
+  rmSync(join(dir, '.claude/skills/retro'), { recursive: true });
   const p = plan(dir);
-  assert.equal(action(p, '.claude/skills/weft-improve/SKILL.md'), 'create');
+  assert.equal(action(p, '.claude/skills/retro/SKILL.md'), 'create');
   const applied = applyUpdate(dir, p);
   assert.ok(applied.ok);
-  assert.equal(readFileSync(join(dir, '.claude/skills/weft-improve/SKILL.md'), 'utf8'), current().get('weft-improve/SKILL.md'));
+  assert.equal(readFileSync(join(dir, '.claude/skills/retro/SKILL.md'), 'utf8'), current().get('retro/SKILL.md'));
 });
 
 test('a skill folder from before the rename is deleted when it holds only a shipped text, and kept when changed', () => {
@@ -110,7 +132,7 @@ test('a skill folder from before the rename is deleted when it holds only a ship
   assert.equal(action(p, '.claude/skills/full-stop/SKILL.md'), 'delete');
   assert.equal(action(p, '.claude/skills/file-pr'), 'keep-old');
   assert.equal(action(p, '.claude/skills/review-loop'), 'keep-old');
-  assert.equal(action(p, '.claude/skills/weft-ready/SKILL.md'), 'create', 'the renamed skills are created');
+  assert.equal(action(p, '.claude/skills/all-ready/SKILL.md'), 'create', 'the renamed skills are created');
   const applied = applyUpdate(dir, p);
   assert.ok(applied.ok, applied.ok ? '' : applied.error);
   assert.deepEqual(applied.deleted, ['.claude/skills/full-stop/SKILL.md']);
@@ -146,18 +168,18 @@ test('a folder with no weftwork skills is refused: set it up first', () => {
 });
 
 test('a file that changed between the plan and the write is kept', () => {
-  const old = older('weft-review/SKILL.md');
-  const dir = setUp({ '.claude/skills/weft-review/SKILL.md': old });
-  const p = plan(dir, shippedWith({ 'weft-review/SKILL.md': old }));
-  writeFileSync(join(dir, '.claude/skills/weft-review/SKILL.md'), '# changed meanwhile\n');
+  const old = older('second-opinion/SKILL.md');
+  const dir = setUp({ '.claude/skills/second-opinion/SKILL.md': old });
+  const p = plan(dir, shippedWith({ 'second-opinion/SKILL.md': old }));
+  writeFileSync(join(dir, '.claude/skills/second-opinion/SKILL.md'), '# changed meanwhile\n');
   const applied = applyUpdate(dir, p);
   assert.ok(applied.ok);
-  assert.deepEqual(applied.kept, ['.claude/skills/weft-review/SKILL.md']);
-  assert.equal(readFileSync(join(dir, '.claude/skills/weft-review/SKILL.md'), 'utf8'), '# changed meanwhile\n');
+  assert.deepEqual(applied.kept, ['.claude/skills/second-opinion/SKILL.md']);
+  assert.equal(readFileSync(join(dir, '.claude/skills/second-opinion/SKILL.md'), 'utf8'), '# changed meanwhile\n');
 });
 
 test('a skills folder that is a symlink is refused, so an update never writes outside the project', () => {
-  const elsewhere = makeTestRepo({ 'weft-ready/SKILL.md': '# x\n' });
+  const elsewhere = makeTestRepo({ 'all-ready/SKILL.md': '# x\n' });
   const dir = makeTestRepo({ 'AGENTS.md': '# mine\n' });
   mkdirSync(join(dir, '.claude'));
   symlinkSync(elsewhere, join(dir, '.claude/skills'));
