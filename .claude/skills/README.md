@@ -9,12 +9,12 @@ follow this repository's rules (`AGENTS.md`), `weft-ready` never merges and
 carries `full-send`'s steps itself, `weft-review` runs the reviewers through
 the engine (the Codex CLI by default), and `weft-pr` adds no model line,
 because a squash merge can carry the PR body into the commit.
-`docs/research/R17-practitioner-autonomy.md` explains why.
+weftwork's research brief R17 (practitioner autonomy) explains why.
 
-`weft-setup` is our own: it drives `src/setup-cli.ts` (`docs/SETUP.md`).
+`weft-improve` is our own: it reads the report of `node src/history-cli.ts`
+and proposes one small fix for a recurring failure (`docs/HISTORY.md`).
 
-`weft-convert` is our own too: it drives `src/convert-cli.ts`
+`weft-setup` and `weft-convert` are our own too. They stay in the weftwork
+repository, and setup does not copy them into a project. They run
+`node src/setup-cli.ts` (`docs/SETUP.md`) and `node src/convert-cli.ts`
 (`docs/CONVERT.md`).
-
-`weft-improve` is our own too: it reads `src/history-cli.ts`'s report and proposes
-one small fix for a recurring failure (`docs/HISTORY.md`).
