@@ -63,8 +63,16 @@ Run commands are skipped, since a server does not exit. A command whose
 name, text or `body` says `deploy` or `publish` is skipped too. The `body`
 is the command's own script or recipe, then, each under a `# name` line,
 every script or target it can reach: npm's `pre` and `post` hooks and
-scripts it names, or a target's prerequisites and their recipes. The match
-is on text, so it is a partial guard: a deploy hidden in a shell script, an
-`include`d Makefile or a variable is not seen. The
+scripts it names, or a target's prerequisites and their recipes. A
+Makefile's `include`d makefiles inside the folder count as part of it, and a
+recipe is matched again with its `$(VARIABLES)` expanded, once for each value
+a variable is given anywhere in the Makefile, and a prerequisite named by a
+variable is followed. A target whose variables can take more than 64 values
+is skipped too, since not all it runs was read. Each file in the project folder that
+the command or its body names (`./scripts/check.sh`), and each file those
+name, is read too, up to 50 files of at most 1 MiB; a path outside the
+folder is not. The match is on text, so it is still a partial guard: a
+deploy built at run time, in an environment variable or a program outside
+the folder, is not seen. The
 commands run one at a time in the project folder, in their own process
 group, with stdin empty and `CI=1`, so watch-mode test runners exit.
