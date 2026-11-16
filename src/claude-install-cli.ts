@@ -6,14 +6,15 @@
 // claude-install.ts and claude-settings-file.ts. Exit 0 on success and 1 on
 // any error; this is not a hook, so exit 2 means nothing here.
 //
+// The entries run `weftwork claude-hook` and `weftwork guard` from PATH, and
+// block when weftwork is missing (claude-install.ts, requireWeftwork).
+//
 // SECURITY: the command is shell code that the hook will run, so it comes from
 // the owner at this prompt. The settings file is untrusted input (e10).
-import { join } from 'node:path';
+import { weftworkOnPath } from './claude-install.ts';
 import { installInProject } from './claude-settings-file.ts';
 
-const usage = "usage: node claude-install-cli.ts -- '<declared command>'";
-const adapter = join(import.meta.dirname, 'claude-hook-cli.ts');
-const guard = join(import.meta.dirname, 'guard-cli.ts');
+const usage = "usage: weftwork claude-install -- '<declared command>'";
 
 /** What the owner does next, printed after a successful install. */
 function nextSteps(path: string, guardChanged: boolean): string {
@@ -22,13 +23,13 @@ function nextSteps(path: string, guardChanged: boolean): string {
     `${guardChanged ? 'added' : 'unchanged'}: PreToolUse guard in ${path}`,
     '',
     'Next:',
-    `- The entries name ${adapter} and ${guard}, so they work on this machine only.`,
+    '- The entries run the weftwork command from PATH. Where it is missing they',
+    '  block every stop and tool call and say to run npm install -g weftwork.',
     '- If Claude Code shows the workspace trust dialog, accept it. Until you do,',
     '  it does not run the hook.',
     '- Start a new Claude Code session. A session that is already running may not',
     '  see the hook.',
     '- Commit .claude/settings.json to share the hook with the team.',
-    '- If you move this checkout, run the install again and delete the old entry by hand.',
     '',
   ].join('\n');
 }
@@ -39,7 +40,7 @@ function main(args: string[]): number {
     process.stderr.write(`${usage}\n`);
     return 1;
   }
-  const result = installInProject(process.cwd(), { stop: adapter, guard }, command);
+  const result = installInProject(process.cwd(), { stop: weftworkOnPath, guard: weftworkOnPath }, command);
   if (!result.ok) {
     process.stderr.write(`weftwork install: ${result.error}\n`);
     return 1;

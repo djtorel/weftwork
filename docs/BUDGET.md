@@ -171,7 +171,7 @@ answer has a `detail`:
 ```
 
 The path is the absolute path of `src/handoff-cli.ts` in the weftwork
-checkout, in double quotes, so it pastes from any directory and from a
+checkout (`dist/handoff-cli.js` in the npm package), in double quotes, so it pastes from any directory and from a
 checkout path with spaces. A checkout path with `$`, a backtick or `!` does
 not paste as is, since the shell expands those inside double quotes. The
 handoff CLI reads one JSON object on stdin with `next_skill`, `branch` and
@@ -253,7 +253,8 @@ The tokens are `not counted`, with the reason, when the Stop input has no
 file is not a regular file (a symlink is not followed), is larger than
 64 MiB (67108864 bytes) or is not valid UTF-8. The answer is the same
 either way. Lines that are not JSON, such as a last line the host has not
-finished writing, are skipped. The host writes the transcript while the
+finished writing, are skipped. That last line can end inside a multi-byte
+character; the file is then still read, and only that line is skipped. The host writes the transcript while the
 session runs, so the last turn can be missing from the count.
 
 ## Limits of this setting

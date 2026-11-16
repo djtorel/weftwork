@@ -8,7 +8,30 @@ folder (one with no other planning system). It detects the project
 the full plan as a dry run, and writes only when told to. The
 `setup-project` skill drives it in Claude Code.
 
-## Run it
+## From the terminal: `weftwork init`
+
+```bash
+cd /path/to/project
+weftwork init
+```
+
+`weftwork init [path]` is the same setup for a person: the folder is the
+current one unless you name it. In a terminal it asks the five questions
+below (Enter keeps the recommended answer), prints the plan, and asks
+`Write these files? [y/N]` before it writes. With no terminal to ask in
+(a pipe, CI) it takes the recommended answers and prints the plan only.
+
+| Option | Meaning |
+| --- | --- |
+| `-y`, `--yes` | Take the recommended answers and write without asking |
+| `--stop-hook` | Also register the Claude Code Stop hook and guard |
+| `--no-run` | Do not run the project's commands (as `"run": false`) |
+| `--overwrite <path>` | Replace this conflict; repeat for more |
+
+It exits 0 when it wrote or you chose not to, 1 when detection, the plan or
+the write is refused, and 2 for a bad option. Logic: `src/init.ts`.
+
+## Run it with JSON (agents)
 
 ```bash
 echo '{"path":"/path/to/project"}' | node src/setup-cli.ts
@@ -74,13 +97,16 @@ today (H3); one that ran and failed is marked `(fails today)`. The Preflight
 joins the lint, typecheck and test commands that passed. With none, the
 letter says so and there is no Stop hook.
 
-The skills call the `weftwork` command (`src/weftwork-cli.ts`, installed with
-`npm link`; `docs/GETTING-STARTED.md` § 1), so they work from any project and
-from a moved checkout once it is linked again. When `weftwork path` does not
-print this checkout, the plan has a note. The Stop hook and the guard still
-name this checkout by absolute path: a hook that cannot find `weftwork` on
-the PATH of the shell Claude Code runs it in would let every stop and tool
-call through, so set up again after moving the checkout.
+The skills call the `weftwork` command (installed with `npm install -g
+weftwork`, or `npm link` from a checkout; `docs/GETTING-STARTED.md` § 1), so
+they work from any project and from a moved checkout once it is linked
+again. When `weftwork path` does not print this engine, the plan has a note.
+The Stop hook and the guard run `weftwork claude-hook` and `weftwork guard`
+from PATH too, so an npm upgrade, a moved checkout or a new Node needs no new
+setup. A hook that cannot start is a non-blocking error in Claude Code, so
+each entry first checks that `weftwork` is on PATH and exits 2 when it is
+not: the stop or the tool call is blocked with a message that says to run
+`npm install -g weftwork` (`docs/GUARD.md`).
 
 A folder that is not the root of a git repository gets no backlog and no
 Stop hook; a note says so.

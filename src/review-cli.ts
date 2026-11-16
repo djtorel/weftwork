@@ -8,8 +8,9 @@
 // Exit 0 pass, 1 block (fix the must-fix findings, pass the gate, review
 // again), 3 no verdict (every reviewer failed, or the tree changed during the
 // review), 4 the done gate has not passed (no reviewer ran), 5 the round
-// ceiling (no reviewer ran), 2 when it cannot run, with the reason on stderr
-// and nothing on stdout.
+// ceiling (no reviewer ran), 2 when it cannot run (a detached HEAD among the
+// causes, since rounds are counted per branch), with the reason on stderr and
+// nothing on stdout.
 import { readJsonObject, terminalSafe } from './cli-io.ts';
 import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } from './ledger.ts';
 import { prProof } from './pr-proof.ts';
@@ -54,6 +55,7 @@ async function main(): Promise<void> {
   if (!ledger.ok) return fail(`the ledger cannot be read: ${ledger.error}`);
   const branch = await currentBranch(cwd);
   if (!branch.ok) return fail(`the branch cannot be read: ${branch.error}`);
+  if (branch.branch === null) return fail('HEAD is detached; review rounds are counted per branch, so check out a branch first');
 
   const proof = prProof({ entries: ledger.entries, states: ledger.states, command, fingerprint: tree.fingerprint });
   if (!proof.ready) return answer(`weftwork review: not run\nwhy: the done gate has not passed: ${proof.why}\n`, 4);

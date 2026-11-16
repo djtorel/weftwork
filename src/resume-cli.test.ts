@@ -258,3 +258,10 @@ test('known limit: a file uncommitted at the handoff and deleted since is not se
   rmSync(join(made.repo, 'tracked.txt'));
   assert.equal(runResume(made.repo).result['answer'], 'ready');
 });
+
+test('with no handoff, the next step names the handoff CLI by a path that exists, so it works from the npm package too', () => {
+  const out = spawnSync('node', [resumeCli], { cwd: makeTestRepo(), encoding: 'utf8', timeout: 20000 });
+  const named = /write a handoff with node '([^']+handoff-cli\.ts)'/.exec(out.stderr)?.[1];
+  assert.ok(named !== undefined, out.stderr);
+  assert.equal(named, handoffCli);
+});
