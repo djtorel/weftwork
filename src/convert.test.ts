@@ -322,6 +322,73 @@ test('AC-e12s03c-09 the BMAD plan refuses: no _bmad/, no _bmad-output/, and the 
   assert.match(String(refuse(tree)), /ticket tree .*is not converted yet/);
 });
 
+// story: e12s03d
+// A BMAD v4.44.3 project: .bmad-core/core-config.yaml (devStoryLocation,
+// prd.prdSharded, prd.prdShardedLocation, prd.epicFilePattern), the sharded
+// PRD and story files from story-tmpl.yaml.
+const bmadV4Config = 'markdownExploder: true\nprd:\n  prdFile: docs/prd.md\n  prdVersion: v4\n  prdSharded: true\n  prdShardedLocation: docs/prd\n  epicFilePattern: epic-{n}*.md\ndevStoryLocation: docs/stories\n';
+const bmadV4Story = (number: string, title: string, status: string): string => `# Story ${number}: ${title}\n\n## Status\n\n${status}\n\n## Story\n\n**As a** user,\n`;
+function bmadV4Repo(extra: Record<string, string> = {}): string {
+  return makeTestRepo({
+    '.bmad-core/core-config.yaml': bmadV4Config,
+    'docs/prd.md': '# Plants Product Requirements Document (PRD)\n',
+    'docs/prd/index.md': '# Plants PRD\n',
+    'docs/prd/epic-1-foundation.md': '# Epic 1 Foundation\n\nSet up.\n\n## Story 1.1 Repo\n\n## Story 1.2 Health check\n',
+    'docs/architecture.md': '# Architecture\n',
+    'docs/stories/1.1.repo.md': bmadV4Story('1.1', 'Repo', 'Done'),
+    'docs/stories/1.2.health-check.md': bmadV4Story('1.2', 'Health check', 'Review'),
+    'README.md': 'Stories: docs/stories/1.2.health-check.md. Design: docs/architecture.md.\n',
+    ...extra,
+  });
+}
+
+test('AC-e12s03d-03 a BMAD v4 project: tag, docs/stories/ to .bmad-stories/, the PRD stays, open stories to the backlog, a note for .bmad-core/', () => {
+  const dir = bmadV4Repo();
+  const result = planConvert(dir, { system: 'bmad-v4', tag: 'bmad-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  const p = result.plan;
+  assert.deepEqual(p.moves, [{ from: 'docs/stories', to: '.bmad-stories' }]);
+  assert.ok(p.notes.some((note) => note.startsWith('.bmad-core/ stays tracked')), p.notes.join('\n'));
+  assert.ok(p.notes.some((note) => note.startsWith('README.md still names docs/stories/')), p.notes.join('\n'));
+  const applied = applyConvert(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(execFileSync('git', ['tag'], { cwd: dir, encoding: 'utf8' }), 'bmad-era\n');
+  assert.equal(existsSync(join(dir, 'docs/stories')), false);
+  assert.equal(readFileSync(join(dir, '.bmad-stories/1.2.health-check.md'), 'utf8'), bmadV4Story('1.2', 'Health check', 'Review'));
+  assert.equal(readFileSync(join(dir, 'docs/prd/epic-1-foundation.md'), 'utf8').startsWith('# Epic 1'), true);
+  assert.match(readFileSync(join(dir, '.gitignore'), 'utf8'), /^\.bmad-stories\/$/m);
+  const backlogText = readFileSync(commonBacklog(dir), 'utf8');
+  assert.match(backlogText, /### Epic 1: Foundation\n\nGoal: Set up\.\nPRD: `docs\/prd\/`\n\n- \[ \] \*\*Story 1\.2 Health check\.\*\* Status: Review\n {2}Old spec: `\.bmad-stories\/1\.2\.health-check\.md`/);
+  assert.doesNotMatch(backlogText, /Story 1\.1/);
+});
+
+test('AC-e12s03d-04 BMAD v4 reads devStoryLocation and an unsharded PRD from core-config.yaml', () => {
+  const dir = makeTestRepo({
+    '.bmad-core/core-config.yaml': 'prd:\n  prdFile: plans/prd.md\n  prdSharded: false\ndevStoryLocation: plans/stories\n',
+    'plans/prd.md': '# PRD\n\n## Epic 1 Foundation\n\nSet up.\n\n### Story 1.1 Repo\n',
+    'plans/stories/1.1.repo.md': bmadV4Story('1.1', 'Repo', 'Draft'),
+  });
+  const result = planConvert(dir, { system: 'bmad-v4', tag: 'bmad-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  assert.deepEqual(result.plan.moves, [{ from: 'plans/stories', to: '.bmad-stories' }]);
+  const backlog = result.plan.changes.find((change) => change.path.endsWith('BACKLOG.md'));
+  assert.match(String(backlog?.diff), /PRD: `plans\/prd\.md`/);
+  assert.match(String(backlog?.diff), /Story 1\.1 Repo\.\*\* Status: Draft/);
+});
+
+test('AC-e12s03d-05 the BMAD v4 plan refuses: no .bmad-core/, no story folder, a devStoryLocation outside the project, a dirty story folder', () => {
+  const refuse = (dir: string): string | null => {
+    const result = planConvert(dir, { system: 'bmad-v4', tag: 'bmad-era' });
+    return result.ok ? null : result.error;
+  };
+  assert.match(String(refuse(makeTestRepo())), /no BMAD v4 \.bmad-core/);
+  assert.match(String(refuse(makeTestRepo({ '.bmad-core/core-config.yaml': bmadV4Config }))), /no docs\/stories\/ to convert/);
+  assert.match(String(refuse(makeTestRepo({ '.bmad-core/core-config.yaml': 'devStoryLocation: ../elsewhere\n' }))), /devStoryLocation .*not a plain path/);
+  const dirty = bmadV4Repo();
+  writeFileSync(join(dirty, 'docs/stories/1.2.health-check.md'), 'changed\n');
+  assert.match(String(refuse(dirty)), /docs\/stories\/ has uncommitted changes/);
+});
+
 const gsd2Roadmap = '# M001: Flight\n\n**Vision:** Fly.\n\n## Slices\n\n- [x] **S01: Physics**\n- [ ] **S02: Controls**\n';
 const gsd2Files = {
   '.gsd/PROJECT.md': '# Flight\n',

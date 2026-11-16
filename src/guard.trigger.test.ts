@@ -4,10 +4,11 @@
 // writable.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, symlinkSync } from 'node:fs';
+import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { guardCall, guardPaths, type Worktree } from './guard.ts';
-import { cleanupTempDirs, makeTempDir } from './test-helpers.ts';
+import { guardWorktree } from './guard-worktree.ts';
+import { cleanupTempDirs, git, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -16,7 +17,8 @@ function fixture() {
   const outside = makeTempDir();
   const scratch = makeTempDir();
   const common = join(makeTempDir(), 'weftwork');
-  const worktree: Worktree = { root, allowed: [scratch, join(common, 'BACKLOG.md')], branch: 'feat/x' };
+  const refs = { protected: ['main', 'master'], local: ['feat/x'], remote: [] };
+  const worktree: Worktree = { root, allowed: [scratch, join(common, 'BACKLOG.md')], branch: 'feat/x', refs };
   const paths = guardPaths(root, join(root, '.git', 'weftwork'), { HOME: makeTempDir() });
   return { root, outside, scratch, common, worktree, paths };
 }
@@ -28,7 +30,7 @@ const write = (filePath: string, cwd: string) => ({
   tool_input: { file_path: filePath },
 });
 
-const bash = (command: string) => ({ hook_event_name: 'PreToolUse', cwd: '/', tool_name: 'Bash', tool_input: { command } });
+const bash = (command: string, cwd = '/') => ({ hook_event_name: 'PreToolUse', cwd, tool_name: 'Bash', tool_input: { command } });
 
 test('AC-e11s04-05 a file write outside the worktree is blocked', () => {
   const f = fixture();
@@ -68,4 +70,26 @@ test('AC-e11s04-09 without a worktree the triggers are off', () => {
   const f = fixture();
   assert.equal(guardCall(write(join(f.outside, 'a.ts'), f.root), f.paths).block, false);
   assert.equal(guardCall(bash('git push origin main'), f.paths).block, false);
+});
+
+test("AC-e11s04-25 the worktree's refs give the remote's default branch, the local and the remote-tracking branches", async () => {
+  const up = makeTestRepo();
+  git(up, 'branch', '-m', 'main', 'trunk');
+  git(up, 'branch', 'feat/r');
+  const clone = makeTempDir();
+  git(clone, 'clone', '-q', up, '.');
+  const worktree = await guardWorktree(clone, {});
+  assert.deepEqual(worktree?.refs, { protected: ['main', 'master', 'trunk'], local: ['trunk'], remote: ['origin/feat/r', 'origin/trunk'] });
+});
+
+test('AC-e11s04-26 a checkout off main counts only for a branch that is not a path in the Bash cwd, inside the worktree', () => {
+  const f = fixture();
+  const onMain: Worktree = { ...f.worktree, branch: 'main', refs: { protected: ['main', 'master'], local: ['notes'], remote: [] } };
+  const command = 'git checkout notes && git push';
+  assert.equal(guardCall(bash(command, f.root), f.paths, onMain).block, false);
+  assert.equal(guardCall(bash(command, f.outside), f.paths, onMain).block, true, 'a cwd outside the worktree');
+  writeFileSync(join(f.root, 'notes'), 'x');
+  assert.equal(guardCall(bash(command, f.root), f.paths, onMain).block, true, 'notes is a file too');
+  const answer = guardCall(bash('git push origin feat/x'), f.paths, { ...f.worktree, refs: null });
+  assert.ok(answer.block && answer.reason.includes('could not read'), answer.block ? answer.reason : 'allowed');
 });

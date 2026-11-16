@@ -21,11 +21,11 @@
 // the owner's `guard.protected` (guard-setting.ts). A file tool is matched by
 // the path from the project root, or the whole path outside it; Bash by each
 // path-like word of the command, the same known-partial text match.
-import { realpathSync } from 'node:fs';
+import { lstatSync, realpathSync } from 'node:fs';
 import { basename, dirname, join, matchesGlob, resolve, sep } from 'node:path';
 import { userSettingPath } from './budget.ts';
 import { userSettingsPath } from './claude-settings-file.ts';
-import { pushToMain } from './guard-push.ts';
+import { pushToMain, type PushContext } from './guard-push.ts';
 import { isRecord } from './json.ts';
 
 /** One entry of the protected-paths list: a pattern (see matchesNames) and
@@ -51,10 +51,16 @@ export type GuardPaths = {
   patterns: ProtectedPattern[];
 };
 
+/** The branches of a repository: the protected ones (main, master and each
+ * remote's default branch), the local ones, and the remote-tracking ones
+ * (`origin/feat/x`). */
+export type Refs = { protected: string[]; local: string[]; remote: string[] };
+
 /** The worktree an agent works in, for the ask triggers. `allowed` holds the
  * folders and files outside it that stay writable: the temp folder and the
- * clone's backlog. `branch` is the current branch, null on a detached HEAD. */
-export type Worktree = { root: string; allowed: string[]; branch: string | null };
+ * clone's backlog. `branch` is the current branch, null on a detached HEAD.
+ * `refs` is null when git could not list the branches. */
+export type Worktree = { root: string; allowed: string[]; branch: string | null; refs: Refs | null };
 
 export type GuardAnswer = { block: false } | { block: true; tool: string; target: string; reason: string };
 
@@ -236,12 +242,32 @@ function wholeToken(text: string): RegExp {
   return new RegExp(`${escaped}(?![^\\s'"\`;|&)<>])`, 'g');
 }
 
-function checkBash(command: unknown, guard: GuardPaths, worktree: Worktree | null): GuardAnswer {
+/** Whether `name` is a path in `cwd`; true in doubt, and for a cwd outside
+ * the worktree, where git would run on another repository. */
+function isPathIn(cwd: unknown, root: string, name: string): boolean {
+  if (typeof cwd !== 'string' || !isInside(canonical(cwd), canonical(root))) return true;
+  try {
+    lstatSync(resolve(cwd, name));
+    return true;
+  } catch (error) {
+    return !(error instanceof Error && 'code' in error && error.code === 'ENOENT');
+  }
+}
+
+function pushContext(worktree: Worktree, cwd: unknown): PushContext | null {
+  const { refs } = worktree;
+  if (refs === null) return null;
+  const isPath = (name: string) => isPathIn(cwd, worktree.root, name);
+  return { protected: new Set(refs.protected), local: new Set(refs.local), remote: refs.remote, isPath };
+}
+
+function checkBash(command: unknown, cwd: unknown, guard: GuardPaths, worktree: Worktree | null): GuardAnswer {
   if (typeof command !== 'string') {
     return blocked('Bash', '', 'the guard could not read the command.');
   }
-  const push = worktree === null ? null : pushToMain(command, worktree.branch);
-  if (push !== null) return blocked('Bash', 'git push', `${push}, and a push to main is the owner's step. ${askOwner}`);
+  const push = worktree === null ? null : pushToMain(command, worktree.branch, pushContext(worktree, cwd));
+  const step = "a push to main, master or the remote's default branch is the owner's step";
+  if (push !== null) return blocked('Bash', 'git push', `${push}, and ${step}. ${askOwner}`);
   const text = guard.allowedText.reduce((rest, allowed) => rest.replace(wholeToken(allowed), ''), command);
   const needle = guard.needles.find((name) => text.includes(name)) ?? protectedWord(command, guard);
   return needle === undefined
@@ -268,6 +294,6 @@ export function guardCall(input: unknown, guard: GuardPaths, worktree: Worktree 
   const toolInput = input.tool_input;
   if (!(tool in fileTools) && tool !== 'Bash') return { block: false };
   if (!isRecord(toolInput)) return blocked(tool, '', 'the guard could not read the tool input.');
-  if (tool === 'Bash') return checkBash(toolInput.command, guard, worktree);
+  if (tool === 'Bash') return checkBash(toolInput.command, input.cwd, guard, worktree);
   return checkFile(tool, toolInput, input.cwd, guard, worktree);
 }

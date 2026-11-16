@@ -8,12 +8,17 @@
 // story in epics.md is open. Pure: no file is read here. The format is BMAD
 // v6.12.4: bmad-sprint-planning/sprint-status-template.yaml,
 // bmad-create-epics-and-stories/templates/epics-template.md and the
-// create-story template. docs/CONVERT.md.
+// create-story template. BMAD v4 (`bmadV4Section`) has no sprint file: its
+// epics are in the PRD and each story file has a Status section; the format
+// is BMAD v4.44.3's prd-tmpl.yaml, story-tmpl.yaml and shard-doc.md.
+// docs/CONVERT.md.
 import { isRecord } from './json.ts';
 import { codeSpan, inlineText } from './markdown-text.ts';
 
 export const bmadSectionTitle = '## Converted from BMAD';
 export const bmadLocal = '.bmad-output';
+export const bmadV4SectionTitle = '## Converted from BMAD v4';
+export const bmadV4Local = '.bmad-stories';
 
 /** What the section is made from. `status` is the parsed YAML, or null. */
 export type BmadInput = { status: unknown; epics: string[]; storyFiles: string[] };
@@ -31,8 +36,10 @@ function fromEpicsFiles(texts: string[]): Map<number, Epic> {
     let epic: Epic | null = null;
     let wantGoal = false;
     for (const line of text.split('\n')) {
-      const head = /^## Epic (\d+):\s*(.+)$/.exec(line);
-      const story = /^### Story (\d+)\.(\d+):\s*(.+)$/.exec(line);
+      // v6: `## Epic N:` and `### Story N.M:`. v4: `## Epic N Title` and
+      // `### Story N.M Title` in prd.md, one level up in a shard.
+      const head = /^#{1,2} Epic (\d+):?\s+(.+)$/.exec(line);
+      const story = /^#{2,3} Story (\d+)\.(\d+):?\s+(.+)$/.exec(line);
       if (head !== null) {
         const number = Number(head[1]);
         epic = epics.get(number) ?? { number, title: oneLine(head[2]), goal: '', status: '', stories: [] };
@@ -93,15 +100,21 @@ function epicsOf(input: BmadInput): Epic[] {
   return [...epics.values()].sort((a, b) => a.number - b.number);
 }
 
+/** Where the backlog points: the line for the epics' source, and a story's
+ * old file, or null. */
+type Where = { epics: string; story: (story: Story) => string | null };
+
+const isDone = (status: string): boolean => status.toLowerCase() === 'done';
+
 /** The lines for one epic, or none when it is done. */
-function epicLines(epic: Epic, storyFiles: Set<string>, notes: string[]): string[] {
-  const open = epic.stories.filter((story) => story.status !== 'done');
+function epicLines(epic: Epic, where: Where, notes: string[]): string[] {
+  const open = epic.stories.filter((story) => !isDone(story.status));
   if (epic.status === 'done') {
     if (open.length > 0) notes.push(`Epic ${epic.number} is done, but its stories ${open.map((story) => story.key || story.number).join(', ')} are not; they are left out of the backlog.`);
     return [];
   }
   const title = epic.title === '' ? `Epic ${epic.number}` : `Epic ${epic.number}: ${inlineText(epic.title)}`;
-  const oldEpics = `  Old spec: ${codeSpan(`${bmadLocal}/planning-artifacts/`)}`;
+  const oldEpics = `  ${where.epics}`;
   if (open.length === 0) {
     const head = `- [ ] **${title}.**${epic.stories.length > 0 ? ' Every story is done; close the epic or add what is left.' : ''}`;
     return [epic.goal === '' ? head : `${head} Goal: ${inlineText(epic.goal)}`, oldEpics, ''];
@@ -110,8 +123,10 @@ function epicLines(epic: Epic, storyFiles: Set<string>, notes: string[]): string
   if (epic.goal !== '') out.push(`Goal: ${inlineText(epic.goal)}`);
   out.push(oldEpics.trim(), '');
   for (const story of open) {
-    out.push(`- [ ] **Story ${story.number} ${inlineText(story.title)}.** Status: ${inlineText(story.status)}`);
-    if (storyFiles.has(`${story.key}.md`)) out.push(`  Old spec: ${codeSpan(`${bmadLocal}/implementation-artifacts/${story.key}.md`)}`);
+    const name = story.title === '' ? story.number : `${story.number} ${inlineText(story.title)}`;
+    out.push(`- [ ] **Story ${name}.** Status: ${inlineText(story.status)}`);
+    const file = where.story(story);
+    if (file !== null) out.push(`  Old spec: ${codeSpan(file)}`);
   }
   out.push('');
   return out;
@@ -139,9 +154,70 @@ export function bmadSection(input: BmadInput, tag: string, notes: string[]): str
     '',
   ];
   const files = new Set(input.storyFiles);
-  const body = epicsOf(input).flatMap((epic) => epicLines(epic, files, notes));
+  const where: Where = {
+    epics: `Old spec: ${codeSpan(`${bmadLocal}/planning-artifacts/`)}`,
+    story: (story) => (files.has(`${story.key}.md`) ? `${bmadLocal}/implementation-artifacts/${story.key}.md` : null),
+  };
+  const body = epicsOf(input).flatMap((epic) => epicLines(epic, where, notes));
   const actions = actionLines(input.status);
   if (actions.length > 0) body.push(...actions, '');
+  return sectionText(intro, body);
+}
+
+const sectionText = (intro: string[], body: string[]): string => {
   if (body.length === 0) body.push('No open epics or stories.', '');
   return [...intro, ...body].join('\n').replace(/\n+$/, '\n');
+};
+
+/** A v4 story file's status: the line under `## Status` (story-tmpl.yaml),
+ * or the rest of `## Status: Draft` (create-brownfield-story.md); '' when
+ * it has none. */
+function storyStatus(text: string): string {
+  const lines = text.split('\n');
+  for (const [index, line] of lines.entries()) {
+    const head = /^## Status\b:?(.*)$/.exec(line.trim());
+    if (head === null) continue;
+    if (head[1].trim() !== '') return oneLine(head[1]);
+    const next = lines.slice(index + 1).find((each) => each.trim() !== '');
+    return next === undefined || next.trim().startsWith('#') ? '' : oneLine(next);
+  }
+  return '';
+}
+
+/** What a BMAD v4 section is made from: the text of each epics source (the
+ * PRD or its epic shards), each story file by name, and the PRD path. */
+export type BmadV4Input = { epics: string[]; stories: Record<string, string>; prd: string };
+
+/** The BMAD v4 section: each epic of the PRD with an open story, keeping its
+ * number, title and goal, and each story whose file's Status is not Done, or
+ * that has no story file yet. An epic is done when it has stories and all
+ * are Done. */
+export function bmadV4Section(input: BmadV4Input, tag: string, notes: string[]): string {
+  const epics = fromEpicsFiles(input.epics);
+  for (const epic of epics.values()) for (const story of epic.stories) story.status = 'no story file yet';
+  for (const file of Object.keys(input.stories).sort()) {
+    const name = /^(\d+)\.(\d+)\.(.+)\.md$/.exec(file);
+    if (name === null) continue;
+    const text = input.stories[file];
+    const number = Number(name[1]);
+    const epic = epics.get(number) ?? { number, title: '', goal: '', status: '', stories: [] };
+    epics.set(number, epic);
+    const id = `${name[1]}.${name[2]}`;
+    const status = storyStatus(text) || 'unknown';
+    const title = oneLine(/^# Story \d+\.\d+:?\s+(.+)$/m.exec(text)?.[1] ?? (name[3] === 'story' ? '' : titleOf(name[3])));
+    const known = epic.stories.find((story) => story.number === id);
+    if (known !== undefined) Object.assign(known, { key: file, status, title: known.title || title });
+    else epic.stories.push({ key: file, number: id, title, status });
+  }
+  for (const epic of epics.values()) if (epic.stories.length > 0 && epic.stories.every((story) => isDone(story.status))) epic.status = 'done';
+  const intro = [
+    bmadV4SectionTitle,
+    '',
+    'The open epics and stories of the old BMAD v4 project, by number. The story',
+    `files are in the gitignored ${codeSpan(`${bmadV4Local}/`)} and at the tag ${codeSpan(tag)}.`,
+    '',
+  ];
+  const where: Where = { epics: `PRD: ${codeSpan(input.prd)}`, story: (story) => (story.key === '' ? null : `${bmadV4Local}/${story.key}`) };
+  const sorted = [...epics.values()].sort((a, b) => a.number - b.number);
+  return sectionText(intro, sorted.flatMap((epic) => epicLines(epic, where, notes)));
 }

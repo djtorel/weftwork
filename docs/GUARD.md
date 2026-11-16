@@ -115,6 +115,42 @@ what to install. A second run changes nothing. An entry an older install
 wrote, `node '<file>/guard-cli.ts'` (or `.js`), is replaced; other
 `PreToolUse` items stay as they are.
 
+A project can run its own copy of the engine, as this repository does,
+so that each worktree runs its own `src/`:
+
+```sh
+node "$CLAUDE_PROJECT_DIR/src/guard-cli.ts"
+node "$CLAUDE_PROJECT_DIR/src/claude-hook-cli.ts" -- '<declared command>'
+```
+
+The install reads these entries as registered and keeps that form. It
+adds no second entry; a new declared command is written into the same
+entry. Only a path after `$CLAUDE_PROJECT_DIR/` with no `"`, `$`,
+backquote or backslash counts, so the shell expands nothing but the
+project folder.
+
+## Live check
+
+`weftwork claude-live`, run in the project root, also reports the guard,
+after the Stop hook. It reads the settings and Claude Code's session
+transcripts only; it does not change the guard. The answer is one of:
+
+| Answer | Meaning |
+| --- | --- |
+| `not registered` | No guard entry in `.claude/settings.json`, its file or the `weftwork` command is missing, or the entry was changed by hand |
+| `registered, not seen` | The entry is right, and no transcript shows a guard call |
+| `ran` | The newest guard event in the transcripts is a call it blocked |
+| `failing` | The newest guard event is a hook error: the guard did not run, and the call went ahead. Or `weftwork` was not on PATH, and the hook blocked the call without the guard |
+
+The guard leaves a trace only when it blocks a call or fails to run, so
+`registered, not seen` is a normal answer. The check reads the three
+newest transcripts in `<config dir>/projects/<project folder>/`, where
+each character of the folder that is not a letter or a digit is `-`. It
+does not read subagent transcripts. The agent's tool calls put text in
+the transcripts too, so they are evidence, not proof. The check exits 0
+only when the Stop hook is live and the guard is not `not registered` or
+`failing`.
+
 ## How it decides
 
 - **Edit, Write, MultiEdit, NotebookEdit.** The path the tool writes is
@@ -150,7 +186,7 @@ The stop rules and the counts do not read guard lines.
 
 In a git worktree the guard also blocks the two mechanical ask triggers:
 a file tool that writes outside the worktree, and a Bash `git push` that
-would update `main` or `master`. `docs/ASK.md` says how they decide and
+would update `main`, `master` or the remote's default branch. `docs/ASK.md` says how they decide and
 what they do not see.
 
 ## The engine still writes
