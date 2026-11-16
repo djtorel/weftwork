@@ -20,9 +20,10 @@ import { readStateData, stateExists, stateFile } from './state-fields.ts';
 import { insideRoot } from './state-write.ts';
 import { currentBranch, repositoryRoot, uncommittedPaths } from './tree.ts';
 import { sibling } from './sibling.ts';
+import { shellQuote } from './claude-install.ts';
 
 /** The handoff CLI by absolute path: src/*.ts in a checkout, dist/*.js installed. */
-const handoffCli = terminalSafe(JSON.stringify(sibling('handoff-cli')));
+const handoffCli = terminalSafe(shellQuote(sibling('handoff-cli')));
 
 type Checked = { ok: true; report: ResumeReport; statePath: string } | Failure;
 type HandoffRead = { ok: true; handoff: unknown } | Failure;
