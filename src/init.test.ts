@@ -81,3 +81,16 @@ test('the plan text names the folder, each change with its diff, the conflicts k
   assert.match(text, /conflict +CLAUDE\.md.*--overwrite CLAUDE\.md/s);
   assert.match(text, /Run npm link\./);
 });
+
+test('a recommendation from the project, such as a README line, reaches the prompt with its control characters escaped', async () => {
+  const { ask, prompts } = scripted([]);
+  const hostile: Question[] = [
+    { id: 'about', question: 'What is this project?', recommended: 'demo\u001b[2J is \u202eodd' },
+    { id: 'never', question: 'Never?', recommended: ['ok\u0007'] },
+  ];
+  await askAnswers(hostile, ask);
+  const text = prompts.join('');
+  assert.doesNotMatch(text, /[\u001b\u0007\u202e]/u);
+  assert.match(text, /demo\\u001b\[2J is \\u202eodd/);
+  assert.match(text, /ok\\u0007/);
+});

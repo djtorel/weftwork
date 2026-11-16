@@ -6,6 +6,7 @@
 // init-cli.ts is the thin shell; this file holds what it can test alone.
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
 import { checkCommands } from './detect-check.ts';
 import { detectProject } from './detect.ts';
@@ -84,10 +85,11 @@ export function recommendedAnswers(questions: Question[]): Answers {
   return answers;
 }
 
-/** The recommendation as the prompt shows it. */
+/** The recommendation as the prompt shows it. It can come from the project
+ * (a README line), so each line is made safe for the terminal. */
 function shown(recommended: string | string[]): string {
-  if (typeof recommended === 'string') return recommended;
-  return recommended.length === 0 ? '(none)' : recommended.map((line) => `\n    - ${line}`).join('');
+  if (typeof recommended === 'string') return terminalSafe(recommended);
+  return recommended.length === 0 ? '(none)' : recommended.map((line) => `\n    - ${terminalSafe(line)}`).join('');
 }
 
 /** The answers, asking each question. An empty first reply keeps the

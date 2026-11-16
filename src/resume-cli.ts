@@ -19,6 +19,10 @@ import { weftworkDir } from './ledger.ts';
 import { readStateData, stateExists, stateFile } from './state-fields.ts';
 import { insideRoot } from './state-write.ts';
 import { currentBranch, repositoryRoot, uncommittedPaths } from './tree.ts';
+import { sibling } from './sibling.ts';
+
+/** The handoff CLI by absolute path: src/*.ts in a checkout, dist/*.js installed. */
+const handoffCli = terminalSafe(JSON.stringify(sibling('handoff-cli')));
 
 type Checked = { ok: true; report: ResumeReport; statePath: string } | Failure;
 type HandoffRead = { ok: true; handoff: unknown } | Failure;
@@ -80,9 +84,9 @@ function nextStep(report: ResumeReport, statePath: string): string {
         ? 'Next: the handoff names no next skill; read its note.'
         : `Next: read the note in ${terminalSafe(statePath)}, then run ${terminalSafe(report.next_skill)}.`;
     case 'stale':
-      return 'Next: fix the repository so it matches the handoff, or write a new handoff with node src/handoff-cli.ts.';
+      return `Next: fix the repository so it matches the handoff, or write a new handoff with node ${handoffCli}.`;
     default:
-      return 'Next: write a handoff with node src/handoff-cli.ts.';
+      return `Next: write a handoff with node ${handoffCli}.`;
   }
 }
 
