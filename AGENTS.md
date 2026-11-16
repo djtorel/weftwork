@@ -180,8 +180,8 @@ command from a weftwork that is not the project's own to the one that is
 (`docs/INSTALL.md`). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
-open work to the backlog, its text escaped for Markdown by
-`markdown-text.ts` (`docs/CONVERT.md`). `overlap.ts` and `overlap-cli.ts`
+open work to the backlog in the old plan's order (`convert-order.ts`), its
+text escaped for Markdown by `markdown-text.ts` (`docs/CONVERT.md`). `overlap.ts` and `overlap-cli.ts`
 check, before parallel work, that no two planned tasks can change the same
 file, from file lists, globs or branches (`docs/PARALLEL.md`). `measure-fixture.ts`, `measure.ts` and
 `measure-cli.ts` are the measurement harness: a fixture repository with

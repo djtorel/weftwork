@@ -151,8 +151,8 @@ export function gsdSection(roadmap: string | null, folders: string[], tag: strin
   const intro = [
     gsdSectionTitle,
     '',
-    'The open phases of the old GSD roadmap and phase folders, by number. The',
-    `old plans are in the gitignored \`.gsd-planning/\` and at the tag ${codeSpan(tag)}.`,
+    'The open phases of the old GSD roadmap, in its order, then the phase folders it does not list.',
+    `The old plans are in the gitignored \`.gsd-planning/\` and at the tag ${codeSpan(tag)}.`,
     '',
   ];
   const open = addUnlisted(phases(roadmap ?? ''), files, plans).filter(isOpen);

@@ -9,6 +9,7 @@
 // gsd-build/gsd-2 v3.0.0: templates/roadmap.md, templates/plan.md and the
 // ID-SUFFIX names of paths.ts. docs/CONVERT.md.
 import { codeSpan, inlineText } from './markdown-text.ts';
+import { inPlanOrder } from './convert-order.ts';
 
 export const gsd2SectionTitle = '## Converted from GSD 2';
 
@@ -83,16 +84,29 @@ function milestoneLines(milestone: Gsd2Milestone, where: string): string[] {
   return out;
 }
 
-/** The section, from the milestone folders (sorted by name), the tag that
- * holds the old plans ('' when `.gsd/` is not tracked, so none was made),
- * and `where` the old plans are after the conversion. */
-export function gsd2Section(milestones: Gsd2Milestone[], tag: string, where: string): string {
+/** The milestone number of folder `dir` (`M001-FLIGHT`), as GSD 2's
+ * milestoneIdSort reads it; 0 when there is none. */
+const numberOf = (dir: string): number => Number(/^M(\d+)/.exec(dir)?.[1] ?? 0);
+
+/** The section, from the milestone folders, the tag that holds the old
+ * plans ('' when `.gsd/` is not tracked, so none was made), `where` the old
+ * plans are after the conversion, and `order`, the milestone ids of
+ * QUEUE-ORDER.json. A folder is the id or `<id>-<descriptor>`, as GSD 2's
+ * resolveDir finds it; one the queue does not list comes after, by number. */
+export function gsd2Section(milestones: Gsd2Milestone[], tag: string, where: string, order: string[] = []): string {
   const kept =
     tag === ''
       ? `The old plans stay in ${codeSpan(`${where}/`)}, which git does not track.`
       : `The old plans are in the gitignored ${codeSpan(`${where}/`)} and at the tag ${codeSpan(tag)}.`;
-  const intro = [gsd2SectionTitle, '', 'The open milestones and slices of the old GSD 2 roadmaps, by id.', kept, ''];
-  const body = [...milestones].sort((a, b) => a.dir.localeCompare(b.dir)).flatMap((milestone) => milestoneLines(milestone, where));
+  const how = order.length > 0 ? 'in the queue order of GSD 2 (`QUEUE-ORDER.json`)' : 'by milestone number, the default queue order of GSD 2';
+  const intro = [gsd2SectionTitle, '', `The open milestones and slices of the old GSD 2 roadmaps, ${how}.`, kept, ''];
+  const sorted = inPlanOrder(
+    milestones,
+    order,
+    (milestone, id) => milestone.dir === id || milestone.dir.startsWith(`${id}-`),
+    (a, b) => numberOf(a.dir) - numberOf(b.dir) || a.dir.localeCompare(b.dir),
+  );
+  const body = sorted.flatMap((milestone) => milestoneLines(milestone, where));
   if (body.length === 0) body.push('No open milestones.', '');
   return [...intro, ...body].join('\n').replace(/\n+$/, '\n');
 }

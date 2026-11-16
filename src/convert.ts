@@ -16,6 +16,7 @@ import { gsdSection, gsdSectionTitle } from './convert-gsd.ts';
 import { gsd2Section, gsd2SectionTitle } from './convert-gsd2.ts';
 import { speckitLocal, speckitSection, speckitSectionTitle } from './convert-speckit.ts';
 import { bmadLocal, bmadSection, bmadSectionTitle, bmadV4Local, bmadV4Section, bmadV4SectionTitle } from './convert-bmad.ts';
+import { idsIn } from './convert-order.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
@@ -61,7 +62,7 @@ const systems: Record<SystemName, System> = {
     title: sectionTitle,
     section: (dir, tag, notes) => {
       const { epics, statuses } = readEpics(dir, notes);
-      return backlogSection(epics, statuses, tag, notes);
+      return backlogSection(epics, statuses, tag, notes, idsIn(readYaml(join(dir, 'specs', 'release-plan.yaml'), notes), 'epics'));
     },
   },
   gsd: {
@@ -77,7 +78,7 @@ const systems: Record<SystemName, System> = {
         const found = /^#{2,3} ((Key )?Decisions)\b/m.exec(readText(join(dir, '.planning', name)) ?? '');
         if (found !== null) notes.push(`.planning/${name} has a "${found[1]}" section; carry the decisions still in force into AGENTS.md or docs/.`);
       }
-      const folders = namesIn(join(dir, '.planning', 'phases'));
+      const folders = namesIn(join(dir, '.planning', 'phases')).sort();
       const files = folders.flatMap((folder) => namesIn(join(dir, '.planning', 'phases', folder)).map((name) => `${folder}/${name}`));
       const plans: Record<string, string> = {};
       for (const path of files.filter((each) => each.endsWith('-PLAN.md'))) {
@@ -117,7 +118,7 @@ const systems: Record<SystemName, System> = {
             });
           return { dir: name, roadmap: roadmap === undefined ? null : readText(join(base, name, roadmap)), summary: files.some((file) => /^M\d+.*-SUMMARY\.md$/.test(file)), slices };
         });
-      return gsd2Section(milestones, tag, where);
+      return gsd2Section(milestones, tag, where, idsIn(readJson(join(dir, '.gsd', 'QUEUE-ORDER.json'), notes), 'order'));
     },
   },
   'spec-kit': {
@@ -289,6 +290,17 @@ function readYaml(path: string, notes: string[]): unknown {
   if (text === null) return null;
   try {
     return parse(text);
+  } catch (error) {
+    notes.push(`${path} was not parsed: ${messageOf(error)}`);
+    return null;
+  }
+}
+
+function readJson(path: string, notes: string[]): unknown {
+  const text = readText(path);
+  if (text === null) return null;
+  try {
+    return JSON.parse(text);
   } catch (error) {
     notes.push(`${path} was not parsed: ${messageOf(error)}`);
     return null;
