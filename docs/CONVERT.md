@@ -82,6 +82,12 @@ characters; a plan with no objective, or an empty one, gets no title. A phase
 ticked or `Complete` on the roadmap stays done. Nothing else in a plan is
 read; GSD 2's `.gsd/` layout is not converted.
 
+Text taken from the old plans is escaped for Markdown before it goes into
+the backlog (`src/markdown-text.ts`): `\`, a backtick, `*` and `<` get a
+backslash, and a `Check:` command or an old-spec path is a code span fenced
+longer than any backtick inside. An HTML comment or a stray backtick in a
+roadmap or an epic stays text and does not hide the rest of the backlog.
+
 Nothing is deleted. Nothing is committed: the owner's agent commits the
 result, with the new AGENTS.md, in one pull request.
 

@@ -128,7 +128,8 @@ report and the owner's answers: a dry-run plan, then a write that never
 overwrites a changed file (`docs/SETUP.md`). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts` and `convert-cli.ts` convert a bigpowers or GSD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
-open work to the backlog (`docs/CONVERT.md`). Every CLI is a
+open work to the backlog, its text escaped for Markdown by
+`markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
 thin shell over a library function.
 
 ## Rules

@@ -173,3 +173,13 @@ test('AC-e12s03b-12 the cut keeps whole characters, and only an <objective> tag 
   const prose = 'Use <objective> tags.\n<objective>\nReal aim\n</objective>\n';
   assert.match(gsdSection(null, ['02-pay'], 'gsd-era', ['02-pay/02-01-PLAN.md'], { '02-pay/02-01-PLAN.md': prose }), /Open plan 02-01: Real aim \(/);
 });
+
+test('AC-e12s03b-13 roadmap and plan text cannot break how the backlog renders (PR #86 review)', () => {
+  const road = '### Phase 2: Pay <b>now</b>\n**Goal**: Stop `x\n**Success Criteria**:\n1. No <!-- here\nPlans:\n- [ ] 02-01: Use *bold\n';
+  const plans = { '02-pay/02-02-PLAN.md': '<objective>\nRun `npm <!--\n</objective>\n' };
+  const text = gsdSection(road, ['02-pay'], 'gsd-era', ['02-pay/02-02-PLAN.md'], plans);
+  assert.match(text, /^- \[ \] \*\*Phase 2: Pay \\<b>now\\<\/b>\.\*\* Goal: Stop \\`x$/m);
+  assert.match(text, /^ {2}Done when: No \\<!-- here$/m);
+  assert.match(text, /^ {2}Open plan 02-01: Use \\\*bold$/m);
+  assert.match(text, /^ {2}Open plan 02-02: Run \\`npm \\<!-- \(02-02-PLAN\.md, not on the roadmap\)$/m);
+});

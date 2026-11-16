@@ -9,6 +9,8 @@
 // <objective>. Pure: no file is read here. The format is GSD v1.30's
 // templates/roadmap.md and templates/phase-prompt.md. docs/CONVERT.md.
 
+import { codeSpan, inlineText } from './markdown-text.ts';
+
 export const gsdSectionTitle = '## Converted from GSD';
 
 type Phase = { id: string; name: string; goal: string; criteria: string[]; plans: { done: boolean; text: string }[]; done: boolean; listed: boolean };
@@ -132,12 +134,12 @@ const isOpen = (phase: Phase): boolean => !phase.done && !(phase.plans.length > 
 
 /** The lines for one open phase. */
 function phaseItem(phase: Phase, folders: string[]): string[] {
-  const head = `- [ ] **Phase ${phase.id}: ${phase.name}.**`;
-  const out = [phase.goal !== '' ? `${head} Goal: ${phase.goal}` : phase.listed ? head : `${head} Not on the roadmap.`];
-  if (phase.criteria.length > 0) out.push(`  Done when: ${phase.criteria.join('; ')}`);
-  for (const plan of phase.plans.filter((plan) => !plan.done)) out.push(`  Open plan ${plan.text}`);
+  const head = `- [ ] **Phase ${phase.id}: ${inlineText(phase.name)}.**`;
+  const out = [phase.goal !== '' ? `${head} Goal: ${inlineText(phase.goal)}` : phase.listed ? head : `${head} Not on the roadmap.`];
+  if (phase.criteria.length > 0) out.push(`  Done when: ${inlineText(phase.criteria.join('; '))}`);
+  for (const plan of phase.plans.filter((plan) => !plan.done)) out.push(`  Open plan ${inlineText(plan.text)}`);
   const folder = folderOf(phase.id, folders);
-  out.push(`  Old spec: \`.gsd-planning/${folder === null ? 'ROADMAP.md' : `phases/${folder}/`}\``);
+  out.push(`  Old spec: ${codeSpan(`.gsd-planning/${folder === null ? 'ROADMAP.md' : `phases/${folder}/`}`)}`);
   return out;
 }
 
@@ -150,7 +152,7 @@ export function gsdSection(roadmap: string | null, folders: string[], tag: strin
     gsdSectionTitle,
     '',
     'The open phases of the old GSD roadmap and phase folders, by number. The',
-    `old plans are in the gitignored \`.gsd-planning/\` and at the tag \`${tag}\`.`,
+    `old plans are in the gitignored \`.gsd-planning/\` and at the tag ${codeSpan(tag)}.`,
     '',
   ];
   const open = addUnlisted(phases(roadmap ?? ''), files, plans).filter(isOpen);
