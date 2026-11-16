@@ -37,13 +37,17 @@ const pushAll = new Set(['--all', '--mirror']);
 
 const isEnvAssignment = (word: string) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(word);
 
-/** The words of each simple command in `command`, quotes removed. */
-function commands(command: string): string[][] {
+/** The words of each simple command in `command`, quotes removed, with
+ * `env` true when `VAR=value` words came first (they are dropped). */
+function commands(command: string): { words: string[]; env: boolean }[] {
   return command
     .split(/&&|\|\||[;|&\n]/)
     .map((part) => part.replace(/["']/g, '').trim().split(/\s+/).filter((word) => word !== ''))
-    .map((words) => words.slice(words.findIndex((word) => !isEnvAssignment(word))))
-    .filter((words) => words.length > 0);
+    .map((words) => {
+      const first = words.findIndex((word) => !isEnvAssignment(word));
+      return { words: first === -1 ? [] : words.slice(first), env: first > 0 };
+    })
+    .filter((part) => part.words.length > 0);
 }
 
 type GitCall = { sub: string; args: string[]; elsewhere: boolean };
@@ -155,16 +159,19 @@ function afterCheckout(git: GitCall, current: string | null, context: PushContex
  * `context` null means the guard could not read the repository: every push
  * is then blocked. Without `context`, only main and master are known. */
 export function pushToMain(command: string, branch: string | null, context: PushContext | null = textOnly): string | null {
-  // A switch is sure to have run before the next part only in a chain of `&&`.
+  const parts = commands(command);
+  const calls = parts.map((part) => gitArgs(part.words));
+  // A move off a protected branch is sure only in a chain of `&&` of plain
+  // git calls: then the push runs only after the switch ran and passed, and
+  // no `cd`, `GIT_DIR=`, `-C` or other command points a part at another
+  // repository or shell state (review round 1).
   const andOnly = !/\|\||[;|&\n]/.test(command.replace(/&&/g, ''));
+  const plainGit = parts.every((part, i) => !part.env && calls[i] != null && !calls[i].elsewhere);
+  const sure = context !== null && andOnly && plainGit;
   let current = branch;
-  let moved = false;
-  for (const words of commands(command)) {
-    if (words[0] === 'cd' || words[0] === 'pushd') moved = true;
-    const git = gitArgs(words);
+  for (const git of calls) {
     if (git === null) continue;
     if (git.sub === 'checkout' || git.sub === 'switch') {
-      const sure = context !== null && andOnly && !moved && !git.elsewhere;
       current = afterCheckout(git, current, context ?? textOnly, sure);
     } else if (git.sub === 'push') {
       if (context === null) return 'the guard could not read the branches of this repository';

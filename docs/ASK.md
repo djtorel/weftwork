@@ -56,9 +56,11 @@ a git worktree. Outside a repository they are off.
   files and keep the branch. A move to a protected branch always counts. A
   move off one counts only when the guard is sure of it, and otherwise the
   branch stays, so the push stays blocked:
-  - every separator in the command is `&&`, with no `cd` or `pushd` before
-    and no `-C`, `--git-dir` or `--work-tree`, so the push runs only after
-    the switch ran and passed;
+  - every separator in the command is `&&` and every part is a plain
+    `git` call: no other command (`cd`, `export`, `npm test`), no
+    `VAR=value` before it (`GIT_DIR=`), and no `-C`, `--git-dir` or
+    `--work-tree`. Then the push runs only after the switch ran and
+    passed, in the same repository;
   - and the switch is to a new branch (`-b`, `-c`), or names one existing
     branch: a local branch, or a remote-tracking branch on one remote only
     (git makes a local branch of it, unless `--no-guess`);
