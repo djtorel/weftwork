@@ -171,7 +171,7 @@ answer has a `detail`:
 ```
 
 The path is the absolute path of `src/handoff-cli.ts` in the weftwork
-checkout, in double quotes, so it pastes from any directory and from a
+checkout (`dist/handoff-cli.js` in the npm package), in double quotes, so it pastes from any directory and from a
 checkout path with spaces. A checkout path with `$`, a backtick or `!` does
 not paste as is, since the shell expands those inside double quotes. The
 handoff CLI reads one JSON object on stdin with `next_skill`, `branch` and

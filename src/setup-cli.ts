@@ -15,8 +15,7 @@
 // input; the reason is on stderr.
 import { basename, join, resolve } from 'node:path';
 import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
-import { checkCommands } from './detect-check.ts';
-import { detectProject } from './detect.ts';
+import { checkedReport } from './init.ts';
 import { isInteger } from './json.ts';
 import { applySetup, planSetup } from './setup.ts';
 import { projectDescription } from './setup-about.ts';
@@ -60,14 +59,10 @@ async function main(): Promise<void> {
     if (!undone.ok) return fail(undone.error, 1);
     return printAnswer({ ok: true, undone: undone.undone, kept: undone.kept }, 0);
   }
-  const detected = await detectProject(dir);
-  if (!detected.ok) return fail(detected.error);
   const timeout = (typeof input.timeoutSeconds === 'number' ? input.timeoutSeconds : defaultTimeoutSeconds) * 1000;
-  const commands =
-    input.run === false
-      ? detected.report.commands.map((command) => ({ ...command, check: { status: 'skipped' as const, exitCode: null, why: '"run" is false' } }))
-      : await checkCommands(detected.report.commands, dir, timeout);
-  const report = { ...detected.report, commands };
+  const checked = await checkedReport(dir, input.run !== false, timeout);
+  if (!checked.ok) return fail(checked.error);
+  const report = checked.report;
   if (parsed === null) return printAnswer({ ok: true, report, questions: setupQuestions(basename(dir), report, projectDescription(dir)) }, 0);
   const planned = planSetup(dir, report, parsed.answers, { engineDir, stopHook: input.stopHook === true });
   if (!planned.ok) return fail(planned.error, 1);

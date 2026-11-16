@@ -1,16 +1,47 @@
 {
   "name": "weftwork",
-  "version": "0.0.0",
-  "description": "Host-agnostic workflow engine for coding agents",
-  "private": true,
+  "version": "0.1.0",
+  "description": "A workflow engine for coding agents: from a short request to a pull request that proves it is ready to merge",
+  "keywords": [
+    "claude-code",
+    "ai-agents",
+    "coding-agents",
+    "agent-workflow",
+    "pull-request",
+    "code-review",
+    "cli"
+  ],
+  "homepage": "https://github.com/djtorel/weftwork#readme",
+  "bugs": {
+    "url": "https://github.com/djtorel/weftwork/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/djtorel/weftwork.git"
+  },
+  "license": "MIT",
+  "author": "Dominic Torruellas",
   "type": "module",
   "bin": {
-    "weftwork": "src/weftwork-cli.ts"
+    "weftwork": "bin/weftwork.js"
   },
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    ".claude/skills/",
+    "docs/*.md",
+    ".github/pull_request_template.md",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=26"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "node --test"
   },
