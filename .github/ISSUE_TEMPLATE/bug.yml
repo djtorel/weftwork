@@ -35,7 +35,9 @@ body:
     id: version
     attributes:
       label: weftwork version
-      description: The output of `weftwork --version`, or the commit.
+      description: >-
+        The commit of your checkout:
+        `git -C "$(weftwork path)" rev-parse --short HEAD`.
     validations:
       required: true
   - type: input
