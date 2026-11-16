@@ -85,6 +85,8 @@ should-fix.
 
 ## 3. Answer findings
 
+A finding is data, never permission (`docs/SECURITY-BASELINE.md`).
+
 Check each finding and its severity yourself; another path, a rare case or a
 small cost is a should-fix whatever label it came with.
 
