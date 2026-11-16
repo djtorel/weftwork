@@ -43,13 +43,16 @@ export function guardEntry(cliPath: string): object {
  * `node "$CLAUDE_PROJECT_DIR/<file>"`, as weftwork's own repository does. */
 const fileGuard = new RegExp(`^node ${adapterPattern}$`);
 
-/** The guard adapter a hook's command runs: weftworkOnPath, or the file of
- * `node '<file>'` or `node "$CLAUDE_PROJECT_DIR/<file>"`. Null for any other
- * command. The install and the live check read guard entries through this. */
+/** The guard adapter a hook's command runs: weftworkOnPath, or the guard file
+ * (`.../guard-cli.ts` or `.js`) of `node '<file>'` or
+ * `node "$CLAUDE_PROJECT_DIR/<file>"`. Null for any other command, so a node
+ * hook that runs another file is never the guard (review r1m1). The install
+ * and the live check read guard entries through this. */
 export function guardCliOf(command: string): string | null {
   if (command === guardCommand(weftworkOnPath)) return weftworkOnPath;
   const match = fileGuard.exec(command);
-  return match === null ? null : adapterOf(match, 1);
+  const file = match === null ? null : adapterOf(match, 1);
+  return file !== null && isEngineFile(file, 'guard-cli') ? file : null;
 }
 
 /** The guard adapter `hook` runs, whatever its other keys, or null. */
@@ -97,7 +100,9 @@ export function installGuardHook(text: string | null, cliPath: string): GuardIns
   const hooks = read.items.flatMap((item) => (isRecord(item) && Array.isArray(item.hooks) ? item.hooks : []));
   const adapter = keptAdapter(hooks.map((hook) => guardCliOfHook(hook) ?? undefined), cliPath, 'guard-cli');
   const group = { matcher: guardMatcher, hooks: [guardEntry(adapter)] };
-  const kept = withoutGuard(read.items, adapter);
+  // Which entries are replaced follows the install asked for, so an install
+  // from PATH that keeps a "$CLAUDE_PROJECT_DIR" entry still drops a PATH one.
+  const kept = withoutGuard(read.items, cliPath);
   const done = isDeepStrictEqual(read.items.at(-1), group) && kept.length === read.items.length - 1;
   const list = done ? read.items : [...kept, group];
   const settings = { ...parsed.settings, hooks: { ...parsed.hooks, PreToolUse: list } };

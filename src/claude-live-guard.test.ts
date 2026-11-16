@@ -129,6 +129,14 @@ test('a "$CLAUDE_PROJECT_DIR" guard entry resolves against the project folder', 
   assert.equal(report.answer, 'failing', report.reason);
 });
 
+test('a node hook that runs another file is not the guard (review r1m1)', () => {
+  const other = { type: 'command', command: "node '/repo/audit.js'", timeout: 30 };
+  const project = source('.claude/settings.json', settings([{ matcher: guardMatcher, hooks: [other] }]));
+  const report = guardReport(input({ project, exists: () => true }));
+  assert.equal(report.answer, 'not-registered');
+  assert.match(report.reason, /no weftwork guard/);
+});
+
 test('control characters from the transcript are escaped in the reason', () => {
   const report = guardReport(input({ transcripts: { ok: true, texts: [blocked('2026-11-15T10:00:00.000Z\u001b[2J')] } }));
   assert.ok(!report.reason.includes('\u001b'), report.reason);

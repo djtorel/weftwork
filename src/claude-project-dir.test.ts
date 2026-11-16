@@ -6,7 +6,7 @@
 // against the project folder.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { installGuardHook } from './claude-guard-install.ts';
+import { guardEntry, installGuardHook } from './claude-guard-install.ts';
 import { installStopHook, parseStopHookCommand, stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { liveReport } from './claude-live.ts';
 import { call, input, source } from './claude-live-test-helpers.ts';
@@ -49,6 +49,18 @@ test('a new declared command replaces the "$CLAUDE_PROJECT_DIR" entry in place a
   assert.equal(stop.action, 'replaced');
   const hooks = (JSON.parse(stop.text) as { hooks: { Stop: { hooks: unknown[] }[] } }).hooks.Stop.flatMap((g) => g.hooks);
   assert.deepEqual(hooks, [{ ...stopEntry, command: `node "${stopCli}" -- 'npm test'` }]);
+});
+
+test('an install from PATH also removes a PATH Stop entry and a PATH guard beside the "$CLAUDE_PROJECT_DIR" ones (review r1m2, r1m3)', () => {
+  const both = JSON.stringify({ hooks: {
+    Stop: [{ hooks: [stopEntry, { type: 'command', command: stopHookCommand(weftworkOnPath, 'old'), timeout: 660 }] }],
+    PreToolUse: [{ matcher: guardGroup.matcher, hooks: [guardEntry(weftworkOnPath)] }, guardGroup],
+  } });
+  const stop = installStopHook(both, weftworkOnPath, declared);
+  assert.ok(stop.ok, JSON.stringify(stop));
+  const guard = installGuardHook(stop.text, weftworkOnPath);
+  assert.ok(guard.ok, JSON.stringify(guard));
+  assert.equal(guard.text, repoSettings);
 });
 
 test('the live check reads a "$CLAUDE_PROJECT_DIR" entry as registered and its record as live', () => {

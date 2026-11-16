@@ -279,7 +279,9 @@ export function installStopHook(text: string | null, cliPath: string, command: s
   }
   const found = stop.groups.flatMap((group) => group.hooks.map((hook) => parseStopHook(hook)?.cliPath));
   const kept = keptAdapter(found, cliPath, 'claude-hook-cli');
-  const install = { cliPath: kept, entry: installedEntry(kept, command) };
+  // cliPath, not kept, decides which entries are replaced: an install from
+  // PATH that keeps a "$CLAUDE_PROJECT_DIR" entry still drops a PATH one.
+  const install = { cliPath, entry: installedEntry(kept, command) };
   const out = renderSettings(parsed, editStopGroups(stop.groups, install));
   const changed = out !== text;
   return { ok: true, text: out, changed, action: actionOf(changed, stop.groups, install) };
