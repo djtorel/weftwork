@@ -1,6 +1,6 @@
 # The review council
 
-<!-- story: e11s03, e13s02, e13s03 -->
+<!-- story: e11s03, e13s02, e13s03, e13s05 -->
 
 Before a pull request, a council of reviewer models reads the change. The
 engine runs the reviewers, reads their findings and counts the rounds, so
@@ -159,6 +159,40 @@ again, as the unresolved ones. On a detached HEAD there is no branch, so the
 rounds are not counted. The stop rules and the counts of runs do not read
 review lines.
 
+## Finding outcomes
+
+Each finding in a report has an id: `r<round>` then `m` (must-fix), `s`
+(should-fix) or `f` (follow-up), then its place among that kind, counted
+across reviewers in council order, as the ledger stores them:
+
+```text
+must-fix r1m1 (codex): src/a.ts:12 the error path exits 0. Fix: return 1
+```
+
+The agent records what became of each finding, with its evidence:
+
+```bash
+echo '{"id":"r1m1","outcome":"fixed","evidence":"src/a.test.ts fails without the fix"}' | node src/review-outcome-cli.ts
+echo '{"report":true}' | node src/review-outcome-cli.ts
+```
+
+| Outcome | When |
+| --- | --- |
+| `fixed` | The change now handles it; for behaviour, a test that fails without the fix |
+| `disputed` | The finding is wrong; the evidence says why |
+| `declined` | Real, but not worth doing in this change; it goes to the backlog |
+| `follow-up` | A real defect this change did not cause; it goes to the backlog |
+
+The id must name a finding the ledger holds for a round on the current
+branch (at most 50 of each kind per round are stored). The line goes to
+`<git dir>/weftwork/review-outcomes.jsonl`; the last outcome for an id
+wins. `report` lists every finding of the branch with its outcome, or
+`open`, and gives each reviewer's resolution rate: the share of its
+must-fix and should-fix findings that were fixed (R19: Cursor's resolution
+rate, OpenAI's comments that led to a code change). It measures the
+reviewer over time, not the change, and never gates. Exit 0 recorded or
+reported, 2 when it cannot (an unknown id, a bad outcome, no evidence).
+
 ## Limits
 
 - The agent writes the brief and can set `sensitive`, so it can ask for the
@@ -168,6 +202,8 @@ review lines.
   FOLLOW-UP, and the engine cannot tell; the author reads every finding.
 - Grounding checks that the file and line exist, not that the claim is
   true.
+- Outcomes are the agent's own record. A finding marked `fixed` that was
+  not fixed is not caught here; the next round and the PR reviewer can.
 - The council commands come from the setting files, so a repository's
   `weftwork.yaml` can name any command for the review to run, as it can for
   the verify command through the Claude Code hook.

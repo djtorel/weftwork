@@ -27,7 +27,9 @@ push back with evidence when a finding is wrong or not needed.
 - The report shows the diff size from the base. If it says
   `diff growth: past twice round 1 ...`, cut the diff before you run
   another round, or stop and say why in the PR.
-- Keep a ledger of your answers: id, severity, outcome.
+- Record each answer with its finding's id from the report (`r1m1`):
+  `echo '{"id":"r1m1","outcome":"fixed","evidence":"..."}' | node src/review-outcome-cli.ts`.
+  Outcomes: `fixed`, `disputed`, `declined`, `follow-up` (`docs/REVIEW.md`).
 
 ## 1. Scope
 
@@ -98,14 +100,15 @@ small cost is a should-fix whatever label it came with.
   first against your last fix (it may be a caller you broke); if it is not
   caused by this change, dispute it with evidence as a follow-up.
 
-Re-run the checks. If review grew the diff, cut first. Do not agree just to end
-the loop.
+Record the outcome of every finding, with its evidence, before the next
+round. Re-run the checks. If review grew the diff, cut first. Do not agree
+just to end the loop.
 
 ## 4. Next round
 
 Start one only if the last round blocked, or behaviour code changed since the
 last pass. Pass the done gate again first. Send the round 1 brief, your
-ledger (`fixed:` / `disagree:` / `declined:` with evidence), the same base,
+answers by id (`r1m1 fixed: ...`, with evidence), the same base,
 and the change since the last round. Ask for open findings and changed code
 only.
 
@@ -121,6 +124,7 @@ only.
 Paste the last round's report into the PR as it is, and add:
 `Reviewed with review-loop: <N> rounds. Verdict: <pass|stuck>`. List every
 unresolved finding, every declined one with its reason, and every follow-up.
+Paste `echo '{"report":true}' | node src/review-outcome-cli.ts` under it.
 Leave the temporary folder for the system to clean; do not `rm -rf` it (a
 removal of a path held in a variable is blocked by Claude Code's safety
 check and would stall an unattended run).

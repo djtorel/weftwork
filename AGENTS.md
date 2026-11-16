@@ -68,6 +68,8 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Run the engine | `echo '{"command":"npm test"}' \| node src/cli.ts` |
 | PR proof | `echo '{"command":"npm test"}' \| node src/pr-proof-cli.ts` |
 | Review round | `echo '{"command":"npm test","brief":"..."}' \| node src/review-cli.ts` |
+| Base check | `echo '{}' \| node src/base-check-cli.ts` |
+| Finding outcomes | `echo '{"report":true}' \| node src/review-outcome-cli.ts` |
 | UI screenshots | `echo '{"phase":"after"}' \| node src/ui-cli.ts` |
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
 | Test | `npm test` |
@@ -109,8 +111,12 @@ tree, and say whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
 and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
 (`review-setting.ts`), count the rounds in the ledger (`review-ledger.ts`),
 and snapshot what each round is of, check that a must-fix names a real file
-and line, and scope later rounds to what changed (`review-scope.ts`;
-`docs/REVIEW.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
+and line, and scope later rounds to what changed (`review-scope.ts`), and record what
+became of each finding and each reviewer's resolution rate
+(`review-outcome.ts`, `review-outcome-cli.ts`;
+`docs/REVIEW.md`). `base-check.ts`, `base-check-setting.ts` and `base-check-cli.ts` run the
+tests a change adds or edits against the base commit, where they should
+fail, and report which do not (`docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
 them to the council, as images and with the design reference and a design
 checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
