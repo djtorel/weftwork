@@ -119,6 +119,20 @@ test('a skill folder from before the rename is deleted when it holds only a ship
   assert.ok(existsSync(join(dir, '.claude/skills/review-loop/notes.md')));
 });
 
+test('an old folder that gains a file between the plan and the write is kept whole (review r1m1)', () => {
+  const shippedOld = '# the old ready skill, as shipped\n';
+  const dir = makeTestRepo({ '.claude/skills/full-stop/SKILL.md': shippedOld });
+  const p = plan(dir, shippedWith({ 'full-stop/SKILL.md': shippedOld }));
+  assert.equal(action(p, '.claude/skills/full-stop/SKILL.md'), 'delete');
+  writeFileSync(join(dir, '.claude/skills/full-stop/notes.md'), 'added after the plan\n');
+  const applied = applyUpdate(dir, p);
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.deepEqual(applied.deleted, []);
+  assert.deepEqual(applied.kept, ['.claude/skills/full-stop/SKILL.md']);
+  assert.equal(readFileSync(join(dir, '.claude/skills/full-stop/SKILL.md'), 'utf8'), shippedOld);
+  assert.ok(existsSync(join(dir, '.claude/skills/full-stop/notes.md')));
+});
+
 test('AGENTS.md, CLAUDE.md, CONVENTIONS.md and the backlog are never in the plan', () => {
   const p = plan(setUp({ 'CONVENTIONS.md': '# mine\n' }));
   const paths = p.changes.map((change) => change.path);

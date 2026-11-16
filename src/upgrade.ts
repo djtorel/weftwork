@@ -18,11 +18,22 @@ export type Npm = {
  * and nothing was installed (--check). */
 export type Upgraded = { ok: true; from: string; to: string; did: 'installed' | 'current' | 'newer' | 'checked' } | Failure;
 
-const versionPattern = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
+/** A semver 2.0.0 version without build metadata: no leading zeros, and no
+ * empty pre-release part (review r1s2). */
+const part = '(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)';
+const versionPattern = new RegExp(`^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(${part}(?:\\.${part})*))?$`);
 
-/** Below 0 when `a` is older than `b`, 0 when the same, above 0 when newer.
- * The numbers compare as numbers; a pre-release is older than its release,
- * and two pre-releases compare as text. */
+/** Two pre-release parts, by semver: numbers as numbers, a number before text. */
+function comparePart(a: string, b: string): number {
+  const na = /^\d+$/.test(a);
+  const nb = /^\d+$/.test(b);
+  if (na && nb) return Number(a) - Number(b);
+  if (na !== nb) return na ? -1 : 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** Below 0 when `a` is older than `b`, 0 when the same, above 0 when newer,
+ * by semver precedence: a pre-release is older than its release. */
 export function compareVersions(a: string, b: string): number {
   const [, ...pa] = versionPattern.exec(a) ?? [];
   const [, ...pb] = versionPattern.exec(b) ?? [];
@@ -33,7 +44,13 @@ export function compareVersions(a: string, b: string): number {
   if (pa[3] === pb[3]) return 0;
   if (pa[3] === undefined) return 1;
   if (pb[3] === undefined) return -1;
-  return pa[3] < pb[3] ? -1 : 1;
+  const xa = pa[3].split('.');
+  const xb = pb[3].split('.');
+  for (let i = 0; i < Math.min(xa.length, xb.length); i++) {
+    const diff = comparePart(xa[i] ?? '', xb[i] ?? '');
+    if (diff !== 0) return diff;
+  }
+  return xa.length - xb.length;
 }
 
 /** Upgrade from `current`: install npm's latest when it is newer, unless

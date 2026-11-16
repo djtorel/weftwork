@@ -63,6 +63,16 @@ test('versions compare by number, and a pre-release is older than its release', 
   assert.ok(compareVersions('1.0.0', '1.0.0') === 0);
   assert.ok(compareVersions('1.0.0-rc.1', '1.0.0') < 0);
   assert.ok(compareVersions('0.2.0', '0.2.1') < 0);
+  assert.ok(compareVersions('1.0.0-rc.9', '1.0.0-rc.10') < 0, 'numeric pre-release parts compare as numbers (review r1s2)');
+  assert.ok(compareVersions('1.0.0-alpha', '1.0.0-alpha.1') < 0, 'fewer parts is older');
+  assert.ok(compareVersions('1.0.0-1', '1.0.0-alpha') < 0, 'a numeric part is older than text');
+});
+
+test('a version with a leading zero or an empty pre-release part is not a version (review r1s2)', () => {
+  for (const bad of ['01.2.3', '1.02.3', '1.1.0-..', '1.1.0-', '1.0.0-01']) {
+    const out = upgrade('0.2.0', { latest: () => ({ ok: true, version: bad }), install: () => null }, false);
+    assert.equal(out.ok, false, bad);
+  }
 });
 
 test('weftwork upgrade in a checkout refuses and says to git pull there; --help prints the usage', () => {

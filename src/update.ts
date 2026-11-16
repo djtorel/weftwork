@@ -89,10 +89,18 @@ export function behind(plan: UpdatePlan): number {
   return plan.changes.filter((change) => change.action === 'update' || change.action === 'create' || change.action === 'delete').length;
 }
 
-/** True when the file at `change.path` still holds what the plan saw. */
+/** True when the file at `change.path` still holds what the plan saw, and,
+ * for a delete, its folder still holds nothing else (review r1m1). */
 function unchangedSincePlan(dir: string, change: UpdateChange): boolean {
   const read = readRegularFile(join(dir, change.path), { follow: false, maxBytes: maxFileBytes });
-  return read.ok && (read.file?.text ?? null) === change.before;
+  if (!read.ok || (read.file?.text ?? null) !== change.before) return false;
+  if (change.action !== 'delete') return true;
+  try {
+    const names = readdirSync(dirname(join(dir, change.path)));
+    return names.length === 1 && names[0] === 'SKILL.md';
+  } catch {
+    return false;
+  }
 }
 
 /** Apply `plan` to `dir`. A file that changed since the plan is kept. */
