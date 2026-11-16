@@ -52,7 +52,7 @@ const systems: Record<SystemName, System> = {
     title: sectionTitle,
     section: (dir, tag, notes) => {
       const { epics, statuses } = readEpics(dir, notes);
-      return backlogSection(epics, statuses, tag);
+      return backlogSection(epics, statuses, tag, notes);
     },
   },
   gsd: {
@@ -239,6 +239,10 @@ export function planConvert(dir: string, options: { system: SystemName; tag: str
     if (anyCitation.test(path === '.gitignore' ? before : after)) notes.push(`${path} still names ${root}/: check it, and drop it if it serves only ${system.name}.`);
   };
   for (const [path, file] of texts) edit(path, file);
+  const quoted = new RegExp(`(['"\`])${escaped(root)}\\1`);
+  for (const [path, file] of texts) {
+    if (quoted.test(file.text)) notes.push(`${path} names "${root}" as a string: a path built in code (join('${root}', ...)) breaks when ${root}/ moves; check it.`);
+  }
   for (const [from, to] of moved) edit(to, readFile(join(dir, from)));
   const ignore = ignoreAppend(dir, [`${system.local}/`], `# Added by weftwork convert: the old ${system.name} plans, local only.`);
   if ('ok' in ignore) return ignore;
