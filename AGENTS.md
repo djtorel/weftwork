@@ -105,8 +105,9 @@ and only the owner changes them.
 
 `src/` holds the gate library (`gate.ts`), the working-tree fingerprint
 (`tree.ts`) and the thin CLI (`cli.ts`); `engine.ts` runs the loop, with the
-stop rules (`engine-rules.ts`), the ledger (`ledger.ts`), the no-progress
-breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
+stop rules (`engine-rules.ts`), the ledger (`ledger.ts`, with its file
+half, the open, line writer and tail reader, in `ledger-file.ts`), the
+no-progress breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
 on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
 adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
 the session's tokens from the transcript (`transcript-usage.ts`);
