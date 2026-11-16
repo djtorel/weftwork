@@ -38,7 +38,7 @@ review:
 
 | Key | What it is | Range | Built-in |
 | --- | --- | --- | --- |
-| `council` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode. A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
+| `council` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode (`docs/UI.md` gives `claude -p` and `gemini -p` entries that also get the screenshots). A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
 | `max_rounds` | Rounds on one branch | 1 to 10 | 3 |
 | `max_rounds_sensitive` | Rounds on one branch for a `sensitive` change | 1 to 10 | 5 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | 1200 |

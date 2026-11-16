@@ -387,6 +387,46 @@ test('a change that is not a UI change: WEFTWORK_IMAGES is not set (e11s06)', ()
   assert.equal(readFileSync(seen, 'utf8'), 'unset');
 });
 
+/** The council entry for `host` that docs/UI.md gives: the line that starts with it. */
+function documentedEntry(host: string): string {
+  const line = readFileSync(join(import.meta.dirname, '..', 'docs', 'UI.md'), 'utf8')
+    .split('\n')
+    .find((text) => text.startsWith(`${host} `));
+  assert.ok(line !== undefined, `docs/UI.md gives no ${host} council entry`);
+  return line;
+}
+
+/** A fake `name` on PATH: it checks the brief is on stdin, writes its
+ * arguments one per line and then WEFTWORK_IMAGES, and approves. */
+function fakeHost(name: string): { path: string; seen: string } {
+  const bin = makeTempDir();
+  const seen = join(makeTempDir(), 'seen');
+  writeFileSync(join(bin, name), `#!/bin/sh\ngrep -q 'Review the diff' || exit 9\nprintf '%s\\n' "$@" "images=\${WEFTWORK_IMAGES-unset}" > ${seen}\necho 'VERDICT: APPROVE'\n`, { mode: 0o755 });
+  return { path: `${bin}:${process.env['PATH'] ?? ''}`, seen };
+}
+
+for (const [host, flag] of [['claude', '--add-dir'], ['gemini', '--include-directories']] as const) {
+  test(`the ${host} council entry in docs/UI.md opens the folder that holds every screenshot for a UI change only (e11s06 follow-up)`, () => {
+    const fake = fakeHost(host);
+    const repo = uiChangedRepo(documentedEntry(host));
+    assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+    const out = node(reviewCli, repo, { command: verify, brief: 'Review the diff.' }, { PATH: fake.path });
+    assert.equal(out.status, 0, out.stdout + out.stderr);
+    const args = readFileSync(fake.seen, 'utf8').trimEnd().split('\n');
+    const images = (args.at(-1) ?? '').replace(/^images=/, '').split(',');
+    const dir = args[args.indexOf(flag) + 1] ?? '';
+    assert.ok(args.includes(flag), args.join(' '));
+    assert.ok(images.length > 0 && images.every((image) => image.startsWith(`${dir}/`)), `${dir} does not hold ${images.join(', ')}`);
+
+    const plain = fakeHost(host);
+    const other = readyRepo(council(documentedEntry(host)));
+    assert.equal(node(reviewCli, other, { command: verify, brief: 'Review the diff.' }, { PATH: plain.path }).status, 0);
+    const plainArgs = readFileSync(plain.seen, 'utf8').trimEnd().split('\n');
+    assert.equal(plainArgs.includes(flag), false, plainArgs.join(' '));
+    assert.equal(plainArgs.at(-1), 'images=unset');
+  });
+}
+
 test('a ui.design path through a symlinked folder outside the repository: exit 2 (e11s06, review round 1)', () => {
   const outside = makeTempDir();
   writeFileSync(join(outside, 'DESIGN.md'), 'secret\n');
