@@ -229,6 +229,8 @@ read and cache write, summed from the transcript file that the host names
 in `transcript_path` of the Stop input. Each assistant message counts once,
 since the host writes one message streamed in parts as several lines with
 the same id. There are no dollars: a price table per model goes stale.
+The PR proof shows the same counts when it is given the transcript path
+(`docs/PR-PROOF.md`, Tokens).
 
 The hook shows one line:
 

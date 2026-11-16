@@ -133,3 +133,25 @@ test('a refusal after the last run, stamped before it, still makes a draft (run 
   assert.match(proof.text, /^stopped: blocked, at 2026-11-15T09:00:00\.000Z$/m);
   assert.match(proof.text, /^why: the engine stopped after the last run of this command$/m);
 });
+
+// The session's tokens (e11s02 follow-up): the CLI passes what it read from the
+// transcript; the line shows them or why not, and never changes the verdict.
+test('tokens read from the transcript: on the budget line, and the proof is still ready', () => {
+  const tokens = { ok: true as const, tokens: { input: 7, output: 222, cacheRead: 74918, cacheWrite: 22705 } };
+  const proof = prProof({ entries: [run('npm test', true)], states: [], command: 'npm test', fingerprint: 'F', tokens });
+  assert.equal(proof.ready, true);
+  assert.match(
+    proof.text,
+    /^budget: 1 run in this loop, 0 failed runs of this command before the pass, tokens 7 input, 222 output, 74918 cache read, 22705 cache write$/m,
+  );
+});
+
+test('tokens that cannot be read: not counted with the reason, and the verdict is the same', () => {
+  const tokens = { ok: false as const, error: 'no transcript at /x\ny' };
+  const ready = prProof({ entries: [run('npm test', true)], states: [], command: 'npm test', fingerprint: 'F', tokens });
+  assert.equal(ready.ready, true);
+  assert.match(ready.text, /^budget: 1 run in this loop, 0 failed runs of this command before the pass, tokens not counted \(no transcript at \/x\\u000ay\)$/m);
+  const draft = prProof({ entries: [run('npm test', false)], states: [], command: 'npm test', fingerprint: 'F', tokens });
+  assert.equal(draft.ready, false);
+  assert.match(draft.text, /^budget: .*, tokens not counted \(/m);
+});

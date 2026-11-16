@@ -129,7 +129,8 @@ and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `handoff.ts` and `handoff-cli.ts` write the handoff block; `resume.ts` and
 `resume-cli.ts` check it at session start (`docs/STATE.md`). `pr-proof.ts` and
 `pr-proof-cli.ts` print a pull request's Proof block from the ledger and the
-tree, and say whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
+tree, with the session's tokens from its transcript when given one, and say
+whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
 and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
 (`review-setting.ts`), count the rounds in the ledger (`review-ledger.ts`),
 and snapshot what each round is of, check that a must-fix names a real file

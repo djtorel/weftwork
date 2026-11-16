@@ -6,8 +6,10 @@
 // anything else means a draft with a handoff (the full-stop skill).
 // docs/PR-PROOF.md.
 import { loopRuns } from './breaker.ts';
+import { tokensText } from './budget-report.ts';
 import { terminalSafe } from './cli-io.ts';
 import { failingRun, type LedgerEntry, type StateEntry } from './ledger.ts';
+import type { TokenRead } from './transcript-usage.ts';
 
 export type ProofInput = {
   entries: LedgerEntry[];
@@ -15,6 +17,10 @@ export type ProofInput = {
   command: string;
   /** The fingerprint of the tree now. */
   fingerprint: string;
+  /** The session's tokens, or why they are not counted. Shown on the budget
+   * line; never part of the verdict. Omitted: no tokens part (the review CLI
+   * reads only the verdict). */
+  tokens?: TokenRead;
 };
 
 /** `text` is plain lines, one field per line, for the PR template's Proof
@@ -70,7 +76,7 @@ function budgetLine(entries: LedgerEntry[], last: LedgerEntry | undefined, comma
 
 /** The proof for `command` from the ledger and the current tree. */
 export function prProof(input: ProofInput): Proof {
-  const { entries, states, command, fingerprint } = input;
+  const { entries, states, command, fingerprint, tokens } = input;
   const last = entries.findLast((entry) => entry.command === command);
   const stop = stopOf(states, command, last);
   const why = whyNot(last, stop, fingerprint);
@@ -80,6 +86,7 @@ export function prProof(input: ProofInput): Proof {
     if (stop.detail !== null) lines.push(`detail: ${terminalSafe(stop.detail)}`);
   }
   if (why !== null) lines.push(`why: ${why}`);
-  lines.push(budgetLine(entries, last, command, why === null));
+  const budget = budgetLine(entries, last, command, why === null);
+  lines.push(tokens === undefined ? budget : `${budget}, ${tokensText(tokens)}`);
   return { ready: why === null, text: `${lines.join('\n')}\n`, why };
 }
