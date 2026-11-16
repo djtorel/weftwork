@@ -9,8 +9,9 @@ import { isRecord } from './json.ts';
 export type CommandKind = 'test' | 'lint' | 'typecheck' | 'build' | 'run';
 
 /** A command found in a file. `body` is what a script or make target runs,
- * when the file says, so the checker can see a deploy hidden behind a name. */
-export type FoundCommand = { kind: CommandKind; command: string; source: string; body?: string };
+ * when the file says, so the checker can see a deploy hidden behind a name.
+ * `unread` says why the body is not all there, so the checker must not run it. */
+export type FoundCommand = { kind: CommandKind; command: string; source: string; body?: string; unread?: string };
 
 export type Stack = { languages: string[]; packageManagers: string[]; frameworks: string[]; commands: FoundCommand[]; notes: string[] };
 
@@ -172,18 +173,94 @@ function makeRules(lines: string[]): Map<string, Rule> {
   return rules;
 }
 
+/** The most values kept for one variable, and the most expansions of one
+ * text. Past it, the command is not checked (`unread`). */
+const maxVariants = 64;
+
+/** Every value a Makefile can give each variable: each `=`, `:=`, `::=`,
+ * `?=` or `!=` is one more, and `+=` adds each old value with the text
+ * appended. A conditional can pick any of them, and a `:=` can take the value
+ * before an append, so the guard looks at all. `cut` names each variable with
+ * more than maxVariants values. */
+function makeVariables(lines: string[]): { values: Map<string, string[]>; cut: Set<string> } {
+  const values = new Map<string, string[]>();
+  const cut = new Set<string>();
+  for (const line of lines) {
+    const match = /^\s*(?:export\s+|override\s+)*([A-Za-z_][\w.-]*)\s*(::?:?|[?+!])?=\s*(.*)$/.exec(line);
+    if (match === null) continue;
+    const old = values.get(match[1]) ?? [];
+    const next = [...new Set(match[2] === '+' && old.length > 0 ? [...old, ...old.map((value) => `${value} ${match[3]}`)] : [...old, match[3]])];
+    if (next.length > maxVariants) cut.add(match[1]);
+    values.set(match[1], next.slice(-maxVariants));
+  }
+  return { values, cut };
+}
+
+type Expander = { expand: (text: string) => string[]; cut: () => boolean; reset: () => void };
+
+/** Expands make variables. Each variable's expansions are worked out once
+ * (so a deep chain costs no more than a flat one), and a variable that
+ * refers back to itself stays as written. `cut` says whether an expansion
+ * since `reset` dropped values past maxVariants. */
+function expander({ values: variables, cut: cutNames }: { values: Map<string, string[]>; cut: Set<string> }): Expander {
+  const done = new Map<string, { found: string[]; cut: boolean }>();
+  const open = new Set<string>();
+  let cut = false;
+  const ofName = (name: string): string[] | undefined => {
+    const values = variables.get(name);
+    if (values === undefined || open.has(name)) return undefined;
+    const cached = done.get(name);
+    if (cached !== undefined) {
+      cut ||= cached.cut;
+      return cached.found;
+    }
+    const outer = cut;
+    cut = cutNames.has(name);
+    open.add(name);
+    const all = [...new Set(values.flatMap(expand))];
+    open.delete(name);
+    if (all.length > maxVariants) cut = true;
+    done.set(name, { found: all.slice(0, maxVariants), cut });
+    cut ||= outer;
+    return all.slice(0, maxVariants);
+  };
+  /** `text` with each `$(NAME)` and `${NAME}` replaced by each value it can
+   * have, so `pub$(SUFFIX)` reads as `publish`. An unknown name stays. */
+  function expand(text: string): string[] {
+    let variants = [''];
+    for (const piece of text.split(/(\$[({][A-Za-z_][\w.-]*[)}])/)) {
+      const options = ofName(/^\$[({](.*)[)}]$/.exec(piece)?.[1] ?? '') ?? [piece];
+      const all = [...new Set(variants.flatMap((before) => options.map((option) => before + option)))];
+      if (all.length > maxVariants) cut = true;
+      variants = all.slice(0, maxVariants);
+    }
+    return variants;
+  }
+  return { expand, cut: () => cut, reset: () => (cut = false) };
+}
+
 /** A Makefile: each target with a known name, and the recipe it runs with
- * every prerequisite's. */
+ * every prerequisite's (names expanded), then each expansion of its
+ * variables. A target whose variables have too many values is `unread`. */
 export function makeStack({ text }: Files): Stack | null {
   const name = ['GNUmakefile', 'makefile', 'Makefile'].find((file) => text.has(file));
   if (name === undefined) return null;
-  const rules = makeRules((text.get(name) ?? '').split('\n'));
+  const lines = (text.get(name) ?? '').split('\n');
+  const rules = makeRules(lines);
+  const { expand, cut, reset } = expander(makeVariables(lines));
+  const needs = (target: string): string[] =>
+    (rules.get(target)?.needs ?? []).flatMap((need) => expand(need).flatMap((each) => each.split(/\s+/))).filter((each) => each !== '');
   const commands: FoundCommand[] = [];
   for (const target of rules.keys()) {
     const kind = makeKinds[target];
     if (kind === undefined) continue;
-    const body = withReached(target, (other) => rules.get(other)?.needs ?? [], (other) => (rules.get(other)?.recipe ?? []).join('\n'));
-    commands.push({ kind, command: `make ${target}`, source: name, body });
+    reset();
+    const recipes = withReached(target, needs, (other) => (rules.get(other)?.recipe ?? []).join('\n'));
+    const expanded = [...new Set(expand(recipes))].filter((each) => each !== recipes);
+    const body = expanded.length === 0 ? recipes : [recipes, '# expanded', ...expanded].join('\n');
+    const found: FoundCommand = { kind, command: `make ${target}`, source: name, body };
+    if (cut()) found.unread = `its make variables have more than ${maxVariants} values`;
+    commands.push(found);
   }
   return stack({ commands });
 }

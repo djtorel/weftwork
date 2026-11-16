@@ -4,7 +4,8 @@
 // files and the planning systems. Reads only; detect-check.ts runs the
 // commands. docs/DETECT.md.
 import { lstat, readdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { isAbsolute, join, normalize, relative } from 'node:path';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { readRegularFile } from './regular-file.ts';
 import { markerFiles, readStacks, textFiles, type Files, type FoundCommand } from './detect-stacks.ts';
@@ -64,13 +65,49 @@ async function workflows(dir: string): Promise<string[]> {
   }
 }
 
+/** True when `path`, with every symlink resolved, is inside `dir`. */
+function isInside(dir: string, path: string): boolean {
+  try {
+    const inside = relative(realpathSync(dir), realpathSync(path));
+    return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside);
+  } catch {
+    return false;
+  }
+}
+
+/** The most included makefiles read for one Makefile. */
+const maxIncludes = 20;
+
+/** `text` with each makefile it includes (`include`, `-include`, `sinclude`)
+ * appended, and theirs, so the rules and variables in them are seen. A name
+ * with a variable, or outside the folder, is not read. */
+function withIncludes(dir: string, text: string): string {
+  const seen = new Set<string>();
+  const parts = [text];
+  const queue = [text];
+  for (let next = queue.shift(); next !== undefined && seen.size < maxIncludes; next = queue.shift()) {
+    for (const line of next.matchAll(/^\s*-?s?include\s+(.+)$/gm)) {
+      for (const name of line[1].split(/\s+/).filter((each) => each !== '' && !each.includes('$'))) {
+        if (seen.has(name) || isAbsolute(name) || normalize(name).startsWith('..') || seen.size >= maxIncludes) continue;
+        seen.add(name);
+        if (!isInside(dir, join(dir, name))) continue;
+        const read = readRegularFile(join(dir, name), { follow: false, maxBytes: maxFileBytes });
+        if (!read.ok || read.file === null) continue;
+        parts.push(read.file.text);
+        queue.push(read.file.text);
+      }
+    }
+  }
+  return parts.join('\n');
+}
+
 /** The top-level files the stack readers need; an unreadable one is a note. */
 async function readFiles(dir: string, notes: string[]): Promise<Files> {
   const text = new Map<string, string>();
   for (const name of textFiles) {
     const read = readRegularFile(join(dir, name), { follow: true, maxBytes: maxFileBytes });
     if (!read.ok) notes.push(`${name} was not read: ${read.error}`);
-    else if (read.file !== null) text.set(name, read.file.text);
+    else if (read.file !== null) text.set(name, /akefile$/.test(name) ? withIncludes(dir, read.file.text) : read.file.text);
   }
   const present = new Set([...text.keys(), ...(await existing(dir, markerFiles))]);
   return { text, present };
