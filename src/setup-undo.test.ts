@@ -19,7 +19,7 @@ const answers: Answers = { about: 'A tool.', words: [], never: [], rules: ['Wrap
 
 function report(dir: string): CheckedReport {
   const check = { status: 'passed' as const, exitCode: 0 };
-  return { path: dir, languages: ['go'], packageManagers: ['go'], frameworks: [], commands: [{ kind: 'test', command: 'go test ./...', source: 'go.mod', check }], ci: [], agentFiles: [], planning: [], notes: [] } as CheckedReport;
+  return { path: dir, languages: ['go'], packageManagers: ['go'], frameworks: [], commands: [{ kind: 'test', command: 'go test ./...', source: 'go.mod', check }], ci: [], agentFiles: [], planning: [], packages: [], notes: [] };
 }
 
 async function setUp(dir: string, overwrite: string[] = []): Promise<void> {
