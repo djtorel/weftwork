@@ -144,7 +144,9 @@ test('AC-e12s02-08 the Stop hook is planned with the Preflight and installed on 
   assert.ok(applySetup(dir, p, { overwrite: [] }).ok);
   const settings = readFileSync(join(dir, '.claude/settings.json'), 'utf8');
   assert.ok(settings.includes('go test ./...'));
-  assert.ok(settings.includes(join(engineDir, 'src', 'claude-hook-cli.ts')));
+  assert.ok(settings.includes("weftwork claude-hook -- 'go test ./...'"), 'the Stop hook runs weftwork from PATH');
+  assert.ok(settings.includes('weftwork guard'), 'the guard runs weftwork from PATH');
+  assert.ok(!settings.includes(engineDir), 'no entry names this checkout');
 });
 
 test('AC-e12s02-13 a settings file the owner edited is a conflict with a diff, not silently replaced', () => {
