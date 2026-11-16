@@ -8,7 +8,30 @@ folder (one with no other planning system). It detects the project
 the full plan as a dry run, and writes only when told to. The
 `setup-project` skill drives it in Claude Code.
 
-## Run it
+## From the terminal: `weftwork init`
+
+```bash
+cd /path/to/project
+weftwork init
+```
+
+`weftwork init [path]` is the same setup for a person: the folder is the
+current one unless you name it. In a terminal it asks the five questions
+below (Enter keeps the recommended answer), prints the plan, and asks
+`Write these files? [y/N]` before it writes. With no terminal to ask in
+(a pipe, CI) it takes the recommended answers and prints the plan only.
+
+| Option | Meaning |
+| --- | --- |
+| `-y`, `--yes` | Take the recommended answers and write without asking |
+| `--stop-hook` | Also register the Claude Code Stop hook and guard |
+| `--no-run` | Do not run the project's commands (as `"run": false`) |
+| `--overwrite <path>` | Replace this conflict; repeat for more |
+
+It exits 0 when it wrote or you chose not to, 1 when detection, the plan or
+the write is refused, and 2 for a bad option. Logic: `src/init.ts`.
+
+## Run it with JSON (agents)
 
 ```bash
 echo '{"path":"/path/to/project"}' | node src/setup-cli.ts
