@@ -58,8 +58,9 @@ git -C repo -c user.name=t -c user.email=t@t commit -q -m init
   || fail "init --yes failed"
 [ -f repo/AGENTS.md ] || fail "init wrote no AGENTS.md"
 grep -q 'weftwork engine' repo/.claude/skills/all-ready/SKILL.md \
-  .claude/skills/all-in/SKILL.md \
   || fail "the installed skill does not call the weftwork command"
+grep -q 'all-ready' repo/.claude/skills/all-in/SKILL.md \
+  || fail "init did not install the all-in skill"
 settings="$work/repo/.claude/settings.json"
 grep -qF "weftwork claude-hook -- " "$settings" \
   || fail "the Stop hook does not run weftwork claude-hook from PATH"

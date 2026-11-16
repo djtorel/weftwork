@@ -60,6 +60,6 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
     'c000cda6a77ec0df063c2923f7dfb76039e233fd1674cd62e6b24c18a586b9c3',
   ],
   'retro/SKILL.md': [
-    'caaefcc18ae874680ba745043d5fc5246ea32121631c9579e44e392f479c020f',
+    'bda6aafadbd67f20f8561823c4128e21c46cac570bd90d1839492cb77b23de8b',
   ],
 };

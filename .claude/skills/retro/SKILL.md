@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Use when the user says "retro", or asks what weftwork's history shows or what to fix in the workflow.
+description: Use when the user says "Retro." or "run a retro" as a request about weftwork itself, or asks what weftwork's history shows or what to fix in the workflow. Not for a task that only mentions a retro, such as building a retro feature.
 ---
 
 # Retro

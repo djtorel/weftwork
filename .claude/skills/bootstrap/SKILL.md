@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: Use when the user says "bootstrap" with a project folder, or asks to set up weftwork in a project folder, new or plain (no other planning system).
+description: Use when the user asks to set up weftwork in a project folder, new or plain (no other planning system), including "bootstrap /path/to/project" said in a weftwork checkout. Not for setting up the project's own app or tooling.
 ---
 
 # Bootstrap
