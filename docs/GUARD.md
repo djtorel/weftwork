@@ -46,6 +46,7 @@ The built-in list (`builtInProtected` in `src/guard.ts`):
 | --- | --- |
 | Git internals | `.git/` |
 | Host hook and settings files | `.claude/hooks/`, `.mcp.json` (Claude Code, R11 S26); `.codex/` (Codex, R11 S29); `.gemini/settings.json` (Gemini CLI, R5); `opencode.json`, `opencode.jsonc`, `.opencode/plugins/` (opencode, R5, R13); `.pi/extensions/` (pi, R13); `.kiro/hooks/` (Kiro, R13) |
+| The weftwork the hooks run from a dev dependency | `node_modules/.bin/weftwork`, `node_modules/weftwork/` (`docs/INSTALL.md`) |
 | Shell startup files | `.bashrc`, `.bash_profile`, `.zshrc`, `.profile` (R11 S26) |
 | Credential files | `.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa*`, `id_dsa*`, `id_ecdsa*`, `id_ed25519*`, `.npmrc`, `.netrc`, `.pypirc`, `.aws/`, `.ssh/` (R11 S29, S30) |
 
@@ -109,18 +110,28 @@ with the matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`, a 30 s timeout
 and this command:
 
 ```sh
-command -v weftwork >/dev/null 2>&1 || { echo 'weftwork: the weftwork command is not on PATH, so this hook cannot run. Install it: npm install -g weftwork' >&2; exit 2; }; weftwork guard
+weftwork() { <the lookup>; }; weftwork guard
 ```
 
-The Stop entry starts the same way and ends with
-`weftwork claude-hook -- '<declared command>'`. Running `weftwork` from
-PATH keeps the entries working after an npm upgrade, a moved checkout or a
-new Node. The check in front matters: a hook that cannot start is a
-non-blocking error, so without it a missing `weftwork` would let every tool
-call through. With it, the call is blocked (exit 2) and the message says
-what to install. A second run changes nothing. An entry an older install
-wrote, `node '<file>/guard-cli.ts'` (or `.js`), is replaced; other
-`PreToolUse` items stay as they are.
+The function in front is the lookup of `docs/INSTALL.md`: `WEFTWORK_BIN`,
+the clone's own install under the git common dir, the project's
+`node_modules/.bin/weftwork`, then `weftwork` on PATH. The Stop entry
+starts the same way and ends with
+`weftwork claude-hook -- '<declared command>'`. Running the `weftwork` the
+lookup finds keeps the entries working after an npm upgrade, a moved
+checkout or a new Node, with or without a global install. The lookup
+matters: a hook that cannot start is a non-blocking error, so without it a
+missing `weftwork` would let every tool call through. With it, the call is
+blocked (exit 2) and the message says how to install it. A second run
+changes nothing. An entry an older install wrote, `node
+'<file>/guard-cli.ts'` (or `.js`), or the PATH-only check of 0.2.0
+(`command -v weftwork ... || exit 2; weftwork guard`), is replaced; other
+`PreToolUse` items stay as they are. The live check still counts a 0.2.0
+entry as installed.
+
+The install also adds a `SessionStart` entry, which writes the same lookup
+as a shell function to `CLAUDE_ENV_FILE`, so the session's Bash commands
+find weftwork the same way (`docs/INSTALL.md`).
 
 A project can run its own copy of the engine, as this repository does,
 so that each worktree runs its own `src/`:
@@ -147,7 +158,7 @@ transcripts only; it does not change the guard. The answer is one of:
 | `not registered` | No guard entry in `.claude/settings.json`, its file or the `weftwork` command is missing, or the entry was changed by hand |
 | `registered, not seen` | The entry is right, and no transcript shows a guard call |
 | `ran` | The newest guard event in the transcripts is a call it blocked |
-| `failing` | The newest guard event is a hook error: the guard did not run, and the call went ahead. Or `weftwork` was not on PATH, and the hook blocked the call without the guard |
+| `failing` | The newest guard event is a hook error: the guard did not run, and the call went ahead. Or no `weftwork` was installed, and the hook blocked the call without the guard |
 
 The guard leaves a trace only when it blocks a call or fails to run, so
 `registered, not seen` is a normal answer. The check reads the three
@@ -215,12 +226,16 @@ The Bash match is a known partial guard. It reads text, not intent:
 - A missing `weftwork` command blocks (see Install), but a crash after it
   starts and before the guard's code runs (a Node that is too old, a
   broken install) is a non-blocking error, and the call goes ahead.
-- The entries run whatever `weftwork` comes first on the PATH Claude Code
-  gives hooks. A program that can write a `weftwork` into an earlier PATH
-  folder, or replace the installed package's files, can replace the guard.
-  Both are outside the project: in a git worktree the guard blocks a file
+- The entries run the `weftwork` the lookup finds (`docs/INSTALL.md`). A
+  program that can write a `weftwork` into an earlier PATH folder, or
+  replace the installed package's files, can replace the guard. A global
+  install is outside the project: in a git worktree the guard blocks a file
   tool that writes outside it (`docs/ASK.md`), but not a Bash command that
-  does.
+  does. The clone's own install is inside `.git/`, and a dev dependency's
+  `node_modules/.bin/weftwork` and `node_modules/weftwork/` are on the
+  protected-paths list, so a file tool cannot write them; a Bash command
+  such as `npm install` that changes `node_modules` without naming them
+  still can.
 - The protected-paths match on Bash words gives false positives too: a
   word such as `x.key` in a `node -e` script, or `.env` in a commit
   message, blocks the command. Write the script or the message to a file

@@ -9,17 +9,17 @@ import type { Question } from './setup-text.ts';
 test('init with no path sets up the current folder, asks, runs commands and adds no hook', () => {
   assert.deepEqual(parseInitArgs([], '/work/project'), {
     ok: true,
-    options: { path: '/work/project', yes: false, stopHook: false, run: true, overwrite: [] },
+    options: { path: '/work/project', yes: false, stopHook: false, local: false, run: true, overwrite: [] },
   });
 });
 
 test('init takes a path, relative to the current folder, and each option', () => {
-  const parsed = parseInitArgs(['../other', '--yes', '--stop-hook', '--no-run', '--overwrite', 'AGENTS.md', '--overwrite', 'CLAUDE.md'], '/work/project');
+  const parsed = parseInitArgs(['../other', '--yes', '--stop-hook', '--local', '--no-run', '--overwrite', 'AGENTS.md', '--overwrite', 'CLAUDE.md'], '/work/project');
   assert.deepEqual(parsed, {
     ok: true,
-    options: { path: resolve('/work/other'), yes: true, stopHook: true, run: false, overwrite: ['AGENTS.md', 'CLAUDE.md'] },
+    options: { path: resolve('/work/other'), yes: true, stopHook: true, local: true, run: false, overwrite: ['AGENTS.md', 'CLAUDE.md'] },
   });
-  assert.deepEqual(parseInitArgs(['-y'], '/p'), { ok: true, options: { path: '/p', yes: true, stopHook: false, run: true, overwrite: [] } });
+  assert.deepEqual(parseInitArgs(['-y'], '/p'), { ok: true, options: { path: '/p', yes: true, stopHook: false, local: false, run: true, overwrite: [] } });
 });
 
 test('init refuses an unknown option or a second path, and says so', () => {

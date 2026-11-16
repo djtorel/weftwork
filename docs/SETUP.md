@@ -102,15 +102,20 @@ joins the lint, typecheck and test commands that passed. With none, the
 letter says so and there is no Stop hook.
 
 The skills call the `weftwork` command (installed with `npm install -g
-weftwork`, or `npm link` from a checkout; `docs/GETTING-STARTED.md` § 1), so
-they work from any project and from a moved checkout once it is linked
-again. When `weftwork path` does not print this engine, the plan has a note.
+weftwork`, into the clone with `npx weftwork install`, as a dev dependency,
+or `npm link` from a checkout; `docs/INSTALL.md`), so they work from any
+project and from a moved checkout once it is linked again. When the
+`weftwork` the project finds does not run this engine, the plan has a note.
 The Stop hook and the guard run `weftwork claude-hook` and `weftwork guard`
-from PATH too, so an npm upgrade, a moved checkout or a new Node needs no new
+the same way, so an npm upgrade, a moved checkout or a new Node needs no new
 setup. A hook that cannot start is a non-blocking error in Claude Code, so
-each entry first checks that `weftwork` is on PATH and exits 2 when it is
-not: the stop or the tool call is blocked with a message that says to run
-`npm install -g weftwork` (`docs/GUARD.md`).
+each entry first looks for `weftwork` (WEFTWORK_BIN, the clone's own
+install, the dev dependency, PATH) and exits 2 when there is none: the stop
+or the tool call is blocked with a message that says how to install it
+(`docs/GUARD.md`). With the hooks, setup also writes a SessionStart entry
+that gives the session's Bash commands the same lookup, so the skills find
+a weftwork that is not on PATH; `weftwork init --local` writes it with or
+without the Stop hook (`docs/INSTALL.md`).
 
 A folder that is not the root of a git repository gets no backlog and no
 Stop hook; a note says so.
@@ -145,11 +150,13 @@ cd /path/to/project
 weftwork update           # the plan; writes nothing without a yes
 ```
 
-A new weftwork reaches a project in two parts. The hooks run `weftwork` from
-PATH and the skills read the docs under `$(weftwork path)`, so they change as
-soon as the command does: `weftwork upgrade` asks npm for the latest
+A new weftwork reaches a project in two parts. The hooks run the `weftwork`
+they find and the skills read the docs under `$(weftwork path)`, so they
+change as soon as the command does: `weftwork upgrade` asks npm for the latest
 version and installs exactly that one (`npm install -g weftwork@<version>`;
-`--check` only says whether one is out). The skills are copied into the
+`--check` only says whether one is out). In a project with its own install
+(`docs/INSTALL.md`), it installs into the clone instead and moves the pin
+in `weftwork.yaml`. The skills are copied into the
 project, so they stay as they were until `weftwork update [path]` brings
 them up:
 

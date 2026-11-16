@@ -7,10 +7,15 @@
 //
 // Exit 0 done (or nothing written by choice), 1 when detection, the plan or
 // the write is refused, 2 for bad options; the reason is on stderr.
+import { readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
+import { isGitRoot } from './claude-settings-file.ts';
 import { terminalSafe } from './cli-io.ts';
+import { handOff, repoOf } from './delegate.ts';
 import { askAnswers, checkedReport, initUsage, parseInitArgs, recommendedAnswers, renderPlan, renderWritten } from './init.ts';
+import { install, isCloneInstall, runNpm } from './install.ts';
+import { engineBin } from './launcher.ts';
 import { applySetup, planSetup } from './setup.ts';
 import { projectDescription } from './setup-about.ts';
 import { setupQuestions } from './setup-text.ts';
@@ -40,7 +45,21 @@ async function main(args: string[]): Promise<number> {
     process.stdout.write(initUsage);
     return 0;
   }
-  const { path: dir, yes, stopHook, run, overwrite } = parsed.options;
+  const { path: dir, yes, stopHook, local, run, overwrite } = parsed.options;
+  if (local) {
+    // --local: install into the clone first, then let that install set the
+    // project up, so the skills are its own and the plan finds it.
+    const repo = isGitRoot(dir) ? repoOf(dir) : null;
+    if (repo === null) return fail(`--local needs the root of a git repository, and ${dir} is not one: the install goes under its git common dir`, 1);
+    if (!isCloneInstall(engineDir, repo.commonDir)) {
+      const { version: running } = JSON.parse(readFileSync(join(engineDir, 'package.json'), 'utf8')) as { version: string };
+      const installed = install({ root: dir, commonDir: repo.commonDir, running }, runNpm);
+      if (!installed.ok) return fail(installed.error, 1);
+      const pinned = installed.pinned ? ` and pinned it in weftwork.yaml (engine: ${installed.version}); commit that file` : '';
+      process.stderr.write(`Installed weftwork ${installed.version} in this clone${pinned}.\n`);
+      return handOff(engineBin(repo.commonDir), ['init', ...args]);
+    }
+  }
   const interactive = !yes && process.stdin.isTTY === true && process.stdout.isTTY === true;
   if (run) process.stderr.write(`Checking the commands of ${terminalSafe(dir)} (each runs once; --no-run skips this)...\n`);
   const checked = await checkedReport(dir, run, timeoutMs);
@@ -49,7 +68,7 @@ async function main(args: string[]): Promise<number> {
   const prompt = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
   try {
     const answers = prompt === null ? recommendedAnswers(questions) : await askAnswers(questions, (text) => prompt.question(text));
-    const planned = planSetup(dir, checked.report, answers, { engineDir, stopHook });
+    const planned = planSetup(dir, checked.report, answers, { engineDir, stopHook, envHook: local });
     if (!planned.ok) return fail(planned.error, 1);
     print(`\n${renderPlan(dir, planned.plan)}`);
     if (!yes) {

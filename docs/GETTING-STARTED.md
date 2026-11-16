@@ -22,8 +22,14 @@ weftwork --version
 `--version` prints the version, which means `weftwork` is on your PATH. The
 skills setup copies into your project call `weftwork <command>` (`weftwork
 engine`, `weftwork review`, `weftwork pr-proof`) and find the docs under
-`$(weftwork path)`. The Claude Code Stop hook and guard run `weftwork` from
-PATH too; where it is missing they block and say to install it. If npm says
+`$(weftwork path)`. The Claude Code Stop hook and guard run `weftwork` too;
+where it is missing they block and say to install it.
+
+**No global install:** `npx weftwork init --local` installs weftwork into
+this clone only, untracked, and sets the project up from it; in a project
+that is set up already, `npx weftwork install`. The hooks and skills find a
+clone's own install, a dev dependency, or the command on PATH
+(`INSTALL.md`, which also covers mise). If npm says
 it cannot write to its global folder, set a prefix you own first (`npm
 config set prefix ~/.local`, with `~/.local/bin` on your PATH). Upgrade:
 `weftwork upgrade`, then `weftwork update` in each project to bring its

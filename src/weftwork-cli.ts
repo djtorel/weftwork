@@ -9,6 +9,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { delegatedVar, delegateTarget, handOff, repoOf } from './delegate.ts';
 
 const root = join(import.meta.dirname, '..');
 const ext = extname(import.meta.filename);
@@ -21,6 +22,7 @@ const about: Record<string, string> = {
   setup: 'Set up a project, or undo a setup (JSON on stdin; what agents call)',
   update: "Bring a project's weftwork skills to this version (default: the current folder)",
   upgrade: 'Install the latest weftwork from npm',
+  install: "Install weftwork into this clone only, at the project's pinned version",
   detect: "Report a project's stack, commands, CI and agent files",
   engine: 'Run a command through the done gate and record it in the ledger',
   'pr-proof': "Print a pull request's Proof block from the ledger",
@@ -76,9 +78,17 @@ function version(): string {
   return v;
 }
 
-const [command] = process.argv.splice(2, 1);
+// A weftwork that is not the project's own hands the command to the one that
+// is (delegate.ts). The mark is dropped here, so the commands this one runs,
+// such as a Preflight, do not inherit it.
+const handedOff = process.env[delegatedVar] === '1';
+delete process.env[delegatedVar];
+const target = handedOff ? null : delegateTarget(process.env, repoOf(process.cwd()), join(root, 'bin', 'weftwork.js'));
+const [command] = target === null ? process.argv.splice(2, 1) : [];
 const known = commands();
-if (command === 'path') {
+if (target !== null) {
+  process.exitCode = handOff(target, process.argv.slice(2));
+} else if (command === 'path') {
   process.stdout.write(`${root}\n`);
 } else if (command === '--version' || command === '-v' || command === 'version') {
   process.stdout.write(`${version()}\n`);

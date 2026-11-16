@@ -10,6 +10,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { hookTimeoutSeconds } from './claude-hook.ts';
 import { messageOf, type Failure } from './errors.ts';
 import { isRecord } from './json.ts';
+import { resolved } from './launcher.ts';
 
 /** What the install did. `reformatted`: the entry was right, only the spacing changed. */
 export type Action = 'added' | 'replaced' | 'reformatted' | 'unchanged';
@@ -32,16 +33,17 @@ export function shellQuote(text: string): string {
   return `'${text.replaceAll("'", `'\\''`)}'`;
 }
 
-/** The adapter value for the `weftwork` command on PATH. An entry that runs
- * it keeps working after an npm upgrade, a moved checkout or a new Node; an
- * entry that names a file (`node '<file>'`) is still read, for older installs. */
+/** The adapter value for the `weftwork` command, as the resolver finds it
+ * (launcher.ts): WEFTWORK_BIN, this clone's install, a dev dependency or PATH.
+ * An entry that runs it keeps working after an upgrade, a moved checkout or a
+ * new Node; an entry that names a file (`node '<file>'`) is still read, for
+ * older installs. */
 export const weftworkOnPath = 'weftwork';
 
-/** The start of an entry that runs weftwork from PATH: exit 2 when it is not
- * there. A hook that cannot start is a non-blocking error in Claude Code, so
- * without this a missing engine would let every stop and tool call through;
- * exit 2 blocks in a Stop and a PreToolUse hook alike (docs/GUARD.md). */
-export const requireWeftwork =
+/** The start of an entry 0.2.0 and older wrote: weftwork from PATH only, exit
+ * 2 when it is not there. It is still read, so an install replaces it and the
+ * live check does not call it changed by hand. */
+export const legacyRequireWeftwork =
   "command -v weftwork >/dev/null 2>&1 || { echo 'weftwork: the weftwork command is not on PATH, so this hook cannot run. " +
   "Install it: npm install -g weftwork' >&2; exit 2; }; ";
 
@@ -83,8 +85,11 @@ export function adapterOf(match: RegExpExecArray, index: number): string {
 /** The start of every command this install writes: the adapter runs, and
  * what follows `--` is the one argument claude-hook-cli.ts reads. */
 function stopHookPrefix(cliPath: string): string {
-  return cliPath === weftworkOnPath ? `${requireWeftwork}weftwork claude-hook -- ` : `node ${adapterWord(cliPath)} -- `;
+  return cliPath === weftworkOnPath ? resolved('claude-hook -- ') : `node ${adapterWord(cliPath)} -- `;
 }
+
+/** The start of a Stop entry from PATH as 0.2.0 and older wrote it. */
+const legacyStopPrefix = `${legacyRequireWeftwork}weftwork claude-hook -- `;
 
 /** A weftwork entry read back: the adapter file and the declared command. */
 export type StopHookEntry = { cliPath: string; command: string };
@@ -112,8 +117,8 @@ function unquote(inner: string): string {
  * and the live check both decide what an entry is here, so they cannot drift.
  * An owner hook that mentions the path or adds shell text after it is not ours. */
 export function parseStopHookCommand(text: string): StopHookEntry | null {
-  const fromPath = stopHookPrefix(weftworkOnPath);
-  if (text.startsWith(fromPath)) {
+  const fromPath = [stopHookPrefix(weftworkOnPath), legacyStopPrefix].find((prefix) => text.startsWith(prefix));
+  if (fromPath !== undefined) {
     const quoted = quotedCommand.exec(text.slice(fromPath.length));
     return quoted === null ? null : { cliPath: weftworkOnPath, command: unquote(quoted[1] ?? '') };
   }
@@ -142,7 +147,9 @@ export function installedEntry(cliPath: string, command: string): object {
  * A hand edit can make an entry that runs but cannot block a stop: `async`,
  * an `if`, or a timeout the host cuts short (review B-F1). */
 export function isAsInstalled(hook: unknown, entry: StopHookEntry): boolean {
-  return isDeepStrictEqual(hook, installedEntry(entry.cliPath, entry.command));
+  if (isDeepStrictEqual(hook, installedEntry(entry.cliPath, entry.command))) return true;
+  const legacy = { type: 'command', command: legacyStopPrefix + shellQuote(entry.command), timeout: hookTimeoutSeconds };
+  return entry.cliPath === weftworkOnPath && isDeepStrictEqual(hook, legacy);
 }
 
 /** True when `hook` is a weftwork entry for the adapter at `cliPath`. An entry

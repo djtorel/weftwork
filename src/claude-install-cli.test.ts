@@ -20,8 +20,10 @@ import {
 import { join } from 'node:path';
 import { guardEntry, guardMatcher } from './claude-guard-install.ts';
 import { hookTimeoutSeconds } from './claude-hook.ts';
+import { envHookEntry } from './claude-env-install.ts';
 import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { isRecord } from './json.ts';
+import { missingPrefix } from './launcher.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -71,11 +73,14 @@ test('AC-e07s03-07 a repository with no .claude directory gets the entry', () =>
   assert.match(run.stdout, /^added/);
   assert.match(run.stdout, /trust/i);
   assert.match(run.stdout, /new Claude Code session/);
-  assert.match(run.stdout, /from PATH/);
+  assert.match(run.stdout, /this clone's own install, a dev\n  dependency or the one on PATH/);
   const group = firstStopGroup(readSettings(repo));
   assert.deepEqual(group.hooks, [
     { type: 'command', command: stopHookCommand(weftworkOnPath, 'npm test'), timeout: hookTimeoutSeconds },
   ]);
+  const hooks = readSettings(repo).hooks;
+  assert.ok(isRecord(hooks));
+  assert.deepEqual(hooks.SessionStart, [{ hooks: [envHookEntry] }], 'the SessionStart entry gives the skills the same resolver');
 });
 
 test('AC-e07s03-07 the written entry runs the real adapter and blocks a failing command', () => {
@@ -96,7 +101,7 @@ test('AC-e07s03-07 the written entry runs the real adapter and blocks a failing 
     timeout: 30000,
   });
   assert.equal(run.status, 2, run.stderr);
-  assert.doesNotMatch(run.stderr, /not on PATH/, 'the adapter ran and blocked, not the missing-command check');
+  assert.ok(!run.stderr.includes(missingPrefix), 'the adapter ran and blocked, not the missing-command check');
 });
 
 test('AC-e11s01-13 the install registers the guard, and the entry blocks a Write to weftwork.yaml', () => {

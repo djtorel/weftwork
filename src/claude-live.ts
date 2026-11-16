@@ -48,11 +48,14 @@ export type LiveInput = {
   /** The project folder: Claude Code's CLAUDE_PROJECT_DIR for hooks run here. */
   projectDir: string;
   /** True when a file exists at the absolute path, or, for `weftwork`
-   * (weftworkOnPath), when the command is on this shell's PATH. */
+   * (weftworkOnPath), when the resolver finds the command (launcher.ts). */
   exists: (path: string) => boolean;
   lastCall: LastCallRead;
   now: Date;
 };
+
+/** How to install weftwork, for a report that finds it missing. */
+export const installHint = 'install it in this clone with npx weftwork install, or for every project with npm install -g weftwork';
 
 export type LiveAnswer = 'live' | 'not-seen' | 'not-registered';
 /** The one step that can change the answer (review round 5). */
@@ -255,7 +258,7 @@ function whyNotRegistered(entries: Entry[], others: number, file: string): strin
   }
   if (!entries.some((entry) => entry.present)) {
     if (entries.every((entry) => entry.cliPath === weftworkOnPath)) {
-      return 'the entry runs the weftwork command, which is not on PATH: install it with npm install -g weftwork';
+      return `the entry runs the weftwork command, which is not installed for this project: ${installHint}`;
     }
     const paths = entries.map((entry) => entry.runs).join(', ');
     return `the entry names ${paths}, which does not exist on this machine: run the install again`;

@@ -10,8 +10,9 @@
 // edit it. Text of the wrong shape is refused, never repaired or overwritten.
 import { lstatSync } from 'node:fs';
 import { join } from 'node:path';
+import { installEnvHook } from './claude-env-install.ts';
 import { installGuardHook } from './claude-guard-install.ts';
-import { installStopHook, type Action } from './claude-install.ts';
+import { installStopHook, weftworkOnPath, type Action } from './claude-install.ts';
 import { isMissing, type Failure } from './errors.ts';
 import { readRegularFile, writeAtomic, type ReadRegular, type RegularFile } from './regular-file.ts';
 
@@ -94,7 +95,11 @@ export function installInProject(dir: string, clis: HookClis, command: string): 
   if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
   const guard = installGuardHook(stop.text, clis.guard);
   if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
-  const changed = guard.text !== text;
-  const failed = changed ? writeAtomic(path, guard.text, read.file?.mode) : null;
+  // Entries that run the weftwork command also get the SessionStart entry, so
+  // the skills find it the same way (claude-env-install.ts).
+  const env = clis.stop === weftworkOnPath ? installEnvHook(guard.text) : guard;
+  if (!env.ok) return { ok: false, error: `${path}: ${env.error}` };
+  const changed = env.text !== text;
+  const failed = changed ? writeAtomic(path, env.text, read.file?.mode) : null;
   return failed ?? { ok: true, action: stop.action, path, guardChanged: guard.changed };
 }

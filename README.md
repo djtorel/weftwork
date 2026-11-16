@@ -44,16 +44,24 @@ npm install -g weftwork
 weftwork --version
 ```
 
-The skills and hooks that weftwork puts into a project call the `weftwork`
-command, so install it globally rather than only running it with `npx`. If
-npm cannot write to its global folder, give it a prefix you own first:
+If npm cannot write to its global folder, give it a prefix you own first:
 
 ```bash
 npm config set prefix ~/.local    # and put ~/.local/bin on your PATH
 ```
 
-`npx weftwork@latest init` runs setup without a global install, but the
-skills it writes still need `weftwork` on your PATH to run.
+**No global install?** Install weftwork into one clone only. git does not
+track it, and the project's dependencies do not change:
+
+```bash
+cd ~/code/my-project
+npx weftwork init --local    # or, in a project already set up: npx weftwork install
+```
+
+The skills and hooks find weftwork in this clone, in `node_modules` (a dev
+dependency), or on your PATH, in that order. A global `weftwork` hands its
+commands to the project's own version. [`docs/INSTALL.md`](docs/INSTALL.md)
+has every way, mise included.
 
 <details>
 <summary>From source (to work on weftwork)</summary>
@@ -217,7 +225,9 @@ cd ~/code/my-project
 weftwork update           # bring the project's skills up to it
 ```
 
-The hooks run `weftwork` from your PATH, so they change with the upgrade.
+The hooks run the `weftwork` they find, so they change with the upgrade. In
+a project with its own install, `upgrade` upgrades that one and moves the
+pin in `weftwork.yaml`; commit it.
 The skills are copied into each project, so `update` replaces each skill
 file you never changed, adds the new ones, and keeps any you changed. It
 never touches AGENTS.md. Commit what it changed

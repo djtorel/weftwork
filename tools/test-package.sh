@@ -82,7 +82,7 @@ set -e
 [ "$status" -eq 2 ] \
   || fail "the guard entry with no weftwork exited $status, not 2"
 case "$missing" in
-  *"npm install -g weftwork"*) ;;
+  *"npx weftwork install"*"npm install -g weftwork"*) ;;
   *) fail "the guard entry with no weftwork did not say how to install it" ;;
 esac
 (cd repo && echo '{"command":"true"}' | "$bin" engine) | tail -n 1 \
@@ -114,5 +114,56 @@ PATH="$work/fakenpm:$PATH" "$bin" upgrade | grep -q 'Installed weftwork 99.0.0' 
   || fail "upgrade did not install the newer version"
 grep -qx 'install -g weftwork@99.0.0' fakenpm/calls \
   || fail "upgrade did not run npm install -g weftwork@99.0.0"
+
+# A clone's own install, no global one needed (docs/INSTALL.md): install the
+# tarball into a new repository, pinned; with only node and git on PATH the
+# hooks and a Bash command of the session run it; a global weftwork hands its
+# commands to it; init --local sets the project up from it; upgrade there
+# installs into the clone.
+mkdir tools
+ln -s "$(node -p process.execPath)" tools/node
+ln -s "$(command -v git)" tools/git
+ln -s "$(command -v dirname)" tools/dirname
+only="$work/tools"
+mkdir local
+git -C local init -q -b main
+echo '{"name":"local","scripts":{"test":"node -e 0"}}' > local/package.json
+git -C local add -A
+git -C local -c user.name=t -c user.email=t@t commit -q -m init
+(cd local && PATH="$only:$PATH" "$bin" install --from "$work/$tarball") \
+  | grep -q "Installed weftwork $want" || fail "install --from did not install"
+grep -qx "engine: $want" local/weftwork.yaml \
+  || fail "install did not pin $want in weftwork.yaml"
+common="$(git -C local rev-parse --path-format=absolute --git-common-dir)"
+engine="$common/weftwork/engine/node_modules/weftwork"
+[ "$(cd local && "$bin" path)" = "$engine" ] \
+  || fail "the global weftwork did not hand path to the clone's install"
+(cd local && PATH="$only" "$bin" install) | grep -q 'already installed' \
+  || fail "a second install did not find the pinned version there"
+(cd local && "$bin" init --local --yes --stop-hook >/dev/null 2>&1) \
+  || fail "init --local failed"
+lsettings="$work/local/.claude/settings.json"
+lguard="$(node -e 'const s = require(process.argv[1]);
+  console.log(s.hooks.PreToolUse.at(-1).hooks[0].command)' "$lsettings")"
+(cd local && echo "$read_input" | PATH="$only" CLAUDE_PROJECT_DIR="$work/local" \
+  /bin/sh -c "$lguard") \
+  || fail "the guard entry with only the clone's install did not let a Read through"
+lenv="$(node -e 'const s = require(process.argv[1]);
+  console.log(s.hooks.SessionStart.at(-1).hooks[0].command)' "$lsettings")"
+(cd local && PATH="$only" CLAUDE_ENV_FILE="$work/env.sh" /bin/sh -c "$lenv") \
+  || fail "the SessionStart entry failed"
+[ "$(cd local && PATH="$only" "$(command -v bash)" -c ". '$work/env.sh'; weftwork path")" \
+  = "$engine" ] || fail "a session's Bash command did not find the clone's install"
+# The fake npm installs nothing, so the upgrade must refuse, not pin 99.0.0.
+set +e
+up="$(cd local && PATH="$work/fakenpm:$only" "$bin" upgrade 2>&1)"
+status=$?
+set -e
+grep -qx "install --prefix $common/weftwork/engine --save-exact --ignore-scripts --no-audit --no-fund weftwork@99.0.0" \
+  fakenpm/calls || fail "upgrade in the clone did not install into it: $up"
+[ "$status" -eq 1 ] && case "$up" in *"not 99.0.0"*) true ;; *) false ;; esac \
+  || fail "upgrade in the clone did not refuse an install that left another version: $up"
+grep -qx "engine: $want" local/weftwork.yaml \
+  || fail "a failed upgrade moved the pin"
 
 echo "test-package: OK ($tarball)"

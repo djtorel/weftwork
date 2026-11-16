@@ -12,12 +12,13 @@ import {
   adapterWord,
   isEngineFile,
   keptAdapter,
+  legacyRequireWeftwork,
   parseSettings,
-  requireWeftwork,
   weftworkOnPath,
 } from './claude-install.ts';
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
+import { resolved } from './launcher.ts';
 
 /** The tools the guard checks: the four that write a file, and Bash. */
 export const guardMatcher = 'Edit|Write|MultiEdit|NotebookEdit|Bash';
@@ -28,15 +29,25 @@ export const guardTimeoutSeconds = 30;
 
 export type GuardInstall = { ok: true; text: string; changed: boolean } | Failure;
 
-/** The command of the guard entry: `weftwork guard` from PATH, blocking when
- * weftwork is missing (claude-install.ts), or node and the guard's file. */
+/** The command of the guard entry: `weftwork guard` as the resolver finds it,
+ * blocking when weftwork is missing (launcher.ts), or node and the guard's file. */
 function guardCommand(cliPath: string): string {
-  return cliPath === weftworkOnPath ? `${requireWeftwork}weftwork guard` : `node ${adapterWord(cliPath)}`;
+  return cliPath === weftworkOnPath ? resolved('guard') : `node ${adapterWord(cliPath)}`;
 }
+
+/** The guard command from PATH as 0.2.0 and older wrote it. */
+const legacyGuardCommand = `${legacyRequireWeftwork}weftwork guard`;
 
 /** The hook entry the install writes for the guard at `cliPath`. */
 export function guardEntry(cliPath: string): object {
   return { type: 'command', command: guardCommand(cliPath), timeout: guardTimeoutSeconds };
+}
+
+/** True when `hook` is the guard entry as the install writes it for `cliPath`,
+ * or as 0.2.0 and older wrote it from PATH. */
+export function isGuardAsInstalled(hook: unknown, cliPath: string): boolean {
+  if (isDeepStrictEqual(hook, guardEntry(cliPath))) return true;
+  return cliPath === weftworkOnPath && isDeepStrictEqual(hook, { type: 'command', command: legacyGuardCommand, timeout: guardTimeoutSeconds });
 }
 
 /** `node '<file>'`, as an older install wrote the guard entry, or
@@ -49,7 +60,7 @@ const fileGuard = new RegExp(`^node ${adapterPattern}$`);
  * hook that runs another file is never the guard (review r1m1). The install
  * and the live check read guard entries through this. */
 export function guardCliOf(command: string): string | null {
-  if (command === guardCommand(weftworkOnPath)) return weftworkOnPath;
+  if (command === guardCommand(weftworkOnPath) || command === legacyGuardCommand) return weftworkOnPath;
   const match = fileGuard.exec(command);
   const file = match === null ? null : adapterOf(match, 1);
   return file !== null && isEngineFile(file, 'guard-cli') ? file : null;

@@ -11,6 +11,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { weftworkOnPath } from './claude-install.ts';
+import { resolved } from './launcher.ts';
 import { guardReport, transcriptFolder, type GuardAnswer, type GuardNext, type GuardReport, type Transcripts } from './claude-live-guard.ts';
 import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type SettingsSource } from './claude-live.ts';
 import { isGitRoot, readSettings, userSettingsPath } from './claude-settings-file.ts';
@@ -74,11 +75,11 @@ function transcriptsOf(dir: string): Transcripts {
   }
 }
 
-/** True for a file at `path`, or, for an entry that runs weftwork from PATH,
- * when this shell finds the command. */
+/** True for a file at `path`, or, for an entry that runs the weftwork
+ * command, when the resolver finds one that runs (launcher.ts). */
 function exists(path: string): boolean {
   if (path !== weftworkOnPath) return existsSync(path);
-  return spawnSync('/bin/sh', ['-c', 'command -v weftwork'], { stdio: 'ignore', timeout: 10000 }).status === 0;
+  return spawnSync('/bin/sh', ['-c', resolved('--version')], { stdio: 'ignore', timeout: 10000 }).status === 0;
 }
 
 /** One settings file as the report names it: by its path. */

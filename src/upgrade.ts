@@ -21,7 +21,7 @@ export type Upgraded = { ok: true; from: string; to: string; did: 'installed' | 
 /** A semver 2.0.0 version without build metadata: no leading zeros, and no
  * empty pre-release part (review r1s2). */
 const part = '(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)';
-const versionPattern = new RegExp(`^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(${part}(?:\\.${part})*))?$`);
+export const versionPattern = new RegExp(`^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(${part}(?:\\.${part})*))?$`);
 
 /** Two pre-release parts, by semver: numbers as numbers, a number before text. */
 function comparePart(a: string, b: string): number {
