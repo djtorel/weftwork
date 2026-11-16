@@ -5,7 +5,8 @@
 //
 // Exit 0 taken, or UI checks off; 1 refused (before screenshots once the tree
 // changes ui.paths) or failed (the command failed, wrote no PNG, or changed
-// the tree); 2 when it cannot run, with the reason on stderr.
+// the tree); 2 when it cannot run, ui.design included (e11s06), with the
+// reason on stderr.
 import { readJsonObject, terminalSafe } from './cli-io.ts';
 import { weftworkDir } from './ledger.ts';
 import { currentBranch } from './tree.ts';

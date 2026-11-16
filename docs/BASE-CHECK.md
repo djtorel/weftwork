@@ -47,7 +47,8 @@ proof:
 2. It makes a temporary git worktree of the base, outside the repository,
    with git hooks off (`core.hooksPath=/dev/null`), links each `share`
    path into it, and copies the changed test files into it.
-3. It runs `run` once per file, with the file as `"$@"`, in the worktree.
+3. It runs `run` once per file, with the file as `"$@"`, in the worktree,
+   and keeps what the run prints on stdout (the first 1 MiB).
 4. It removes the worktree, whatever happened. The working tree and its
    index are not touched.
 
@@ -57,6 +58,32 @@ base: 3db5d780a99f16c4588fa5266bc2791e4ad33c0d
 fails on base: src/review-scope.test.ts
 passes on base: src/old.test.ts (it does not show the change)
 ```
+
+## Each test, with TAP
+
+When the run of a file prints TAP (a `TAP version` line or a `1..<n>`
+plan line), the check also reads each test in it. A test is new when its
+name is not in the base version of the file; in a new file, every test is
+new. Each new test that passes on the base gets its own line under the
+file:
+
+```text
+weftwork base check: 1 of 1 changed test files fail on the base
+base: 3db5d780a99f16c4588fa5266bc2791e4ad33c0d
+fails on base: src/base-check.test.ts
+  new test passes on base: output that is not TAP: one outcome per file, no test names (it does not show the change)
+```
+
+There is no setting for this: the output says if it is TAP. To turn it on,
+make `run` print TAP. For `node:test`:
+
+```yaml
+  run: 'node --test --test-reporter=tap "$@"'
+```
+
+Only leaf tests count. A suite, or a test with subtests, is left out, and
+so are `SKIP` and `TODO` tests. When the output is not TAP, each file has
+one outcome, as before.
 
 | Exit | First line | Meaning |
 | --- | --- | --- |
@@ -70,9 +97,13 @@ needs a reason in the PR, or a test that fails without the change.
 
 ## Limits
 
-- One outcome per file. A file with one new test and ten old ones fails on
-  the base when the new test does, but one weak test in a file that also
-  has a strong one is not seen.
+- Without TAP, one outcome per file. A file with one new test and ten old
+  ones fails on the base when the new test does, but one weak test in a
+  file that also has a strong one is not seen.
+- With TAP, a test is new only by its name. An old test that the change
+  edits but does not rename is seen only by its file's outcome. A name
+  that the base file holds in another place, or writes with other quotes
+  or escapes, can make a test look old or new when it is not.
 - A new test file fails on the base when it imports code the base does not
   have. That is a failure without the change, and also the weakest one.
 - A deleted test is not run. A change with no test file in `tests` shows

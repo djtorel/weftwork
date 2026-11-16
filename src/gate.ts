@@ -12,7 +12,10 @@ import { fingerprintTree, type FingerprintResult } from './tree.ts';
 /** `blocked`, `stallAfter` and `maxFailures` (e06s04), `maxRuns` (e09s02)
  * and `reserveRuns` (e09s03) are read for the engine; `runGate` ignores them.
  * `reserveRuns` is never parsed from the request: only the budget setting
- * files set it (applyBudget). */
+ * files set it (applyBudget). `stopHook` is never parsed either: only the
+ * Stop hook sets it (hookRequest), to the key of its directory and
+ * environment. The run's ledger line keeps the key, and the engine may reuse
+ * such a pass (reuse.ts). */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -22,6 +25,7 @@ export type GateRequest = {
   maxFailures?: number;
   maxRuns?: number;
   reserveRuns?: number;
+  stopHook?: string;
 };
 
 export type Reason =
@@ -212,9 +216,8 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
-  const path = await ledgerPath(cwd);
-  const result = path === null ? null : await appendEntry(path, verdict, new Date());
+async function record(path: string | null, verdict: Verdict, runId?: string, hookKey?: string): Promise<LoggedVerdict> {
+  const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId, hookKey);
   if (result?.ok) {
     return { verdict, writeProblem: null };
   }
@@ -225,9 +228,17 @@ async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
 }
 
 /** `runGate`, and why the ledger line could not be written: the run is then
- * missing from the ledger, so the engine cannot count the loop (e09s02). */
-export async function runLoggedGate(request: GateRequest, signal?: AbortSignal): Promise<LoggedVerdict> {
-  return record(request.cwd, await decide(request, signal));
+ * missing from the ledger, so the engine cannot count the loop (e09s02).
+ * `path` is the ledger the caller resolved for `request.cwd` (`ledgerPath`),
+ * so the engine resolves it once per call; null when there is no working tree.
+ * `runId` is the engine call's id, written on the run line. */
+export async function runLoggedGate(
+  request: GateRequest,
+  path: string | null,
+  runId: string,
+  signal?: AbortSignal,
+): Promise<LoggedVerdict> {
+  return record(path, await decide(request, signal), runId, request.stopHook);
 }
 
 /**
@@ -236,5 +247,6 @@ export async function runLoggedGate(request: GateRequest, signal?: AbortSignal):
  * runs, the whole process group is killed and the reason is `killed`.
  */
 export async function runGate(request: GateRequest, signal?: AbortSignal): Promise<Verdict> {
-  return (await runLoggedGate(request, signal)).verdict;
+  const verdict = await decide(request, signal);
+  return (await record(await ledgerPath(request.cwd), verdict)).verdict;
 }

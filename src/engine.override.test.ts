@@ -89,9 +89,10 @@ test('AC-e06s05-12 a failed run becomes overridden', async () => {
   const lines = await readRepoStates(repo);
   assert.equal(lines.length, 1);
   assert.deepEqual(
-    { ...lines[0], at: undefined },
+    { ...lines[0], at: undefined, runId: undefined },
     {
       at: undefined,
+      runId: undefined,
       state: 'overridden',
       command: 'exit 9',
       runs: 2,
