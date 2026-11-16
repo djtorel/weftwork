@@ -19,6 +19,8 @@ const about: Record<string, string> = {
   init: 'Set up weftwork in a project (default: the current folder)',
   convert: 'Convert a bigpowers, GSD, GSD 2, spec-kit or BMAD project (JSON on stdin)',
   setup: 'Set up a project, or undo a setup (JSON on stdin; what agents call)',
+  update: "Bring a project's weftwork skills to this version (default: the current folder)",
+  upgrade: 'Install the latest weftwork from npm',
   detect: "Report a project's stack, commands, CI and agent files",
   engine: 'Run a command through the done gate and record it in the ledger',
   'pr-proof': "Print a pull request's Proof block from the ledger",

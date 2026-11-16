@@ -6,9 +6,10 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
+import { skillTexts } from './setup.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -72,6 +73,17 @@ test('AC-e07s04-08 not registered, then registered but not seen, then live', () 
   const live = run([checkCli], { cwd: repo, env });
   assert.equal(live.status, 0, live.stdout + live.stderr);
   assert.match(live.stdout, /^weftwork live check: live$/m);
+});
+
+test('the live check notes skills behind this weftwork, and says nothing of skills that are up to date', () => {
+  const texts = skillTexts(join(import.meta.dirname, '..'));
+  assert.ok(texts.ok);
+  const repo = makeTestRepo(Object.fromEntries(texts.files));
+  const current = run([checkCli], { cwd: repo, env: cleanEnv() });
+  assert.doesNotMatch(current.stdout, /weftwork update/);
+  rmSync(join(repo, '.claude/skills/weft-improve'), { recursive: true });
+  const stale = run([checkCli], { cwd: repo, env: cleanEnv() });
+  assert.match(stale.stdout, /- The skills in \.claude\/skills are behind this weftwork \(1 change\): run weftwork update\./);
 });
 
 test('AC-e07s04-08 disableAllHooks in settings.local.json: not seen, the file named', () => {

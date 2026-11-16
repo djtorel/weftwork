@@ -130,7 +130,52 @@ saw none, even when `overwrite` names it.
 The skills were renamed: `full-stop`, `review-loop` and `file-pr` are now
 `weft-ready`, `weft-review` and `weft-pr`. Setting up again writes the new
 folders and leaves the old ones, and the plan has a note that names each old
-folder still there, to delete by hand.
+folder still there. `weftwork update` deletes an old folder you never changed.
+
+Setting up again cannot tell a skill file you changed from one an older
+weftwork wrote, so after an upgrade each changed skill is a conflict. Use
+`weftwork update` for that.
+
+## Update
+
+```bash
+weftwork upgrade          # the latest weftwork from npm
+cd /path/to/project
+weftwork update           # the plan; writes nothing without a yes
+```
+
+A new weftwork reaches a project in two parts. The hooks run `weftwork` from
+PATH and the skills read the docs under `$(weftwork path)`, so they change as
+soon as the command does: `weftwork upgrade` asks npm for the latest
+version and installs exactly that one (`npm install -g weftwork@<version>`;
+`--check` only says whether one is out). The skills are copied into the
+project, so they stay as they were until `weftwork update [path]` brings
+them up:
+
+| In the plan | What it means | Written? |
+| --- | --- | --- |
+| `update` | The file holds a text an older weftwork wrote: you never changed it | Replaced in place |
+| `create` | A skill this version adds | Created |
+| `delete` | A folder of an old skill name holds only a text weftwork wrote | Deleted, and the folder with it |
+| `edited` | You changed the file | Kept; `weftwork init --overwrite <path>` replaces it |
+| `keep-old` | A folder of an old skill name that you changed, or that holds other files | Kept |
+
+Update knows the texts weftwork wrote by their sha256 in
+`src/skill-hashes.ts`: every text setup has written since the skills began
+to call the `weftwork` command, so it works in a fresh clone too, with no
+record of the setup. It never touches AGENTS.md, CONVENTIONS.md, the backlog
+or `.claude/settings.json`. In a terminal it shows the plan and asks `Write
+these changes? [y/N]`; `--yes` writes without asking; with no terminal to ask
+in it shows the plan only. A file that changed between the plan and the
+write is kept. It refuses a folder weftwork did not set up, and a
+`.claude/skills` that is a symlink. It exits 0 when it wrote, found nothing
+to do or you chose not to, 1 when it is refused, and 2 for a bad option. The
+changes are ordinary edits in your working tree: review them with `git
+diff` and commit them, or `git restore` them.
+
+`weftwork claude-live` notes when the skills are behind the installed
+weftwork. A checkout linked with `npm link` is not upgraded with `weftwork
+upgrade`: run `git pull` there.
 
 ## Undo
 

@@ -26,7 +26,8 @@ engine`, `weftwork review`, `weftwork pr-proof`) and find the docs under
 PATH too; where it is missing they block and say to install it. If npm says
 it cannot write to its global folder, set a prefix you own first (`npm
 config set prefix ~/.local`, with `~/.local/bin` on your PATH). Upgrade:
-`npm install -g weftwork@latest`. Undo: `npm uninstall -g weftwork`.
+`weftwork upgrade`, then `weftwork update` in each project to bring its
+skills up (`SETUP.md` § Update). Undo: `npm uninstall -g weftwork`.
 
 **From a checkout instead** (to work on weftwork, or to use a change that is
 not released yet), you also need Python 3 for weftwork's own Preflight:

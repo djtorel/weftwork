@@ -27,7 +27,7 @@ test('the built-in reviewer attaches the screenshots with --image only when WEFT
 });
 
 test('a file without a review mapping sets nothing; the budget key is left to budget.ts', () => {
-  const result = resolveReview({ user: null, repo: file('---\nbudget:\n  maxRuns: 3\n') });
+  const result = resolveReview({ user: null, repo: file('---\nbudget:\n  max_runs: 3\n') });
   assert.equal(result.ok && result.review.maxRounds, 3);
 });
 

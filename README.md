@@ -166,6 +166,8 @@ you merge or close ([`docs/HISTORY.md`](docs/HISTORY.md)).
 | Command | What it does |
 | --- | --- |
 | `weftwork init [path]` | Set up weftwork in a project (default: the current folder) |
+| `weftwork update [path]` | Bring a project's weftwork skills to this version |
+| `weftwork upgrade` | Install the latest weftwork from npm |
 | `weftwork convert` | Convert a bigpowers, GSD, GSD 2, spec-kit or BMAD project (JSON on stdin) |
 | `weftwork detect` | Report a project's stack, commands, CI and agent files |
 | `weftwork claude-install -- '<cmd>'` | Register the Stop hook and guard for a check command |
@@ -188,8 +190,8 @@ agent cannot edit it: the guard blocks that.
 ```yaml
 ---
 budget:              # docs/BUDGET.md
-  maxRuns: 40
-  maxFailures: 3
+  max_runs: 40
+  max_failures: 3
 review:              # docs/REVIEW.md
   max_rounds: 3
   reviewers:
@@ -202,6 +204,22 @@ history: local       # docs/HISTORY.md: keep a local record of each task
 
 Your own defaults for every project go in
 `~/.config/weftwork/config.yaml`.
+
+## Update
+
+When a new weftwork is out:
+
+```bash
+weftwork upgrade          # install the latest weftwork from npm
+cd ~/code/my-project
+weftwork update           # bring the project's skills up to it
+```
+
+The hooks run `weftwork` from your PATH, so they change with the upgrade.
+The skills are copied into each project, so `update` replaces each skill
+file you never changed, adds the new ones, and keeps any you changed. It
+never touches AGENTS.md. Commit what it changed
+([`docs/SETUP.md`](docs/SETUP.md#update)).
 
 ## Undo
 

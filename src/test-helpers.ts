@@ -184,7 +184,7 @@ export function aliasBomb(): string {
   for (let i = 1; i < 12; i++) {
     lines.push(`a${i}: &a${i} [${Array(9).fill(`*a${i - 1}`).join(', ')}]`);
   }
-  return `${lines.join('\n')}\nbudget: {maxFailures: 2}\n`;
+  return `${lines.join('\n')}\nbudget: {max_failures: 2}\n`;
 }
 
 /** One run entry per command, written straight into the ledger of `repo`; a

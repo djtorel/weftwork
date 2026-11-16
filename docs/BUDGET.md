@@ -7,10 +7,16 @@ plain YAML file.
 
 | Key | What it limits | Answer when reached | Range | Built-in |
 | --- | --- | --- | --- | --- |
-| `maxFailures` | Failed runs in a row of one command | `exhausted` (exit 5) | 1 to 1000 | 5 |
-| `stallAfter` | Failed runs in a row on the same tree, with the same reason and exit code | `stalled` (exit 4) | 2 to 1000 | 3 |
-| `maxRuns` | Runs of any command since the last `done` (the loop ceiling) | `exhausted` (exit 5) | 1 to 1000 | off |
-| `reserveRuns` | Runs left under `maxRuns` when the agent is told to write the handoff | `failed` (exit 1) with a `detail` | 0 to 1000 | 1 when `maxRuns` is set |
+| `max_failures` | Failed runs in a row of one command | `exhausted` (exit 5) | 1 to 1000 | 5 |
+| `stall_after` | Failed runs in a row on the same tree, with the same reason and exit code | `stalled` (exit 4) | 2 to 1000 | 3 |
+| `max_runs` | Runs of any command since the last `done` (the loop ceiling) | `exhausted` (exit 5) | 1 to 1000 | off |
+| `reserve_runs` | Runs left under `max_runs` when the agent is told to write the handoff | `failed` (exit 1) with a `detail` | 0 to 1000 | 1 when `max_runs` is set |
+
+The file keys are snake_case, as in every other setting. The engine's JSON
+request and its `budget` answer name the same limits in camelCase:
+`maxFailures`, `stallAfter` and `maxRuns`. Before 0.2.0 the file keys were
+camelCase too; a file that still uses one is refused with an error that
+names the new key.
 
 ## The files
 
@@ -24,10 +30,10 @@ Both files hold a top-level `budget` mapping:
 ```yaml
 ---
 budget:
-  maxFailures: 3
-  stallAfter: 2
-  maxRuns: 40
-  reserveRuns: 2
+  max_failures: 3
+  stall_after: 2
+  max_runs: 40
+  reserve_runs: 2
 ```
 
 The engine ignores other top-level keys here. The `review` key sets the
@@ -47,14 +53,14 @@ fingerprint the tree, so it answers `no-tree` (not done).
 3. The repository file overrides the user file, key by key.
 4. A request value (the JSON `maxFailures`, `stallAfter` or `maxRuns` on
    the engine CLI) is used only when it is lower. An agent that writes
-   the request cannot raise your limit. `maxRuns` has no built-in value,
-   so when no file sets it, any request value is lower and turns the
-   loop ceiling on. A request can never turn it off.
-5. `reserveRuns` is not a request key. Only the files set it, so the agent
-   cannot turn the handover warning off through the request. A
-   `reserveRuns` in the request JSON is ignored. A lower request `maxRuns`
-   moves the reserve window with the ceiling; that only lets the agent
-   stop sooner.
+   the request cannot raise your limit. The loop ceiling has no built-in
+   value, so when no file sets `max_runs`, any request `maxRuns` is lower
+   and turns the loop ceiling on. A request can never turn it off.
+5. The reserve is not a request key. Only the files set it, with
+   `reserve_runs`, so the agent cannot turn the handover warning off
+   through the request. A `reserveRuns` in the request JSON is ignored. A
+   lower request `maxRuns` moves the reserve window with the ceiling; that
+   only lets the agent stop sooner.
 
 ## A file that cannot be used
 
@@ -78,9 +84,10 @@ The engine refuses a file that:
 - has a top level that is not a plain mapping
 - has a `budget` that is not a plain mapping (an empty `budget:`, a
   `!!set` and an `!!omap` too)
-- has a key under `budget` other than `maxFailures`, `stallAfter`,
-  `maxRuns` and `reserveRuns` (a long key is cut to 200 characters in the
-  error)
+- has a key under `budget` other than `max_failures`, `stall_after`,
+  `max_runs` and `reserve_runs` (a long key is cut to 200 characters in the
+  error); a camelCase key from before 0.2.0, such as `maxRuns`, is refused
+  with `budget.maxRuns was renamed to budget.max_runs; rename the key`
 - has a value out of its range, or a value that is not an integer
   (an untagged `"2"` and `2.5` are refused; a plain YAML 1.2 number that is whole,
   such as `2.0` or `0x2`, counts as that number)
@@ -89,27 +96,27 @@ An empty file, or one with only comments, sets nothing.
 
 ## The loop ceiling
 
-`maxFailures` counts the failures of one exact command, so an agent that
+`max_failures` counts the failures of one exact command, so an agent that
 changes the command, or passes another one, starts again from zero.
-`maxRuns` counts every run of any command since the last `done` run of any
+`max_runs` counts every run of any command since the last `done` run of any
 command, or since the start of the ledger when there is none. Each `done`
 opens a new loop.
 
-- Before a run: when the count is `maxRuns` or more, the engine answers
+- Before a run: when the count is `max_runs` or more, the engine answers
   `exhausted` (exit 5) and does not run the command, even one that would
   pass. The failure ceiling is checked first.
 - After a run: when the run is not `done` and not `killed`, and the count
-  is `maxRuns` or more, the answer is `exhausted`. A run that passes is
+  is `max_runs` or more, the answer is `exhausted`. A run that passes is
   `done`, unless its ledger line cannot be written (see A loop that
   cannot be counted).
 - The detail names the ceiling: `3 runs since the last done, the loop
-  ceiling is 3`. The state line has `maxRuns` as its threshold. Its
+  ceiling is 3`. The state line has the loop ceiling as its threshold. Its
   `runs` and `failStreak` fields count the one command of that call, not
   the loop; only the detail gives the loop count.
 - A `blocked` answer and a refused call add no run. An `overridden` run
   is one run, as the failed run it is.
 
-It is off by default. Turn it on with `maxRuns` in a file.
+It is off by default. Turn it on with `max_runs` in a file.
 
 ### How the loop ceiling is reset
 
@@ -117,7 +124,7 @@ At the ceiling the engine refuses every call before it runs, even a command
 that would pass, so no new `done` can open a new loop. The answer stays
 `exhausted` until you change something:
 
-- raise or remove `maxRuns` in the setting file, or
+- raise or remove `max_runs` in the setting file, or
 - move the ledger aside, for example
   `mv .git/weftwork/ledger.jsonl .git/weftwork/ledger.old.jsonl`. The
   engine then starts a new, empty ledger.
@@ -128,27 +135,27 @@ under Limits of this setting).
 ### A loop that cannot be counted
 
 The ledger is `.git/weftwork/ledger.jsonl`. A missing ledger is an empty
-one. The count reads the last 1 MiB of the ledger. With `maxRuns` set,
+one. The count reads the last 1 MiB of the ledger. With `max_runs` set,
 the engine answers `exhausted` when it cannot count the loop:
 
 | Case | When it is checked | Detail starts with |
 | --- | --- | --- |
 | The ledger exists but cannot be read (a directory, no read permission, a FIFO) | Before the run (the command does not run) and after it | `the ledger cannot be read` |
 | The run's ledger line cannot be written (a read-only ledger, a full disk) | After the run | `the run could not be written to the ledger` |
-| The 1 MiB tail was cut and holds no `done` (very long commands, junk lines), and the runs in it are fewer than `maxRuns` | Before the run (the command does not run) and after it | `the ledger tail was cut with no done in it` |
+| The 1 MiB tail was cut and holds no `done` (very long commands, junk lines), and the runs in it are fewer than `max_runs` | Before the run (the command does not run) and after it | `the ledger tail was cut with no done in it` |
 
 After a run, these cases apply only to a run that is not `done` and not
 `killed`. A `killed` run answers `killed`.
 
-Without `maxRuns`, these cases change nothing: the stop rules are off for
+Without `max_runs`, these cases change nothing: the stop rules are off for
 a call whose ledger cannot be read, and the engine writes a note to
-stderr. This is residual F5 in `docs/security/REVIEW.md`. Set `maxRuns`
+stderr. This is residual F5 in `docs/security/REVIEW.md`. Set `max_runs`
 to close it.
 
 `done` is never read from the ledger. It comes only from running the
 command. A run that passes but whose ledger line cannot be written is not
-done: its reason is `no-ledger`. Without `maxRuns` it answers `failed`
-(exit 1). With `maxRuns` set it answers `exhausted` (exit 5), on purpose:
+done: its reason is `no-ledger`. Without `max_runs` it answers `failed`
+(exit 1). With `max_runs` set it answers `exhausted` (exit 5), on purpose:
 every later pass would also be `no-ledger`, so `failed` would make the
 Claude Code hook block the stop again and again, and the loop would never
 end.
@@ -162,7 +169,7 @@ At the loop ceiling the answer is `exhausted`, and the Claude Code hook lets
 the stop go ahead. The agent then has no turn left to write a handoff. The
 reserve warns it first.
 
-With `maxRuns` set, after a run that answers `failed`, the engine counts the
+With `max_runs` set, after a run that answers `failed`, the engine counts the
 runs since the last `done` (this run included) and the runs left before the
 ceiling. When the runs left are more than 0 and no more than the reserve, the
 answer has a `detail`:
@@ -182,19 +189,19 @@ hook adds the detail as the last line of the reason with which it blocks the
 stop. The exit code stays 1 on the engine CLI and 2 on the hook. The answer
 is `failed`, not a new state, and it writes no state line.
 
-- The reserve is `reserveRuns`, or 1 when no file sets it. The engine uses
-  at most `maxRuns - 1`, so `maxRuns: 1` has no reserve, and a large
-  `reserveRuns` warns from the first run of the loop. No mix of files is an
+- The reserve is `reserve_runs`, or 1 when no file sets it. The engine uses
+  at most `max_runs - 1`, so `max_runs: 1` has no reserve, and a large
+  `reserve_runs` warns from the first run of the loop. No mix of files is an
   error.
-- `reserveRuns: 0` turns the warning off.
-- Without `maxRuns` there is no reserve, and no answer changes.
+- `reserve_runs: 0` turns the warning off.
+- Without `max_runs` there is no reserve, and no answer changes.
 - Only a `failed` answer carries the warning. A run in the window that
   answers `killed`, or a failed run that takes the owner's override record
   (`overridden`), still counts and uses up that run's warning. With the
-  default reserve of 1 the agent then gets no warning; set `reserveRuns: 2`
+  default reserve of 1 the agent then gets no warning; set `reserve_runs: 2`
   or more for a second chance.
 - The reserve applies only to the loop ceiling. The failure ceiling
-  (`maxFailures`) and the stall rule still end the loop with no warning.
+  (`max_failures`) and the stall rule still end the loop with no warning.
 - At the ceiling the answer is `exhausted`, as before. The engine does not
   check that the agent wrote the handoff.
 
@@ -294,9 +301,10 @@ alone does not run the command again.
 
 ## Limits of this setting
 
-- The agent can edit `weftwork.yaml`. Protecting it is a later story
-  (e10, protected paths). The agent can set `reserveRuns: 0` there, as it
-  can raise `maxRuns`.
+- The guard blocks the agent's edits to `weftwork.yaml` and to the user
+  file (`docs/GUARD.md`), so it cannot set `reserve_runs: 0` or raise
+  `max_runs` there. Where the guard does not run (another host, or hooks
+  turned off), it can.
 - The agent can edit or delete the ledger. A forged `done` line, or a
   deleted ledger, opens a new loop, as erasing failures resets the
   failure ceiling (T3, e10). A forged pass line with the current

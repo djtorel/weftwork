@@ -103,6 +103,13 @@ Only rules that the toolchain enforces or that a reviewer can check.
 - Write YAML with a `---` start and lines of 80 columns or fewer.
 - `CLAUDE.md` is a symlink to `AGENTS.md`. NEVER edit it separately.
 - Every command written into `AGENTS.md` MUST resolve in this repository today.
+- A rename of a skill, a command or a setting key adds the old name to
+  `src/retired-names.test.ts`, so work on an older branch cannot bring it
+  back.
+- A change to a skill that setup copies adds the new text's hash to
+  `src/skill-hashes.ts` (`src/update.test.ts` fails and names it). Never
+  remove a hash: a project may still hold that text, and `weftwork update`
+  keeps a file whose hash it does not know.
 
 ## Provisional Rules
 
