@@ -36,7 +36,9 @@ const rules: Rule[] = [
   {
     name: 'a camelCase budget key in YAML',
     now: 'max_runs, max_failures, stall_after or reserve_runs (docs/BUDGET.md); the JSON request keeps camelCase',
-    allowed: [],
+    // budget.test.ts writes the old keys to check each is refused. An old key
+    // anywhere else in a test's budget YAML is refused too, so it fails there.
+    allowed: ['src/budget.test.ts'],
     found: (path, text) =>
       path.endsWith('.ts')
         ? new RegExp(`\\\\n[ \\t]+(${budgetKeys}):|budget:[^\\n'"\`]*\\{(${budgetKeys}):`).test(text)
