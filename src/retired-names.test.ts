@@ -23,8 +23,10 @@ const rules: Rule[] = [
     name: 'an old skill name',
     now: 'weft-ready, weft-review, weft-pr, weft-setup or weft-convert',
     // setup.ts notes old skill folders still in a project; SETUP.md says what
-    // they became; the skills README credits tstack, where two had these names.
-    allowed: ['src/setup.ts', 'src/setup.test.ts', 'docs/SETUP.md', '.claude/skills/README.md'],
+    // they became; the skills README credits tstack, where two had these names;
+    // skill-hashes.ts keeps the texts shipped under them, so `weftwork update`
+    // can delete an old folder the owner never changed (update.test.ts).
+    allowed: ['src/setup.ts', 'src/setup.test.ts', 'docs/SETUP.md', '.claude/skills/README.md', 'src/skill-hashes.ts', 'src/update.test.ts'],
     found: (_path, text) => /\b(full-stop|review-loop|file-pr|setup-project|convert-project)\b/.test(text),
   },
   {

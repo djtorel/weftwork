@@ -36,8 +36,9 @@ const maxFileBytes = 1024 * 1024;
 const skillFiles = ['weft-ready/SKILL.md', 'weft-review/SKILL.md', 'weft-pr/SKILL.md', 'weft-improve/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
 
 /** The folders the skills had before they were renamed. Setup never writes or
- * deletes them; the plan notes the ones still there. */
-const oldSkillFolders = ['full-stop', 'review-loop', 'file-pr'];
+ * deletes them; the plan notes the ones still there, and `weftwork update`
+ * deletes one that holds only a text weftwork shipped (update.ts). */
+export const oldSkillFolders = ['full-stop', 'review-loop', 'file-pr'];
 const ignoreHeader = '# Added by weftwork setup.';
 const oldSuffix = '.weftwork-old';
 
@@ -116,7 +117,7 @@ export function commandFor(file: string): string {
 /** The skills, with each `node src/<cli>.ts` as a `weftwork` command and each
  * engine doc or the PR template under `$(weftwork path)`, so they work from
  * another repository and from a moved checkout once it is linked again. */
-function skillTexts(engineDir: string): { ok: true; files: [string, string][] } | Failure {
+export function skillTexts(engineDir: string): { ok: true; files: [string, string][] } | Failure {
   const files: [string, string][] = [];
   for (const name of skillFiles) {
     const read = readRegularFile(join(engineDir, '.claude', 'skills', name), { follow: true, maxBytes: maxFileBytes });
@@ -167,7 +168,7 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   }
   const old = oldSkillFolders.map((name) => `.claude/skills/${name}`).filter((path) => existsSync(join(dir, path)));
   if (old.length > 0) {
-    notes.push(`Skills set up under their old names are still here and setup leaves them: ${old.join(', ')}. The new ones are weft-ready, weft-review and weft-pr; delete the old folders by hand.`);
+    notes.push(`Skills set up under their old names are still here and setup leaves them: ${old.join(', ')}. The new ones are weft-ready, weft-review and weft-pr; weftwork update deletes an old folder you did not change.`);
   }
   const common = isGitRoot(dir) ? gitCommonDir(dir) : null;
   if (common === null) {
