@@ -99,7 +99,8 @@ never merges.
 ## Convert an existing project
 
 A project planned with bigpowers (`specs/state.yaml`), GSD (`.planning/`),
-GSD 2 (`.gsd/`), spec-kit (`.specify/`) or BMAD (`_bmad/`) keeps its open
+GSD 2 (`.gsd/`), spec-kit (`.specify/`) or BMAD (`_bmad/`, or v4's
+`.bmad-core/`) keeps its open
 work. The conversion tags the old plans, moves the docs that code cites into
 `docs/`, untracks the rest, and adds the open items to the backlog:
 

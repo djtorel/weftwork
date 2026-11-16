@@ -145,7 +145,7 @@ report and the owner's answers: a dry-run plan, then a write that never
 overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
 `init.ts` and `init-cli.ts` are the same setup from the terminal
 (`weftwork init`, the current folder by default). `convert.ts`,
-`convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project: tag,
+`convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
 `markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
