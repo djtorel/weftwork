@@ -160,7 +160,9 @@ folder they get holds every path in `WEFTWORK_IMAGES`.
   `docs/reference/commands.md`, through Context7; all read 2026-11-15).
   `-p` adds its text after the brief on stdin. `plan` is the read-only
   mode: it runs no shell command, so this reviewer reads the files but
-  cannot run `git diff`. `read_file` reads images. This entry is NOT
+  cannot run `git diff`, and the engine does not add the diff to the
+  brief. With this entry, put the diff in the brief yourself.
+  `read_file` reads images. This entry is NOT
   checked with a real model: the docs say git-aware filtering hides `.git/`
   from `@` paths, and if it hides the screenshots from `read_file` too,
   this reviewer reviews the diff without them.
