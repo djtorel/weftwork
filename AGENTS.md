@@ -133,7 +133,7 @@ fail, and report which do not (`docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` ta
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
 them to the council, as images and with the design reference and a design
 checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
-`detect-stacks.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
+`detect-stacks.ts`, `detect-packages.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
 stack, commands, CI, agent files and planning system, and run each command
 once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 `setup-diff.ts`, `setup-about.ts` and `setup-cli.ts` set up a new or plain project from that
