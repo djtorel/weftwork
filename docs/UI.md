@@ -129,6 +129,42 @@ change, `WEFTWORK_IMAGES` is not set, even when the caller had set it. A
 screenshot path with a comma of its own (in the git directory's path, say)
 stops the review with exit 2.
 
+### Claude Code and Gemini CLI reviewers
+
+Neither `claude -p` nor `gemini -p` has a flag that attaches an image.
+Both have a file tool that reads an image and gives it to the model, and
+the brief tells each reviewer to open each screenshot. The screenshots are
+in `<git dir>/weftwork/ui/`, which is outside the working tree in a git
+worktree, so the entry adds that folder for a UI change only:
+
+```bash
+claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES:+--add-dir "$(git rev-parse --absolute-git-dir)/weftwork/ui"}
+gemini --approval-mode plan ${WEFTWORK_IMAGES:+--include-directories "$(git rev-parse --absolute-git-dir)/weftwork/ui"} -p 'Do the review above.'
+```
+
+Put a line in `review.council` as it is. `src/review-cli.test.ts` runs both
+lines from this file with a fake `claude` and `gemini`, and checks that the
+folder they get holds every path in `WEFTWORK_IMAGES`.
+
+- **Claude Code** (`claude --help`, 2.1.325; code.claude.com/docs/en/cli-reference
+  and the Agent SDK's Read tool, through Context7; both read 2026-11-15).
+  The brief comes on stdin. `--tools` keeps only the read tools and Bash;
+  `dontAsk` denies each call that would ask for permission; and
+  `--setting-sources ""` loads no user or project settings that could
+  allow more. Checked by hand with 2.1.325 on 2026-11-15: the reviewer ran
+  `git status` and `git diff --stat`, Write, `touch` and
+  `git diff --output=<file>` were denied, and it read a screenshot in an
+  added folder (and could not read it without `--add-dir`).
+- **Gemini CLI** (`gemini --help`, 0.68.0; github.com/google-gemini/gemini-cli
+  `docs/cli/cli-reference.md`, `docs/tools/file-system.md` and
+  `docs/reference/commands.md`, through Context7; all read 2026-11-15).
+  `-p` adds its text after the brief on stdin. `plan` is the read-only
+  mode: it runs no shell command, so this reviewer reads the files but
+  cannot run `git diff`. `read_file` reads images. This entry is NOT
+  checked with a real model: the docs say git-aware filtering hides `.git/`
+  from `@` paths, and if it hides the screenshots from `read_file` too,
+  this reviewer reviews the diff without them.
+
 ## A programmatic check wins
 
 Where a test can check the UI (a visual regression test with a stored
@@ -141,7 +177,8 @@ does not.
 - The images stay in the engine's folder; the pull request lists them by
   path and hash, it does not embed them.
 - A reviewer that cannot take `WEFTWORK_IMAGES` must open the image files by
-  path. One that can do neither reviews the diff alone, and should say so.
+  path, as the Claude Code and Gemini CLI entries above do. One that can do
+  neither reviews the diff alone, and should say so.
 - Vision models judge visual design weakly: absolute scores rarely match
   people, zero-shot critiques are often wrong, and fine colour and spatial
   detail is misread; comparing two screens works better
