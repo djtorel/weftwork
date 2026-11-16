@@ -79,6 +79,8 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Preflight | `yamllint . && bash tools/check-briefs.sh && npm run typecheck && npm test` |
 | Setup | `bash tools/setup.sh` (fresh clone; Preflight needs `node_modules`) |
 | Install the command | `npm link` (then `weftwork <command>` runs `src/<command>-cli.ts`) |
+| Build the package | `npm run build` (`dist/`; `npm pack` runs it) |
+| Package test | `bash tools/test-package.sh` (pack, install, use; CI runs it) |
 | CI | `.github/workflows/ci.yml` |
 
 ## Preflight
@@ -139,13 +141,19 @@ stack, commands, CI, agent files and planning system, and run each command
 once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
 `setup-diff.ts`, `setup-about.ts`, `setup-undo.ts` and `setup-cli.ts` set up a new or plain project from that
 report and the owner's answers: a dry-run plan, then a write that never
-overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`). `convert.ts`,
+overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
+`init.ts` and `init-cli.ts` are the same setup from the terminal
+(`weftwork init`, the current folder by default). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
 `markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
-thin shell over a library function, and `weftwork-cli.ts` (the package's
-`weftwork` bin) runs each one as `weftwork <command>`.
+thin shell over a library function, and `weftwork-cli.ts` runs each one as
+`weftwork <command>`, with `--help` and `--version`. The package's bin is
+`bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when
+installed from npm, where Node strips no types; `sibling.ts` names another
+engine file with the right extension. Releases are cut by release-please
+and published with npm trusted publishing (`docs/RELEASING.md`).
 
 ## Rules
 

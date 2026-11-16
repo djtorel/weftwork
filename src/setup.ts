@@ -13,6 +13,7 @@ import { isGitRoot } from './claude-settings-file.ts';
 import { isMissing, messageOf, type Failure } from './errors.ts';
 import { readRegularFile, writeAtomic } from './regular-file.ts';
 import { lineDiff } from './setup-diff.ts';
+import { sibling } from './sibling.ts';
 import { agentsLetter, backlog, conventions, ignoreLines, missingLines, preflight, type Answers, type CheckedReport } from './setup-text.ts';
 
 export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflict' | 'rewrite';
@@ -159,7 +160,7 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   if ('ok' in ignore) return ignore;
   changes.push(ignore);
   if (linkedEngine() !== resolve(options.engineDir)) {
-    notes.push(`The skills call the weftwork command, which does not run this engine here. Run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
+    notes.push(`The skills call the weftwork command, which does not run this engine here. Install it with npm install -g weftwork, or for a checkout run npm link in ${options.engineDir} (docs/GETTING-STARTED.md).`);
   }
   const common = isGitRoot(dir) ? gitCommonDir(dir) : null;
   if (common === null) {
@@ -170,7 +171,7 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   const check = preflight(report);
   if (options.stopHook && check === null) notes.push('No Stop hook: no test, lint or typecheck command passed, so there is no Preflight to declare.');
   if (options.stopHook && check !== null) {
-    const hook = hookChange(dir, options.engineDir, check);
+    const hook = hookChange(dir, check);
     if ('ok' in hook) return hook;
     changes.push(hook);
   }
@@ -180,13 +181,13 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
 /** .claude/settings.json with the Stop hook declaring `check` and the guard,
  * as the install writes them (claude-install-cli.ts). An existing file that
  * would change is a conflict, like any other file. */
-function hookChange(dir: string, engineDir: string, check: string): Change | Failure {
+function hookChange(dir: string, check: string): Change | Failure {
   const path = '.claude/settings.json';
   const read = readRegularFile(join(dir, path), { follow: false, maxBytes: maxFileBytes });
   if (!read.ok) return read;
-  const stop = installStopHook(read.file?.text ?? null, join(engineDir, 'src', 'claude-hook-cli.ts'), check);
+  const stop = installStopHook(read.file?.text ?? null, sibling('claude-hook-cli'), check);
   if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
-  const guard = installGuardHook(stop.text, join(engineDir, 'src', 'guard-cli.ts'));
+  const guard = installGuardHook(stop.text, sibling('guard-cli'));
   if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
   return fileChange(dir, path, guard.text);
 }
