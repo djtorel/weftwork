@@ -11,6 +11,13 @@ test('AC-e12s03-04 inline text escapes backslash, backtick, asterisk and <, and 
   assert.equal(inlineText('Hotfix (INSERTED). 02-01_x'), 'Hotfix (INSERTED). 02-01_x');
 });
 
+test('AC-e12s03-15 inline text escapes [, ~, an entity-like & and an underscore that could start or end emphasis', () => {
+  assert.equal(inlineText('see [the plan](x)'), 'see \\[the plan](x)');
+  assert.equal(inlineText('~~old~~ a~b'), '\\~\\~old\\~\\~ a\\~b');
+  assert.equal(inlineText('Fish &amp; chips &#169; & co'), 'Fish \\&amp; chips \\&#169; & co');
+  assert.equal(inlineText('_draft_ snake_case __init__'), '\\_draft\\_ snake_case \\_\\_init\\_\\_');
+});
+
 test('AC-e12s03-05 a code span is fenced longer than any backtick run inside, padded when it starts or ends with one', () => {
   assert.equal(codeSpan('npm test'), '`npm test`');
   assert.equal(codeSpan('echo `date`'), '`` echo `date` ``');
