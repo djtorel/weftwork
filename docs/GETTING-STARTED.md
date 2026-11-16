@@ -91,7 +91,7 @@ A bigpowers project has `specs/state.yaml`; a GSD project has `.planning/`;
 a GSD 2 project has `.gsd/` (when git does not track it, only the backlog is
 written);
 a spec-kit project has `.specify/`; a BMAD v6 project has `_bmad/` and
-`_bmad-output/`. On a new branch of the project, with its Preflight passing:
+`_bmad-output/`; a BMAD v4 project has `.bmad-core/` and `docs/stories/`. On a new branch of the project, with its Preflight passing:
 
 ```bash
 cd /path/to/project
@@ -108,11 +108,12 @@ and waits for your yes, and opens the pull request. Either way, it:
 
 1. Tags the last commit that tracks `specs/` as `bigpowers-era` (GSD:
    `.planning/` as `gsd-era`; spec-kit: `specs/` as `speckit-era`; BMAD:
-   `_bmad-output/` as `bmad-era`).
+   `_bmad-output/` as `bmad-era`; BMAD v4: `docs/stories/` as `bmad-era`).
 2. Moves the files that code or docs cite (and every bigpowers ADR) into
    `docs/`, and rewrites the citations.
 3. Moves the rest to a gitignored `.specs/` (GSD: `.gsd-planning/`;
-   spec-kit: `.speckit-specs/`; BMAD: `.bmad-output/`). Nothing
+   spec-kit: `.speckit-specs/`; BMAD: `.bmad-output/`; BMAD v4:
+   `.bmad-stories/`). Nothing
    is deleted.
 4. Adds the open work to the local backlog with its ids: bigpowers epics and
    stories, GSD roadmap phases, spec-kit features with their open tasks, or
