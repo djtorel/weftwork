@@ -13,17 +13,19 @@ question that is not asked can do harm that a review cannot undo.
 | --- | --- |
 | A file write outside the worktree | The guard (PreToolUse), for Edit, Write, MultiEdit and NotebookEdit |
 | A push to `main`, `master` or the remote's default branch | The guard (PreToolUse), for Bash `git push` |
-| An irreversible or destructive action (delete data, rewrite shared history, deploy, publish) | The `weft-ready` skill |
-| A security-sensitive change (auth, secrets, permissions, the guard itself) | The `weft-ready` skill |
-| Any other effect outside the worktree (another repository, a service, a message) | The `weft-ready` skill |
-| A task or plan too broken or ambiguous to follow | The `weft-ready` skill |
+| An irreversible or destructive action (delete data, rewrite shared history, deploy, publish) | The `all-ready` and `all-in` skills |
+| A security-sensitive change (auth, secrets, permissions, the guard itself) | The `all-ready` and `all-in` skills |
+| Any other effect outside the worktree (another repository, a service, a message) | The `all-ready` and `all-in` skills |
+| A task or plan too broken or ambiguous to follow | The `all-ready` and `all-in` skills |
 | Spend past the budget (the engine answers exhausted) | The engine (`docs/BUDGET.md`) |
-| A change the agent cannot prove, or a check it cannot make pass | The `weft-ready` skill |
+| A change the agent cannot prove, or a check it cannot make pass | The `all-ready` and `all-in` skills |
 
 On a trigger the run ends blocked: the agent writes the handoff
 (`node src/handoff-cli.ts`), runs the engine with `"blocked":"<why>"`,
 opens a draft pull request with the proof and the handoff note, and then
-asks the owner with the question tool.
+asks the owner with the question tool. Under `all-in`, merging the task's own
+pull request is not a trigger while its merge gate holds; a gate that cannot
+pass is one, and the pull request stays open and unmerged.
 
 ## The guard's two triggers
 

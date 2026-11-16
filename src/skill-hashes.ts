@@ -29,6 +29,7 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
     '50965023c6f86766e4a7e0b9efd7a0fa11da8598584b278e3e76e9de521e1e83',
     '83725397f1641b28a86d4129700841abcb4d96ded013922cc0d289a46fc6bfea',
     '22f99bfcd3cb4afffc3a895bf2bf5674b78d5c6a1ecd0457b4e071c88cbd7077', // PR #126
+    '23cf353199033b2bbd50e912adabaecf752b2de03eb3e3f0066bb1d89623b4ba',
   ],
   'TSTACK-LICENSE': [
     '8095f9a9f97d074131f6a2ce09b952d12c18b36f09f4e5df0517c4e64e82c851',
@@ -45,5 +46,20 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
   ],
   'weft-improve/SKILL.md': [
     '709cdadc2734b11ccbb8c68a12b102f48cef310a60f515de14354941d2251118',
+  ],
+  'all-ready/SKILL.md': [
+    '3fe0398ad9929b1d5031aaa08d05146e4573086b39fcd9c2a4deda06babadacf',
+  ],
+  'all-in/SKILL.md': [
+    'c2db72138ef0f4c9b484e56783752abd5295d01230ac02e42143c4ad389173ee',
+  ],
+  'second-opinion/SKILL.md': [
+    'f6318ad028b3e7fe4319bff9bd01ad272a9cd2ff5fecdef0633d51fa74de95c7',
+  ],
+  'pr-it/SKILL.md': [
+    'c000cda6a77ec0df063c2923f7dfb76039e233fd1674cd62e6b24c18a586b9c3',
+  ],
+  'retro/SKILL.md': [
+    'bda6aafadbd67f20f8561823c4128e21c46cac570bd90d1839492cb77b23de8b',
   ],
 };

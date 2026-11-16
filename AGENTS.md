@@ -18,7 +18,7 @@ model family, a pull request that says what it proved.
 It is TypeScript on Node 26 or later, one package with one CLI (`weftwork`)
 and no library API yet (`docs/RELEASING.md`), tested with the built-in
 `node:test` runner. Claude Code is the first
-host. The auto run (backlog e11, the `weft-ready` skill) and getting started
+host. The auto run (backlog e11, the `all-ready` skill) and getting started
 (e12: setting up and converting projects) are built, and this repository runs
 under its own hooks (below).
 
@@ -51,20 +51,22 @@ under its own hooks (below).
 
 ## How work happens
 
-1. The owner names a task, often with "weft ready" (finish to a ready PR) and a
-   backlog id or a sentence. Run `node src/resume-cli.ts` first when picking up
+1. The owner names a task, often with "all ready" (finish to a ready PR) or
+   "all in" (finish and merge it once the merge gate passes) and a backlog id
+   or a sentence. Run `node src/resume-cli.ts` first when picking up
    earlier work.
 2. Branch from an up-to-date `main`: `git checkout -b <type>/<short-name>`. A
    git worktree is fine; each worktree has its own engine state.
 3. Make the smallest change that does the task. For behaviour, write the test
    first and watch it fail, then make it pass.
 4. Prove it: run the task's check and Preflight, and keep the output.
-5. Review with the `weft-review` skill (Codex, read-only, at most 3 rounds).
-6. File the PR with the `weft-pr` skill, wait for CI, fix real failures. Stop
-   when it is ready. The owner merges.
+5. Review with the `second-opinion` skill (Codex, read-only, at most 3 rounds).
+6. File the PR with the `pr-it` skill, wait for CI, fix real failures. Stop
+   when it is ready. The owner merges, unless the task said "all in".
 7. Update the backlog: tick the task and add any follow-ups you found.
 
-The `weft-ready` skill runs steps 2 to 7 for you.
+The `all-ready` skill runs steps 2 to 7 for you, and `all-in` runs them and
+then merges.
 
 ## Commands
 
@@ -192,7 +194,8 @@ and published with npm trusted publishing (`docs/RELEASING.md`).
 ## Rules
 
 - Never commit to `main`. Never merge, land or push to `main` without the
-  owner's go-ahead. Commit, push a feature branch and open a PR without asking.
+  owner's go-ahead. "All in" on a task is the go-ahead to merge its PR once
+  the `all-in` merge gate passes, never to push to `main`. Commit, push a feature branch and open a PR without asking.
 - Ask the owner only when you cannot prove the change, a check cannot pass and
   you cannot fix it, the next step is destructive or outside this repository,
   the goal is ambiguous in a way that changes the result, or another PR makes

@@ -92,27 +92,29 @@ It writes `AGENTS.md` (with `CLAUDE.md` linked to it), the agent's skills in
 `.claude/skills/`, a few `.gitignore` lines and a local backlog. Commit
 them, then open Claude Code in the project and name a task:
 
-> Add a README. Weft ready.
+> Add a README. All ready.
 
 The agent takes it to a pull request that is ready to merge and stops. It
-never merges.
+never merges. End with "All in." instead, and it also merges the pull request
+once the merge gate passes, with no questions.
 
 ## Skills
 
-Setup puts four skills in `.claude/skills/`. Each starts on its own phrase,
-so none clashes with another skill pack that you have installed.
+Setup puts five skills in `.claude/skills/`. Each starts on a short phrase
+that you can end a prompt with.
 
 | Skill | Say | What it does |
 | --- | --- | --- |
-| `weft-ready` | "… Weft ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
-| `weft-review` | "Weft review." | Only the review: read-only reviewers, by default from another model family, 3 rounds (5 for a sensitive change). |
-| `weft-pr` | "Weft PR." | Only the pull request, with its Proof and Decisions sections. |
-| `weft-improve` | "Weft improve." | With `history: local` on, proposes one small, checked fix for the failure that recurs most in your tasks ([`docs/HISTORY.md`](docs/HISTORY.md)). |
+| `all-ready` | "… All ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
+| `all-in` | "… All in." | The same, then it merges the pull request when the merge gate passes: green checks, review settled, no change requested, the proven commit. You are not asked. |
+| `second-opinion` | "Second opinion." | Only the review: read-only reviewers, by default from another model family, 3 rounds (5 for a sensitive change). |
+| `pr-it` | "PR it." | Only the pull request, with its Proof and Decisions sections. |
+| `retro` | "Retro." | With `history: local` on, proposes one small, checked fix for the failure that recurs most in your tasks ([`docs/HISTORY.md`](docs/HISTORY.md)). |
 
-Two more skills, `weft-setup` and `weft-convert`, are not copied into
+Two more skills, `bootstrap` and `migrate`, are not copied into
 projects. They do what `weftwork init` and `weftwork convert` do, from
-Claude Code in a weftwork checkout: open it there and say "Set up weftwork
-in /path/to/project" or "Convert /path/to/project to weftwork".
+Claude Code in a weftwork checkout: open it there and say "Bootstrap
+/path/to/project" or "Migrate /path/to/project to weftwork".
 
 ## Convert an existing project
 
@@ -138,7 +140,7 @@ one is kept as `AGENTS.md.weftwork-old`).
 
 ```mermaid
 flowchart LR
-  task["You: a task + 'Weft ready.'"] --> branch[Branch from main]
+  task["You: a task + 'All ready.'"] --> branch[Branch from main]
   branch --> change[Smallest change, test first]
   change --> gate{"Done gate:<br/>the engine runs<br/>your checks"}
   gate -- fail --> change
@@ -147,7 +149,7 @@ flowchart LR
   review -- pass --> pr["PR with proof<br/>and decisions"]
   pr --> ci{CI green?}
   ci -- no --> change
-  ci -- yes --> you[You merge]
+  ci -- yes --> you["You merge,<br/>or it merges on 'All in.'"]
 ```
 
 The agent asks you only on a fixed list of triggers: a write outside the
@@ -158,7 +160,7 @@ decision in the pull request.
 
 Optionally, weftwork keeps a record of each task on your machine. It never
 uploads it. The record shows which failures keep coming back, and the
-`weft-improve` skill proposes one small, tested fix for the most common one, which
+`retro` skill proposes one small, tested fix for the most common one, which
 you merge or close ([`docs/HISTORY.md`](docs/HISTORY.md)).
 
 ## Commands
@@ -239,7 +241,7 @@ conversion too. To remove weftwork itself: `npm uninstall -g weftwork`.
 
 | Page | About |
 | --- | --- |
-| [Getting started](docs/GETTING-STARTED.md) | From install to the first weft-ready run, step by step |
+| [Getting started](docs/GETTING-STARTED.md) | From install to the first all-ready run, step by step |
 | [Setup](docs/SETUP.md), [Convert](docs/CONVERT.md) and [Detect](docs/DETECT.md) | What `init` and `convert` read, ask and write |
 | [Guard](docs/GUARD.md) and [Ask](docs/ASK.md) | What the agent may not do, and when it asks you |
 | [Security baseline](docs/SECURITY-BASELINE.md) | Repository content is data, each host's boundary, and keeping credentials out |
@@ -260,6 +262,6 @@ privately ([`SECURITY.md`](SECURITY.md)).
 
 ## License
 
-[MIT](LICENSE). The `weft-ready`, `weft-review` and `weft-pr` skills are
+[MIT](LICENSE). The `all-ready`, `all-in`, `second-opinion` and `pr-it` skills are
 adapted from Theo Browne's [tstack](https://github.com/t3dotgg/tstack) (MIT;
 see [`.claude/skills/README.md`](.claude/skills/README.md)).

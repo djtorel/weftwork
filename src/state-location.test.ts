@@ -27,7 +27,7 @@ const statePath = (gitDir: string): string => join(gitDir, 'weftwork', 'state.ya
 const gitOut = (dir: string, ...args: string[]): string => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
 const status = (repo: string): string => gitOut(repo, 'status', '--porcelain');
 const handoff = (branch: string): string =>
-  JSON.stringify({ next_skill: 'weft-ready', branch, files: ['tracked.txt'], note: 'Next: e09s04.' });
+  JSON.stringify({ next_skill: 'all-ready', branch, files: ['tracked.txt'], note: 'Next: e09s04.' });
 
 test('state-cli set in a fresh repository creates the state file in the git dir', () => {
   const repo = makeTestRepo();

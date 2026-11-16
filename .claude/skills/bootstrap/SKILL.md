@@ -1,9 +1,9 @@
 ---
-name: weft-setup
-description: Use when the user asks to set up weftwork in a project folder, new or plain (no other planning system).
+name: bootstrap
+description: Use when the user asks to set up weftwork in a project folder, new or plain (no other planning system), including "bootstrap /path/to/project" said in a weftwork checkout. Not for setting up the project's own app or tooling.
 ---
 
-# Weft Setup
+# Bootstrap
 
 Put weftwork into a project folder the user names. Never read another project
 without the user's say-so: the folder they name is that say-so.

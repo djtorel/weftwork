@@ -7,7 +7,7 @@ onto weftwork. It converts bigpowers (`specs/state.yaml`), GSD
 (`.planning/`, the v1.30 layout), GSD 2 (`.gsd/`), spec-kit (`.specify/` with `specs/`) and
 BMAD (`_bmad/` with `_bmad-output/`, the v6 sprint layout; or v4's
 `.bmad-core/` with `docs/stories/`). It makes the steps of PR #66 general. The
-`weft-convert` skill drives it in Claude Code, and then runs setup
+`migrate` skill drives it in Claude Code, and then runs setup
 (`docs/SETUP.md`) for the new AGENTS.md.
 
 ## Run it

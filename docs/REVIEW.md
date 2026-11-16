@@ -4,7 +4,7 @@
 
 Before a pull request, one or more reviewer models read the change. The
 engine runs the reviewers, reads their findings and counts the rounds, so
-the round ceiling does not depend on the agent's prose. The `weft-review`
+the round ceiling does not depend on the agent's prose. The `second-opinion`
 skill calls it.
 
 ```bash
