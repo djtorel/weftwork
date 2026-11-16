@@ -67,3 +67,18 @@ test('AC-e12s03-03 nothing open: the section says so', () => {
   const text = backlogSection([epics[0]], {}, 'old');
   assert.match(text, /No open epics or stories/);
 });
+
+test('AC-e12s03-06 epic, story and task text from the YAML cannot break how the backlog renders (PR #86 review)', () => {
+  const hostile: BigpowersEpic[] = [
+    {
+      dir: 'epics/e04-x',
+      epic: { id: 'e04', title: 'Pay <!-- now', status: 'todo', stories: [{ id: 'e04s01', title: 'A *b', status: 'todo', acceptance: 'Shows `x', tasks: 't.yaml' }] },
+      tasks: new Map([['t.yaml', { spec: 'odd`name.md', tasks: [{ id: 1, status: 'todo', verify: 'echo `date`' }] }]]),
+    },
+  ];
+  const text = backlogSection(hostile, {}, 'old');
+  assert.match(text, /^### e04 Pay \\<!-- now$/m);
+  assert.match(text, /^- \[ \] \*\*e04s01 A \\\*b\.\*\* Done when: Shows \\`x$/m);
+  assert.match(text, /^ {2}Check: task 1: `` echo `date` ``$/m);
+  assert.match(text, /^ {2}Old spec: ``\.specs\/epics\/e04-x\/odd`name\.md``$/m);
+});
