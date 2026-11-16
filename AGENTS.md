@@ -35,8 +35,8 @@ under its own hooks (below).
 ## Where things are
 
 - Tracked: `src/`, `docs/` (research briefs, bug reports, the security review,
-  `STATE.md`, `BUDGET.md`), `tools/`, `.claude/skills/`, `weftwork.yaml` when
-  present.
+  `SECURITY-BASELINE.md`, `STATE.md`, `BUDGET.md`), `tools/`,
+  `.claude/skills/`, `weftwork.yaml` when present.
 - Local, never committed:
   - The backlog: `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"`,
     shared by every worktree of this clone.

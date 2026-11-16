@@ -32,4 +32,6 @@ does not stop"; a report that only restates one of them is not a new
 vulnerability, but a practical way to exploit one is welcome.
 
 The threat model and past reviews are in
-[`docs/security/`](docs/security/).
+[`docs/security/`](docs/security/). The rule for untrusted repo content,
+the boundary each agent host gives, and how to keep credentials out of the
+agent are in [`docs/SECURITY-BASELINE.md`](docs/SECURITY-BASELINE.md).
