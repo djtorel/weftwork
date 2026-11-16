@@ -41,8 +41,13 @@ function openIfExists(path: string, follow: boolean): Opened {
 
 /** Read `path`. `file` is null when there is none. Only a regular file of at
  * most `maxBytes` is read. The mode comes back too, so a rewrite keeps it. With
- * `follow` a symlink is followed; its target must still be a regular file. */
-export function readRegularFile(path: string, options: { follow: boolean; maxBytes: number }): ReadRegular {
+ * `follow` a symlink is followed; its target must still be a regular file.
+ * With `cutEnd` (a file another process is still writing) the bytes may end
+ * inside a character; that incomplete character is left out of `text`. */
+export function readRegularFile(
+  path: string,
+  options: { follow: boolean; maxBytes: number; cutEnd?: boolean },
+): ReadRegular {
   const opened = openIfExists(path, options.follow);
   if (!opened.ok) return opened;
   const fd = opened.fd;
@@ -53,7 +58,7 @@ export function readRegularFile(path: string, options: { follow: boolean; maxByt
     if (stat.size > options.maxBytes) {
       return { ok: false, error: `${path} is larger than ${options.maxBytes} bytes` };
     }
-    const text = strictUtf8(readFileSync(fd));
+    const text = strictUtf8(readFileSync(fd), options.cutEnd ?? false);
     if (text === null) return { ok: false, error: `${path} is not valid UTF-8` };
     return { ok: true, file: { text, mode: stat.mode & 0o777, mtime: stat.mtime } };
   } catch (error) {
@@ -66,10 +71,12 @@ export function readRegularFile(path: string, options: { follow: boolean; maxByt
 /** `bytes` as UTF-8 text, or null when they are not valid UTF-8. A lossy
  * decode would turn each bad byte into U+FFFD, and a later write would put
  * those on disk in place of bytes the caller never touched (review round 3,
- * A2, B2). A leading BOM is kept as text, as readFileSync kept it. */
-export function strictUtf8(bytes: Buffer): string | null {
+ * A2, B2). A leading BOM is kept as text, as readFileSync kept it. With
+ * `cutEnd`, an incomplete character at the end is left out (a streaming
+ * decode holds it back) instead of making the bytes invalid. */
+export function strictUtf8(bytes: Buffer, cutEnd = false): string | null {
   try {
-    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes, { stream: cutEnd });
   } catch {
     return null;
   }
