@@ -188,8 +188,8 @@ agent cannot edit it: the guard blocks that.
 ```yaml
 ---
 budget:              # docs/BUDGET.md
-  maxRuns: 40
-  maxFailures: 3
+  max_runs: 40
+  max_failures: 3
 review:              # docs/REVIEW.md
   max_rounds: 3
   reviewers:

@@ -24,7 +24,7 @@ function runHook(repo: string, command: string, env: NodeJS.ProcessEnv = cliEnv(
 }
 
 test('weftwork.yaml with maxFailures 2 makes the second failure exhausted, which the hook reports', () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 2\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 2\n' });
   const first = runHook(repo, 'false');
   assert.equal(first.status, 2, 'the first failure blocks the stop');
   const second = runHook(repo, 'false');
@@ -35,7 +35,7 @@ test('weftwork.yaml with maxFailures 2 makes the second failure exhausted, which
 test('the user file under XDG_CONFIG_HOME is applied to a hook run', () => {
   const home = makeTempDir();
   mkdirSync(join(home, 'weftwork'));
-  writeFileSync(join(home, 'weftwork', 'config.yaml'), 'budget:\n  maxFailures: 1\n');
+  writeFileSync(join(home, 'weftwork', 'config.yaml'), 'budget:\n  max_failures: 1\n');
   const repo = makeTestRepo();
   const first = runHook(repo, 'false', { ...cliEnv(repo), XDG_CONFIG_HOME: home });
   assert.equal(first.status, 0);
@@ -43,11 +43,11 @@ test('the user file under XDG_CONFIG_HOME is applied to a hook run', () => {
 });
 
 test('a bad weftwork.yaml blocks the stop, names the file and key, and runs nothing', () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 0\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 0\n' });
   const out = runHook(repo, 'touch ran.txt');
   assert.equal(out.status, 2);
   assert.match(out.stderr, /weftwork\.yaml/);
-  assert.match(out.stderr, /budget\.maxFailures/);
+  assert.match(out.stderr, /budget\.max_failures/);
   assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
 });
 
@@ -63,7 +63,7 @@ test('control characters and new lines from weftwork.yaml are escaped in the rea
 test('a symlinked weftwork.yaml blocks the stop and runs nothing', () => {
   const repo = makeTestRepo();
   const target = join(makeTempDir(), 'good.yaml');
-  writeFileSync(target, 'budget:\n  maxFailures: 2\n');
+  writeFileSync(target, 'budget:\n  max_failures: 2\n');
   symlinkSync(target, join(repo, 'weftwork.yaml'));
   const out = runHook(repo, 'touch ran.txt');
   assert.equal(out.status, 2);
@@ -72,7 +72,7 @@ test('a symlinked weftwork.yaml blocks the stop and runs nothing', () => {
 });
 
 test('AC-e09s02-10 weftwork.yaml with maxRuns 2: the second of two different failing commands is exhausted', () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxRuns: 2\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_runs: 2\n' });
   const first = runHook(repo, 'exit 1');
   assert.equal(first.status, 2, 'the first failure blocks the stop');
   const second = runHook(repo, 'exit 2');
@@ -82,7 +82,7 @@ test('AC-e09s02-10 weftwork.yaml with maxRuns 2: the second of two different fai
 });
 
 test('AC-e09s03-10 maxRuns 3: the second failure blocks with the handoff line, the third allows the stop', () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxRuns: 3\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_runs: 3\n' });
   const handoffCli = join(dirname(cliPath), 'handoff-cli.ts');
   const first = runHook(repo, 'exit 1');
   assert.equal(first.status, 2);
