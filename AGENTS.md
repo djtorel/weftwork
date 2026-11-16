@@ -113,7 +113,9 @@ the session's tokens from the transcript (`transcript-usage.ts`);
 `claude-install.ts` installs the Stop hook, as an entry that runs `weftwork`
 from PATH and blocks when it is missing. The guard (`guard.ts`, its PreToolUse hook
 `guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
-would change the agent's own limits or hooks (`docs/GUARD.md`), and the
+would change the agent's own limits or hooks, or a path on its protected-paths
+list (git internals, host hooks and settings, credential files, and the
+owner's `guard.protected`, read by `guard-setting.ts`; `docs/GUARD.md`), and the
 mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
 and a push to main (`guard-push.ts`). `decision.ts` and `decision-cli.ts` log
 each choice the agent makes without the owner, for the PR's Decisions
