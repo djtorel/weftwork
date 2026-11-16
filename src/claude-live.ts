@@ -13,17 +13,22 @@
 // so a hand edit may stop it blocking (not seen); no usable call record (not
 // seen); the record is of the same adapter and command as such an entry, and
 // no settings file changed after it (live); otherwise not seen. Each answer
-// carries the one step that can change it.
+// carries the one step that can change it. An entry that names its adapter as
+// "$CLAUDE_PROJECT_DIR/..." is read with the project folder put in. The
+// guard's half of the check is claude-live-guard.ts.
 //
 // disableAllHooks takes the value left after precedence: local, then project,
 // then user settings (Claude Code docs, "Disable or remove hooks", read
 // 2026-11-12). Managed settings and the --settings flag sit above all three
 // and cannot be read from here, so the notes say so.
+import { join } from 'node:path';
 import {
   isAsInstalled,
   isEngineFile,
+  isInProjectDir,
   parseSettings,
   parseStopHook,
+  projectDirVar,
   stopListOf,
   weftworkOnPath,
   type StopHookEntry,
@@ -40,6 +45,8 @@ export type LiveInput = {
   local: SettingsSource;
   project: SettingsSource;
   user: SettingsSource;
+  /** The project folder: Claude Code's CLAUDE_PROJECT_DIR for hooks run here. */
+  projectDir: string;
   /** True when a file exists at the absolute path, or, for `weftwork`
    * (weftworkOnPath), when the command is on this shell's PATH. */
   exists: (path: string) => boolean;
@@ -55,8 +62,9 @@ export type LiveReport = { answer: LiveAnswer; reason: string; next: NextStep | 
 type Verdict = Omit<LiveReport, 'notes'>;
 
 /** A weftwork entry: the file it is in, whether it is exactly what the install
- * writes, and whether its adapter file exists. */
-type Entry = StopHookEntry & { file: string; asInstalled: boolean; present: boolean };
+ * writes, the adapter it runs with $CLAUDE_PROJECT_DIR resolved, and whether
+ * that adapter exists. */
+type Entry = StopHookEntry & { file: string; asInstalled: boolean; runs: string; present: boolean };
 type Registered = { ok: true; entries: Entry[]; others: number } | { ok: false; reason: string };
 type Copies = { ok: true; entries: Entry[] } | { ok: false; reason: string };
 
@@ -82,11 +90,19 @@ const standingNotes = [
   'An entry that runs weftwork from PATH was checked against this shell\'s PATH, ' +
     'which can differ from the one Claude Code runs hooks with; any weftwork ' +
     'Stop hook file with the same command counts as its call.',
+  'The guard check reads the 3 newest session transcripts of this folder, not ' +
+    'those of subagents. The guard leaves a trace there only when it blocks a ' +
+    'call or fails to run, and the agent\'s tool calls put text there too.',
 ];
+
+/** The adapter `cliPath` runs, with "$CLAUDE_PROJECT_DIR/" read as `projectDir`. */
+export function resolvedAdapter(cliPath: string, projectDir: string): string {
+  return isInProjectDir(cliPath) ? join(projectDir, cliPath.slice(projectDirVar.length)) : cliPath;
+}
 
 /** The weftwork entries in one file's Stop list, and how many other Stop hooks
  * it holds. */
-function weftworkEntries(source: SettingsSource, exists: (path: string) => boolean): Registered {
+function weftworkEntries(source: SettingsSource, input: LiveInput): Registered {
   if (!source.read.ok) {
     return { ok: false, reason: `${source.name}: ${source.read.error}` };
   }
@@ -99,7 +115,8 @@ function weftworkEntries(source: SettingsSource, exists: (path: string) => boole
   const entries = hooks.flatMap((hook): Entry[] => {
     const ours = parseStopHook(hook);
     if (ours === null) return [];
-    return [{ ...ours, file: source.name, asInstalled: isAsInstalled(hook, ours), present: exists(ours.cliPath) }];
+    const runs = resolvedAdapter(ours.cliPath, input.projectDir);
+    return [{ ...ours, file: source.name, asInstalled: isAsInstalled(hook, ours), runs, present: input.exists(runs) }];
   });
   return { ok: true, entries, others: hooks.length - entries.length };
 }
@@ -107,10 +124,10 @@ function weftworkEntries(source: SettingsSource, exists: (path: string) => boole
 /** The weftwork entries in the local and user files. Claude Code runs a handler
  * defined in more than one settings file once (hooks docs, read 2026-11-12),
  * so a changed copy there can be the one that runs (review round 3, A1, B-1). */
-function copiesIn(sources: SettingsSource[], exists: (path: string) => boolean): Copies {
+function copiesIn(sources: SettingsSource[], input: LiveInput): Copies {
   const entries: Entry[] = [];
   for (const source of sources) {
-    const found = weftworkEntries(source, exists);
+    const found = weftworkEntries(source, input);
     if (!found.ok) return found;
     entries.push(...found.entries);
   }
@@ -168,9 +185,9 @@ function sameHandler(a: StopHookEntry, b: StopHookEntry): boolean {
 /** True when the call record is of `entry`: the same command, run by the same
  * file, or, for an entry that runs weftwork from PATH, by a weftwork Stop hook
  * file (the record holds the file that ran, not the command on PATH). */
-function recordOf(entry: StopHookEntry, call: LastCall): boolean {
+function recordOf(entry: Entry, call: LastCall): boolean {
   if (entry.command !== call.command) return false;
-  return entry.cliPath === weftworkOnPath ? isEngineFile(call.cliPath, 'claude-hook-cli') : entry.cliPath === call.cliPath;
+  return entry.cliPath === weftworkOnPath ? isEngineFile(call.cliPath, 'claude-hook-cli') : entry.runs === call.cliPath;
 }
 
 /** The notes, with a count of distinct handlers in the project settings when
@@ -219,7 +236,7 @@ function answerFromRecord(usable: Entry[], input: LiveInput): Verdict {
  * review rounds 2 and 3). */
 const unsafeCharacters = /[\p{Cc}\p{Bidi_Control}\u2028\u2029]/gu;
 
-function shown(text: string): string {
+export function shown(text: string): string {
   return text.replace(unsafeCharacters, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
@@ -240,7 +257,7 @@ function whyNotRegistered(entries: Entry[], others: number, file: string): strin
     if (entries.every((entry) => entry.cliPath === weftworkOnPath)) {
       return 'the entry runs the weftwork command, which is not on PATH: install it with npm install -g weftwork';
     }
-    const paths = entries.map((entry) => entry.cliPath).join(', ');
+    const paths = entries.map((entry) => entry.runs).join(', ');
     return `the entry names ${paths}, which does not exist on this machine: run the install again`;
   }
   return null;
@@ -249,7 +266,7 @@ function whyNotRegistered(entries: Entry[], others: number, file: string): strin
 /** The report before its reason is escaped, in the order the header gives. A
  * project file the install cannot read is fixed by hand, not by the install. */
 function rawReport(input: LiveInput): LiveReport {
-  const found = weftworkEntries(input.project, input.exists);
+  const found = weftworkEntries(input.project, input);
   if (!found.ok) {
     return { answer: 'not-registered', reason: found.reason, next: 'fix-settings', notes: [...standingNotes] };
   }
@@ -268,7 +285,7 @@ function answerWhenRegistered(entries: Entry[], input: LiveInput): Verdict {
   if (off !== null) {
     return off;
   }
-  const copies = copiesIn([input.local, input.user], input.exists);
+  const copies = copiesIn([input.local, input.user], input);
   if (!copies.ok) {
     return notSeen(`cannot tell whether a changed copy of the entry exists: ${copies.reason}`, 'fix-settings');
   }

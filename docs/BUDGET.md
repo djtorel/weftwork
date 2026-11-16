@@ -229,6 +229,8 @@ read and cache write, summed from the transcript file that the host names
 in `transcript_path` of the Stop input. Each assistant message counts once,
 since the host writes one message streamed in parts as several lines with
 the same id. There are no dollars: a price table per model goes stale.
+The PR proof shows the same counts when it is given the transcript path
+(`docs/PR-PROOF.md`, Tokens).
 
 The hook shows one line:
 
@@ -251,7 +253,8 @@ The tokens are `not counted`, with the reason, when the Stop input has no
 file is not a regular file (a symlink is not followed), is larger than
 64 MiB (67108864 bytes) or is not valid UTF-8. The answer is the same
 either way. Lines that are not JSON, such as a last line the host has not
-finished writing, are skipped. The host writes the transcript while the
+finished writing, are skipped. That last line can end inside a multi-byte
+character; the file is then still read, and only that line is skipped. The host writes the transcript while the
 session runs, so the last turn can be missing from the count.
 
 ### A reused pass
