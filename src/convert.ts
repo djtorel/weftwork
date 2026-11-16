@@ -70,7 +70,12 @@ const systems: Record<SystemName, System> = {
       }
       const folders = namesIn(join(dir, '.planning', 'phases'));
       const files = folders.flatMap((folder) => namesIn(join(dir, '.planning', 'phases', folder)).map((name) => `${folder}/${name}`));
-      return gsdSection(readText(join(dir, '.planning', 'ROADMAP.md')), folders, tag, files);
+      const plans: Record<string, string> = {};
+      for (const path of files.filter((each) => each.endsWith('-PLAN.md'))) {
+        const text = readText(join(dir, '.planning', 'phases', path));
+        if (text !== null) plans[path] = text;
+      }
+      return gsdSection(readText(join(dir, '.planning', 'ROADMAP.md')), folders, tag, files, plans);
     },
   },
 };
