@@ -111,11 +111,15 @@ on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
 adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
 the session's tokens from the transcript (`transcript-usage.ts`);
 `claude-install.ts` installs the Stop hook, as an entry that runs `weftwork`
-from PATH and blocks when it is missing. The guard (`guard.ts`, its PreToolUse hook
+from PATH and blocks when it is missing, and keeps an entry that names
+`"$CLAUDE_PROJECT_DIR/src/..."`, as this repository's does. The guard (`guard.ts`, its PreToolUse hook
 `guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
 would change the agent's own limits or hooks (`docs/GUARD.md`), and the
 mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
-and a push to main (`guard-push.ts`). `decision.ts` and `decision-cli.ts` log
+and a push to main (`guard-push.ts`). The live check (`claude-live.ts`,
+`claude-live-guard.ts` and the CLI `claude-live-cli.ts`) says whether Claude
+Code runs the Stop hook, from the call record, and the guard, from the session
+transcripts (`docs/GUARD.md`). `decision.ts` and `decision-cli.ts` log
 each choice the agent makes without the owner, for the PR's Decisions
 section (`docs/ASK.md`). The state writer is `state-file.ts` (set one field of a
 YAML file and keep every other byte), with the file half in `state-write.ts`

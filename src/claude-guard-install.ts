@@ -6,7 +6,16 @@
 // The settings file is untrusted input. Text of the wrong shape is refused,
 // never repaired or overwritten.
 import { isDeepStrictEqual } from 'node:util';
-import { isEngineFile, parseSettings, requireWeftwork, shellQuote, weftworkOnPath } from './claude-install.ts';
+import {
+  adapterOf,
+  adapterPattern,
+  adapterWord,
+  isEngineFile,
+  keptAdapter,
+  parseSettings,
+  requireWeftwork,
+  weftworkOnPath,
+} from './claude-install.ts';
 import type { Failure } from './errors.ts';
 import { isRecord } from './json.ts';
 
@@ -22,7 +31,7 @@ export type GuardInstall = { ok: true; text: string; changed: boolean } | Failur
 /** The command of the guard entry: `weftwork guard` from PATH, blocking when
  * weftwork is missing (claude-install.ts), or node and the guard's file. */
 function guardCommand(cliPath: string): string {
-  return cliPath === weftworkOnPath ? `${requireWeftwork}weftwork guard` : `node ${shellQuote(cliPath)}`;
+  return cliPath === weftworkOnPath ? `${requireWeftwork}weftwork guard` : `node ${adapterWord(cliPath)}`;
 }
 
 /** The hook entry the install writes for the guard at `cliPath`. */
@@ -30,16 +39,33 @@ export function guardEntry(cliPath: string): object {
   return { type: 'command', command: guardCommand(cliPath), timeout: guardTimeoutSeconds };
 }
 
-/** `node '<file>'`, as an older install wrote the guard entry. */
-const fileGuard = /^node '((?:[^']|'\\'')*)'$/;
+/** `node '<file>'`, as an older install wrote the guard entry, or
+ * `node "$CLAUDE_PROJECT_DIR/<file>"`, as weftwork's own repository does. */
+const fileGuard = new RegExp(`^node ${adapterPattern}$`);
+
+/** The guard adapter a hook's command runs: weftworkOnPath, or the guard file
+ * (`.../guard-cli.ts` or `.js`) of `node '<file>'` or
+ * `node "$CLAUDE_PROJECT_DIR/<file>"`. Null for any other command, so a node
+ * hook that runs another file is never the guard (review r1m1). The install
+ * and the live check read guard entries through this. */
+export function guardCliOf(command: string): string | null {
+  if (command === guardCommand(weftworkOnPath)) return weftworkOnPath;
+  const match = fileGuard.exec(command);
+  const file = match === null ? null : adapterOf(match, 1);
+  return file !== null && isEngineFile(file, 'guard-cli') ? file : null;
+}
+
+/** The guard adapter `hook` runs, whatever its other keys, or null. */
+function guardCliOfHook(hook: unknown): string | null {
+  return isRecord(hook) && typeof hook.command === 'string' ? guardCliOf(hook.command) : null;
+}
 
 /** True when `hook` runs the guard at `cliPath`, whatever its other keys. An
  * install from PATH also takes over an entry that names a guard file. */
 function isOurs(hook: unknown, cliPath: string): boolean {
-  if (!isRecord(hook) || typeof hook.command !== 'string') return false;
-  if (hook.command === guardCommand(cliPath)) return true;
-  const file = fileGuard.exec(hook.command)?.[1];
-  return cliPath === weftworkOnPath && file !== undefined && isEngineFile(file.replaceAll("'\\''", "'"), 'guard-cli');
+  const found = guardCliOfHook(hook);
+  if (found === null) return false;
+  return found === cliPath || (cliPath === weftworkOnPath && isEngineFile(found, 'guard-cli'));
 }
 
 type Items = { ok: true; items: unknown[] } | Failure;
@@ -71,7 +97,11 @@ export function installGuardHook(text: string | null, cliPath: string): GuardIns
   if (!parsed.ok) return parsed;
   const read = itemsOf(parsed.hooks.PreToolUse);
   if (!read.ok) return read;
-  const group = { matcher: guardMatcher, hooks: [guardEntry(cliPath)] };
+  const hooks = read.items.flatMap((item) => (isRecord(item) && Array.isArray(item.hooks) ? item.hooks : []));
+  const adapter = keptAdapter(hooks.map((hook) => guardCliOfHook(hook) ?? undefined), cliPath, 'guard-cli');
+  const group = { matcher: guardMatcher, hooks: [guardEntry(adapter)] };
+  // Which entries are replaced follows the install asked for, so an install
+  // from PATH that keeps a "$CLAUDE_PROJECT_DIR" entry still drops a PATH one.
   const kept = withoutGuard(read.items, cliPath);
   const done = isDeepStrictEqual(read.items.at(-1), group) && kept.length === read.items.length - 1;
   const list = done ? read.items : [...kept, group];

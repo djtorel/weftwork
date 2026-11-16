@@ -145,7 +145,7 @@ decision in the pull request.
 | `weftwork convert` | Convert a bigpowers, GSD, spec-kit or BMAD project (JSON on stdin) |
 | `weftwork detect` | Report a project's stack, commands, CI and agent files |
 | `weftwork claude-install -- '<cmd>'` | Register the Stop hook and guard for a check command |
-| `weftwork claude-live` | Check that Claude Code runs the Stop hook here |
+| `weftwork claude-live` | Check that Claude Code runs the Stop hook and the guard here |
 | `weftwork path` | Print where weftwork is installed (its docs and skills) |
 | `weftwork --help` | List every command, including the ones the agent's skills call |
 
