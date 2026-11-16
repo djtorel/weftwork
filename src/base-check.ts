@@ -9,12 +9,15 @@ import { tmpdir } from 'node:os';
 import { dirname, join, matchesGlob } from 'node:path';
 import { terminalSafe } from './cli-io.ts';
 import { messageOf, type Failure } from './errors.ts';
-import { runCommand } from './process.ts';
+import { runCapture } from './process.ts';
+import { tapTests } from './base-check-tap.ts';
 import type { ProofSetting } from './base-check-setting.ts';
 import { gitOutput, repositoryRoot } from './tree.ts';
 import { changedPaths } from './ui.ts';
 
-export type FileOutcome = { file: string; outcome: 'fails' | 'passes' | 'timed-out' | 'not-started' };
+/** `newPassing`: when the run printed TAP, the tests whose name is not in
+ * the base version of the file and that pass on the base. */
+export type FileOutcome = { file: string; outcome: 'fails' | 'passes' | 'timed-out' | 'not-started'; newPassing?: string[] };
 export type BaseRun = { kind: 'ran'; files: FileOutcome[] };
 export type BaseCheck = { kind: 'none' } | BaseRun | Failure;
 
@@ -36,8 +39,18 @@ async function changedTests(root: string, base: string, tests: string[]): Promis
   return { ok: true, files: files.sort() };
 }
 
+/** The tests of a TAP run that pass and whose name the base version of
+ * the file does not hold; undefined when the output is not TAP. */
+async function newPassing(root: string, base: string, file: string, output: string): Promise<string[] | undefined> {
+  const tests = tapTests(output);
+  if (tests === null) return undefined;
+  // A file that is new has no base version: every test in it is new.
+  const before = await gitOutput(root, ['show', `${base}:${file}`]).then((text) => text.toString('utf8'), () => '');
+  return tests.filter((test) => test.passed && !before.includes(test.name)).map((test) => test.name);
+}
+
 /** Run `files` on the base: one run of proof.run per file, so each file has
- * its own outcome. */
+ * its own outcome, and, when the run prints TAP, each new test too. */
 export async function checkOnBase(input: { cwd: string; proof: ProofSetting; base: string }): Promise<BaseCheck> {
   let root: string;
   try {
@@ -70,9 +83,10 @@ export async function checkOnBase(input: { cwd: string; proof: ProofSetting; bas
     }
     const files: FileOutcome[] = [];
     for (const file of tests.files) {
-      const out = await runCommand(`set -- ${quote(file)}\n${input.proof.run}`, tree, input.proof.timeoutSeconds * 1000);
+      const out = await runCapture(`set -- ${quote(file)}\n${input.proof.run}`, tree, input.proof.timeoutSeconds * 1000, '');
       const outcome = out.reason === 'passed' ? 'passes' : out.reason === 'timeout' ? 'timed-out' : out.reason === 'not-started' ? 'not-started' : 'fails';
-      files.push({ file, outcome });
+      const weak = outcome === 'passes' || outcome === 'fails' ? await newPassing(root, input.base, file, out.stdout) : undefined;
+      files.push(weak === undefined ? { file, outcome } : { file, outcome, newPassing: weak });
     }
     return { kind: 'ran', files };
   } catch (error) {
@@ -88,13 +102,14 @@ export async function checkOnBase(input: { cwd: string; proof: ProofSetting; bas
 export function baseCheckReport(base: string, check: BaseRun, timeoutSeconds: number): string {
   const failing = check.files.filter((file) => file.outcome === 'fails').length;
   const lines = [`weftwork base check: ${failing} of ${check.files.length} changed test files fail on the base`, `base: ${base}`];
-  for (const { file: path, outcome } of check.files) {
+  for (const { file: path, outcome, newPassing: weak = [] } of check.files) {
     // A file name can hold a control character; it cannot add a line.
     const file = terminalSafe(path);
     if (outcome === 'fails') lines.push(`fails on base: ${file}`);
     else if (outcome === 'passes') lines.push(`passes on base: ${file} (it does not show the change)`);
     else if (outcome === 'timed-out') lines.push(`timed out on base: ${file} (after ${timeoutSeconds} s)`);
     else lines.push(`did not start on base: ${file}`);
+    for (const name of weak) lines.push(`  new test passes on base: ${terminalSafe(name)} (it does not show the change)`);
   }
   return `${lines.join('\n')}\n`;
 }
