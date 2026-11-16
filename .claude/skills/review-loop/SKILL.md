@@ -16,11 +16,17 @@ push back with evidence when a finding is wrong or not needed.
 - The engine holds the ceiling: `review.max_rounds` in `weftwork.yaml`
   (3 by default), or `review.max_rounds_sensitive` (5) when you pass
   `"sensitive": true`. Pass it only for security, permissions, auth, data
-  loss or state/concurrency. Round 1 is full; later rounds check only
-  changed code and open findings.
-- Only a must-fix blocks. Stop early when a round passes. Declined
+  loss or state/concurrency; `review.sensitive_paths` may set it for you,
+  and the report says why. Round 1 is full; from round 2 the engine tells
+  the reviewer which files changed since the last round and which must-fix
+  findings are open, and asks for those only.
+- Only a must-fix with a real `<file>:<line>` blocks; the engine turns any
+  other into a should-fix. Stop early when a round passes. Declined
   should-fix findings and comment, doc or format-only fixes need no new
   round.
+- The report shows the diff size from the base. If it says
+  `diff growth: past twice round 1 ...`, cut the diff before you run
+  another round, or stop and say why in the PR.
 - Keep a ledger of your answers: id, severity, outcome.
 
 ## 1. Scope
@@ -82,6 +88,11 @@ small cost is a should-fix whatever label it came with.
   when the intent needs it.
 - Disagree: say why, with evidence (file:line, a test, output).
 - Out of scope or should-fix: decline in one line and list it as a follow-up.
+- FOLLOW-UP: a real defect this change did not cause. Do not fix it in
+  this change. List it in the PR and add it to the backlog.
+- A must-fix marked `[new, on a file unchanged since round N]`: check it
+  first against your last fix (it may be a caller you broke); if it is not
+  caused by this change, dispute it with evidence as a follow-up.
 
 Re-run the checks. If review grew the diff, cut first. Do not agree just to end
 the loop.
@@ -100,11 +111,12 @@ only.
   concern of your own.
 - Stuck: a must-fix stays disputed after two replies, or the engine answers
   `exhausted`. The ceiling is not approval. Put both sides in the PR in two
-  or three lines each.
+  or three lines each. A must-fix still open with no written dispute makes
+  the PR a draft (`full-stop`, Ready).
 
 Paste the last round's report into the PR as it is, and add:
 `Reviewed with review-loop: <N> rounds. Verdict: <pass|stuck>`. List every
-unresolved finding and every declined one with its reason.
+unresolved finding, every declined one with its reason, and every follow-up.
 Leave the temporary folder for the system to clean; do not `rm -rf` it (a
 removal of a path held in a variable is blocked by Claude Code's safety
 check and would stall an unattended run).

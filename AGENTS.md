@@ -107,7 +107,9 @@ and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
 `pr-proof-cli.ts` print a pull request's Proof block from the ledger and the
 tree, and say whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
 and `review-cli.ts` run one round of the review council set in `weftwork.yaml`
-(`review-setting.ts`) and count the rounds in the ledger (`review-ledger.ts`;
+(`review-setting.ts`), count the rounds in the ledger (`review-ledger.ts`),
+and snapshot what each round is of, check that a must-fix names a real file
+and line, and scope later rounds to what changed (`review-scope.ts`;
 `docs/REVIEW.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
 with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
 them to the council, as images and with the design reference and a design

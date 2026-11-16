@@ -15,7 +15,8 @@ import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } 
 import { prProof } from './pr-proof.ts';
 import type { RoundVerdict } from './review-ledger.ts';
 import { loadReview } from './review-setting.ts';
-import { exhaustedReport, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
+import { groundResults, roundScope } from './review-scope.ts';
+import { diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runCouncil, storedFindings } from './review.ts';
 import { currentBranch, fingerprintTree } from './tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './ui.ts';
 import { loadUi, type UiSetting } from './ui-setting.ts';
@@ -57,10 +58,14 @@ async function main(): Promise<void> {
   const proof = prProof({ entries: ledger.entries, states: ledger.states, command, fingerprint: tree.fingerprint });
   if (!proof.ready) return answer(`weftwork review: not run\nwhy: the done gate has not passed: ${proof.why}\n`, 4);
   const rounds = roundsOn(ledger.reviews, branch.branch);
-  const maxRounds = roundCeiling(setting.review, sensitive);
-  if (roundsDone(rounds) >= maxRounds) return answer(exhaustedReport(rounds, maxRounds), 5);
   const weftwork = await weftworkDir(cwd);
-  if (weftwork === null) return fail('no git dir for the screenshots');
+  if (weftwork === null) return fail('no git dir for the review scratch files');
+  const last = rounds.at(-1);
+  const scoped = await roundScope({ cwd, scratch: weftwork, base, sensitivePaths: setting.review.sensitivePaths, last });
+  if (!scoped.ok) return fail(scoped.error);
+  const scope = scoped.scope;
+  const maxRounds = roundCeiling(setting.review, sensitive || scope.sensitiveBy !== null);
+  if (roundsDone(rounds) >= maxRounds) return answer(exhaustedReport(rounds, maxRounds), 5);
   const shots = await uiCheck(cwd, weftwork, ui.ui, base, branch.branch, tree.fingerprint);
   if (shots.kind === 'error') return fail(shots.error);
   if (shots.kind === 'missing') return answer(`weftwork review: not run\nwhy: ${terminalSafe(shots.why)}\nnext: echo '{"phase":"after"}' | node src/ui-cli.ts\n`, 4);
@@ -72,7 +77,12 @@ async function main(): Promise<void> {
     design = read.design;
   }
 
-  const prompt = ready === null ? brief : `${brief.replace(/\n*$/, '')}\n\n${uiPrompt(weftwork, ready, design)}`;
+  const round = roundsDone(rounds) + 1;
+  const later = last !== undefined && scope.changedSinceLast !== null ? { round, changed: scope.changedSinceLast, open: last.mustFix } : null;
+  const parts = [brief.replace(/\n*$/, '')];
+  if (ready !== null) parts.push(uiPrompt(weftwork, ready, design));
+  if (later !== null) parts.push(laterRoundPrompt(round, later.changed, later.open));
+  const prompt = parts.join('\n\n');
   // Only a UI change sets WEFTWORK_IMAGES; one from the caller is dropped (review round 1).
   const { WEFTWORK_IMAGES: _inherited, ...env } = process.env;
   if (ready !== null) {
@@ -80,16 +90,22 @@ async function main(): Promise<void> {
     if (!images.ok) return fail(images.error);
     env['WEFTWORK_IMAGES'] = images.value;
   }
-  const results = await runCouncil(setting.review, cwd, reviewPrompt(prompt), env);
+  const replies = await runCouncil(setting.review, cwd, reviewPrompt(prompt), env);
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
+  const grounded = await groundResults(scope.root, replies);
+  const results = later === null ? grounded : newOnUnchanged(grounded, later);
   const verdict = changed ? 'no-verdict' : roundVerdict(results);
-  const round = roundsDone(rounds) + 1;
-  const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results) }, new Date());
+  const sizes = scope.diffLines === null ? {} : { diffLines: scope.diffLines };
+  const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results), tree: scope.tree, ...sizes }, new Date());
   if (!stored.ok) return fail(`the round could not be written to the ledger: ${stored.error}`);
   const why = changed ? 'the tree changed during the review; a reviewer must be read-only' : undefined;
   const screenshots = ready === null ? [] : [...(ready.before === null ? ['before: none were taken'] : shotLines(weftwork, ready.before)), ...shotLines(weftwork, ready.after)];
-  answer(roundReport({ verdict, round, maxRounds, results, screenshots, ...(why === undefined ? {} : { why }) }), exitCodes[verdict]);
+  const notes = [];
+  if (scope.sensitiveBy !== null) notes.push(`sensitive: yes, ${terminalSafe(scope.sensitiveBy)} matches review.sensitive_paths`);
+  else if (sensitive) notes.push('sensitive: yes, the brief asked');
+  if (scope.diffLines !== null) notes.push(...diffReport(scope.diffLines, rounds.find((entry) => entry.round === 1)?.diffLines));
+  answer(roundReport({ verdict, round, maxRounds, results, notes, screenshots, ...(why === undefined ? {} : { why }) }), exitCodes[verdict]);
 }
 
 /** The UI part of the round (e11s05): nothing when UI checks are off, else
