@@ -3,7 +3,7 @@
 // failure ceiling, the loop ceiling, the stall rule and the handover reserve,
 // with the text each answer gives. Moved out of engine.ts in e09s04, so the
 // engine keeps only the order of the checks and the logging.
-import { join } from 'node:path';
+import { sibling } from './sibling.ts';
 import {
   defaultMaxFailures,
   defaultStallAfter,
@@ -103,7 +103,7 @@ function uncountedReason(read: LedgerForRules, trip: Trip | null): string | null
 }
 
 /** The handoff CLI (e08s03) by absolute path, for any repository guarded. */
-const handoffCli = join(import.meta.dirname, 'handoff-cli.ts');
+const handoffCli = sibling('handoff-cli');
 
 /** The detail of a failed run within the handover reserve (e09s03), or none. */
 export function reserveDetail(read: LedgerForRules, request: GateRequest): { detail?: string } {

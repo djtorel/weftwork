@@ -65,7 +65,8 @@ Only rules that the toolchain enforces or that a reviewer can check.
   (`verbatimModuleSyntax`).
 - Erasable syntax only: no `enum`, `namespace` or parameter
   properties (`erasableSyntaxOnly`). Node runs `.ts` files by type
-  stripping, with no build step.
+  stripping, with no build step in the repository; only the npm package
+  is compiled to `dist/` (`docs/RELEASING.md`).
 - No explicit `any` without a comment that says why. Use `unknown` and
   a check instead. A reviewer checks this rule; no linter enforces it
   yet.

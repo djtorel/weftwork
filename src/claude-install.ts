@@ -32,10 +32,58 @@ export function shellQuote(text: string): string {
   return `'${text.replaceAll("'", `'\\''`)}'`;
 }
 
-/** The start of every command this install writes: node runs the adapter, and
+/** The adapter value for the `weftwork` command on PATH. An entry that runs
+ * it keeps working after an npm upgrade, a moved checkout or a new Node; an
+ * entry that names a file (`node '<file>'`) is still read, for older installs. */
+export const weftworkOnPath = 'weftwork';
+
+/** The start of an entry that runs weftwork from PATH: exit 2 when it is not
+ * there. A hook that cannot start is a non-blocking error in Claude Code, so
+ * without this a missing engine would let every stop and tool call through;
+ * exit 2 blocks in a Stop and a PreToolUse hook alike (docs/GUARD.md). */
+export const requireWeftwork =
+  "command -v weftwork >/dev/null 2>&1 || { echo 'weftwork: the weftwork command is not on PATH, so this hook cannot run. " +
+  "Install it: npm install -g weftwork' >&2; exit 2; }; ";
+
+/** True when `path` is the engine file `name` (`claude-hook-cli`) of some
+ * checkout or package: `.../<name>.ts` or `.../<name>.js`. */
+export function isEngineFile(path: string, name: string): boolean {
+  return path.endsWith(`/${name}.ts`) || path.endsWith(`/${name}.js`);
+}
+
+/** The start of an adapter path inside the project, as an entry names it so
+ * each checkout or worktree runs its own copy: `node "$CLAUDE_PROJECT_DIR/src/..."`.
+ * Claude Code sets the variable for every hook. */
+export const projectDirVar = '$CLAUDE_PROJECT_DIR/';
+
+/** A path after projectDirVar that a double-quoted shell word keeps as it is:
+ * no `"`, `$`, backquote or backslash. */
+const plainInQuotes = /^[^"$`\\]*$/;
+
+/** True when `cliPath` names a file in the project through $CLAUDE_PROJECT_DIR. */
+export function isInProjectDir(cliPath: string): boolean {
+  return cliPath.startsWith(projectDirVar) && plainInQuotes.test(cliPath.slice(projectDirVar.length));
+}
+
+/** The adapter as a shell word: a path in the project double-quoted, so the
+ * shell expands $CLAUDE_PROJECT_DIR, any other path single-quoted. */
+export function adapterWord(cliPath: string): string {
+  return isInProjectDir(cliPath) ? `"${cliPath}"` : shellQuote(cliPath);
+}
+
+/** The adapter word as adapterWord writes it, for a pattern: group 1 is a
+ * single-quoted path, group 2 a path in the project. */
+export const adapterPattern = `(?:'((?:[^']|'\\\\'')*)'|"(\\$CLAUDE_PROJECT_DIR/[^"$\`\\\\]*)")`;
+
+/** The adapter path from a match of adapterPattern at `index` (group 1 or 2). */
+export function adapterOf(match: RegExpExecArray, index: number): string {
+  return match[index + 1] ?? unquote(match[index] ?? '');
+}
+
+/** The start of every command this install writes: the adapter runs, and
  * what follows `--` is the one argument claude-hook-cli.ts reads. */
 function stopHookPrefix(cliPath: string): string {
-  return `node ${shellQuote(cliPath)} -- `;
+  return cliPath === weftworkOnPath ? `${requireWeftwork}weftwork claude-hook -- ` : `node ${adapterWord(cliPath)} -- `;
 }
 
 /** A weftwork entry read back: the adapter file and the declared command. */
@@ -47,8 +95,12 @@ export function stopHookCommand(cliPath: string, command: string): string {
 }
 
 /** `node '<adapter>' -- '<command>'` exactly as stopHookCommand writes it: each
- * quoted part is plain text or `'\''`, so a quote inside never ends it early. */
-const stopHookText = /^node '((?:[^']|'\\'')*)' -- '((?:[^']|'\\'')*)'$/;
+ * quoted part is plain text or `'\''`, so a quote inside never ends it early.
+ * The adapter can also be `"$CLAUDE_PROJECT_DIR/<path>"` (adapterWord). */
+const stopHookText = new RegExp(`^node ${adapterPattern} -- '((?:[^']|'\\\\'')*)'$`);
+
+/** The quoted declared command after the PATH prefix. */
+const quotedCommand = /^'((?:[^']|'\\'')*)'$/;
 
 /** Undo shellQuote for the text between the outer quotes. */
 function unquote(inner: string): string {
@@ -60,11 +112,16 @@ function unquote(inner: string): string {
  * and the live check both decide what an entry is here, so they cannot drift.
  * An owner hook that mentions the path or adds shell text after it is not ours. */
 export function parseStopHookCommand(text: string): StopHookEntry | null {
+  const fromPath = stopHookPrefix(weftworkOnPath);
+  if (text.startsWith(fromPath)) {
+    const quoted = quotedCommand.exec(text.slice(fromPath.length));
+    return quoted === null ? null : { cliPath: weftworkOnPath, command: unquote(quoted[1] ?? '') };
+  }
   const match = stopHookText.exec(text);
   if (match === null) {
     return null;
   }
-  return { cliPath: unquote(match[1] ?? ''), command: unquote(match[2] ?? '') };
+  return { cliPath: adapterOf(match, 1), command: unquote(match[3] ?? '') };
 }
 
 /** The adapter path and the declared command of `hook` when it is a weftwork
@@ -89,9 +146,14 @@ export function isAsInstalled(hook: unknown, entry: StopHookEntry): boolean {
 }
 
 /** True when `hook` is a weftwork entry for the adapter at `cliPath`. An entry
- * from another checkout is not ours. */
+ * from another checkout is not ours, except to an install from PATH: that one
+ * replaces every weftwork Stop entry, so an older install that names a file
+ * does not stay as a second Stop hook. */
 function isOurs(hook: unknown, cliPath: string): boolean {
-  return parseStopHook(hook)?.cliPath === cliPath;
+  const found = parseStopHook(hook)?.cliPath;
+  if (found === undefined) return false;
+  if (cliPath !== weftworkOnPath) return found === cliPath;
+  return found === weftworkOnPath || isEngineFile(found, 'claude-hook-cli');
 }
 
 function isGroup(value: unknown): value is Group {
@@ -191,6 +253,15 @@ function renderSettings(parsed: Settings, stop: unknown[]): string {
   return `${JSON.stringify({ ...parsed.settings, hooks: { ...parsed.hooks, Stop: stop } }, null, 2)}\n`;
 }
 
+/** The adapter an install for `cliPath` writes. An install from PATH keeps
+ * the first engine file `name` that `found` names in the project
+ * ("$CLAUDE_PROJECT_DIR/..."), so a project that runs its own copy, as
+ * weftwork's repository does, is already registered and keeps that form. */
+export function keptAdapter(found: (string | undefined)[], cliPath: string, name: string): string {
+  if (cliPath !== weftworkOnPath) return cliPath;
+  return found.find((path) => path !== undefined && isInProjectDir(path) && isEngineFile(path, name)) ?? cliPath;
+}
+
 /** The settings text with one weftwork Stop entry for `command`. `text` is the
  * file's text, or null when there is no file. An existing weftwork entry is
  * replaced in place and any more are removed. Every other key and hook stays. */
@@ -206,8 +277,11 @@ export function installStopHook(text: string | null, cliPath: string, command: s
   if (!stop.ok) {
     return stop;
   }
-  const entry = installedEntry(cliPath, command);
-  const install = { cliPath, entry };
+  const found = stop.groups.flatMap((group) => group.hooks.map((hook) => parseStopHook(hook)?.cliPath));
+  const kept = keptAdapter(found, cliPath, 'claude-hook-cli');
+  // cliPath, not kept, decides which entries are replaced: an install from
+  // PATH that keeps a "$CLAUDE_PROJECT_DIR" entry still drops a PATH one.
+  const install = { cliPath, entry: installedEntry(kept, command) };
   const out = renderSettings(parsed, editStopGroups(stop.groups, install));
   const changed = out !== text;
   return { ok: true, text: out, changed, action: actionOf(changed, stop.groups, install) };

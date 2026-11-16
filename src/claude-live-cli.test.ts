@@ -6,9 +6,9 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { stopHookCommand } from './claude-install.ts';
+import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from './test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -17,11 +17,21 @@ const checkCli = join(import.meta.dirname, 'claude-live-cli.ts');
 const installCli = join(import.meta.dirname, 'claude-install-cli.ts');
 const hookCli = join(import.meta.dirname, 'claude-hook-cli.ts');
 
+/** A folder with a `weftwork` command that runs this checkout, as npm link or
+ * npm install -g would put on PATH: the install writes entries that run it. */
+function weftworkBin(): string {
+  const dir = makeTempDir();
+  const cli = join(import.meta.dirname, 'weftwork-cli.ts');
+  writeFileSync(join(dir, 'weftwork'), `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(cli)} "$@"\n`, { mode: 0o755 });
+  return dir;
+}
+
 /** An environment with a fresh, empty home and config home (so the hook never
- * reads the real user budget file, e09s01 spec R6) and no CLAUDE_CONFIG_DIR,
- * unless `configDir` names one. */
+ * reads the real user budget file, e09s01 spec R6), no CLAUDE_CONFIG_DIR
+ * unless `configDir` names one, and this checkout's weftwork first on PATH. */
 function cleanEnv(configDir: string | null = null): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, HOME: makeTempDir(), XDG_CONFIG_HOME: makeTempDir() };
+  const path = `${weftworkBin()}:${process.env.PATH ?? ''}`;
+  const env: NodeJS.ProcessEnv = { ...process.env, PATH: path, HOME: makeTempDir(), XDG_CONFIG_HOME: makeTempDir() };
   delete env.CLAUDE_CONFIG_DIR;
   delete env.CLAUDE_PROJECT_DIR;
   if (configDir !== null) {
@@ -51,7 +61,7 @@ test('AC-e07s04-08 not registered, then registered but not seen, then live', () 
   const none = run([checkCli], { cwd: repo, env });
   assert.equal(none.status, 1, none.stderr);
   assert.match(none.stdout, /not registered/);
-  assert.match(none.stdout, /claude-install-cli\.ts/);
+  assert.match(none.stdout, /weftwork claude-install -- /);
 
   assert.equal(run([installCli, '--', 'true'], { cwd: repo, env }).status, 0);
   const unseen = run([checkCli], { cwd: repo, env });
@@ -158,7 +168,7 @@ test('the next step fits the reason: a changed copy, and a project file the inst
   const env = cleanEnv();
   run([installCli, '--', 'true'], { cwd: repo, env });
   callHook(repo, env, 'true');
-  const copy = { type: 'command', command: stopHookCommand(hookCli, 'true'), timeout: 660, async: true };
+  const copy = { type: 'command', command: stopHookCommand(weftworkOnPath, 'true'), timeout: 660, async: true };
   writeFileSync(join(repo, '.claude', 'settings.local.json'), JSON.stringify({ hooks: { Stop: [{ hooks: [copy] }] } }));
   const changed = run([checkCli], { cwd: repo, env });
   assert.match(changed.stdout, /remove the changed copy/);
@@ -189,4 +199,28 @@ test('settings changed after the last call: not seen until the next call (review
   const out = run([checkCli], { cwd: repo, env });
   assert.equal(out.status, 1);
   assert.match(out.stdout, /changed after the last call/);
+});
+
+test('e11s01 the guard: registered and not seen, then failing in a transcript, which fails the check', () => {
+  const repo = makeTestRepo();
+  const config = makeTempDir();
+  const env = cleanEnv(config);
+  run([installCli, '--', 'true'], { cwd: repo, env });
+  callHook(repo, env, 'true');
+  const quiet = run([checkCli], { cwd: repo, env });
+  assert.equal(quiet.status, 0, quiet.stdout);
+  assert.match(quiet.stdout, /^guard: registered, not seen$/m);
+
+  const settings = JSON.parse(readFileSync(join(repo, '.claude', 'settings.json'), 'utf8')) as {
+    hooks: { PreToolUse: { hooks: { command: string }[] }[] };
+  };
+  const command = settings.hooks.PreToolUse[0]?.hooks[0]?.command ?? '';
+  const folder = join(config, 'projects', realpathSync(repo).replace(/[^a-zA-Z0-9]/g, '-'));
+  mkdirSync(folder, { recursive: true });
+  const attachment = { type: 'hook_non_blocking_error', hookEvent: 'PreToolUse', command, exitCode: 1 };
+  writeFileSync(join(folder, 's.jsonl'), `${JSON.stringify({ type: 'attachment', timestamp: new Date().toISOString(), attachment })}\n`);
+  const failing = run([checkCli], { cwd: repo, env });
+  assert.equal(failing.status, 1, failing.stdout);
+  assert.match(failing.stdout, /^weftwork live check: live$/m);
+  assert.match(failing.stdout, /^guard: failing$/m);
 });
