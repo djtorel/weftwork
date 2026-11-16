@@ -87,3 +87,13 @@ test('AC-e12s03c-10 the CLI finds a BMAD project by itself, with the tag bmad-er
   assert.equal(answer.plan.tag, 'bmad-era');
   assert.deepEqual(answer.plan.moves.at(-1), { from: '_bmad-output', to: '.bmad-output' });
 });
+
+// story: e12s03b
+test('AC-e12s03b-18 the CLI finds a GSD 2 project by itself', () => {
+  const dir = makeTestRepo({ '.gsd/milestones/M001/M001-ROADMAP.md': '# M001: A\n\n## Slices\n\n- [ ] **S01: B**\n' });
+  const out = convert(dir, {});
+  assert.equal(out.status, 0, out.stderr);
+  const answer = JSON.parse(out.stdout);
+  assert.equal(answer.plan.system, 'gsd2');
+  assert.equal(answer.plan.tag, 'gsd2-era');
+});

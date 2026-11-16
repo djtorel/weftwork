@@ -66,9 +66,11 @@ result yourself, or as the first task.
 To run it without Claude Code, and for every option, see
 [`SETUP.md`](SETUP.md). [`DETECT.md`](DETECT.md) says what it reads.
 
-## 2b. Convert a bigpowers, GSD, spec-kit or BMAD project
+## 2b. Convert a bigpowers, GSD, GSD 2, spec-kit or BMAD project
 
 A bigpowers project has `specs/state.yaml`; a GSD project has `.planning/`;
+a GSD 2 project has `.gsd/` (when git does not track it, only the backlog is
+written);
 a spec-kit project has `.specify/`; a BMAD v6 project has `_bmad/` and
 `_bmad-output/`. Open Claude Code in the weftwork checkout and say:
 

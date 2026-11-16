@@ -182,3 +182,8 @@ test('AC-e12s01-20 a pnpm-workspace.yaml that does not parse is a note', async (
   assert.deepEqual(found.packages, []);
   assert.ok(found.notes.some((note) => /^pnpm-workspace\.yaml was not parsed/.test(note)), found.notes.join('; '));
 });
+
+test('AC-e12s01-21 a GSD 2 .gsd/ folder is a planning system', async () => {
+  const found = await report(fixture({ '.gsd/': '' }));
+  assert.deepEqual(found.planning, [{ system: 'gsd2', path: '.gsd' }]);
+});

@@ -36,7 +36,7 @@ The top folder, a few fixed paths, and the packages of a monorepo.
 | `languages`, `packageManagers`, `frameworks`, `commands` | `package.json` and its lock file, `tsconfig.json`; `pyproject.toml`, `requirements.txt`, `setup.cfg`, `Pipfile`, `setup.py`, `uv.lock`, `poetry.lock`, `pytest.ini`; `go.mod`; `Cargo.toml`; `Makefile` |
 | `ci` | `.github/workflows/*.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`, `Jenkinsfile`, `azure-pipelines.yml`, `.travis.yml`, `bitbucket-pipelines.yml` |
 | `agentFiles` | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.cursor/rules`, `.windsurfrules`, `.clinerules`, `.github/copilot-instructions.md` |
-| `planning` | bigpowers `specs/state.yaml`, GSD `.planning`, spec-kit `.specify`, BMAD `_bmad`, `bmad` or `.bmad-core` |
+| `planning` | bigpowers `specs/state.yaml`, GSD `.planning`, GSD 2 `.gsd`, spec-kit `.specify`, BMAD `_bmad`, `bmad` or `.bmad-core` |
 | `packages` | Each folder a workspace file names: `package.json` `workspaces` (a list, or `packages` in an object), `pnpm-workspace.yaml` `packages`, `go.work` `use`, `Cargo.toml` `[workspace]` `members`. Globs are expanded, and `!` patterns and Cargo's `exclude` leave folders out; a folder outside the project (by `..` or a symlink), `node_modules` and `.git` are not walked, and at most 200 are reported. Each has its own `path`, `languages`, `packageManagers`, `frameworks` and `commands`, read from its own manifests as above, with the root's lock file; a folder with no stack is left out |
 | `notes` | A manifest or `pnpm-workspace.yaml` that cannot be read or parsed; the rest of the report still holds |
 

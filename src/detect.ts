@@ -42,6 +42,7 @@ const agentFiles = ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.cursorrules', '.cur
 const planningMarkers: [string, string][] = [
   ['bigpowers', 'specs/state.yaml'],
   ['gsd', '.planning'],
+  ['gsd2', '.gsd'],
   ['spec-kit', '.specify'],
   ['bmad', '_bmad'],
   ['bmad', 'bmad'],
