@@ -212,8 +212,8 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(path: string | null, verdict: Verdict): Promise<LoggedVerdict> {
-  const result = path === null ? null : await appendEntry(path, verdict, new Date());
+async function record(path: string | null, verdict: Verdict, runId?: string): Promise<LoggedVerdict> {
+  const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId);
   if (result?.ok) {
     return { verdict, writeProblem: null };
   }
@@ -226,13 +226,15 @@ async function record(path: string | null, verdict: Verdict): Promise<LoggedVerd
 /** `runGate`, and why the ledger line could not be written: the run is then
  * missing from the ledger, so the engine cannot count the loop (e09s02).
  * `path` is the ledger the caller resolved for `request.cwd` (`ledgerPath`),
- * so the engine resolves it once per call; null when there is no working tree. */
+ * so the engine resolves it once per call; null when there is no working tree.
+ * `runId` is the engine call's id, written on the run line. */
 export async function runLoggedGate(
   request: GateRequest,
   path: string | null,
+  runId: string,
   signal?: AbortSignal,
 ): Promise<LoggedVerdict> {
-  return record(path, await decide(request, signal));
+  return record(path, await decide(request, signal), runId);
 }
 
 /**

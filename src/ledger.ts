@@ -40,6 +40,9 @@ export type LedgerEntry = {
   reason: string;
   command: string;
   fingerprint: string | null;
+  /** The engine call that wrote the line; absent on a line from before run
+   * ids, or from runGate outside the engine. */
+  runId?: string;
 };
 
 export type LedgerRead =
@@ -92,8 +95,9 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
   return dir === null ? null : join(dir, 'ledger.jsonl');
 }
 
-/** Append one entry for `verdict`. Never throws. */
-export async function appendEntry(path: string, verdict: Verdict, at: Date): Promise<AppendResult> {
+/** Append one entry for `verdict`, with the engine call's `runId` when
+ * given. Never throws. */
+export async function appendEntry(path: string, verdict: Verdict, at: Date, runId?: string): Promise<AppendResult> {
   const entry: LedgerEntry = {
     at: at.toISOString(),
     done: verdict.done,
@@ -101,6 +105,7 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date): Pro
     reason: verdict.reason,
     command: verdict.command,
     fingerprint: verdict.fingerprint,
+    ...(runId === undefined ? {} : { runId }),
   };
   return writeLine(path, entry);
 }
@@ -141,14 +146,17 @@ function toEntry(data: unknown): LedgerEntry | null {
   if (!isRecord(data)) {
     return null;
   }
-  const { at, done, exitCode, reason, command, fingerprint } = data;
+  const { at, done, exitCode, reason, command, fingerprint, runId } = data;
   if (typeof at !== 'string' || typeof done !== 'boolean' || !isExitCode(exitCode)) {
     return null;
   }
   if (typeof reason !== 'string' || typeof command !== 'string' || !isFingerprint(fingerprint)) {
     return null;
   }
-  return { at, done, exitCode, reason, command, fingerprint };
+  if (runId !== undefined && typeof runId !== 'string') {
+    return null;
+  }
+  return { at, done, exitCode, reason, command, fingerprint, ...(runId === undefined ? {} : { runId }) };
 }
 
 type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | 'guard' | null;

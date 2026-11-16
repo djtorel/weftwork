@@ -102,3 +102,34 @@ test('a ceiling refusal after a pass and other runs: draft, the refusal on its o
   assert.match(proof.text, /^stopped: exhausted, at 2026-11-15T12:00:00\.000Z$/m);
   assert.match(proof.text, /^budget: 2 runs in this loop, 0 failed runs of this command in a row$/m);
 });
+
+// With run ids, a state is paired with a run by id, not by time: a wall clock
+// can step back between two lines, so time can pair the wrong ones.
+test('a refusal that came before the last run is not paired with it, whatever its time says (run id)', () => {
+  const entries = [{ ...run('npm test', false), runId: 'r1' }, { ...run('npm test', true), runId: 'r2' }];
+  // The refusal followed r1; the clock then stepped back before r2 ran, and
+  // r2's own state line was not written (the engine allows that).
+  const refusal = { ...stop('npm test', 'blocked', 'needs the owner'), at: '2026-11-15T11:00:00.000Z', runId: 'q1', after: 'r1' };
+  const states = [refusal];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, true);
+  assert.doesNotMatch(proof.text, /stopped:|detail:/);
+});
+
+test('a run\'s own stop state stamped before its run line is still shown (run id)', () => {
+  const entries = [{ ...run('npm test', false), runId: 'r1' }];
+  const states = [{ ...stop('npm test', 'stalled', 'same failure'), at: '2026-11-15T09:59:59.000Z', runId: 'r1' }];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, false);
+  assert.match(proof.text, /^stopped: stalled, at 2026-11-15T09:59:59\.000Z$/m);
+});
+
+test('a refusal after the last run, stamped before it, still makes a draft (run id)', () => {
+  const entries = [{ ...run('npm test', true), runId: 'r1' }];
+  const refusal = { ...stop('npm test', 'blocked', 'needs the owner'), at: '2026-11-15T09:00:00.000Z', runId: 'q1', after: 'r1' };
+  const states = [{ ...stop('npm test', 'done', null), runId: 'r1' }, refusal];
+  const proof = prProof({ entries, states, command: 'npm test', fingerprint: 'F' });
+  assert.equal(proof.ready, false);
+  assert.match(proof.text, /^stopped: blocked, at 2026-11-15T09:00:00\.000Z$/m);
+  assert.match(proof.text, /^why: the engine stopped after the last run of this command$/m);
+});
