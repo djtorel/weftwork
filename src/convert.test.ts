@@ -432,3 +432,30 @@ test('AC-e12s03b-17 a GSD 2 project that tracks .gsd/: tag gsd2-era and .gsd/ to
   assert.ok(existsSync(join(dir, '.gsd2-plans/milestones/M001/M001-ROADMAP.md')));
   assert.match(readFileSync(commonBacklog(dir), 'utf8'), /Old spec: `\.gsd2-plans\/milestones\/M001\/slices\/S02\/`/);
 });
+
+test('AC-e12s03-19 the bigpowers backlog keeps the epic order of release-plan.yaml, as this repository\'s own plan ran e11 before e10', () => {
+  const open = (id: string): string => `---\nid: ${id}\ntitle: Epic ${id}\nstatus: todo\nstories:\n  - id: ${id}s01\n    title: First\n    status: todo\n`;
+  const dir = makeTestRepo({
+    'specs/state.yaml': '---\nactive_flow: null\n',
+    'specs/release-plan.yaml': '---\nepics:\n  - id: e09\n    capsule_dir: epics/e09-a\n  - id: e11\n    capsule_dir: epics/e11-c\n  - id: e10\n    capsule_dir: epics/e10-b\n',
+    'specs/epics/e09-a/epic.yaml': open('e09'),
+    'specs/epics/e10-b/epic.yaml': open('e10'),
+    'specs/epics/e11-c/epic.yaml': open('e11'),
+  });
+  const backlog = plan(dir).changes.find((change) => change.path === commonBacklog(dir));
+  const order = [...String(backlog?.text).matchAll(/^### (e\d+) /gm)].map((match) => match[1]);
+  assert.deepEqual(order, ['e09', 'e11', 'e10']);
+});
+
+test('AC-e12s03b-20 the GSD 2 backlog keeps the milestone order of .gsd/QUEUE-ORDER.json', () => {
+  const dir = makeTestRepo({
+    ...gsd2Files,
+    '.gsd/milestones/M002/M002-ROADMAP.md': '# M002: Later\n\n## Slices\n\n- [ ] **S01: Open**\n',
+    '.gsd/QUEUE-ORDER.json': '{"order":["M002","M001"],"updatedAt":"2026-11-01T00:00:00.000Z"}\n',
+  });
+  const result = planConvert(dir, { system: 'gsd2', tag: 'gsd2-era' });
+  assert.ok(result.ok, result.ok ? '' : result.error);
+  const backlog = result.plan.changes.find((change) => change.path === commonBacklog(dir));
+  const order = [...String(backlog?.text).matchAll(/^### (M\d+):/gm)].map((match) => match[1]);
+  assert.deepEqual(order, ['M002', 'M001']);
+});

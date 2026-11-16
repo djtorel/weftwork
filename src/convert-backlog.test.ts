@@ -103,3 +103,11 @@ test('AC-e12s03-16 a done epic leaves its open stories out with a note, and an o
   assert.match(text, /^- \[ \] \*\*e06 Almost there\.\*\* Every story is done; close the epic or add what is left\. Done when: Shipped$/m);
   assert.match(text, /^ {2}Old spec: `\.specs\/epics\/e06-almost\/epic\.yaml`$/m);
 });
+
+test('AC-e12s03-18 epics keep the order of release-plan.yaml, not of their folder names; an epic it does not list comes after, by folder', () => {
+  const epic = (id: string): BigpowersEpic => ({ dir: `epics/${id}-x`, epic: { id, title: `Epic ${id}`, status: 'todo', stories: [] }, tasks: new Map() });
+  const text = backlogSection([epic('e09'), epic('e10'), epic('e11'), epic('e12')], {}, 'old', [], ['e01', 'e11', 'e09', 'e10']);
+  const order = [...text.matchAll(/\*\*(e\d+) /g)].map((match) => match[1]);
+  assert.deepEqual(order, ['e11', 'e09', 'e10', 'e12']);
+  assert.match(text, /in the order of the old release plan/);
+});

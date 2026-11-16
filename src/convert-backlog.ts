@@ -6,6 +6,7 @@
 // docs/CONVERT.md.
 import { isRecord } from './json.ts';
 import { codeSpan, inlineText } from './markdown-text.ts';
+import { inPlanOrder } from './convert-order.ts';
 
 /** One epic folder under specs/: its path from specs/, its parsed epic.yaml,
  * and its parsed task files by name. The YAML is untrusted, so it is unknown. */
@@ -73,18 +74,22 @@ function epicLines(found: BigpowersEpic, statuses: Record<string, unknown>, note
   return out;
 }
 
-/** The section, from the open epics in `epics` (sorted by folder) and the
- * statuses in execution-status.yaml (`development_status`). What is left out
- * and why goes into `notes`. */
-export function backlogSection(epics: BigpowersEpic[], statuses: Record<string, unknown>, tag: string, notes: string[] = []): string {
+/** The section, from the open epics in `epics` and the statuses in
+ * execution-status.yaml (`development_status`). The epics keep `order`, the
+ * epic ids of release-plan.yaml; one it does not list comes after, by
+ * folder. What is left out and why goes into `notes`. */
+export function backlogSection(epics: BigpowersEpic[], statuses: Record<string, unknown>, tag: string, notes: string[] = [], order: string[] = []): string {
   const intro = [
     sectionTitle,
     '',
-    `The open epics and stories of the old bigpowers plan, by id. The old specs`,
-    `are in the gitignored \`.specs/\` and at the tag ${codeSpan(tag)}.`,
+    order.length > 0
+      ? 'The open epics and stories of the old bigpowers plan, in the order of the old release plan (`release-plan.yaml`).'
+      : 'The open epics and stories of the old bigpowers plan, by folder: there was no release plan to order them.',
+    `The old specs are in the gitignored \`.specs/\` and at the tag ${codeSpan(tag)}.`,
     '',
   ];
-  const body = [...epics].sort((a, b) => a.dir.localeCompare(b.dir)).flatMap((found) => epicLines(found, statuses, notes));
+  const sorted = inPlanOrder(epics, order, (found, id) => isRecord(found.epic) && line(found.epic.id) === id, (a, b) => a.dir.localeCompare(b.dir));
+  const body = sorted.flatMap((found) => epicLines(found, statuses, notes));
   if (body.length === 0) body.push('No open epics or stories.', '');
   return [...intro, ...body].join('\n').replace(/\n+$/, '\n');
 }

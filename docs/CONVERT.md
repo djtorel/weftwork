@@ -60,7 +60,9 @@ The steps below are for bigpowers; "GSD", "GSD 2", "spec-kit", "BMAD" and
    all done, marked `Every story is done; close the epic or add what is
    left.` Status comes from `execution-status.yaml` when it has the id, else
    from `epic.yaml`; anything `done` is left out, and so is `epics/archive/`.
-   A done epic's open stories are left out too, with a note naming them. A backlog that has
+   A done epic's open stories are left out too, with a note naming them. The
+   epics keep the order of `epics:` in `release-plan.yaml`; an epic it does
+   not list comes after, by folder (§ Order). A backlog that has
    the section already is left as it is.
 
 **GSD.** The plans folder is `.planning/` and its local copy
@@ -101,7 +103,9 @@ its id, with the title from `# M001: <title>` in `M001-ROADMAP.md`, its
 unticked slice (`- [ ] **S02: Title**`) has its `After this:` line, each open
 task of `slices/S02/S02-PLAN.md` (an unticked `- [ ] **T01: Title**` with no
 `tasks/T01-SUMMARY.md`), and a link to its folder. Template guidance in HTML
-comments is skipped. The format is gsd-build/gsd-2 v3.0.0's
+comments is skipped. The milestones keep GSD 2's queue order:
+`order` in `.gsd/QUEUE-ORDER.json`, then any it does not list by number
+(`queue-order.ts`, `milestone-ids.ts`). The format is gsd-build/gsd-2 v3.0.0's
 `templates/roadmap.md`, `templates/plan.md` and `paths.ts`.
 
 **spec-kit.** The plans folder is `specs/`, one folder per feature
@@ -169,6 +173,24 @@ as `no story file yet`, since v4 writes story files one at a time. Each open
 epic keeps its number, title and goal, a `PRD:` link, and each open story its
 status and a link to its file in `.bmad-stories/`. An epic whose stories are
 all `Done` is left out. A v4 project with no story folder yet is refused.
+
+## Order
+
+The backlog is worked top to bottom, so each section keeps the order the old
+system would have run its work in, from the file that system itself reads
+for it (`src/convert-order.ts`):
+
+| System | Order of the items | Inside an item |
+| --- | --- | --- |
+| bigpowers | `epics:` in `release-plan.yaml`, then the rest by folder | `stories:` in `epic.yaml` |
+| GSD | the lines of `ROADMAP.md`, then the phase folders it does not list, by name | the plans as listed |
+| GSD 2 | `order` in `.gsd/QUEUE-ORDER.json`, then by milestone number | the slices of the roadmap |
+| spec-kit | the feature folders by name (`001-`, `002-`) | the tasks of `tasks.md` |
+| BMAD, BMAD v4 | the epic number | the stories as the epics file lists them |
+
+An order said only in prose (a comment, or a `depends_on` the plan breaks)
+is not read: the `migrate` skill has the agent check for one and move the
+items to match.
 
 Text taken from the old plans is escaped for Markdown before it goes into
 the backlog (`src/markdown-text.ts`): `\`, a backtick, `*`, `<`, `[`, `~`,

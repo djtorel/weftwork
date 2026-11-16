@@ -68,3 +68,11 @@ test('AC-e12s03b-15 untracked .gsd/: no tag is named; nothing open says so', () 
   assert.match(text, /The old plans stay in `\.gsd\/`, which git does not track\./);
   assert.doesNotMatch(text, /tag/);
 });
+
+test('AC-e12s03b-19 milestones keep the queue order of QUEUE-ORDER.json; one it does not list comes after, by number', () => {
+  const open = (dir: string): Gsd2Milestone => ({ dir, roadmap: `# ${dir.slice(0, 4)}: Work\n\n## Slices\n\n- [ ] **S01: Open**\n`, summary: false, slices: [] });
+  const text = gsd2Section([open('M001'), open('M002-ROUTES'), open('M003'), open('M010')], 'gsd2-era', '.gsd', ['M003', 'M001', 'M002', 'M009']);
+  const order = [...text.matchAll(/^### (M\d+):/gm)].map((match) => match[1]);
+  assert.deepEqual(order, ['M003', 'M001', 'M002', 'M010']);
+  assert.match(text, /in the queue order of GSD 2/);
+});
