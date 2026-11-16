@@ -73,6 +73,7 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Finding outcomes | `echo '{"report":true}' \| node src/review-outcome-cli.ts` |
 | UI screenshots | `echo '{"phase":"after"}' \| node src/ui-cli.ts` |
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
+| Measure (R10 E1) | `echo '{"out":"/tmp/weftwork-measure.jsonl"}' \| node src/measure-cli.ts` |
 | Test | `npm test` |
 | Typecheck | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint .` |
@@ -148,7 +149,11 @@ overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
-`markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
+`markdown-text.ts` (`docs/CONVERT.md`). `measure-fixture.ts`, `measure.ts` and
+`measure-cli.ts` are the measurement harness: a fixture repository with
+planted defects and a held-out oracle, one row per run, and the first
+experiment, the done gate against scripted false successes; agent arms
+refuse to run without a spend cap (`docs/MEASURE.md`). Every CLI is a
 thin shell over a library function, and `weftwork-cli.ts` runs each one as
 `weftwork <command>`, with `--help` and `--version`. The package's bin is
 `bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when
