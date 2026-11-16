@@ -9,8 +9,8 @@ titles on `main`, and nobody edits a version number by hand.
 1. Every pull request is squash-merged, so its title becomes one commit on
    `main`. The `pr-title` check makes the title a Conventional Commit
    (`CONTRIBUTING.md`).
-2. On each push to `main`, the `release` workflow
-   (`.github/workflows/release.yml`) runs
+2. On each push to `main`, and when run by hand on `main`, the `release`
+   workflow (`.github/workflows/release.yml`) runs
    [release-please](https://github.com/googleapis/release-please-action).
    It keeps one open **Release PR** that sets the next version in
    `package.json`, `package-lock.json` and `.release-please-manifest.json`,
@@ -103,7 +103,12 @@ scoped to this repository and expires in an hour.
 
    Then delete the `.pem` file.
 
-The next push to `main` opens the Release PR.
+The next push to `main` opens the Release PR. To open it now, run the
+workflow by hand (Actions → **release** → **Run workflow** on `main`):
+
+```bash
+gh workflow run release.yml --repo djtorel/weftwork --ref main
+```
 
 ### 2. The first npm publish, by hand
 
