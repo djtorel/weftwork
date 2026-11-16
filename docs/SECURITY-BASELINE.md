@@ -56,8 +56,9 @@ them. A permission may get narrower without the owner, and never wider
 - The guard blocks a tool call that would edit the files that hold the
   agent: the settings, the budget files and the engine's folder
   (`docs/GUARD.md`). Its known limits are in that page.
-- The ceilings (budget, review rounds) come from files the guard protects,
-  so the loop cannot raise them (`docs/BUDGET.md`, `docs/REVIEW.md`).
+- The ceilings (budget, review rounds) come from files the guard protects
+  (`docs/BUDGET.md`, `docs/REVIEW.md`). The rule forbids raising them; the
+  guard blocks the calls it recognizes, within its known limits.
 - The done gate runs the command and reads its exit code. A message in the
   output cannot turn a failure into a pass.
 - A review finding is data. The engine counts it, and only a must-fix with
@@ -79,7 +80,7 @@ not tested here.
 | Claude Code | 2.1.319 | Off. When on: writes in the working directory and a temp directory, network through a proxy with an empty allow list, reads of most of the machine | Deny, ask and allow rules, deny first; a `-p` session shows no trust dialog and no `.mcp.json` prompt | `sandbox.failIfUnavailable: true`; `sandbox.allowUnsandboxedCommands: false`; `permissions.blockReadsOutsideWorkingDirectories: true` | [S26][S27][S28] |
 | Codex | codex-cli 0.167.0 | On: network off, writes in the workspace and temp directories; `.git`, `.agents`, `.codex` and `.aws` read-only | `Auto` preset: asks before a write outside the workspace or a command that needs network | Do not use `--sandbox danger-full-access` or `--dangerously-bypass-approvals-and-sandbox` | [S29] |
 | Gemini CLI | docs on `main`, 2026-11-03 (not installed) | Off. Turn on with `-s`, `--sandbox` or `GEMINI_SANDBOX`; the macOS profile `permissive-open` limits writes to the project and allows broad reads and network | When the sandbox is on, a dialog asks to grant more for that run only | Turn the sandbox on | [S31] |
-| opencode | 1.19.5 | Not on by default | `allow` for most permissions; `external_directory` and `doom_loop` ask; `*.env` reads denied | `--auto` approves every request that is not denied, so write explicit `deny` rules | [S30] |
+| opencode | 1.19.5 | Not on by default | `allow` for most permissions; `external_directory` and `doom_loop` ask; `*.env` reads denied | `--auto` approves every request that is not denied, so write explicit `deny` rules; for a boundary, a container or a virtual machine | [S30] |
 | pi | 1.5.0 | None. The working folder does not stop commands that reach other paths | Does not ask before every tool call | Run it inside a container, a virtual machine or a sandbox | [S25] |
 
 Read the table with these limits:
@@ -102,8 +103,10 @@ Read the table with these limits:
 
 A run on a host with no boundary is not "autonomous", unless the whole run
 is inside a container or a virtual machine [S25]. On the table above, that
-means pi always, Gemini CLI with its sandbox off, opencode with no `deny`
-rules, and Claude Code with its sandbox off. On those, run weftwork with
+means pi and opencode always, Gemini CLI with its sandbox off, and Claude
+Code with its sandbox off. opencode's rules allow, ask or deny a tool call;
+R11 found no sandbox in its docs [S30], and a deny rule that matches command
+text is not a boundary [S27]. On those, run weftwork with
 the owner watching, or put the run in a container or a virtual machine.
 
 weftwork does not yet read the host's boundary at run time. The table is
