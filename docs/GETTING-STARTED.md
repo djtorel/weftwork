@@ -117,24 +117,16 @@ git tag -d bigpowers-era
 
 If the tag was pushed, also run `git push origin :refs/tags/bigpowers-era`.
 
-**Before you commit a setup:** undo only what it wrote. Setup reports
-each path it wrote in `written`; the skill shows that list.
+**Before you commit a setup:** undo what it wrote. Setup records each write,
+so one command reverses them (`docs/SETUP.md` § Undo):
 
 ```bash
-cd /path/to/project
-git status --short
+echo '{"path":"/path/to/project","undo":true}' | node src/setup-cli.ts
 ```
 
-For each path in `written`:
-
-- Listed as `??` (new): delete it, for example `rm AGENTS.md`.
-- Listed as ` M` (a tracked file setup changed, such as `.gitignore`):
-  `git restore <path>`, if it had no edits of yours before setup.
-  Otherwise delete only the lines setup added at its end.
-- The backlog: delete it if setup created it, or remove the tasks it added.
-
-Then move each `<path>.weftwork-old` back to `<path>`, for example
-`mv AGENTS.md.weftwork-old AGENTS.md`.
+It removes the files setup created, gives `.gitignore` back its old lines,
+and moves each `<path>.weftwork-old` back. A file you changed since setup is
+kept and listed in `kept`; undo it by hand, or run undo again after.
 
 **Before you commit a conversion:**
 

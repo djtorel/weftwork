@@ -22,6 +22,7 @@ echo '{"path":"/path/to/project"}' | node src/setup-cli.ts
 | `overwrite` | `[]` | Paths of conflicts to overwrite |
 | `stopHook` | `false` | Also register the Claude Code Stop hook and guard |
 | `run`, `timeoutSeconds` | `true`, `120` | As for detect: check each command once |
+| `undo` | `false` | Undo the recorded setup (below); takes only `path` |
 
 **The run executes the project's own scripts**, as detect does. Pass
 `"run": false` for a project you do not trust; then no command is checked,
@@ -90,3 +91,33 @@ appended to (`append`); `link` is the symlink. A file that changed between
 the plan and the write is kept and listed in `kept`, `CLAUDE.md` included:
 a file edited, a symlink pointed elsewhere, or a file created where the plan
 saw none, even when `overwrite` names it.
+
+## Undo
+
+Apply records each write in the engine's folder of the repository,
+`<absolute git dir>/weftwork/setup-record.json` (not tracked), and
+`{"undo":true}` reverses them, newest first, without detecting anything
+(`src/setup-undo.ts`):
+
+```bash
+echo '{"path":"/path/to/project","undo":true}' | node src/setup-cli.ts
+```
+
+- A file or symlink setup created, still as setup wrote it, is removed, and
+  so is each folder it leaves empty.
+- An appended file (`.gitignore`) gets its old text back. If the owner
+  edited it since, and it still ends with what setup added, only those lines
+  are removed.
+- An overwritten file is removed and `<path>.weftwork-old` moves back.
+- Anything changed since setup is kept and listed in `kept`; it stays in the
+  record, so undo can run again after the owner looks.
+- A recorded path that leaves the project folder, goes through a symlinked
+  folder, or (for the backlog) lies outside the engine's folder in the git
+  common dir is not touched, and is kept.
+
+The record names the folder setup wrote into; undo with another `path` is
+refused, and so is a new setup of another folder before the old one is
+undone.
+
+It prints `{"ok":true,"undone":[...],"kept":[...]}`, and exits 1 when there is
+no record. A setup outside a git repository is not recorded; a note says so.

@@ -123,9 +123,9 @@ checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
 `detect-stacks.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
 stack, commands, CI, agent files and planning system, and run each command
 once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
-`setup-diff.ts`, `setup-about.ts` and `setup-cli.ts` set up a new or plain project from that
+`setup-diff.ts`, `setup-about.ts`, `setup-undo.ts` and `setup-cli.ts` set up a new or plain project from that
 report and the owner's answers: a dry-run plan, then a write that never
-overwrites a changed file (`docs/SETUP.md`). `convert.ts`,
+overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`). `convert.ts`,
 `convert-backlog.ts`, `convert-gsd.ts` and `convert-cli.ts` convert a bigpowers or GSD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
