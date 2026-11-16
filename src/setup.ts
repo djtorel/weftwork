@@ -25,7 +25,12 @@ export type ChangeAction = 'create' | 'append' | 'link' | 'unchanged' | 'conflic
 export type Change = { path: string; action: ChangeAction; text?: string; diff?: string; mode?: number; before?: string | null; link?: string };
 export type Plan = { changes: Change[]; notes: string[] };
 export type SetupOptions = { engineDir: string; stopHook: boolean };
-export type Applied = { ok: true; written: string[]; kept: string[] } | Failure;
+export type Applied = { ok: true; written: string[]; kept: string[]; record: Written[] } | Failure;
+
+/** One write, for undo (setup-undo.ts): `made` is how, `before` the text the
+ * file had (null: none; for `overwrite`, now in `<path>.weftwork-old`), and
+ * `after` what was written, or the target when `link`. */
+export type Written = { path: string; made: 'create' | 'append' | 'overwrite'; link: boolean; before: string | null; after: string };
 
 const maxFileBytes = 1024 * 1024;
 const skillFiles = ['full-stop/SKILL.md', 'review-loop/SKILL.md', 'file-pr/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
@@ -243,6 +248,7 @@ export function applySetup(dir: string, plan: Plan, options: { overwrite: string
   if (stray !== undefined) return { ok: false, error: `"overwrite" names ${stray}, which is not a conflict in the plan` };
   const written: string[] = [];
   const kept: string[] = [];
+  const record: Written[] = [];
   for (const change of plan.changes) {
     if (change.action === 'unchanged') continue;
     if (changedSincePlan(dir, change)) {
@@ -260,6 +266,9 @@ export function applySetup(dir: string, plan: Plan, options: { overwrite: string
     const failed = write(dir, change);
     if (failed !== null) return failed;
     written.push(change.path);
+    const link = change.path === 'CLAUDE.md';
+    const made = change.action === 'conflict' ? 'overwrite' : change.action === 'append' && typeof change.before === 'string' ? 'append' : 'create';
+    record.push({ path: change.path, made, link, before: change.before ?? null, after: link ? 'AGENTS.md' : (change.text ?? '') });
   }
-  return { ok: true, written, kept };
+  return { ok: true, written, kept, record };
 }

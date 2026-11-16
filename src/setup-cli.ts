@@ -6,7 +6,9 @@
 // - no "answers": prints the questions, each with a recommended answer;
 // - "answers": prints the plan, a dry run that writes nothing;
 // - "answers" and "apply": true: writes the plan, keeping every conflict not
-//   named in "overwrite".
+//   named in "overwrite", and records each write for undo;
+// - "undo": true alone: reverses the recorded writes (setup-undo.ts), without
+//   detecting anything.
 // Logic lives in setup.ts and setup-text.ts. docs/SETUP.md.
 //
 // Exit 0 with an answer, 1 when the plan or the write is refused, 2 for bad
@@ -18,6 +20,7 @@ import { detectProject } from './detect.ts';
 import { isInteger } from './json.ts';
 import { applySetup, planSetup } from './setup.ts';
 import { projectDescription } from './setup-about.ts';
+import { recordSetup, undoSetup } from './setup-undo.ts';
 import { parseAnswers, setupQuestions } from './setup-text.ts';
 
 const defaultTimeoutSeconds = 120;
@@ -30,8 +33,10 @@ function fail(error: string, code = 2): void {
 
 /** Why the request is bad, or null. */
 function badRequest(input: Record<string, unknown>): string | null {
-  const { path, apply, overwrite, stopHook, run, timeoutSeconds, answers } = input;
+  const { path, apply, overwrite, stopHook, run, timeoutSeconds, answers, undo } = input;
   if (path !== undefined && (typeof path !== 'string' || path === '' || path.includes('\0'))) return '"path" must be a non-empty string';
+  if (undo !== undefined && undo !== true) return '"undo" must be true';
+  if (undo === true && Object.keys(input).some((key) => key !== 'undo' && key !== 'path')) return '"undo" takes only "path"';
   for (const [key, value] of Object.entries({ apply, stopHook, run })) {
     if (value !== undefined && typeof value !== 'boolean') return `"${key}" must be true or false`;
   }
@@ -50,6 +55,11 @@ async function main(): Promise<void> {
   const parsed = input.answers === undefined ? null : parseAnswers(input.answers);
   if (parsed !== null && !parsed.ok) return fail(parsed.error);
   const dir = resolve(typeof input.path === 'string' ? input.path : process.cwd());
+  if (input.undo === true) {
+    const undone = await undoSetup(dir);
+    if (!undone.ok) return fail(undone.error, 1);
+    return printAnswer({ ok: true, undone: undone.undone, kept: undone.kept }, 0);
+  }
   const detected = await detectProject(dir);
   if (!detected.ok) return fail(detected.error);
   const timeout = (typeof input.timeoutSeconds === 'number' ? input.timeoutSeconds : defaultTimeoutSeconds) * 1000;
@@ -67,7 +77,9 @@ async function main(): Promise<void> {
   }
   const applied = applySetup(dir, planned.plan, { overwrite: (input.overwrite as string[] | undefined) ?? [] });
   if (!applied.ok) return fail(applied.error, 1);
-  printAnswer({ ok: true, written: applied.written, kept: applied.kept, notes }, 0);
+  const recorded = await recordSetup(dir, applied.record);
+  const all = recorded === null ? notes : [...notes, `Undo is not available for these writes: ${recorded.error}`];
+  printAnswer({ ok: true, written: applied.written, kept: applied.kept, notes: all }, 0);
 }
 
 await main();

@@ -23,3 +23,5 @@ without the user's say-so: the folder they name is that say-so.
    old file to `<path>.weftwork-old`, it never deletes it.
 4. **Apply** only on a yes: the same request with `"apply":true` and the
    paths to overwrite in `"overwrite"`. Report `written`, `kept` and `notes`.
+   To take it back, run it with only `"path"` and `"undo":true`
+   (`docs/SETUP.md` § Undo).
