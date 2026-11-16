@@ -73,6 +73,7 @@ The `full-stop` skill runs steps 2 to 7 for you.
 | Finding outcomes | `echo '{"report":true}' \| node src/review-outcome-cli.ts` |
 | UI screenshots | `echo '{"phase":"after"}' \| node src/ui-cli.ts` |
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
+| File overlap | `echo '{"tasks":[{"name":"a","files":["src/a.ts"]},{"name":"b","branch":"main"}]}' \| node src/overlap-cli.ts` |
 | Test | `npm test` |
 | Typecheck | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint .` |
@@ -148,7 +149,9 @@ overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
 `convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD project: tag,
 move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
 open work to the backlog, its text escaped for Markdown by
-`markdown-text.ts` (`docs/CONVERT.md`). Every CLI is a
+`markdown-text.ts` (`docs/CONVERT.md`). `overlap.ts` and `overlap-cli.ts`
+check, before parallel work, that no two planned tasks can change the same
+file, from file lists, globs or branches (`docs/PARALLEL.md`). Every CLI is a
 thin shell over a library function, and `weftwork-cli.ts` runs each one as
 `weftwork <command>`, with `--help` and `--version`. The package's bin is
 `bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when
