@@ -18,6 +18,7 @@ in [`docs/research/`](docs/research/), with the synthesis in
 git clone https://github.com/djtorel/weftwork.git
 cd weftwork
 bash tools/setup.sh
+npm link
 ```
 
 Then open Claude Code in this checkout and say "Set up weftwork in

@@ -18,14 +18,22 @@ family).
 git clone https://github.com/djtorel/weftwork.git
 cd weftwork
 bash tools/setup.sh
+npm link
+weftwork path
 ```
 
 `setup.sh` prints `setup: OK` when every tool is there. It installs PyYAML,
 yamllint and the npm packages; it never installs Node.
 
-weftwork is not a package yet. Your project uses this checkout by its
-absolute path, so keep it where it is. If you move it, set up each project
-again (step 2).
+`npm link` puts the `weftwork` command on your PATH, pointing at this
+checkout; `weftwork path` prints the checkout. The skills setup copies into
+your project call `weftwork <command>` (`weftwork detect`, `weftwork engine`,
+`weftwork pr-proof`) and find the docs under `$(weftwork path)`. If npm says
+it cannot write to its global folder, set a prefix you own first
+(`npm config set prefix ~/.local`, with `~/.local/bin` on your PATH). If you
+move the checkout, run `npm link` again there. The Claude Code Stop hook and
+guard still name the checkout by absolute path, so also set each project up
+again (step 2) if you use them. Undo: `npm unlink -g weftwork`.
 
 ## 2a. Set up a new or plain project
 

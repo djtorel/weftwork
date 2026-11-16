@@ -4,6 +4,9 @@
   "description": "Host-agnostic workflow engine for coding agents",
   "private": true,
   "type": "module",
+  "bin": {
+    "weftwork": "src/weftwork-cli.ts"
+  },
   "engines": {
     "node": ">=26"
   },
