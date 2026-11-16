@@ -70,7 +70,7 @@ async function main(): Promise<void> {
   if (roundsDone(rounds) >= maxRounds) return answer(exhaustedReport(rounds, maxRounds), 5);
   const shots = await uiCheck(cwd, weftwork, ui.ui, base, branch.branch, tree.fingerprint);
   if (shots.kind === 'error') return fail(shots.error);
-  if (shots.kind === 'missing') return answer(`weftwork review: not run\nwhy: ${terminalSafe(shots.why)}\nnext: echo '{"phase":"after"}' | node src/ui-cli.ts\n`, 4);
+  if (shots.kind === 'missing') return answer(`weftwork review: not run\nwhy: ${terminalSafe(shots.why)}\nnext: ${shots.next ?? `echo '{"phase":"after"}' | node src/ui-cli.ts`}\n`, 4);
   const ready = shots.kind === 'ready' ? shots : null;
   let design: Design | null = null;
   if (ready !== null && ui.ui?.design !== undefined) {
