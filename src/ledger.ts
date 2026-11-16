@@ -43,6 +43,9 @@ export type LedgerEntry = {
   /** The engine call that wrote the line; absent on a line from before run
    * ids, or from runGate outside the engine. */
   runId?: string;
+  /** Set only on a run by the Stop hook: the key of the directory and the
+   * environment it ran in. The hook reuses only such a pass (reuse.ts). */
+  hookKey?: string;
 };
 
 export type LedgerRead =
@@ -96,8 +99,14 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
 }
 
 /** Append one entry for `verdict`, with the engine call's `runId` when
- * given. Never throws. */
-export async function appendEntry(path: string, verdict: Verdict, at: Date, runId?: string): Promise<AppendResult> {
+ * given, and `hookKey` for a run by the Stop hook. Never throws. */
+export async function appendEntry(
+  path: string,
+  verdict: Verdict,
+  at: Date,
+  runId?: string,
+  hookKey?: string,
+): Promise<AppendResult> {
   const entry: LedgerEntry = {
     at: at.toISOString(),
     done: verdict.done,
@@ -106,6 +115,7 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date, runI
     command: verdict.command,
     fingerprint: verdict.fingerprint,
     ...(runId === undefined ? {} : { runId }),
+    ...(hookKey === undefined ? {} : { hookKey }),
   };
   return writeLine(path, entry);
 }
@@ -156,7 +166,8 @@ function toEntry(data: unknown): LedgerEntry | null {
   if (runId !== undefined && typeof runId !== 'string') {
     return null;
   }
-  return { at, done, exitCode, reason, command, fingerprint, ...(runId === undefined ? {} : { runId }) };
+  const hook = typeof data.hookKey === 'string' ? { hookKey: data.hookKey } : {};
+  return { at, done, exitCode, reason, command, fingerprint, ...(runId === undefined ? {} : { runId }), ...hook };
 }
 
 type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | 'guard' | null;

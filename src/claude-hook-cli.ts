@@ -133,7 +133,7 @@ async function run(args: string[]): Promise<HookOutput> {
   if (!dir.ok) {
     return blockStop(dir.error);
   }
-  const request = hookRequest(args, dir.dir);
+  const request = hookRequest(args, dir.dir, process.env);
   if (!request.ok) {
     return blockStop(request.error);
   }

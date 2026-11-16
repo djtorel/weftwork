@@ -12,7 +12,10 @@ import { fingerprintTree, type FingerprintResult } from './tree.ts';
 /** `blocked`, `stallAfter` and `maxFailures` (e06s04), `maxRuns` (e09s02)
  * and `reserveRuns` (e09s03) are read for the engine; `runGate` ignores them.
  * `reserveRuns` is never parsed from the request: only the budget setting
- * files set it (applyBudget). */
+ * files set it (applyBudget). `stopHook` is never parsed either: only the
+ * Stop hook sets it (hookRequest), to the key of its directory and
+ * environment. The run's ledger line keeps the key, and the engine may reuse
+ * such a pass (reuse.ts). */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -22,6 +25,7 @@ export type GateRequest = {
   maxFailures?: number;
   maxRuns?: number;
   reserveRuns?: number;
+  stopHook?: string;
 };
 
 export type Reason =
@@ -212,8 +216,8 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(path: string | null, verdict: Verdict, runId?: string): Promise<LoggedVerdict> {
-  const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId);
+async function record(path: string | null, verdict: Verdict, runId?: string, hookKey?: string): Promise<LoggedVerdict> {
+  const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId, hookKey);
   if (result?.ok) {
     return { verdict, writeProblem: null };
   }
@@ -234,7 +238,7 @@ export async function runLoggedGate(
   runId: string,
   signal?: AbortSignal,
 ): Promise<LoggedVerdict> {
-  return record(path, await decide(request, signal), runId);
+  return record(path, await decide(request, signal), runId, request.stopHook);
 }
 
 /**
