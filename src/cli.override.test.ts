@@ -16,7 +16,7 @@ after(cleanupTempDirs);
 const cliPath = join(import.meta.dirname, 'cli.ts');
 const input = '{"command":"exit 9","stallAfter":9,"maxFailures":20}';
 // A request can only lower a limit (e09s01), so the repository raises them.
-const raised = { 'tracked.txt': 'one\n', 'weftwork.yaml': 'budget:\n  stallAfter: 9\n  maxFailures: 20\n' };
+const raised = { 'tracked.txt': 'one\n', 'weftwork.yaml': 'budget:\n  stall_after: 9\n  max_failures: 20\n' };
 
 function runCli(cwd: string, text: string = input) {
   const result = spawnSync(process.execPath, [cliPath], { input: text, cwd, encoding: 'utf8', env: isolatedEnv() });

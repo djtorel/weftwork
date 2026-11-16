@@ -103,6 +103,9 @@ Only rules that the toolchain enforces or that a reviewer can check.
 - Write YAML with a `---` start and lines of 80 columns or fewer.
 - `CLAUDE.md` is a symlink to `AGENTS.md`. NEVER edit it separately.
 - Every command written into `AGENTS.md` MUST resolve in this repository today.
+- A rename of a skill, a command or a setting key adds the old name to
+  `src/retired-names.test.ts`, so work on an older branch cannot bring it
+  back.
 
 ## Provisional Rules
 

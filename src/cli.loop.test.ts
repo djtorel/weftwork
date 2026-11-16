@@ -22,7 +22,7 @@ function runCli(cwd: string, request: Record<string, unknown>) {
   return { status: result.status, line: JSON.parse(lines[0] as string) as Record<string, unknown> };
 }
 
-const maxRuns = (value: number | string) => ({ 'weftwork.yaml': `budget:\n  maxRuns: ${value}\n` });
+const maxRuns = (value: number | string) => ({ 'weftwork.yaml': `budget:\n  max_runs: ${value}\n` });
 
 test('AC-e09s02-04 a new command each call still meets exhausted at maxRuns 3', async () => {
   const repo = makeTestRepo(maxRuns(3));
@@ -48,7 +48,7 @@ for (const value of [0, 1001]) {
   test(`AC-e09s02-06 weftwork.yaml with maxRuns ${value} exits 2 naming the file and the key`, () => {
     const result = runCli(makeTestRepo(maxRuns(value)), { command: 'exit 1' });
     assert.equal(result.status, 2);
-    assert.match(String(result.line['error']), /weftwork\.yaml: budget\.maxRuns/);
+    assert.match(String(result.line['error']), /weftwork\.yaml: budget\.max_runs/);
   });
 }
 
@@ -108,7 +108,7 @@ test('AC-e09s03-07 a request reserveRuns is not read: 0 does not turn the warnin
 });
 
 test('AC-e09s03-08 reserveRuns 0 in weftwork.yaml turns the warning off', () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxRuns: 4\n  reserveRuns: 0\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_runs: 4\n  reserve_runs: 0\n' });
   runCli(repo, { command: 'exit 1' });
   runCli(repo, { command: 'exit 2' });
   assert.equal('detail' in runCli(repo, { command: 'exit 3' }).line, false);

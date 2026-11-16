@@ -46,15 +46,15 @@ test('with no files both limits are set to the built-in defaults, and the rest i
 });
 
 test('weftwork.yaml at the repository root is read from a subdirectory', async () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 2\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 2\n' });
   mkdirSync(join(repo, 'sub'));
   const got = await limitsOf(request(join(repo, 'sub')), noUser());
   assert.equal(got.maxFailures, 2);
 });
 
 test('the user file under XDG_CONFIG_HOME is read, and the repository file overrides it', async () => {
-  const home = configHome('budget:\n  maxFailures: 2\n  stallAfter: 4\n');
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 7\n' });
+  const home = configHome('budget:\n  max_failures: 2\n  stall_after: 4\n');
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 7\n' });
   const got = await limitsOf(request(repo), { XDG_CONFIG_HOME: home });
   assert.equal(got.maxFailures, 7);
   assert.equal(got.stallAfter, 4);
@@ -63,7 +63,7 @@ test('the user file under XDG_CONFIG_HOME is read, and the repository file overr
 test('without XDG_CONFIG_HOME the user file is under HOME/.config', async () => {
   const home = makeTempDir();
   mkdirSync(join(home, '.config', 'weftwork'), { recursive: true });
-  writeFileSync(join(home, '.config', 'weftwork', 'config.yaml'), 'budget:\n  stallAfter: 6\n');
+  writeFileSync(join(home, '.config', 'weftwork', 'config.yaml'), 'budget:\n  stall_after: 6\n');
   const repo = makeTestRepo();
   assert.equal((await limitsOf(request(repo), { HOME: home })).stallAfter, 6);
   assert.equal((await limitsOf(request(repo), { HOME: home, XDG_CONFIG_HOME: '' })).stallAfter, 6);
@@ -71,19 +71,19 @@ test('without XDG_CONFIG_HOME the user file is under HOME/.config', async () => 
 });
 
 test('with neither HOME nor XDG_CONFIG_HOME only the repository file applies', async () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  stallAfter: 2\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  stall_after: 2\n' });
   assert.equal((await limitsOf(request(repo), {})).stallAfter, 2);
 });
 
 test('outside a repository only the user file applies', async () => {
-  const home = configHome('budget:\n  maxFailures: 3\n');
+  const home = configHome('budget:\n  max_failures: 3\n');
   const dir = makeTempDir();
-  writeFileSync(join(dir, 'weftwork.yaml'), 'budget:\n  maxFailures: 1\n');
+  writeFileSync(join(dir, 'weftwork.yaml'), 'budget:\n  max_failures: 1\n');
   assert.equal((await limitsOf(request(dir), { XDG_CONFIG_HOME: home })).maxFailures, 3);
 });
 
 test('a lower request value is kept, a higher one is lowered', async () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 4\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 4\n' });
   assert.equal((await limitsOf(request(repo, { maxFailures: 2 }), noUser())).maxFailures, 2);
   assert.equal((await limitsOf(request(repo, { maxFailures: 9 }), noUser())).maxFailures, 4);
 });
@@ -91,7 +91,7 @@ test('a lower request value is kept, a higher one is lowered', async () => {
 test('a symlinked weftwork.yaml is refused', async () => {
   const repo = makeTestRepo();
   const target = join(makeTempDir(), 'good.yaml');
-  writeFileSync(target, 'budget:\n  maxFailures: 2\n');
+  writeFileSync(target, 'budget:\n  max_failures: 2\n');
   symlinkSync(target, join(repo, 'weftwork.yaml'));
   assert.match(await errorOf(request(repo), noUser()), /weftwork\.yaml/);
 });
@@ -100,7 +100,7 @@ test('a symlinked user file is followed', async () => {
   const home = makeTempDir();
   mkdirSync(join(home, 'weftwork'));
   const target = join(makeTempDir(), 'dotfile.yaml');
-  writeFileSync(target, 'budget:\n  maxFailures: 2\n');
+  writeFileSync(target, 'budget:\n  max_failures: 2\n');
   symlinkSync(target, join(home, 'weftwork', 'config.yaml'));
   const repo = makeTestRepo();
   assert.equal((await limitsOf(request(repo), { XDG_CONFIG_HOME: home })).maxFailures, 2);
@@ -120,20 +120,20 @@ test('a weftwork.yaml over 64 KiB is refused, naming the cap', async () => {
 });
 
 test('a weftwork.yaml of exactly 64 KiB is read', async () => {
-  const body = 'budget:\n  maxFailures: 2\n# ';
+  const body = 'budget:\n  max_failures: 2\n# ';
   const repo = makeTestRepo({ 'weftwork.yaml': `${body}${'x'.repeat(64 * 1024 - body.length - 1)}\n` });
   assert.equal((await limitsOf(request(repo), noUser())).maxFailures, 2);
 });
 
 test('a bad value in weftwork.yaml is refused with the full path and key', async () => {
-  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  maxFailures: 0\n' });
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 0\n' });
   const error = await errorOf(request(repo), noUser());
   assert.ok(error.includes(join(repo, 'weftwork.yaml')), error);
-  assert.ok(error.includes('budget.maxFailures'), error);
+  assert.ok(error.includes('budget.max_failures'), error);
 });
 
 test('AC-e09s03-07 a reserveRuns on the request is replaced by the files, or dropped', async () => {
-  const set = makeTestRepo({ 'weftwork.yaml': 'budget:\n  reserveRuns: 2\n' });
+  const set = makeTestRepo({ 'weftwork.yaml': 'budget:\n  reserve_runs: 2\n' });
   assert.equal((await limitsOf(request(set, { reserveRuns: 0 }), noUser())).reserveRuns, 2);
   const unset = makeTestRepo();
   assert.equal('reserveRuns' in (await limitsOf(request(unset, { reserveRuns: 0 }), noUser())), false);

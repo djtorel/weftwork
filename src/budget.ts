@@ -10,7 +10,7 @@ import { isAbsolute, join } from 'node:path';
 import { parseDocument, type YAMLError } from 'yaml';
 import { defaultMaxFailures, defaultStallAfter } from './breaker.ts';
 import type { Failure } from './errors.ts';
-import { isLimit, limitKeys, limitRule, maxThreshold, type GateRequest, type ParseResult } from './gate.ts';
+import { isLimit, limitKeys, limitRule, maxThreshold, type GateRequest, type LimitKey, type ParseResult } from './gate.ts';
 import { isInteger, isRecord } from './json.ts';
 import { readRegularFile } from './regular-file.ts';
 import { repositoryRoot } from './tree.ts';
@@ -20,12 +20,20 @@ import { repositoryRoot } from './tree.ts';
  * file sets it; the engine then uses its default (e09s03). */
 export type Limits = { stallAfter: number; maxFailures: number; maxRuns?: number; reserveRuns?: number };
 
+/** Each limit key of the `budget` mapping and the field it sets. The file
+ * keys are snake_case, as in every other setting; the engine's JSON request
+ * and answer keep the field names. */
+const fileKeys: Record<string, LimitKey> = { stall_after: 'stallAfter', max_failures: 'maxFailures', max_runs: 'maxRuns' };
+
 /** The handover reserve (e09s03) is a file-only key: the request cannot set
  * it, so the agent cannot turn the warning off. 0 turns it off. */
-const reserveKey = 'reserveRuns';
+const reserveKey = 'reserve_runs';
 
 /** Every key the `budget` mapping of a setting file may hold. */
-const budgetKeys: readonly string[] = [...limitKeys, reserveKey];
+const budgetKeys: readonly string[] = [...Object.keys(fileKeys), reserveKey];
+
+/** The keys before 0.2.0, refused with the name that replaced each. */
+const renamedKeys: Record<string, string> = { stallAfter: 'stall_after', maxFailures: 'max_failures', maxRuns: 'max_runs', reserveRuns: 'reserve_runs' };
 
 /** One setting file's path, for the error text, and its contents. */
 export type SettingFile = { path: string; text: string };
@@ -122,16 +130,18 @@ function budgetMapping(data: unknown): { ok: true; budget: Record<string, unknow
 
 /** The limits in `budget`, or the first unknown key or bad value. */
 function checkLimits(budget: Record<string, unknown>): BudgetCheck {
+  const old = Object.keys(budget).find((key) => Object.hasOwn(renamedKeys, key));
+  if (old !== undefined) return { ok: false, error: `budget.${old} was renamed to budget.${renamedKeys[old]}; rename the key` };
   const unknown = Object.keys(budget).find((key) => !budgetKeys.includes(key));
   if (unknown !== undefined) {
     return { ok: false, error: `budget.${clip(unknown)} is not a known key (known: ${budgetKeys.join(', ')})` };
   }
   const limits: Partial<Limits> = {};
-  for (const key of limitKeys) {
+  for (const [key, field] of Object.entries(fileKeys)) {
     const value = budget[key];
     if (value === undefined) continue;
-    if (!isLimit(key, value)) return { ok: false, error: `budget.${key} ${limitRule(key)}` };
-    limits[key] = value;
+    if (!isLimit(field, value)) return { ok: false, error: `budget.${key} ${limitRule(field)}` };
+    limits[field] = value;
   }
   const reserve = budget[reserveKey];
   if (reserve !== undefined) {
