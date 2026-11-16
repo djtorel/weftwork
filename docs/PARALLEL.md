@@ -56,7 +56,8 @@ overlaps, in the order the tasks were given.
 | A path and a folder | The path is the folder, inside it, or holds it. |
 | Two globs or folders | Their fixed folders nest, and the fixed end of one last segment ends with the other's. `src/*.ts` and `src/x/**` overlap; `src/*.ts` and `docs/*.md` do not; `src/*.ts` and `src/*.md` do not. |
 
-The fixed folder of a glob is the part before its first glob segment
+Globs are those that Node's `path.matchesGlob` takes, extended globs such
+as `src/+(a|b).ts` included. The fixed folder of a glob is the part before its first glob segment
 (`src` for `src/**/*.ts`). The check is conservative: a pair it reports
 may not conflict, and apart from the two limits below it does not miss two
 entries that can name the same file. A false report costs only running two

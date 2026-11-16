@@ -86,3 +86,23 @@ test('B8-07 the request must hold two or more named tasks, each with files or a 
     base: 'HEAD',
   });
 });
+
+test('B8-10 a hidden folder named in full still holds its hidden files (review r1m1)', () => {
+  assert.deepEqual(pairsOf([
+    { name: 'a', files: ['.github/'] },
+    { name: 'b', files: ['.github/.config'] },
+    { name: 'c', files: ['.github/*'] },
+    { name: 'd', files: ['.vscode/settings.json'] },
+  ]), [
+    { tasks: ['a', 'b'], files: [['.github/', '.github/.config']] },
+    { tasks: ['a', 'c'], files: [['.github/', '.github/*']] },
+    { tasks: ['b', 'c'], files: [['.github/.config', '.github/*']] },
+  ]);
+});
+
+test('B8-11 an extended glob is a glob, not a path (review r1s1)', () => {
+  assert.deepEqual(pairsOf([
+    { name: 'a', files: ['src/+(a|b).ts'] },
+    { name: 'b', files: ['src/a.ts'] },
+  ]), [{ tasks: ['a', 'b'], files: [['src/+(a|b).ts', 'src/a.ts']] }]);
+});

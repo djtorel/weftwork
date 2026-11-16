@@ -28,7 +28,8 @@ type Entry =
   | { kind: 'file'; text: string; path: string }
   | { kind: 'glob'; text: string; pattern: string; prefix: string; suffix: string };
 
-const globChar = /[*?[\]{}]/;
+// Extended globs (`+(a|b)`) count too: posix.matchesGlob takes them (review r1s1).
+const globChar = /[*?[\]{}()]/;
 
 /** `path` as one form: no `./`, no doubled `/`; a trailing `/` (a folder)
  * kept. Null when it leaves the project (absolute, `..`) or names its root. */
@@ -48,7 +49,7 @@ function toEntry(text: string, literal: boolean): Entry {
   const segments = pattern.split('/');
   const first = segments.findIndex((segment) => globChar.test(segment));
   const last = segments.at(-1) ?? '';
-  const end = Math.max(...[...'*?]}'].map((char) => last.lastIndexOf(char)));
+  const end = Math.max(...[...'*?]})'].map((char) => last.lastIndexOf(char)));
   return { kind: 'glob', text, pattern, prefix: segments.slice(0, first).join('/'), suffix: last.slice(end + 1) };
 }
 
@@ -57,10 +58,15 @@ function within(inner: string, outer: string): boolean {
   return outer === '' || inner === outer || inner.startsWith(`${outer}/`);
 }
 
+/** A name's leading dot as `_`, so a wildcard matches it. */
+const undotted = (text: string) => text.replace(/(^|\/)\./g, '$1_');
+
 /** posix.matchesGlob, where `*` and `**` also match a name that starts with
- * a dot: a task that changes `**\/*.yml` can change `.github/ci.yml`. */
+ * a dot: a task that changes `**\/*.yml` can change `.github/ci.yml`. A dot
+ * the pattern names is changed with the path's, so `.github/**` still
+ * matches `.github/.config` (review r1m1). */
 function globMatches(path: string, pattern: string): boolean {
-  return posix.matchesGlob(path, pattern) || posix.matchesGlob(path.replace(/(^|\/)\./g, '$1_'), pattern);
+  return posix.matchesGlob(path, pattern) || posix.matchesGlob(undotted(path), undotted(pattern));
 }
 
 /** Two globs can name one file only when their fixed folders nest and the
