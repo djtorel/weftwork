@@ -179,6 +179,19 @@ test('at the round ceiling: exit 5, the last round\'s findings again, and no rev
   assert.equal(readFileSync(log, 'utf8'), 'run\n');
 });
 
+test('a detached HEAD: exit 2 every time, the reason on stderr, and no reviewer runs, since rounds are counted per branch', () => {
+  const log = join(makeTempDir(), 'runs');
+  const repo = readyRepo(`${council(`echo run >> ${log}; echo 'VERDICT: APPROVE'`)}  max_rounds: 1\n`);
+  git(repo, 'checkout', '--detach');
+  for (let run = 0; run < 2; run++) {
+    const out = review(repo);
+    assert.equal(out.status, 2, out.stdout);
+    assert.equal(out.stdout, '');
+    assert.match(out.stderr, /^review: HEAD is detached; review rounds are counted per branch, so check out a branch first$/m);
+  }
+  assert.equal(existsSync(log), false);
+});
+
 test('a sensitive change gets max_rounds_sensitive', () => {
   const repo = readyRepo(`${council("echo 'VERDICT: APPROVE'")}  max_rounds: 1\n  max_rounds_sensitive: 2\n`);
   assert.equal(review(repo, { sensitive: true }).status, 0);
