@@ -15,12 +15,23 @@
 // e11s04 adds the mechanical ask triggers (docs/ASK.md) when the hook knows
 // the worktree: a file tool that writes outside it, and a Bash command that
 // pushes to main (guard-push.ts). The Bash write check stays by path text.
+//
+// e10s01 adds the protected-paths list beyond the engine's own files: git
+// internals, the hosts' hook and settings files, and credential files, plus
+// the owner's `guard.protected` (guard-setting.ts). A file tool is matched by
+// the path from the project root, or the whole path outside it; Bash by each
+// path-like word of the command, the same known-partial text match.
 import { lstatSync, realpathSync } from 'node:fs';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, matchesGlob, resolve, sep } from 'node:path';
 import { userSettingPath } from './budget.ts';
 import { userSettingsPath } from './claude-settings-file.ts';
 import { pushToMain, type PushContext } from './guard-push.ts';
 import { isRecord } from './json.ts';
+
+/** One entry of the protected-paths list: a pattern (see matchesNames) and
+ * the patterns it leaves writable. An exception holds for its own entry only,
+ * so it never takes a path off another entry or off the owner's list. */
+export type ProtectedPattern = { pattern: string; except: readonly string[] };
 
 /** What the guard protects, for one project. */
 export type GuardPaths = {
@@ -34,6 +45,10 @@ export type GuardPaths = {
   needles: string[];
   /** Text removed from a Bash command before the needles are matched. */
   allowedText: string[];
+  /** The project root, which the patterns are matched from. */
+  root: string;
+  /** The protected-paths list: the built-in entries, then the owner's. */
+  patterns: ProtectedPattern[];
 };
 
 /** The branches of a repository: the protected ones (main, master and each
@@ -78,9 +93,66 @@ const fixedNeedles = [
   'claude-install-cli',
 ];
 
+const none: readonly string[] = [];
+
+/** e10s01: the built-in protected-paths list, the same in every host, since
+ * the hosts' own lists differ (R11, docs/GUARD.md). A name matches at any
+ * depth; a trailing `/` protects the whole folder; `*` and `?` match inside
+ * one name. Skill and agent folders are not on it: normal work edits them, so
+ * the owner adds them to `guard.protected` to protect them. Example env files
+ * hold no secret, and the clone's backlog is the owner's plan. */
+export const builtInProtected: readonly ProtectedPattern[] = [
+  // Git internals: hooks and config run code (R11 S26, S29).
+  { pattern: '.git/', except: [`.git/weftwork/${backlogFile}`] },
+  // The hosts' hook and settings files (R11 S26, S29; R5; R13).
+  { pattern: '.claude/hooks/', except: none },
+  { pattern: '.mcp.json', except: none },
+  { pattern: '.codex/', except: ['.codex/skills/', '.codex/agents/'] },
+  { pattern: '.gemini/settings.json', except: none },
+  { pattern: 'opencode.json', except: none },
+  { pattern: 'opencode.jsonc', except: none },
+  { pattern: '.opencode/plugins/', except: none },
+  { pattern: '.pi/extensions/', except: none },
+  { pattern: '.kiro/hooks/', except: none },
+  // Shell startup files run at every shell start (R11 S26).
+  ...['.bashrc', '.bash_profile', '.zshrc', '.profile'].map((pattern) => ({ pattern, except: none })),
+  // Credential files (R11 S29, S30).
+  { pattern: '.env', except: none },
+  { pattern: '.env.*', except: ['.env.example', '.env.sample', '.env.template'] },
+  ...['*.pem', '*.key', '*.p12', 'id_rsa*', 'id_dsa*', 'id_ecdsa*', 'id_ed25519*'].map((pattern) => ({ pattern, except: none })),
+  ...['.npmrc', '.netrc', '.pypirc', '.aws/', '.ssh/'].map((pattern) => ({ pattern, except: none })),
+];
+
+/** True when `pattern` matches `names`, a path split into names: its names
+ * match some run of names, which for a file pattern ends the path. */
+function matchesNames(names: string[], pattern: string): boolean {
+  const parts = pattern.split('/').filter((part) => part !== '');
+  const folder = pattern.endsWith('/');
+  for (let at = 0; at + parts.length <= names.length; at += 1) {
+    if (!parts.every((part, index) => matchesGlob(names[at + index] ?? '', part))) continue;
+    if (folder || at + parts.length === names.length) return true;
+  }
+  return false;
+}
+
+/** True when the names hit an entry of the list and none of its exceptions. */
+function hitsPattern(names: string[], paths: GuardPaths): boolean {
+  return paths.patterns.some(
+    ({ pattern, except }) => matchesNames(names, pattern) && !except.some((allowed) => matchesNames(names, allowed)),
+  );
+}
+
+/** The names of `path` from `root` when it is inside it, else all of them, so
+ * a project kept under a folder such as `.codex/` is not protected whole. */
+function namesFrom(path: string, root: string | null): string[] {
+  const rest = root !== null && isInside(path, root) ? path.slice(root.length) : path;
+  return rest.split(/[\\/]/).filter((name) => name !== '' && name !== '.' && name !== '~');
+}
+
 /** The protected paths for `project`. `engineDir` is `<git dir>/weftwork`, or
- * null outside a git repository. */
-export function guardPaths(project: string, engineDir: string | null, env: NodeJS.ProcessEnv): GuardPaths {
+ * null outside a git repository. `extra` is the owner's `guard.protected`,
+ * whose entries have no exceptions. */
+export function guardPaths(project: string, engineDir: string | null, env: NodeJS.ProcessEnv, extra: readonly string[] = []): GuardPaths {
   const files = [
     join(project, 'weftwork.yaml'),
     join(project, '.claude', 'settings.json'),
@@ -96,6 +168,8 @@ export function guardPaths(project: string, engineDir: string | null, env: NodeJ
     allowed,
     needles: [...fixedNeedles, ...files, ...dirs],
     allowedText: [...allowed, `weftwork/${backlogFile}`],
+    root: project,
+    patterns: [...builtInProtected, ...extra.map((pattern) => ({ pattern, except: none }))],
   };
 }
 
@@ -115,17 +189,20 @@ function isInside(path: string, dir: string): boolean {
 }
 
 /** True when the resolved `path` is a protected file or inside a protected
- * folder, and not an allowed file. */
+ * folder, and not an allowed file, or on the protected-paths list. */
 function isProtected(path: string, paths: GuardPaths): boolean {
   if (paths.allowed.some((file) => canonical(file) === path)) return false;
-  return paths.files.some((file) => canonical(file) === path) || paths.dirs.some((dir) => isInside(path, canonical(dir)));
+  if (paths.files.some((file) => canonical(file) === path) || paths.dirs.some((dir) => isInside(path, canonical(dir)))) return true;
+  return hitsPattern(namesFrom(path, canonical(paths.root)), paths);
 }
 
 function blocked(tool: string, target: string, why: string): GuardAnswer {
   return { block: true, tool, target, reason: `${tool} blocked: ${why}` };
 }
 
-const ownerOnly = 'it sets your own limits or the hooks that hold you, and only the owner changes it.';
+const ownerOnly =
+  'it sets your own limits or the hooks that hold you, or it is on the protected-paths list ' +
+  '(git internals, host hooks and settings, credential files, guard.protected), and only the owner changes it.';
 
 const byText =
   'The guard matches a command by its text, so a command that only reads or mentions the path is blocked too. ' +
@@ -192,10 +269,18 @@ function checkBash(command: unknown, cwd: unknown, guard: GuardPaths, worktree: 
   const step = "a push to main, master or the remote's default branch is the owner's step";
   if (push !== null) return blocked('Bash', 'git push', `${push}, and ${step}. ${askOwner}`);
   const text = guard.allowedText.reduce((rest, allowed) => rest.replace(wholeToken(allowed), ''), command);
-  const needle = guard.needles.find((name) => text.includes(name));
+  const needle = guard.needles.find((name) => text.includes(name)) ?? protectedWord(command, guard);
   return needle === undefined
     ? { block: false }
     : blocked('Bash', needle, `the command names ${needle}, which is protected: ${ownerOnly} ${byText}`);
+}
+
+/** The first path-like word of `command` on the protected-paths list. A word
+ * that starts with the project root is read from the root. */
+function protectedWord(command: string, guard: GuardPaths): string | undefined {
+  const roots = [guard.root, canonical(guard.root)];
+  const words = command.split(/[\s'"`;|&()<>=$]+/).filter((word) => word !== '' && !guard.allowed.includes(word));
+  return words.find((word) => hitsPattern(namesFrom(word, roots.find((root) => isInside(word, root)) ?? null), guard));
 }
 
 /** Block or allow one PreToolUse input. A tool the guard does not watch is

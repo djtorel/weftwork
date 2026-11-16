@@ -117,7 +117,9 @@ from PATH and blocks when it is missing, and keeps an entry that names
 `"$CLAUDE_PROJECT_DIR/src/..."`, as this repository's does. `reuse.ts` lets the Stop hook reuse its own pass on an unchanged tree
 without a new run (`docs/BUDGET.md`). The guard (`guard.ts`, its PreToolUse hook
 `guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
-would change the agent's own limits or hooks (`docs/GUARD.md`), and the
+would change the agent's own limits or hooks, or a path on its protected-paths
+list (git internals, host hooks and settings, credential files, and the
+owner's `guard.protected`, read by `guard-setting.ts`; `docs/GUARD.md`), and the
 mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
 and a push to main (`guard-push.ts`). The live check (`claude-live.ts`,
 `claude-live-guard.ts` and the CLI `claude-live-cli.ts`) says whether Claude
