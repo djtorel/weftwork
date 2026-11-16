@@ -7,7 +7,7 @@
 // exist, since a finding the reviewer cannot point at does not block.
 import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFile, realpath, rm, stat } from 'node:fs/promises';
+import { lstat, readFile, realpath, rm, stat } from 'node:fs/promises';
 import { isAbsolute, join, matchesGlob, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { messageOf, type Failure } from './errors.ts';
@@ -135,6 +135,20 @@ export async function groundResults(root: string, results: ReviewerResult[]): Pr
       return { ...result, mustFix, shouldFix };
     }),
   );
+}
+
+/** The files of rules a reviewer reads (R19: Anthropic's reviewer flags a
+ * break of CLAUDE.md and a line it makes out of date, and reads REVIEW.md). */
+const ruleNames = ['AGENTS.md', 'CLAUDE.md', 'CONVENTIONS.md', 'REVIEW.md'] as const;
+
+/** The rule files that are regular files at the repository root. A
+ * symlink is left out: CLAUDE.md is often one to AGENTS.md, the same rules. */
+export async function ruleFiles(root: string): Promise<string[]> {
+  const found: string[] = [];
+  for (const name of ruleNames) {
+    if ((await lstat(join(root, name)).catch(() => null))?.isFile() === true) found.push(name);
+  }
+  return found;
 }
 
 /** What one round is of: the repository root, the tree it reviews, the
