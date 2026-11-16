@@ -105,7 +105,7 @@ so none clashes with another skill pack that you have installed.
 | Skill | Say | What it does |
 | --- | --- | --- |
 | `weft-ready` | "… Weft ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
-| `weft-review` | "Weft review." | Only the review: reviewers from another model family, read-only, at most 3 rounds. |
+| `weft-review` | "Weft review." | Only the review: read-only reviewers, by default from another model family, 3 rounds (5 for a sensitive change). |
 | `weft-pr` | "Weft PR." | Only the pull request, with its Proof and Decisions sections. |
 
 Two more skills, `weft-setup` and `weft-convert`, are not copied into
