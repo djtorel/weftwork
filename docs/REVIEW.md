@@ -38,7 +38,7 @@ review:
 
 | Key | What it is | Range | Built-in |
 | --- | --- | --- | --- |
-| `council` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode. A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
+| `council` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode (`docs/UI.md` gives `claude -p` and `gemini -p` entries that also get the screenshots). A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
 | `max_rounds` | Rounds on one branch | 1 to 10 | 3 |
 | `max_rounds_sensitive` | Rounds on one branch for a `sensitive` change | 1 to 10 | 5 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | 1200 |
@@ -136,9 +136,9 @@ or `sensitive` set says why in a `sensitive:` line.
 | 0 | `weftwork review: pass` | No must-fix from any reviewer that answered | File the PR; list the should-fix findings in it |
 | 1 | `weftwork review: block` | A must-fix | Fix it, pass the done gate again, review again |
 | 3 | `weftwork review: no verdict` | Every reviewer failed, or the tree changed during the review | Fix the cause, or review with a fresh-context subagent and say so in the PR |
-| 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree, or the change touches `ui.paths` and there are no after screenshots of this tree (`docs/UI.md`) | Run the engine first, or take the after screenshots |
+| 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree, or the change touches `ui.paths` and there are no after screenshots of this tree, or a screenshot no longer matches its hash (`docs/UI.md`) | Run the engine first, or take the screenshots again |
 | 5 | `weftwork review: exhausted` | The rounds on this branch reached the ceiling | Open the PR with the unresolved findings listed |
-| 2 | none | Bad input, no git working tree, a bad setting file, a ledger it cannot read or write, a snapshot git cannot make, or no base when `base` or `sensitive_paths` needs one; the reason is on stderr | Fix the cause |
+| 2 | none | Bad input, no git working tree, a detached HEAD, a bad setting file, a ledger it cannot read or write, a snapshot git cannot make, or no base when `base` or `sensitive_paths` needs one; the reason is on stderr | Fix the cause |
 
 Only a must-fix blocks. A reviewer of a UI change may add a
 `UI-SCORE: <0 to 10>` line; the report shows it, and it never gates
@@ -155,8 +155,9 @@ The rounds are counted per branch from the last 1 MiB of the ledger: the
 highest round number logged there, so earlier rounds cut from the tail still
 count. At the
 ceiling no reviewer runs, and the answer shows the last round's findings
-again, as the unresolved ones. On a detached HEAD there is no branch, so the
-rounds are not counted. The stop rules and the counts of runs do not read
+again, as the unresolved ones. On a detached HEAD there is no branch to
+count the rounds on, so no round runs: exit 2 with the reason on stderr.
+Check out a branch first. The stop rules and the counts of runs do not read
 review lines.
 
 ## Finding outcomes
