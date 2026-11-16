@@ -44,6 +44,13 @@ when the plan or a write is refused (a folder on the way is a symlink, an
    | `rules` | Lines: code rules beyond the linters | CONVENTIONS.md; none means no file |
    | `tasks` | Lines: first tasks | The local backlog |
 
+   The recommended `about` is the folder name and the languages, then what
+   the project says it is: the `description` in `package.json`, in the
+   package table of `pyproject.toml` (`[project]`, `[tool.poetry]`) or
+   `Cargo.toml` (`[package]`), else the first paragraph of prose in
+   `README.md` (not a heading, badge, HTML, list or code), cut to 300
+   characters (`src/setup-about.ts`).
+
 2. **`answers`**: `{"ok":true,"plan":{"changes":[...],"notes":[...]}}`, a
    dry run. Each change has a `path`, an `action` and a `diff` (lines marked
    ` `, `-` and `+`).
@@ -80,4 +87,6 @@ a conflict, shown as a diff and kept. It is written only when `overwrite`
 names it, and then the old file is first moved to `<path>.weftwork-old`
 (setup refuses if that exists). Nothing is deleted. `.gitignore` is only
 appended to (`append`); `link` is the symlink. A file that changed between
-the plan and the write is kept and listed in `kept`.
+the plan and the write is kept and listed in `kept`, `CLAUDE.md` included:
+a file edited, a symlink pointed elsewhere, or a file created where the plan
+saw none, even when `overwrite` names it.

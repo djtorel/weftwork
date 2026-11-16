@@ -4,7 +4,7 @@
 // backlog, and a re-run never overwrites a file the owner changed.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readlinkSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs';
+import { existsSync, readFileSync, readlinkSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { applySetup, planSetup, type Plan } from './setup.ts';
 import type { Answers, CheckedReport } from './setup-text.ts';
@@ -170,4 +170,41 @@ test('AC-e12s02-14 a file created or changed after the plan is kept, not written
   assert.deepEqual(applied.kept, ['AGENTS.md', '.gitignore']);
   assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), '# Written meanwhile\n');
   assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), 'dist/\n');
+});
+
+test('AC-e12s02-15 a CLAUDE.md edited, relinked or created after the plan is kept, even when named in overwrite', () => {
+  const edited = makeTestRepo({ 'main.go': 'package main\n', 'CLAUDE.md': '# Old notes\n' });
+  const p = plan(edited);
+  writeFileSync(join(edited, 'CLAUDE.md'), '# Edited meanwhile\n');
+  const applied = applySetup(edited, p, { overwrite: ['CLAUDE.md'] });
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.deepEqual(applied.kept, ['CLAUDE.md']);
+  assert.equal(readFileSync(join(edited, 'CLAUDE.md'), 'utf8'), '# Edited meanwhile\n');
+  assert.equal(existsSync(join(edited, 'CLAUDE.md.weftwork-old')), false);
+
+  const relinked = makeTestRepo({ 'main.go': 'package main\n', 'NOTES.md': '# Notes\n' });
+  symlinkSync('NOTES.md', join(relinked, 'CLAUDE.md'));
+  const q = plan(relinked);
+  rmSync(join(relinked, 'CLAUDE.md'));
+  symlinkSync('OTHER.md', join(relinked, 'CLAUDE.md'));
+  const again = applySetup(relinked, q, { overwrite: ['CLAUDE.md'] });
+  assert.ok(again.ok, again.ok ? '' : again.error);
+  assert.deepEqual(again.kept, ['CLAUDE.md']);
+  assert.equal(readlinkSync(join(relinked, 'CLAUDE.md')), 'OTHER.md');
+
+  const created = makeTestRepo({ 'main.go': 'package main\n' });
+  const r = plan(created);
+  writeFileSync(join(created, 'CLAUDE.md'), '# Mine\n');
+  const third = applySetup(created, r, { overwrite: [] });
+  assert.ok(third.ok, third.ok ? '' : third.error);
+  assert.deepEqual(third.kept, ['CLAUDE.md']);
+});
+
+test('AC-e12s02-16 a CLAUDE.md symlink unchanged since the plan is still overwritten when named', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n', 'NOTES.md': '# Notes\n' });
+  symlinkSync('NOTES.md', join(dir, 'CLAUDE.md'));
+  const applied = applySetup(dir, plan(dir), { overwrite: ['CLAUDE.md'] });
+  assert.ok(applied.ok, applied.ok ? '' : applied.error);
+  assert.equal(readlinkSync(join(dir, 'CLAUDE.md')), 'AGENTS.md');
+  assert.equal(readlinkSync(join(dir, 'CLAUDE.md.weftwork-old')), 'NOTES.md');
 });
