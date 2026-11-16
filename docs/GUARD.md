@@ -17,6 +17,13 @@ tool call that would change one of these:
 One file in the engine's folder stays writable: `BACKLOG.md`, the local
 backlog. In a main checkout the backlog's folder is the engine's folder.
 
+The local history, `history.jsonl` (`docs/HISTORY.md`), lives in the
+backlog's folder but is not left writable. A file tool that writes it is
+blocked by `.git/` on the protected-paths list below, from a main checkout
+and from a linked worktree. A Bash command is blocked when its text names
+`.git/weftwork`, but not when it builds the path another way (see "What it
+does not stop"). The engine's own CLI writes it.
+
 The guard also blocks the paths on the protected-paths list below.
 
 ## Protected paths

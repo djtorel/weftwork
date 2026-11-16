@@ -31,6 +31,7 @@ const about: Record<string, string> = {
   handoff: 'Write the handoff note for the next session',
   state: "Get or set a field of the engine's state file",
   decision: 'Log a decision made without the owner, or list them',
+  history: 'Record this task in the local history, or report recurring failures',
   overlap: 'Check that planned parallel tasks change no file in common',
   'claude-install': 'Register the Claude Code Stop hook and guard in this project',
   'claude-live': 'Check that Claude Code runs the Stop hook in this project',

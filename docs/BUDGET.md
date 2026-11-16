@@ -31,7 +31,8 @@ budget:
 ```
 
 The engine ignores other top-level keys here. The `review` key sets the
-reviewers (`docs/REVIEW.md`).
+reviewers (`docs/REVIEW.md`), and `history` turns the local history on
+(`docs/HISTORY.md`).
 
 The engine reads both files on every run: from the engine CLI
 (`node src/cli.ts`) and from the Claude Code Stop hook

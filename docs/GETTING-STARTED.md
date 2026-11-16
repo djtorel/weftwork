@@ -77,7 +77,7 @@ Setup:
    `<path>.weftwork-old` first.
 
 It writes AGENTS.md (with CLAUDE.md as a symlink), the `weft-ready`,
-`weft-review` and `weft-pr` skills under `.claude/skills/`, lines for
+`weft-review`, `weft-pr` and `weft-improve` skills under `.claude/skills/`, lines for
 `.gitignore`, the local backlog, and, if you ask for it, the Claude Code Stop
 hook and guard in `.claude/settings.json`. It commits nothing. Commit the
 result yourself, or as the first task.
@@ -147,6 +147,13 @@ leaves a handoff note; the next session picks it up with the resume check
 
 To change the reviewers or the round limit, add `review` to a
 `weftwork.yaml` in your project ([`REVIEW.md`](REVIEW.md)).
+
+To have weftwork learn from your tasks, add `history: local` to the same
+file. Each pull request it files then adds a record on your machine. Nothing
+is sent anywhere. Later, `echo '{}' | weftwork history` shows the failures
+that keep coming back, and "Weft improve." asks the agent to propose one small
+fix for the most common one, in a pull request you can merge or close
+([`HISTORY.md`](HISTORY.md)).
 
 ## 4. Undo
 

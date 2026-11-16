@@ -99,7 +99,7 @@ never merges.
 
 ## Skills
 
-Setup puts three skills in `.claude/skills/`. Each starts on its own phrase,
+Setup puts four skills in `.claude/skills/`. Each starts on its own phrase,
 so none clashes with another skill pack that you have installed.
 
 | Skill | Say | What it does |
@@ -107,6 +107,7 @@ so none clashes with another skill pack that you have installed.
 | `weft-ready` | "… Weft ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
 | `weft-review` | "Weft review." | Only the review: read-only reviewers, by default from another model family, 3 rounds (5 for a sensitive change). |
 | `weft-pr` | "Weft PR." | Only the pull request, with its Proof and Decisions sections. |
+| `weft-improve` | "Weft improve." | With `history: local` on, proposes one small, checked fix for the failure that recurs most in your tasks ([`docs/HISTORY.md`](docs/HISTORY.md)). |
 
 Two more skills, `weft-setup` and `weft-convert`, are not copied into
 projects. They do what `weftwork init` and `weftwork convert` do, from
@@ -155,6 +156,11 @@ task too ambiguous to follow, or a check it cannot make pass
 ([`docs/ASK.md`](docs/ASK.md)). Everything else it decides, and lists each
 decision in the pull request.
 
+Optionally, weftwork keeps a record of each task on your machine. It never
+uploads it. The record shows which failures keep coming back, and the
+`weft-improve` skill proposes one small, tested fix for the most common one, which
+you merge or close ([`docs/HISTORY.md`](docs/HISTORY.md)).
+
 ## Commands
 
 | Command | What it does |
@@ -166,6 +172,7 @@ decision in the pull request.
 | `weftwork claude-live` | Check that Claude Code runs the Stop hook and the guard here |
 | `weftwork overlap` | Check that planned parallel tasks change no file in common (JSON on stdin) |
 | `weftwork measure` | Measure the done gate against seeded false successes (JSON on stdin) |
+| `weftwork history` | Report the failures that recur across your tasks (JSON on stdin; `{}` reports) |
 | `weftwork path` | Print where weftwork is installed (its docs and skills) |
 | `weftwork --help` | List every command, including the ones the agent's skills call |
 
@@ -190,6 +197,7 @@ review:              # docs/REVIEW.md
 ui:                  # docs/UI.md: before and after screenshots for UI changes
   screenshot: npx playwright test e2e/screenshots.spec.ts
   paths: ['web/**']
+history: local       # docs/HISTORY.md: keep a local record of each task
 ```
 
 Your own defaults for every project go in
@@ -220,6 +228,7 @@ conversion too. To remove weftwork itself: `npm uninstall -g weftwork`.
 | [Parallel work](docs/PARALLEL.md) | The file-overlap check before parallel tasks |
 | [Review](docs/REVIEW.md), [Base check](docs/BASE-CHECK.md), [UI](docs/UI.md) | The reviewers and their checks |
 | [Budget](docs/BUDGET.md), [State](docs/STATE.md), [PR proof](docs/PR-PROOF.md) | Ceilings, the handoff, and what a PR proves |
+| [History](docs/HISTORY.md) | The opt-in local record of tasks, and how a recurring failure becomes a fix |
 | [Measure](docs/MEASURE.md) | The harness that measures the done gate against an oracle |
 | [Releasing](docs/RELEASING.md) | Versions, releases and what counts as a breaking change |
 | [Research](docs/research/) | The evidence behind the design ([synthesis](docs/research/SYNTHESIS.md)) |

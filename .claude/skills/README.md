@@ -15,3 +15,6 @@ because a squash merge can carry the PR body into the commit.
 
 `weft-convert` is our own too: it drives `src/convert-cli.ts`
 (`docs/CONVERT.md`).
+
+`weft-improve` is our own too: it reads `src/history-cli.ts`'s report and proposes
+one small fix for a recurring failure (`docs/HISTORY.md`).

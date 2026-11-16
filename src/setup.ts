@@ -33,7 +33,7 @@ export type Applied = { ok: true; written: string[]; kept: string[]; record: Wri
 export type Written = { path: string; made: 'create' | 'append' | 'overwrite'; link: boolean; before: string | null; after: string };
 
 const maxFileBytes = 1024 * 1024;
-const skillFiles = ['weft-ready/SKILL.md', 'weft-review/SKILL.md', 'weft-pr/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
+const skillFiles = ['weft-ready/SKILL.md', 'weft-review/SKILL.md', 'weft-pr/SKILL.md', 'weft-improve/SKILL.md', 'README.md', 'TSTACK-LICENSE'];
 
 /** The folders the skills had before they were renamed. Setup never writes or
  * deletes them; the plan notes the ones still there. */

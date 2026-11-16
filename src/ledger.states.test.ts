@@ -160,6 +160,7 @@ test('AC-e06s04-07 a missing ledger is an empty tail', async () => {
     entries: [],
     states: [],
     reviews: [],
+    guards: [],
     skipped: 0,
     truncated: false,
   });

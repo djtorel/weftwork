@@ -36,10 +36,13 @@ under its own hooks (below).
 
 - Tracked: `src/`, `docs/` (research briefs, bug reports, the security review,
   `SECURITY-BASELINE.md`, `STATE.md`, `BUDGET.md`), `tools/`,
-  `.claude/skills/`, `weftwork.yaml` when present.
+  `.claude/skills/`, `weftwork.yaml` and `weftwork-improvements.yaml` when
+  present.
 - Local, never committed:
   - The backlog: `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"`,
     shared by every worktree of this clone.
+  - The history, when the owner turns it on: `history.jsonl` in the same
+    folder, one record per filed task (`docs/HISTORY.md`).
   - The engine's state, ledger and handoff: `"$(git rev-parse --absolute-git-dir)/weftwork/"`,
     one per worktree (`docs/STATE.md`).
   - `.specs/`: the old bigpowers planning tree, read-only history. The tag
@@ -75,6 +78,7 @@ The `weft-ready` skill runs steps 2 to 7 for you.
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
 | File overlap | `echo '{"tasks":[{"name":"a","files":["src/a.ts"]},{"name":"b","branch":"main"}]}' \| node src/overlap-cli.ts` |
 | Measure (R10 E1) | `echo '{"out":"/tmp/weftwork-measure.jsonl"}' \| node src/measure-cli.ts` |
+| History report | `echo '{}' \| node src/history-cli.ts` |
 | Test | `npm test` |
 | Typecheck | `npm run typecheck` (no emit; Node runs `.ts` directly) |
 | Lint | `yamllint .` |
@@ -166,7 +170,12 @@ file, from file lists, globs or branches (`docs/PARALLEL.md`). `measure-fixture.
 `measure-cli.ts` are the measurement harness: a fixture repository with
 planted defects and a held-out oracle, one row per run, and the first
 experiment, the done gate against scripted false successes; agent arms
-refuse to run without a spend cap (`docs/MEASURE.md`). Every CLI is a
+refuse to run without a spend cap (`docs/MEASURE.md`). `history.ts`, `history-setting.ts`,
+`history-store.ts`, `history-report.ts`, `history-improve.ts` and
+`history-cli.ts` keep the opt-in local history: one record per filed task,
+counted from the ledger and kept in the common git dir; a report of the
+failure classes that recur; and each accepted improvement's counts before
+and after (`docs/HISTORY.md`; R20). Every CLI is a
 thin shell over a library function, and `weftwork-cli.ts` runs each one as
 `weftwork <command>`, with `--help` and `--version`. The package's bin is
 `bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when

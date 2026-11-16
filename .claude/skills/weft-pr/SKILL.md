@@ -33,6 +33,14 @@ Problem, Change, Proof, Review, Decisions.
 Add no model or harness line and no AI attribution: a squash merge can carry
 the description into the commit, and `CONVENTIONS.md` bans that.
 
+Record the task in the local history. It does nothing unless the owner has
+turned history on (`docs/HISTORY.md`); the engine counts the record from its
+own ledger, and the model id is yours:
+
+```bash
+echo '{"record":true,"model":"<your model id>"}' | node src/history-cli.ts
+```
+
 Before you submit, check the title and description for secrets and private
 details. Open a real PR, not a draft, unless `weft-ready` says to stop early:
 
