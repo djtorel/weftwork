@@ -9,10 +9,26 @@ to the page that has the detail.
 
 ## 1. Install
 
-You need git, Node 26 or later with npm, and Python 3 (only for weftwork's own
-Preflight). For the first full stop you also need Claude Code, the GitHub CLI
-`gh` signed in, and the Codex CLI (the default reviewer, from another model
-family).
+You need git and Node 26 or later with npm. For the first full stop you also
+need Claude Code, the GitHub CLI `gh` signed in, and the Codex CLI (the
+default reviewer, from another model family).
+
+```bash
+npm install -g weftwork
+weftwork --version
+```
+
+`--version` prints the version, which means `weftwork` is on your PATH. The
+skills setup copies into your project call `weftwork <command>` (`weftwork
+detect`, `weftwork engine`, `weftwork pr-proof`) and find the docs under
+`$(weftwork path)`. The Claude Code Stop hook and guard run `weftwork` from
+PATH too; where it is missing they block and say to install it. If npm says
+it cannot write to its global folder, set a prefix you own first (`npm
+config set prefix ~/.local`, with `~/.local/bin` on your PATH). Upgrade:
+`npm install -g weftwork@latest`. Undo: `npm uninstall -g weftwork`.
+
+**From a checkout instead** (to work on weftwork, or before the first npm
+release), you also need Python 3 for weftwork's own Preflight:
 
 ```bash
 git clone https://github.com/djtorel/weftwork.git
@@ -23,26 +39,28 @@ weftwork path
 ```
 
 `setup.sh` prints `setup: OK` when every tool is there. It installs PyYAML,
-yamllint and the npm packages; it never installs Node.
-
-`npm link` puts the `weftwork` command on your PATH, pointing at this
-checkout; `weftwork path` prints the checkout. The skills setup copies into
-your project call `weftwork <command>` (`weftwork detect`, `weftwork engine`,
-`weftwork pr-proof`) and find the docs under `$(weftwork path)`. If npm says
-it cannot write to its global folder, set a prefix you own first
-(`npm config set prefix ~/.local`, with `~/.local/bin` on your PATH). If you
-move the checkout, run `npm link` again there. The Claude Code Stop hook and
-guard run `weftwork` from PATH too; where it is missing they block and say
-to install it. Undo: `npm unlink -g weftwork`.
+yamllint and the npm packages; it never installs Node. `npm link` points the
+`weftwork` command at this checkout, and `weftwork path` prints it. If you
+move the checkout, run `npm link` again there. Undo: `npm unlink -g
+weftwork`.
 
 ## 2a. Set up a new or plain project
 
-A plain project is one with no other planning system. Open Claude Code in the
-weftwork checkout and say:
+A plain project is one with no other planning system. In the project folder,
+run:
 
-> Set up weftwork in /path/to/project
+```bash
+cd /path/to/project
+weftwork init
+```
 
-The `setup-project` skill runs `src/setup-cli.ts` on that folder. It:
+With no path, `init` sets up the current folder. Add `--stop-hook` for the
+Claude Code Stop hook and guard, and `--no-run` for a project you do not
+trust (`weftwork init --help` lists every option). From a weftwork checkout
+you can also open Claude Code there and say "Set up weftwork in
+/path/to/project"; the `setup-project` skill runs the same setup.
+
+Setup:
 
 1. Reads the folder and runs its test, lint, typecheck and build commands,
    once each time it is called, so that AGENTS.md names only commands that
@@ -51,9 +69,10 @@ The `setup-project` skill runs `src/setup-cli.ts` on that folder. It:
    trust; then no command is written.
 2. Asks up to five questions (what the project is, the words that matter,
    what the agent must never do, code rules, first tasks), each with a
-   recommended answer.
+   recommended answer; press Enter to keep it.
 3. Shows every file it would write, as a diff, and changes nothing.
-4. Writes only when you say yes. It never overwrites a file you changed
+4. Writes only when you answer `y` to `Write these files? [y/N]` (or you
+   passed `--yes`). It never overwrites a file you changed
    unless you name it, and then it moves the old file to
    `<path>.weftwork-old` first.
 
@@ -63,8 +82,8 @@ It writes AGENTS.md (with CLAUDE.md as a symlink), the `full-stop`,
 hook and guard in `.claude/settings.json`. It commits nothing. Commit the
 result yourself, or as the first task.
 
-To run it without Claude Code, and for every option, see
-[`SETUP.md`](SETUP.md). [`DETECT.md`](DETECT.md) says what it reads.
+Every option, and the JSON form agents use, is in [`SETUP.md`](SETUP.md).
+[`DETECT.md`](DETECT.md) says what it reads.
 
 ## 2b. Convert a bigpowers, GSD, GSD 2, spec-kit or BMAD project
 
@@ -72,13 +91,20 @@ A bigpowers project has `specs/state.yaml`; a GSD project has `.planning/`;
 a GSD 2 project has `.gsd/` (when git does not track it, only the backlog is
 written);
 a spec-kit project has `.specify/`; a BMAD v6 project has `_bmad/` and
-`_bmad-output/`. Open Claude Code in the weftwork checkout and say:
+`_bmad-output/`. On a new branch of the project, with its Preflight passing:
 
-> Convert /path/to/project to weftwork
+```bash
+cd /path/to/project
+echo '{}' | weftwork convert               # the plan; changes nothing
+echo '{"apply":true}' | weftwork convert   # convert
+weftwork init                              # a new AGENTS.md (step 2a)
+```
 
-The `convert-project` skill checks that the project's Preflight passes on a
-new branch, then runs `src/convert-cli.ts`. It shows the plan first and
-changes nothing until you say yes. Then it:
+If the project already has an AGENTS.md, `init` keeps it as a conflict; run
+`weftwork init --overwrite AGENTS.md` to replace it. From a weftwork checkout
+you can instead open Claude Code there and say "Convert /path/to/project to
+weftwork": the `convert-project` skill checks the Preflight, shows the plan
+and waits for your yes, and opens the pull request. Either way, it:
 
 1. Tags the last commit that tracks `specs/` as `bigpowers-era` (GSD:
    `.planning/` as `gsd-era`; spec-kit: `specs/` as `speckit-era`; BMAD:
@@ -91,8 +117,9 @@ changes nothing until you say yes. Then it:
 4. Adds the open work to the local backlog with its ids: bigpowers epics and
    stories, GSD roadmap phases, spec-kit features with their open tasks, or
    BMAD epics and stories.
-5. Runs setup (step 2a) for a new AGENTS.md, and opens one pull request with
-   Preflight green.
+5. Then setup (step 2a) writes a new AGENTS.md. The skill also opens one
+   pull request with Preflight green; from the terminal, commit and open it
+   yourself.
 
 Detail and what it refuses: [`CONVERT.md`](CONVERT.md).
 
