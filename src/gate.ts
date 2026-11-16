@@ -212,8 +212,7 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
-  const path = await ledgerPath(cwd);
+async function record(path: string | null, verdict: Verdict): Promise<LoggedVerdict> {
   const result = path === null ? null : await appendEntry(path, verdict, new Date());
   if (result?.ok) {
     return { verdict, writeProblem: null };
@@ -225,9 +224,15 @@ async function record(cwd: string, verdict: Verdict): Promise<LoggedVerdict> {
 }
 
 /** `runGate`, and why the ledger line could not be written: the run is then
- * missing from the ledger, so the engine cannot count the loop (e09s02). */
-export async function runLoggedGate(request: GateRequest, signal?: AbortSignal): Promise<LoggedVerdict> {
-  return record(request.cwd, await decide(request, signal));
+ * missing from the ledger, so the engine cannot count the loop (e09s02).
+ * `path` is the ledger the caller resolved for `request.cwd` (`ledgerPath`),
+ * so the engine resolves it once per call; null when there is no working tree. */
+export async function runLoggedGate(
+  request: GateRequest,
+  path: string | null,
+  signal?: AbortSignal,
+): Promise<LoggedVerdict> {
+  return record(path, await decide(request, signal));
 }
 
 /**
@@ -236,5 +241,6 @@ export async function runLoggedGate(request: GateRequest, signal?: AbortSignal):
  * runs, the whole process group is killed and the reason is `killed`.
  */
 export async function runGate(request: GateRequest, signal?: AbortSignal): Promise<Verdict> {
-  return (await runLoggedGate(request, signal)).verdict;
+  const verdict = await decide(request, signal);
+  return (await record(await ledgerPath(request.cwd), verdict)).verdict;
 }

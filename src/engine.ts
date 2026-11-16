@@ -151,7 +151,7 @@ async function decide(
   if (refusal !== null) {
     return { answer: refusal, read: before };
   }
-  const { verdict, writeProblem } = await runLoggedGate(request, signal);
+  const { verdict, writeProblem } = await runLoggedGate(request, path, signal);
   const read = await readEntries(path, request.maxRuns);
   // A run whose line was not written is missing from the ledger (e09s02).
   const after = { ...read, problem: read.problem ?? writeProblem };
