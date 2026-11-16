@@ -1,0 +1,24 @@
+---
+name: Feature request
+description: Something weftwork should do and does not.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >-
+        What you are trying to do, and where weftwork gets in the way or
+        falls short today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you suggest
+      description: How it could work. A rough idea is fine.
+  - type: textarea
+    id: other
+    attributes:
+      label: What you tried instead
+      description: Workarounds or other tools you used.
