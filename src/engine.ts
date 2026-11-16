@@ -22,8 +22,9 @@
 // that decided it. The stop rules themselves are in engine-rules.ts.
 //
 // One exception to C4, for the Stop hook only (`stopHook`): after the
-// refusals, a pass the hook itself ran on the same tree is reused and the
-// command does not run again (reuse.ts). It writes no line, so it is not a
+// refusals, a pass the hook itself ran on the same tree, in the same
+// directory and environment, is reused and the command does not run again
+// (reuse.ts). It writes no line, so it is not a
 // run in the budget. The engine CLI never reuses a pass.
 import { dirname, join } from 'node:path';
 import { budgetUsed, type BudgetUsed } from './budget-report.ts';
@@ -158,7 +159,7 @@ async function decide(
   if (refusal !== null) {
     return { answer: refusal, read: before };
   }
-  const reused = request.stopHook === true ? await reusedAnswer(path, request) : null;
+  const reused = request.stopHook === undefined ? null : await reusedAnswer(path, request, request.stopHook);
   if (reused !== null) {
     return { answer: reused, read: before };
   }
@@ -179,8 +180,8 @@ async function decide(
 
 /** A done answer from the Stop hook's own pass on this tree, or null. The
  * detail names the pass's time. */
-async function reusedAnswer(path: string | null, request: GateRequest): Promise<Decided | null> {
-  const pass = await reusablePass(path, request.command, request.cwd);
+async function reusedAnswer(path: string | null, request: GateRequest, key: string): Promise<Decided | null> {
+  const pass = await reusablePass(path, request, key);
   if (pass === null) {
     return null;
   }

@@ -18,6 +18,7 @@ import type { Answer } from './engine.ts';
 import { messageOf } from './errors.ts';
 import { parseRequest, type GateRequest, type Reason } from './gate.ts';
 import { isRecord } from './json.ts';
+import { runKey } from './reuse.ts';
 import type { TokenRead } from './transcript-usage.ts';
 import { isAbsolute } from 'node:path';
 import type { Readable } from 'node:stream';
@@ -175,8 +176,9 @@ export function projectDir(env: Record<string, string | undefined>): ProjectDir 
 }
 
 /** The request for the one command after `--`, checked by the same rules as
- * the engine CLI (a blank command is refused). */
-export function hookRequest(args: string[], dir: string): HookRequest {
+ * the engine CLI (a blank command is refused). `env` is the environment the
+ * command will run in: its key marks the run (reuse.ts). */
+export function hookRequest(args: string[], dir: string, env: NodeJS.ProcessEnv): HookRequest {
   const command = args.length === 2 && args[0] === '--' ? args[1] : undefined;
   if (command === undefined) {
     return { ok: false, error: "usage: claude-hook-cli.ts -- '<declared command>'" };
@@ -186,7 +188,7 @@ export function hookRequest(args: string[], dir: string): HookRequest {
   const parsed = parseRequest(JSON.stringify({ command, timeoutMs: engineTimeoutMs }), dir);
   // Only the hook sets stopHook: it marks the run's ledger line and lets the
   // engine reuse the hook's own pass on the same tree (reuse.ts).
-  return parsed.ok ? { ok: true, request: { ...parsed.request, stopHook: true } } : parsed;
+  return parsed.ok ? { ok: true, request: { ...parsed.request, stopHook: runKey(dir, env) } } : parsed;
 }
 
 /** Allow the stop, with a message for the user. */

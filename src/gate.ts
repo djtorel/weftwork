@@ -13,8 +13,9 @@ import { fingerprintTree, type FingerprintResult } from './tree.ts';
  * and `reserveRuns` (e09s03) are read for the engine; `runGate` ignores them.
  * `reserveRuns` is never parsed from the request: only the budget setting
  * files set it (applyBudget). `stopHook` is never parsed either: only the
- * Stop hook sets it (hookRequest). The run's ledger line then names `cwd`,
- * and the engine may reuse such a pass (reuse.ts). */
+ * Stop hook sets it (hookRequest), to the key of its directory and
+ * environment. The run's ledger line keeps the key, and the engine may reuse
+ * such a pass (reuse.ts). */
 export type GateRequest = {
   command: string;
   cwd: string;
@@ -24,7 +25,7 @@ export type GateRequest = {
   maxFailures?: number;
   maxRuns?: number;
   reserveRuns?: number;
-  stopHook?: boolean;
+  stopHook?: string;
 };
 
 export type Reason =
@@ -217,8 +218,7 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  */
 async function record(request: GateRequest, verdict: Verdict): Promise<LoggedVerdict> {
   const path = await ledgerPath(request.cwd);
-  const hookDir = request.stopHook === true ? request.cwd : undefined;
-  const result = path === null ? null : await appendEntry(path, verdict, new Date(), hookDir);
+  const result = path === null ? null : await appendEntry(path, verdict, new Date(), request.stopHook);
   if (result?.ok) {
     return { verdict, writeProblem: null };
   }

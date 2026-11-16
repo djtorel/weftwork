@@ -265,12 +265,17 @@ says `reused the pass of <time> on this tree`. All of these must be true:
   `docs/PR-PROOF.md`).
 - The run saw the tree as it is now: the fingerprint of the tracked and
   the untracked, not ignored, files is the same.
-- The Stop hook itself ran that pass, in the same project directory. The
-  run line names the directory in `hookDir`. A pass from the engine CLI is
-  never reused: the agent sets its environment and its `cwd`.
+- The Stop hook itself ran that pass, in the same project directory and
+  the same environment. The run line keeps `hookKey`, a SHA-256 of the
+  directory and every environment variable. A pass from the engine CLI has
+  no key and is never reused: the agent sets its environment and its
+  `cwd`. A hook call the agent starts itself, such as with a fake check
+  first on `PATH`, has another environment, so its pass is not reused
+  either.
 
 Any doubt runs the command as before: no ledger, a ledger or a tree that
-cannot be read, a changed file, another command, or a later failure. The
+cannot be read, a changed file, another command, a later failure, or a
+change to any environment variable of the hook. The
 stop rules still answer first: a ceiling that is reached answers
 `exhausted`, not the reused pass.
 
@@ -291,8 +296,9 @@ alone does not run the command again.
 - The agent can edit or delete the ledger. A forged `done` line, or a
   deleted ledger, opens a new loop, as erasing failures resets the
   failure ceiling (T3, e10). A forged pass line with the current
-  fingerprint and `hookDir` also lets the Stop hook allow a stop without a
-  run (A reused pass), so the stop is as strong as the guard that protects
+  fingerprint and `hookKey`, or a hook call with the host's exact
+  environment rebuilt on purpose, also lets the Stop hook allow a stop
+  without a run (A reused pass), so the stop is as strong as the guard that protects
   the ledger (`docs/GUARD.md`), as the PR proof is.
 - Any `done` opens a new loop, whatever its command. On the engine CLI the
   agent writes the request, so it can send a command that passes, such as

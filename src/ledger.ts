@@ -36,9 +36,9 @@ export type LedgerEntry = {
   reason: string;
   command: string;
   fingerprint: string | null;
-  /** Set only on a run by the Stop hook: the directory it ran in. The hook
-   * reuses only such a pass (claude-hook.ts, reuse.ts). */
-  hookDir?: string;
+  /** Set only on a run by the Stop hook: the key of the directory and the
+   * environment it ran in. The hook reuses only such a pass (reuse.ts). */
+  hookKey?: string;
 };
 
 export type AppendResult = { ok: true } | { ok: false; error: string };
@@ -141,9 +141,9 @@ export async function writeLine(path: string, line: object): Promise<AppendResul
   }
 }
 
-/** Append one entry for `verdict`, with `hookDir` for a run by the Stop hook.
+/** Append one entry for `verdict`, with `hookKey` for a run by the Stop hook.
  * Never throws. */
-export async function appendEntry(path: string, verdict: Verdict, at: Date, hookDir?: string): Promise<AppendResult> {
+export async function appendEntry(path: string, verdict: Verdict, at: Date, hookKey?: string): Promise<AppendResult> {
   const entry: LedgerEntry = {
     at: at.toISOString(),
     done: verdict.done,
@@ -151,7 +151,7 @@ export async function appendEntry(path: string, verdict: Verdict, at: Date, hook
     reason: verdict.reason,
     command: verdict.command,
     fingerprint: verdict.fingerprint,
-    ...(hookDir === undefined ? {} : { hookDir }),
+    ...(hookKey === undefined ? {} : { hookKey }),
   };
   return writeLine(path, entry);
 }
@@ -199,7 +199,7 @@ function toEntry(data: unknown): LedgerEntry | null {
   if (typeof reason !== 'string' || typeof command !== 'string' || !isFingerprint(fingerprint)) {
     return null;
   }
-  const hook = typeof data.hookDir === 'string' ? { hookDir: data.hookDir } : {};
+  const hook = typeof data.hookKey === 'string' ? { hookKey: data.hookKey } : {};
   return { at, done, exitCode, reason, command, fingerprint, ...hook };
 }
 

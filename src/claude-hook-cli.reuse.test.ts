@@ -15,11 +15,20 @@ after(cleanupTempDirs);
 
 const engineCli = join(import.meta.dirname, 'cli.ts');
 
-function runHook(repo: string, command: string) {
+/** One environment per repository, so two stops see the same one, as two
+ * stops of one Claude Code session do. */
+const envs = new Map<string, NodeJS.ProcessEnv>();
+function hostEnv(repo: string): NodeJS.ProcessEnv {
+  const env = envs.get(repo) ?? cliEnv(repo);
+  envs.set(repo, env);
+  return env;
+}
+
+function runHook(repo: string, command: string, env: NodeJS.ProcessEnv = {}) {
   const result = spawnSync(process.execPath, [cliPath, '--', command], {
     input: stopInput(repo),
     cwd: makeTempDir(),
-    env: cliEnv(repo),
+    env: { ...hostEnv(repo), ...env },
     encoding: 'utf8',
   });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
@@ -30,7 +39,7 @@ function runEngineCli(repo: string, command: string, env: NodeJS.ProcessEnv = {}
   return spawnSync(process.execPath, [engineCli], {
     input: JSON.stringify({ command, ...extra }),
     cwd: repo,
-    env: { ...cliEnv(repo), ...env },
+    env: { ...hostEnv(repo), ...env },
     encoding: 'utf8',
   }).status;
 }
@@ -111,7 +120,19 @@ test('the engine CLI ignores a stopHook key: its pass is not marked and not reus
   const repo = makeTestRepo();
   const { command, runs } = countingCommand();
   assert.equal(runEngineCli(repo, command, {}, { stopHook: true }), 0);
-  assert.equal((await readRepoLedger(repo)).entries[0]?.hookDir, undefined);
+  assert.equal((await readRepoLedger(repo)).entries[0]?.hookKey, undefined);
   runHook(repo, command);
   assert.equal(runs(), 2);
+});
+
+test('a pass from a hook call with another environment is not reused (review r1m1)', () => {
+  // The agent can start the hook CLI itself, with a PATH that puts a fake
+  // check first; the real Stop hook must still run the command.
+  const repo = makeTestRepo();
+  const { command, runs } = countingCommand();
+  const fake = { PATH: `${makeTempDir()}:${process.env.PATH}` };
+  assert.equal(runHook(repo, command, fake).status, 0);
+  const out = runHook(repo, command);
+  assert.equal(runs(), 2, 'the real hook ran the command');
+  assert.doesNotMatch(out.stdout, /reused/);
 });

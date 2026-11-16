@@ -22,6 +22,7 @@ import {
 } from './claude-hook.ts';
 import type { Reason } from './gate.ts';
 import { isRecord } from './json.ts';
+import { runKey } from './reuse.ts';
 import type { State } from './states.ts';
 import type { TokenRead } from './transcript-usage.ts';
 
@@ -154,16 +155,16 @@ test('AC-e07s01-11 a missing, empty or relative project directory is not ok', ()
 });
 
 test('AC-e07s01-12 one command after -- becomes the request', () => {
-  const result = hookRequest(['--', 'npm test'], '/work/repo');
+  const result = hookRequest(['--', 'npm test'], '/work/repo', {});
   assert.deepEqual(result, {
     ok: true,
-    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: engineTimeoutMs, stopHook: true },
+    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: engineTimeoutMs, stopHook: runKey('/work/repo', {}) },
   });
 });
 
 test('AC-e07s01-12 anything but -- and one command is not ok', () => {
   for (const args of [[], ['true'], ['--'], ['--', 'a', 'b'], ['a', 'b'], ['-x', 'true']]) {
-    const result = hookRequest(args, '/work/repo');
+    const result = hookRequest(args, '/work/repo', {});
     assert.equal(result.ok, false, args.join(' '));
     assert.ok(!result.ok && result.error.includes('usage'));
   }
@@ -171,7 +172,7 @@ test('AC-e07s01-12 anything but -- and one command is not ok', () => {
 
 test('AC-e07s01-12 a blank command is not ok', () => {
   for (const command of ['', ' ', '\t\n']) {
-    assert.equal(hookRequest(['--', command], '/work/repo').ok, false, JSON.stringify(command));
+    assert.equal(hookRequest(['--', command], '/work/repo', {}).ok, false, JSON.stringify(command));
   }
 });
 
@@ -191,7 +192,7 @@ test('AC-e07s02-01 the hook timeout exceeds the engine timeout by 60 seconds or 
 });
 
 test('AC-e07s02-01 hookRequest gives the engine the engine timeout', () => {
-  const result = hookRequest(['--', 'npm test'], '/work/repo');
+  const result = hookRequest(['--', 'npm test'], '/work/repo', {});
   assert.ok(result.ok);
   assert.equal(result.request.timeoutMs, engineTimeoutMs);
 });
