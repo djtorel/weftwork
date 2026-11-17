@@ -2,7 +2,8 @@
 // The Claude Code hook applies the budget setting before the engine runs:
 // weftwork.yaml at the project's repository root and the user file under
 // XDG_CONFIG_HOME. Before e09s01 every hook run used the built-in limits. A bad
-// file blocks the stop with text that names it, and nothing runs.
+// file runs nothing and allows the stop as not done, with text that names it:
+// the agent cannot fix a setting file, so a block would only loop.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -42,32 +43,53 @@ test('the user file under XDG_CONFIG_HOME is applied to a hook run', () => {
   assert.match(first.stdout, /not done \(exhausted\)/);
 });
 
-test('a bad weftwork.yaml blocks the stop, names the file and key, and runs nothing', () => {
+/** The owner's message of a stop the hook allowed as not done. */
+function notDone(out: { status: number | null; stdout: string; stderr: string }): string {
+  assert.equal(out.status, 0, 'the stop goes ahead: a block the agent cannot clear only loops');
+  assert.equal(out.stderr, '');
+  const message = String(JSON.parse(out.stdout).systemMessage);
+  assert.match(message, /^weftwork: not done \(blocked\): /);
+  return message;
+}
+
+test('a bad weftwork.yaml allows the stop as not done, names the file and key, and runs nothing', () => {
   const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  max_failures: 0\n' });
   const out = runHook(repo, 'touch ran.txt');
-  assert.equal(out.status, 2);
-  assert.match(out.stderr, /weftwork\.yaml/);
-  assert.match(out.stderr, /budget\.max_failures/);
+  const message = notDone(out);
+  assert.match(message, /weftwork\.yaml/);
+  assert.match(message, /budget\.max_failures/);
+  assert.match(message, /only the owner can fix/);
+  assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
+});
+
+test('a user file with two YAML documents allows the stop as not done and runs nothing', () => {
+  const home = makeTempDir();
+  mkdirSync(join(home, 'weftwork'));
+  writeFileSync(join(home, 'weftwork', 'config.yaml'), '---\nhistory: local\n---\nhistory: local\n');
+  const repo = makeTestRepo();
+  const out = runHook(repo, 'touch ran.txt', { ...cliEnv(repo), XDG_CONFIG_HOME: home });
+  const message = notDone(out);
+  assert.match(message, /config\.yaml/);
+  assert.match(message, /more than one YAML document/);
   assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
 });
 
 test('control characters and new lines from weftwork.yaml are escaped in the reason (security review F2)', () => {
   const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  "k\\e[31m\\r\\u009b\\nforged line": 1\n' });
   const out = runHook(repo, 'true');
-  assert.equal(out.status, 2);
-  assert.doesNotMatch(out.stderr, /[\u001b\r\u009b]/u);
-  assert.equal(out.stderr.split('\n').filter((line) => line !== '').length, 1, 'one line, no forged line');
-  assert.match(out.stderr, /\\u001b/);
+  const message = notDone(out);
+  assert.doesNotMatch(message, /[\u001b\r\u009b]/u);
+  assert.equal(message.split('\n').length, 1, 'one line, no forged line');
+  assert.match(message, /\\u001b/);
 });
 
-test('a symlinked weftwork.yaml blocks the stop and runs nothing', () => {
+test('a symlinked weftwork.yaml allows the stop as not done and runs nothing', () => {
   const repo = makeTestRepo();
   const target = join(makeTempDir(), 'good.yaml');
   writeFileSync(target, 'budget:\n  max_failures: 2\n');
   symlinkSync(target, join(repo, 'weftwork.yaml'));
   const out = runHook(repo, 'touch ran.txt');
-  assert.equal(out.status, 2);
-  assert.match(out.stderr, /weftwork\.yaml/);
+  assert.match(notDone(out), /weftwork\.yaml/);
   assert.equal(existsSync(join(repo, 'ran.txt')), false, 'the command did not run');
 });
 

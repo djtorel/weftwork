@@ -200,6 +200,16 @@ function couldNotCheck(what: string): string {
   return `weftwork could not check: ${what}. You cannot fix this; tell the owner.`;
 }
 
+/** A setting file the engine cannot use: nothing ran, and the stop goes ahead
+ * as not done. The agent cannot fix the file (the guard protects it), so a
+ * block would only loop: the host's cap on consecutive blocks resets each time
+ * the agent calls a tool (Claude Code hooks docs, read 2026-11-16). Not done is
+ * never done, so the gate still makes no false claim. `error` must already be
+ * terminal-safe. */
+export function settingUnusable(error: string): HookOutput {
+  return allow(`weftwork: not done (blocked): a setting file cannot be used, so nothing ran; only the owner can fix it: ${error}`);
+}
+
 const makeItPass = 'Make that command pass before you stop.';
 
 /** What to tell the agent, by why the run failed. Every line blocks the stop:
