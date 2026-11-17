@@ -10,14 +10,14 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { weftworkOnPath } from './claude-install.ts';
-import { resolved } from './launcher.ts';
-import { guardReport, transcriptFolder, type GuardAnswer, type GuardNext, type GuardReport, type Transcripts } from './claude-live-guard.ts';
-import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type SettingsSource } from './claude-live.ts';
-import { isGitRoot, readSettings, userSettingsPath } from './claude-settings-file.ts';
-import { isMissing, messageOf } from './errors.ts';
-import { lastCallPath, readLastCall, type LastCallRead } from './last-call.ts';
-import { behind, planUpdate } from './update.ts';
+import { weftworkOnPath } from './claude/claude-install.ts';
+import { resolved } from './install/launcher.ts';
+import { guardReport, transcriptFolder, type GuardAnswer, type GuardNext, type GuardReport, type Transcripts } from './claude/claude-live-guard.ts';
+import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type SettingsSource } from './claude/claude-live.ts';
+import { isGitRoot, readSettings, userSettingsPath } from './claude/claude-settings-file.ts';
+import { isMissing, messageOf } from './shared/errors.ts';
+import { lastCallPath, readLastCall, type LastCallRead } from './claude/last-call.ts';
+import { behind, planUpdate } from './setup/update.ts';
 
 const usage = 'usage: weftwork claude-live (no arguments; run it in the project root)';
 

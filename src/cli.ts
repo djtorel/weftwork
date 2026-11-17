@@ -6,7 +6,7 @@
 // owner's plan, never from the agent whose work it checks. The engine
 // cannot tell a real check from `true` (threat model T1, C1).
 //
-// One exit code per state (src/states.ts): 0 done, 1 failed (not done, no stop
+// One exit code per state (src/engine/states.ts): 0 done, 1 failed (not done, no stop
 // rule tripped, a retry is allowed), 2 input it cannot read (or a budget
 // setting file it cannot use, docs/BUDGET.md), 3 blocked, 4
 // stalled, 5 exhausted, 6 killed, 7 overridden. Only 0 means done. The JSON
@@ -32,15 +32,15 @@
 // installed, so this file ends by its own exit code. Other signals are not
 // handled.
 //
-// Every verdict is also logged in the git dir (e06s03, src/ledger.ts). The
+// Every verdict is also logged in the git dir (e06s03, src/engine/ledger.ts). The
 // ledger stores the command string, so a secret in a declared command is
 // stored on disk. Do not put secrets in a command. A passing run that
 // cannot be logged is not done, with the reason "no-ledger".
-import { applyBudget } from './budget.ts';
-import { printAnswer } from './cli-io.ts';
-import { runEngine } from './engine.ts';
-import { parseRequest } from './gate.ts';
-import { badInputExitCode, exitCodes } from './states.ts';
+import { applyBudget } from './engine/budget.ts';
+import { printAnswer } from './shared/cli-io.ts';
+import { runEngine } from './engine/engine.ts';
+import { parseRequest } from './engine/gate.ts';
+import { badInputExitCode, exitCodes } from './engine/states.ts';
 
 const maxInputBytes = 1024 * 1024;
 

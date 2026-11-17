@@ -40,7 +40,7 @@ a portable list of `.git`, skill and agent folders, settings and hook
 files and credential files, and to enforce it with a hook, not with deny
 rules, because a Bash deny rule matches text only [S27].
 
-The built-in list (`builtInProtected` in `src/guard.ts`):
+The built-in list (`builtInProtected` in `src/guard/guard.ts`):
 
 | What | Patterns |
 | --- | --- |

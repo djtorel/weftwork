@@ -9,9 +9,9 @@
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
-import { terminalSafe } from './cli-io.ts';
-import { messageOf } from './errors.ts';
-import { applyUpdate, behind, planUpdate, renderUpdate } from './update.ts';
+import { terminalSafe } from './shared/cli-io.ts';
+import { messageOf } from './shared/errors.ts';
+import { applyUpdate, behind, planUpdate, renderUpdate } from './setup/update.ts';
 
 const engineDir = join(import.meta.dirname, '..');
 

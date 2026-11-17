@@ -7,11 +7,11 @@
 // Exit 0 ready (open the PR for review), 1 draft (write the handoff and open
 // a draft), 2 when it cannot run (bad input, no git working tree, a ledger
 // it cannot read), with the reason on stderr and nothing on stdout.
-import { terminalSafe, readJsonObject } from './cli-io.ts';
-import { ledgerPath, ledgerReadCap, readLedgerTail } from './ledger.ts';
-import { prProof } from './pr-proof.ts';
-import { readTranscriptUsage, type TokenRead } from './transcript-usage.ts';
-import { fingerprintTree } from './tree.ts';
+import { terminalSafe, readJsonObject } from './shared/cli-io.ts';
+import { ledgerPath, ledgerReadCap, readLedgerTail } from './engine/ledger.ts';
+import { prProof } from './proof/pr-proof.ts';
+import { readTranscriptUsage, type TokenRead } from './engine/transcript-usage.ts';
+import { fingerprintTree } from './engine/tree.ts';
 
 function fail(error: string): void {
   process.stderr.write(`pr-proof: ${terminalSafe(error)}\n`);

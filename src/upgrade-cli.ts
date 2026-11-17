@@ -10,11 +10,11 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { terminalSafe } from './cli-io.ts';
-import { repoOf, type Repo } from './delegate.ts';
-import { messageOf } from './errors.ts';
-import { install, isCloneInstall, runNpm } from './install.ts';
-import { upgrade, type Npm } from './upgrade.ts';
+import { terminalSafe } from './shared/cli-io.ts';
+import { repoOf, type Repo } from './install/delegate.ts';
+import { messageOf } from './shared/errors.ts';
+import { install, isCloneInstall, runNpm } from './install/install.ts';
+import { upgrade, type Npm } from './install/upgrade.ts';
 
 const root = join(import.meta.dirname, '..');
 

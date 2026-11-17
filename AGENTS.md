@@ -35,7 +35,7 @@ under its own hooks (below).
 
 ## Where things are
 
-- Tracked: `src/`, `docs/` (research briefs, bug reports, the security review,
+- Tracked: `src/` (map in `docs/ARCHITECTURE.md`), `docs/` (research briefs, bug reports, the security review,
   `SECURITY-BASELINE.md`, `STATE.md`, `BUDGET.md`), `tools/`,
   `.claude/skills/`, `weftwork.yaml` and `weftwork-improvements.yaml` when
   present.
@@ -112,93 +112,34 @@ and only the owner changes them.
 
 ## Architecture
 
-`src/` holds the gate library (`gate.ts`), the working-tree fingerprint
-(`tree.ts`) and the thin CLI (`cli.ts`); `engine.ts` runs the loop, with the
-stop rules (`engine-rules.ts`), the ledger (`ledger.ts`, with its file
-half, the open, line writer and tail reader, in `ledger-file.ts`), the
-no-progress breaker (`breaker.ts`), the budget setting (`budget.ts`) and the budget report
-on every answer (`budget-report.ts`; all in `docs/BUDGET.md`). The Claude Code
-adapter is `claude-hook.ts` and its thin CLI `claude-hook-cli.ts`, which adds
-the session's tokens from the transcript (`transcript-usage.ts`);
-`claude-install.ts` installs the Stop hook, as an entry that runs `weftwork`
-from PATH and blocks when it is missing, and keeps an entry that names
-`"$CLAUDE_PROJECT_DIR/src/..."`, as this repository's does. `reuse.ts` lets the Stop hook reuse its own pass on an unchanged tree
-without a new run (`docs/BUDGET.md`). The guard (`guard.ts`, its PreToolUse hook
-`guard-cli.ts`, installed by `claude-guard-install.ts`) blocks tool calls that
-would change the agent's own limits or hooks, or a path on its protected-paths
-list (git internals, host hooks and settings, credential files, and the
-owner's `guard.protected`, read by `guard-setting.ts`; `docs/GUARD.md`), and the
-mechanical ask triggers: a write outside the worktree (`guard-worktree.ts`)
-and a push to main (`guard-push.ts`). The live check (`claude-live.ts`,
-`claude-live-guard.ts` and the CLI `claude-live-cli.ts`) says whether Claude
-Code runs the Stop hook, from the call record, and the guard, from the session
-transcripts (`docs/GUARD.md`). `decision.ts` and `decision-cli.ts` log
-each choice the agent makes without the owner, for the PR's Decisions
-section (`docs/ASK.md`). The state writer is `state-file.ts` (set one field of a
-YAML file and keep every other byte), with the file half in `state-write.ts`
-and the mapping edit in `state-mapping.ts`. `state-fields.ts` and its CLI
-`state-cli.ts` own the engine's state file in `<git dir>/weftwork/`;
-`handoff.ts` and `handoff-cli.ts` write the handoff block; `resume.ts` and
-`resume-cli.ts` check it at session start (`docs/STATE.md`). `pr-proof.ts` and
-`pr-proof-cli.ts` print a pull request's Proof block from the ledger and the
-tree, with the session's tokens from its transcript when given one, and say
-whether it is ready or a draft (`docs/PR-PROOF.md`). `review.ts`
-and `review-cli.ts` run one round of the reviewers set in `weftwork.yaml`
-(`review-setting.ts`), count the rounds in the ledger (`review-ledger.ts`),
-and snapshot what each round is of, check that a must-fix names a real file
-and line, and scope later rounds to what changed (`review-scope.ts`), and record what
-became of each finding and each reviewer's resolution rate
-(`review-outcome.ts`, `review-outcome-cli.ts`;
-`docs/REVIEW.md`). `base-check.ts`, `base-check-setting.ts` and `base-check-cli.ts` run the
-tests a change adds or edits against the base commit, where they should
-fail, and report which do not, each new test too when the run prints TAP
-(`base-check-tap.ts`; `docs/BASE-CHECK.md`). `ui.ts` and `ui-cli.ts` take before and after screenshots
-with the command in `weftwork.yaml` (`ui-setting.ts`), and the review sends
-them to the reviewers, as images and with the design reference and a design
-checklist, when a change touches the UI (`docs/UI.md`). `detect.ts`,
-`detect-stacks.ts`, `detect-packages.ts`, `detect-check.ts` and `detect-cli.ts` report a project's
-stack, commands, CI, agent files and planning system, and run each command
-once to check it resolves (`docs/DETECT.md`). `setup.ts`, `setup-text.ts`,
-`setup-diff.ts`, `setup-about.ts`, `setup-undo.ts` and `setup-cli.ts` set up a new or plain project from that
-report and the owner's answers: a dry-run plan, then a write that never
-overwrites a changed file, and an undo of what it wrote (`docs/SETUP.md`);
-`init.ts` and `init-cli.ts` are the same setup from the terminal
-(`weftwork init`, the current folder by default). `update.ts` and
-`update-cli.ts` bring a set-up project's skills to this version
-(`weftwork update`): a file that holds a text weftwork shipped, known by its
-sha256 in `skill-hashes.ts`, is replaced, and one the owner changed is kept;
-`upgrade.ts` and `upgrade-cli.ts` install the latest weftwork from npm
-(`weftwork upgrade`; `docs/SETUP.md` § Update), into the clone when that is
-the install in use. `launcher.ts` is the one lookup that finds the
-`weftwork` command: WEFTWORK_BIN, the clone's own install under the git
-common dir, a dev dependency, then PATH, as the shell function the hook
-entries hold; `claude-env-install.ts` gives it to the session's Bash
-commands through a SessionStart entry; `install.ts` and `install-cli.ts`
-install into the clone at the version pinned in `weftwork.yaml`
-(`weftwork install`, and `weftwork init --local`); `delegate.ts` hands a
-command from a weftwork that is not the project's own to the one that is
-(`docs/INSTALL.md`). `convert.ts`,
-`convert-backlog.ts`, `convert-gsd.ts`, `convert-gsd2.ts`, `convert-speckit.ts`, `convert-bmad.ts` and `convert-cli.ts` convert a bigpowers, GSD (1 or 2), spec-kit or BMAD (v6 or v4) project: tag,
-move cited specs into `docs/`, untrack the rest into `.specs/`, and add the
-open work to the backlog in the old plan's order (`convert-order.ts`), its
-text escaped for Markdown by `markdown-text.ts` (`docs/CONVERT.md`). `overlap.ts` and `overlap-cli.ts`
-check, before parallel work, that no two planned tasks can change the same
-file, from file lists, globs or branches (`docs/PARALLEL.md`). `measure-fixture.ts`, `measure.ts` and
-`measure-cli.ts` are the measurement harness: a fixture repository with
-planted defects and a held-out oracle, one row per run, and the first
-experiment, the done gate against scripted false successes; agent arms
-refuse to run without a spend cap (`docs/MEASURE.md`). `history.ts`, `history-setting.ts`,
-`history-store.ts`, `history-report.ts`, `history-improve.ts` and
-`history-cli.ts` keep the opt-in local history: one record per filed task,
-counted from the ledger and kept in the common git dir; a report of the
-failure classes that recur; and each accepted improvement's counts before
-and after (`docs/HISTORY.md`; R20). Every CLI is a
-thin shell over a library function, and `weftwork-cli.ts` runs each one as
-`weftwork <command>`, with `--help` and `--version`. The package's bin is
-`bin/weftwork.js`: `src/` in a checkout, the build in `dist/` when
-installed from npm, where Node strips no types; `sibling.ts` names another
-engine file with the right extension. Releases are cut by release-please
-and published with npm trusted publishing (`docs/RELEASING.md`).
+`docs/ARCHITECTURE.md` is the map of `src/`, folder by folder, and says where
+new code goes. In short:
+
+- The top of `src/` holds only the command files: `weftwork <command>` runs
+  `src/<command>-cli.ts`, and `weftwork engine` runs `src/cli.ts`. Each is a
+  thin shell over a library function; `weftwork-cli.ts` runs each one, with
+  `--help` and `--version`.
+- The library is in one folder per feature, each with its tests:
+  `engine/` (the done gate, the loop and its stop rules, the ledger, the
+  budget; `docs/BUDGET.md`), `claude/` (the Claude Code Stop hook adapter,
+  the hook and guard installs, the live check; `docs/GUARD.md`), `guard/`
+  (the PreToolUse guard and the ask triggers; `docs/ASK.md`), `state/` (the
+  state file, handoff, resume and decision log; `docs/STATE.md`), `review/`
+  (review rounds and UI screenshots; `docs/REVIEW.md`, `docs/UI.md`),
+  `proof/` (the PR Proof block and the base check; `docs/PR-PROOF.md`,
+  `docs/BASE-CHECK.md`), `setup/` (setup, init and update;
+  `docs/SETUP.md`), `detect/` (`docs/DETECT.md`), `convert/`
+  (`docs/CONVERT.md`), `install/` (finding and installing weftwork itself;
+  `docs/INSTALL.md`), `history/` (`docs/HISTORY.md`), `measure/`
+  (`docs/MEASURE.md`) and `parallel/` (`docs/PARALLEL.md`).
+- `shared/` holds helpers with no feature, and imports from no other folder.
+  `test-support/` holds the test helpers and fixtures; `repo-checks/` holds
+  the tests of the repository itself, including the layout test that keeps
+  this structure and `docs/ARCHITECTURE.md` in step.
+- The package's bin is `bin/weftwork.js`: `src/` in a checkout, the build in
+  `dist/` when installed from npm, where Node strips no types. Releases are
+  cut by release-please and published with npm trusted publishing
+  (`docs/RELEASING.md`).
 
 ## Rules
 

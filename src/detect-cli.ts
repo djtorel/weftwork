@@ -8,10 +8,10 @@
 //
 // Exit 0 with a report, 2 when it cannot run, with the reason on stderr.
 import { join, resolve } from 'node:path';
-import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
-import { checkCommands } from './detect-check.ts';
-import { detectProject } from './detect.ts';
-import { isInteger } from './json.ts';
+import { printAnswer, readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { checkCommands } from './detect/detect-check.ts';
+import { detectProject } from './detect/detect.ts';
+import { isInteger } from './shared/json.ts';
 
 const defaultTimeoutSeconds = 120;
 

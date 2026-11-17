@@ -8,8 +8,8 @@
 // Exit 0 with an answer, 1 when the conversion is refused, 2 for bad input;
 // the reason is on stderr.
 import { resolve } from 'node:path';
-import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
-import { applyConvert, planConvert, systemsIn, type SystemName } from './convert.ts';
+import { printAnswer, readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { applyConvert, planConvert, systemsIn, type SystemName } from './convert/convert.ts';
 
 const defaultTags: Record<SystemName, string> = { bigpowers: 'bigpowers-era', gsd: 'gsd-era', gsd2: 'gsd2-era', 'spec-kit': 'speckit-era', bmad: 'bmad-era', 'bmad-v4': 'bmad-era' };
 const isSystem = (value: unknown): value is SystemName => typeof value === 'string' && Object.hasOwn(defaultTags, value);

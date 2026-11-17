@@ -11,16 +11,16 @@
 // or the state file cannot be read or parsed (owner decision 6).
 import { lstatSync } from 'node:fs';
 import { join } from 'node:path';
-import { printAnswer, terminalSafe } from './cli-io.ts';
-import { messageOf, type Failure } from './errors.ts';
-import { isRecord } from './json.ts';
-import { resumeReport, type ResumeReport } from './resume.ts';
-import { weftworkDir } from './ledger.ts';
-import { readStateData, stateExists, stateFile } from './state-fields.ts';
-import { insideRoot } from './state-write.ts';
-import { currentBranch, repositoryRoot, uncommittedPaths } from './tree.ts';
-import { sibling } from './sibling.ts';
-import { shellQuote } from './claude-install.ts';
+import { printAnswer, terminalSafe } from './shared/cli-io.ts';
+import { messageOf, type Failure } from './shared/errors.ts';
+import { isRecord } from './shared/json.ts';
+import { resumeReport, type ResumeReport } from './state/resume.ts';
+import { weftworkDir } from './engine/ledger.ts';
+import { readStateData, stateExists, stateFile } from './state/state-fields.ts';
+import { insideRoot } from './state/state-write.ts';
+import { currentBranch, repositoryRoot, uncommittedPaths } from './engine/tree.ts';
+import { sibling } from './shared/sibling.ts';
+import { shellQuote } from './claude/claude-install.ts';
 
 /** The handoff CLI by absolute path: src/*.ts in a checkout, dist/*.js installed. */
 const handoffCli = terminalSafe(shellQuote(sibling('handoff-cli')));

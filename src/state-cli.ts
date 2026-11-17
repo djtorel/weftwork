@@ -10,10 +10,10 @@
 // was read; 1 when the engine refused (a key outside the table, a bad value,
 // a file it cannot read or keep); 2 for input it cannot read (not JSON, the
 // wrong shape, an unknown op, not in a git repository).
-import { printAnswer, readJsonObject } from './cli-io.ts';
-import { messageOf } from './errors.ts';
-import { readStateFields, setStateField } from './state-fields.ts';
-import { weftworkDir } from './ledger.ts';
+import { printAnswer, readJsonObject } from './shared/cli-io.ts';
+import { messageOf } from './shared/errors.ts';
+import { readStateFields, setStateField } from './state/state-fields.ts';
+import { weftworkDir } from './engine/ledger.ts';
 
 type Request = { op: 'set'; key: string; value: unknown } | { op: 'get' };
 

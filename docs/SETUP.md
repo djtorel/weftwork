@@ -29,7 +29,7 @@ below (Enter keeps the recommended answer), prints the plan, and asks
 | `--overwrite <path>` | Replace this conflict; repeat for more |
 
 It exits 0 when it wrote or you chose not to, 1 when detection, the plan or
-the write is refused, and 2 for a bad option. Logic: `src/init.ts`.
+the write is refused, and 2 for a bad option. Logic: `src/setup/init.ts`.
 
 ## Run it with JSON (agents)
 
@@ -73,7 +73,7 @@ when the plan or a write is refused (a folder on the way is a symlink, an
    package table of `pyproject.toml` (`[project]`, `[tool.poetry]`) or
    `Cargo.toml` (`[package]`), else the first paragraph of prose in
    `README.md` (not a heading, badge, HTML, list or code), cut to 300
-   characters (`src/setup-about.ts`).
+   characters (`src/setup/setup-about.ts`).
 
 2. **`answers`**: `{"ok":true,"plan":{"changes":[...],"notes":[...]}}`, a
    dry run. Each change has a `path`, an `action` and a `diff` (lines marked
@@ -169,7 +169,7 @@ them up:
 | `keep-old` | A folder of an old skill name that you changed, or that holds other files | Kept |
 
 Update knows the texts weftwork wrote by their sha256 in
-`src/skill-hashes.ts`: every text setup has written since the skills began
+`src/setup/skill-hashes.ts`: every text setup has written since the skills began
 to call the `weftwork` command, so it works in a fresh clone too, with no
 record of the setup. It never touches AGENTS.md, CONVENTIONS.md, the backlog
 or `.claude/settings.json`. In a terminal it shows the plan and asks `Write
@@ -190,7 +190,7 @@ upgrade`: run `git pull` there.
 Apply records each write in the engine's folder of the repository,
 `<absolute git dir>/weftwork/setup-record.json` (not tracked), and
 `{"undo":true}` reverses them, newest first, without detecting anything
-(`src/setup-undo.ts`):
+(`src/setup/setup-undo.ts`):
 
 ```bash
 echo '{"path":"/path/to/project","undo":true}' | node src/setup-cli.ts

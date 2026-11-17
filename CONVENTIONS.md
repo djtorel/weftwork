@@ -77,13 +77,19 @@ Only rules that the toolchain enforces or that a reviewer can check.
 - The CLI is a thin shell. It parses arguments, calls a library
   function and prints the result. Logic lives in the library, so tests
   call it without starting a process.
+- Files go where `docs/ARCHITECTURE.md` says: command files at the top
+  of `src/`, library code in the folder of its feature, helpers with no
+  feature in `src/shared/`. `src/repo-checks/layout.test.ts` checks it.
 
 ## Tests
 
 - Runner: the built-in `node:test` with `node:assert/strict`. `npm test`
   runs `node --test`. Use no other runner.
 - Put each test in `<name>.test.ts` next to the code it tests. Node 26
-  finds `**/*.test.ts` by default.
+  finds `**/*.test.ts` by default. The process tests of a command go in the
+  feature folder of the library it shells, named for the command
+  (`src/engine/cli.test.ts` tests `src/cli.ts`). Shared helpers and
+  fixtures are in `src/test-support/`.
 - Red first: write the test, run it, and see it fail before the code
   exists.
 - Every test asserts. A test that cannot fail is not a test.
@@ -104,11 +110,11 @@ Only rules that the toolchain enforces or that a reviewer can check.
 - `CLAUDE.md` is a symlink to `AGENTS.md`. NEVER edit it separately.
 - Every command written into `AGENTS.md` MUST resolve in this repository today.
 - A rename of a skill, a command or a setting key adds the old name to
-  `src/retired-names.test.ts`, so work on an older branch cannot bring it
-  back.
+  `src/repo-checks/retired-names.test.ts`, so work on an older branch cannot
+  bring it back.
 - A change to a skill that setup copies adds the new text's hash to
-  `src/skill-hashes.ts` (`src/update.test.ts` fails and names it). Never
-  remove a hash: a project may still hold that text, and `weftwork update`
+  `src/setup/skill-hashes.ts` (`src/setup/update.test.ts` fails and names
+  it). Never remove a hash: a project may still hold that text, and `weftwork update`
   keeps a file whose hash it does not know.
 
 ## Provisional Rules

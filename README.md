@@ -74,7 +74,8 @@ npm link
 ```
 
 `npm link` puts `weftwork` on your PATH, running this checkout's `src/`
-directly. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+directly. See [`CONTRIBUTING.md`](CONTRIBUTING.md), and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the map of the code.
 
 </details>
 

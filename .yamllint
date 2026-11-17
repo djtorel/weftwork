@@ -3,15 +3,16 @@
 # tool that drops the leading --- fails Preflight and CI (BUG-004).
 extends: default
 
-# src/fixtures/ holds test inputs kept in the style other tools write
-# (PyYAML reflows lines and drops the leading ---), so they stay as found.
+# src/test-support/fixtures/ holds test inputs kept in the style other tools
+# write (PyYAML reflows lines and drops the leading ---), so they stay as
+# found.
 # .claude/worktrees/ and .worktrees/ hold agents' worktrees: whole copies of
 # this repository, each linted in its own checkout.
 ignore: |
   node_modules/
   .specs/
   .weftwork/
-  src/fixtures/
+  src/test-support/fixtures/
   .claude/worktrees/
   .worktrees/
 

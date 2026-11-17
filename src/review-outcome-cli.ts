@@ -8,11 +8,11 @@
 // have on this branch, a bad outcome or evidence), with the reason on stderr.
 import { constants } from 'node:fs';
 import { join } from 'node:path';
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { ledgerPath, ledgerReadCap, openRegular, readLedgerTail, tailText, weftworkDir, writeLine } from './ledger.ts';
-import { findingById, outcomeReport, outcomes, toOutcome, type OutcomeEntry } from './review-outcome.ts';
-import { roundsOn } from './review.ts';
-import { currentBranch } from './tree.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { ledgerPath, ledgerReadCap, openRegular, readLedgerTail, tailText, weftworkDir, writeLine } from './engine/ledger.ts';
+import { findingById, outcomeReport, outcomes, toOutcome, type OutcomeEntry } from './review/review-outcome.ts';
+import { roundsOn } from './review/review.ts';
+import { currentBranch } from './engine/tree.ts';
 
 function fail(error: string): void {
   process.stderr.write(`review outcome: ${terminalSafe(error)}\n`);

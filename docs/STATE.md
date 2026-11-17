@@ -1,7 +1,7 @@
 # State file fields
 
 The engine keeps its state in `<git dir>/weftwork/state.yaml`, next to its
-ledger (`weftworkDir` in `src/ledger.ts`). The file is untracked and local:
+ledger (`weftworkDir` in `src/engine/ledger.ts`). The file is untracked and local:
 each worktree has its own, because a linked worktree has its own git dir
 (`git rev-parse --absolute-git-dir` names it). Nothing in it is shared
 through the repository; the pull request is the shared record of a task.
@@ -9,7 +9,7 @@ through the repository; the pull request is the shared record of a task.
 The engine creates the file, with every field null, the first time a CLI
 writes to it. Reading a missing file gives every field null and creates
 nothing. The engine writes only the fields marked `engine`, through
-`setStateField` in `src/state-fields.ts`. It refuses every other key and
+`setStateField` in `src/state/state-fields.ts`. It refuses every other key and
 keeps any other key in the file byte for byte. Each engine field is text or
 null, on one line, of 200 characters or fewer. The engine does not check id
 patterns or phase names.
@@ -30,7 +30,7 @@ echo '{"op":"set","key":"active_story","value":"e08s02"}' | node src/state-cli.t
 | `vcs.branch` | text or null | engine |
 | `handoff` | mapping | engine (handoff CLI) |
 
-A test (`src/state-fields.test.ts`) fails when the `engine` rows of this
+A test (`src/state/state-fields.test.ts`) fails when the `engine` rows of this
 table and `stateFields` in the code differ. The `handoff` row is not one
 of them: the state CLI refuses `handoff.*`, and only the handoff CLI
 writes the block.
@@ -38,7 +38,7 @@ writes the block.
 ## The handoff block
 
 The engine writes the whole `handoff` block for a session that remembers
-nothing, through `writeHandoff` in `src/handoff.ts`:
+nothing, through `writeHandoff` in `src/state/handoff.ts`:
 
 ```bash
 echo '{"next_skill":"verify-work","branch":"e08s03-handoff-note","note":"..."}' | node src/handoff-cli.ts
@@ -69,7 +69,7 @@ check never compares the two lists, so the forms do not meet.
 ## Checking the handoff at resume
 
 At session start, check the block against the repository with
-`resumeReport` in `src/resume.ts`:
+`resumeReport` in `src/state/resume.ts`:
 
 ```bash
 node src/resume-cli.ts
@@ -107,4 +107,4 @@ check answers `stale`; that is expected.
 
 Every CLI line on stdout and the check's stderr text write control
 characters, bidi controls and line separators as `\uXXXX`
-(`terminalSafe` in `src/cli-io.ts`).
+(`terminalSafe` in `src/shared/cli-io.ts`).

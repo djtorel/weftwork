@@ -10,16 +10,16 @@
 import { readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
-import { isGitRoot } from './claude-settings-file.ts';
-import { terminalSafe } from './cli-io.ts';
-import { handOff, repoOf } from './delegate.ts';
-import { askAnswers, checkedReport, initUsage, parseInitArgs, recommendedAnswers, renderPlan, renderWritten } from './init.ts';
-import { install, isCloneInstall, runNpm } from './install.ts';
-import { engineBin } from './launcher.ts';
-import { applySetup, planSetup } from './setup.ts';
-import { projectDescription } from './setup-about.ts';
-import { setupQuestions } from './setup-text.ts';
-import { recordSetup } from './setup-undo.ts';
+import { isGitRoot } from './claude/claude-settings-file.ts';
+import { terminalSafe } from './shared/cli-io.ts';
+import { handOff, repoOf } from './install/delegate.ts';
+import { askAnswers, checkedReport, initUsage, parseInitArgs, recommendedAnswers, renderPlan, renderWritten } from './setup/init.ts';
+import { install, isCloneInstall, runNpm } from './install/install.ts';
+import { engineBin } from './install/launcher.ts';
+import { applySetup, planSetup } from './setup/setup.ts';
+import { projectDescription } from './setup/setup-about.ts';
+import { setupQuestions } from './setup/setup-text.ts';
+import { recordSetup } from './setup/setup-undo.ts';
 
 const timeoutMs = 120_000;
 const engineDir = join(import.meta.dirname, '..');

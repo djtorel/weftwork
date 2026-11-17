@@ -14,13 +14,13 @@
 // Exit 0 with an answer, 1 when the plan or the write is refused, 2 for bad
 // input; the reason is on stderr.
 import { basename, join, resolve } from 'node:path';
-import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
-import { checkedReport } from './init.ts';
-import { isInteger } from './json.ts';
-import { applySetup, planSetup } from './setup.ts';
-import { projectDescription } from './setup-about.ts';
-import { recordSetup, undoSetup } from './setup-undo.ts';
-import { parseAnswers, setupQuestions } from './setup-text.ts';
+import { printAnswer, readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { checkedReport } from './setup/init.ts';
+import { isInteger } from './shared/json.ts';
+import { applySetup, planSetup } from './setup/setup.ts';
+import { projectDescription } from './setup/setup-about.ts';
+import { recordSetup, undoSetup } from './setup/setup-undo.ts';
+import { parseAnswers, setupQuestions } from './setup/setup-text.ts';
 
 const defaultTimeoutSeconds = 120;
 const engineDir = join(import.meta.dirname, '..');

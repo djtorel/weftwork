@@ -12,8 +12,8 @@
 //
 // SECURITY: the command is shell code that the hook will run, so it comes from
 // the owner at this prompt. The settings file is untrusted input (e10).
-import { weftworkOnPath } from './claude-install.ts';
-import { installInProject } from './claude-settings-file.ts';
+import { weftworkOnPath } from './claude/claude-install.ts';
+import { installInProject } from './claude/claude-settings-file.ts';
 
 const usage = "usage: weftwork claude-install -- '<declared command>'";
 
