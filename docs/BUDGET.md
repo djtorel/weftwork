@@ -66,8 +66,12 @@ fingerprint the tree, so it answers `no-tree` (not done).
 
 The engine does not run and logs nothing. It does not fall back to the
 built-in values. The error names the file and, where there is one, the
-key. The engine CLI exits 2. The hook blocks the stop with the error as
-the reason.
+key. The engine CLI exits 2. The hook lets the stop go ahead as not done
+(`blocked`), with the error in its message to you. It does not block:
+the agent cannot fix a setting file, because the guard protects both
+files, so a block would only repeat at every stop. Claude Code's own cap
+on repeated blocks resets each time the agent calls a tool, so it does
+not end that loop. Not done is never done: the gate makes no false claim.
 
 The engine refuses a file that:
 

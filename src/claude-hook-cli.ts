@@ -44,6 +44,7 @@ import {
   parseHookInput,
   projectDir,
   readHookInput,
+  settingUnusable,
   signalGraceMs,
   stdinDeadlineMs,
   type HookInput,
@@ -143,12 +144,13 @@ async function run(args: string[]): Promise<HookOutput> {
     return input.output;
   }
   // The budget setting files set the limits (e09s01). After recordCall, so a
-  // bad file still counts as a call for the live check; a bad file blocks.
+  // bad file still counts as a call for the live check. A bad file runs
+  // nothing and allows the stop as not done: only the owner can fix it.
   const budgeted = await applyBudget(request.request, process.env);
   if (!budgeted.ok) {
     // The error holds text from the file the agent can write (security
     // review F2, CWE-150).
-    return blockStop(terminalSafe(budgeted.error));
+    return settingUnusable(terminalSafe(budgeted.error));
   }
   const answer = await runEngine(budgeted.request, controller.signal);
   // An aborted run answers `killed`, which allows the stop. A signal is not a
