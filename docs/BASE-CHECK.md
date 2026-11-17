@@ -55,7 +55,7 @@ proof:
 ```text
 weftwork base check: 1 of 2 changed test files fail on the base
 base: 3db5d780a99f16c4588fa5266bc2791e4ad33c0d
-fails on base: src/review-scope.test.ts
+fails on base: src/review/review-scope.test.ts
 passes on base: src/old.test.ts (it does not show the change)
 ```
 
@@ -70,7 +70,7 @@ file:
 ```text
 weftwork base check: 1 of 1 changed test files fail on the base
 base: 3db5d780a99f16c4588fa5266bc2791e4ad33c0d
-fails on base: src/base-check.test.ts
+fails on base: src/proof/base-check.test.ts
   new test passes on base: output that is not TAP: one outcome per file, no test names (it does not show the change)
 ```
 

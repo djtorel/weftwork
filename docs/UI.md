@@ -155,7 +155,7 @@ claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode don
 gemini --approval-mode plan ${WEFTWORK_IMAGES:+--include-directories "$(git rev-parse --absolute-git-dir)/weftwork/ui"} -p 'Do the review above.'
 ```
 
-Put a line in `review.reviewers` as it is. `src/review-cli.test.ts` runs both
+Put a line in `review.reviewers` as it is. `src/review/review-cli.test.ts` runs both
 lines from this file with a fake `claude` and `gemini`, and checks that the
 folder they get holds every path in `WEFTWORK_IMAGES`.
 

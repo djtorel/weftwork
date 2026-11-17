@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { delegatedVar, delegateTarget, handOff, repoOf } from './delegate.ts';
+import { delegatedVar, delegateTarget, handOff, repoOf } from './install/delegate.ts';
 
 const root = join(import.meta.dirname, '..');
 const ext = extname(import.meta.filename);

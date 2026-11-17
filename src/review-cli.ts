@@ -11,16 +11,16 @@
 // ceiling (no reviewer ran), 2 when it cannot run (a detached HEAD among the
 // causes, since rounds are counted per branch), with the reason on stderr and
 // nothing on stdout.
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } from './ledger.ts';
-import { prProof } from './pr-proof.ts';
-import type { RoundVerdict } from './review-ledger.ts';
-import { loadReview } from './review-setting.ts';
-import { groundResults, roundScope, ruleFiles } from './review-scope.ts';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review.ts';
-import { currentBranch, fingerprintTree } from './tree.ts';
-import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './ui.ts';
-import { loadUi, type UiSetting } from './ui-setting.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } from './engine/ledger.ts';
+import { prProof } from './proof/pr-proof.ts';
+import type { RoundVerdict } from './review/review-ledger.ts';
+import { loadReview } from './review/review-setting.ts';
+import { groundResults, roundScope, ruleFiles } from './review/review-scope.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review/review.ts';
+import { currentBranch, fingerprintTree } from './engine/tree.ts';
+import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './review/ui.ts';
+import { loadUi, type UiSetting } from './review/ui-setting.ts';
 
 const exitCodes: Record<RoundVerdict, number> = { pass: 0, block: 1, 'no-verdict': 3 };
 

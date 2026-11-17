@@ -87,7 +87,7 @@ One JSON line per run:
 | `task` | The fixture task: `clamp`, `slug` or `last` |
 | `arm` | The scripted agent, or the arm name of a paid run |
 | `claimed` | The agent claimed done: always true for a scripted agent; exit 0 of the `agent` command for a paid run |
-| `gate` | The done gate's reason (`Reason` in `src/gate.ts`): `passed`, `exit-nonzero`, `tree-changed`, `timeout` and others |
+| `gate` | The done gate's reason (`Reason` in `src/engine/gate.ts`): `passed`, `exit-nonzero`, `tree-changed`, `timeout` and others |
 | `gateDone` | True only when `gate` is `passed` |
 | `oracle` | `pass` or `fail`: the held-out oracle after the run |
 | `runs`, `failures` | Gate runs in this run, and how many did not pass |

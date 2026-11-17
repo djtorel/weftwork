@@ -70,8 +70,9 @@ types from a file under `node_modules`: Node 26.7.0 stops with
 without the tests into `dist/` (`tsconfig.build.json`). `bin/weftwork.js`
 runs `src/weftwork-cli.ts` when `src/` is there (a checkout, `npm link`),
 else `dist/weftwork-cli.js` (the installed package). A module that names
-another engine file for `node` to run finds it with `sibling()`
-(`src/sibling.ts`), so it gets `.ts` in a checkout and `.js` when installed.
+a command file for `node` to run finds it with `sibling()`
+(`src/shared/sibling.ts`), so it gets `.ts` in a checkout and `.js` when
+installed. The build keeps the folders of `src/` (`docs/ARCHITECTURE.md`).
 
 `tools/test-package.sh` packs the tarball, installs it into a temporary
 global prefix, and uses it as a user would (`--version`, `--help`, `path`,

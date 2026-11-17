@@ -6,12 +6,12 @@
 // Exit 0 recorded, off or reported; 2 when it cannot (bad input, a bad
 // setting or register, no branch, a file it cannot read or write), with the
 // reason on stderr. Logic lives in history-store.ts and history-report.ts.
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { isInteger } from './json.ts';
-import { historyReport } from './history-report.ts';
-import { loadHistory } from './history-setting.ts';
-import { historyPath, readHistory, readImprovements, recordTask } from './history-store.ts';
-import { classesOf } from './history.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { isInteger } from './shared/json.ts';
+import { historyReport } from './history/history-report.ts';
+import { loadHistory } from './history/history-setting.ts';
+import { historyPath, readHistory, readImprovements, recordTask } from './history/history-store.ts';
+import { classesOf } from './history/history.ts';
 
 const modelPattern = /^[A-Za-z0-9._:/-]{1,80}$/;
 

@@ -12,10 +12,10 @@
 // file that does not exist, a state file it cannot read or keep); 2 for input
 // it cannot read (too large, not UTF-8, not a JSON object, not in a git
 // repository).
-import { printAnswer, readJsonObject } from './cli-io.ts';
-import { messageOf } from './errors.ts';
-import { writeHandoff } from './handoff.ts';
-import { repositoryRoot } from './tree.ts';
+import { printAnswer, readJsonObject } from './shared/cli-io.ts';
+import { messageOf } from './shared/errors.ts';
+import { writeHandoff } from './state/handoff.ts';
+import { repositoryRoot } from './engine/tree.ts';
 
 async function main(): Promise<void> {
   const request = await readJsonObject();

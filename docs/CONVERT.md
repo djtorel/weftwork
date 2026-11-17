@@ -199,7 +199,7 @@ all `Done` is left out. A v4 project with no story folder yet is refused.
 
 The backlog is worked top to bottom, so each section keeps the order the old
 system would have run its work in, from the file that system itself reads
-for it (`src/convert-order.ts`):
+for it (`src/convert/convert-order.ts`):
 
 | System | Order of the items | Inside an item |
 | --- | --- | --- |
@@ -214,7 +214,7 @@ is not read: the `migrate` skill has the agent check for one and move the
 items to match.
 
 Text taken from the old plans is escaped for Markdown before it goes into
-the backlog (`src/markdown-text.ts`): `\`, a backtick, `*`, `<`, `[`, `~`,
+the backlog (`src/shared/markdown-text.ts`): `\`, a backtick, `*`, `<`, `[`, `~`,
 a `&` that starts an entity (`&amp;`, `&#169;`) and a `_` not inside a word
 get a backslash (`snake_case` stays as it is), and a `Check:` command or an old-spec path is a code span fenced
 longer than any backtick inside. An HTML comment or a stray backtick in a

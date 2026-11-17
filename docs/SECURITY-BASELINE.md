@@ -141,7 +141,7 @@ The safest credential is one that the agent environment does not hold.
 
 The engine passes its whole environment to every command it runs: the done
 gate's command, each reviewer, the UI screenshot command and the
-detect check (`src/process.ts`). It removes nothing. So a credential in the
+detect check (`src/engine/process.ts`). It removes nothing. So a credential in the
 agent environment reaches the project's tests and the reviewers. Scrub the
 environment before the engine starts; with
 `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, the Stop hook and Bash commands start

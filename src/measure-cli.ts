@@ -8,9 +8,9 @@
 // Exit 0 when it ran (a stop at the spend cap is said on stdout), 2 when it
 // cannot run, with the reason on stderr.
 import { appendFile } from 'node:fs/promises';
-import { messageOf } from './errors.ts';
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { parseMeasureRequest, runArms, runSeeded, summaryText, type Row } from './measure.ts';
+import { messageOf } from './shared/errors.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { parseMeasureRequest, runArms, runSeeded, summaryText, type Row } from './measure/measure.ts';
 
 const agentTimeoutMs = 1800000;
 

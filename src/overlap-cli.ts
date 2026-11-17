@@ -7,8 +7,8 @@
 //
 // Exit 0 clear, 1 overlap, 2 when it cannot run (bad input, a branch git
 // cannot read), with the reason on stderr.
-import { printAnswer, readJsonObject, terminalSafe } from './cli-io.ts';
-import { findOverlaps, resolveTasks, toPlannedTasks } from './overlap.ts';
+import { printAnswer, readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { findOverlaps, resolveTasks, toPlannedTasks } from './parallel/overlap.ts';
 
 function fail(error: string): void {
   process.stderr.write(`overlap: ${terminalSafe(error)}\n`);

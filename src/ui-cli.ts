@@ -7,11 +7,11 @@
 // changes ui.paths) or failed (the command failed, wrote no PNG, or changed
 // the tree); 2 when it cannot run, ui.design included (e11s06), with the
 // reason on stderr.
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { weftworkDir } from './ledger.ts';
-import { currentBranch } from './tree.ts';
-import { baseCommit, shotLines, takeShots } from './ui.ts';
-import { loadUi } from './ui-setting.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { weftworkDir } from './engine/ledger.ts';
+import { currentBranch } from './engine/tree.ts';
+import { baseCommit, shotLines, takeShots } from './review/ui.ts';
+import { loadUi } from './review/ui-setting.ts';
 
 function fail(error: string): void {
   process.stderr.write(`ui: ${terminalSafe(error)}\n`);

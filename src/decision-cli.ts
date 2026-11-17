@@ -7,10 +7,10 @@
 // Exit 0 done, 2 when it cannot run (bad input, no git working tree, a
 // detached HEAD, a file it cannot read or write), with the reason on stderr.
 import { join } from 'node:path';
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { appendDecision, decisionsText, readDecisions, toDecision } from './decision.ts';
-import { weftworkDir } from './ledger.ts';
-import { currentBranch } from './tree.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { appendDecision, decisionsText, readDecisions, toDecision } from './state/decision.ts';
+import { weftworkDir } from './engine/ledger.ts';
+import { currentBranch } from './engine/tree.ts';
 
 function fail(error: string): void {
   process.stderr.write(`decision: ${terminalSafe(error)}\n`);

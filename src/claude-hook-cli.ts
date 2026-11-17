@@ -49,12 +49,12 @@ import {
   stdinDeadlineMs,
   type HookInput,
   type HookOutput,
-} from './claude-hook.ts';
-import { applyBudget } from './budget.ts';
-import { terminalSafe } from './cli-io.ts';
-import { runEngine } from './engine.ts';
-import { lastCallPath, writeLastCall } from './last-call.ts';
-import { readTranscriptUsage } from './transcript-usage.ts';
+} from './claude/claude-hook.ts';
+import { applyBudget } from './engine/budget.ts';
+import { terminalSafe } from './shared/cli-io.ts';
+import { runEngine } from './engine/engine.ts';
+import { lastCallPath, writeLastCall } from './claude/last-call.ts';
+import { readTranscriptUsage } from './engine/transcript-usage.ts';
 
 const controller = new AbortController();
 

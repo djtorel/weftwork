@@ -6,11 +6,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { terminalSafe } from './cli-io.ts';
-import { repoOf } from './delegate.ts';
-import { messageOf } from './errors.ts';
-import { install, runNpm } from './install.ts';
-import { engineDir } from './launcher.ts';
+import { terminalSafe } from './shared/cli-io.ts';
+import { repoOf } from './install/delegate.ts';
+import { messageOf } from './shared/errors.ts';
+import { install, runNpm } from './install/install.ts';
+import { engineDir } from './install/launcher.ts';
 
 const root = join(import.meta.dirname, '..');
 

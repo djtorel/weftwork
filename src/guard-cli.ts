@@ -28,11 +28,11 @@ import {
   readHookInput,
   stdinDeadlineMs,
   type HookOutput,
-} from './claude-hook.ts';
-import { guardCall, guardPaths } from './guard.ts';
-import { loadGuard } from './guard-setting.ts';
-import { guardWorktree } from './guard-worktree.ts';
-import { appendGuard, weftworkDir } from './ledger.ts';
+} from './claude/claude-hook.ts';
+import { guardCall, guardPaths } from './guard/guard.ts';
+import { loadGuard } from './guard/guard-setting.ts';
+import { guardWorktree } from './guard/guard-worktree.ts';
+import { appendGuard, weftworkDir } from './engine/ledger.ts';
 
 /** The guard gives up and blocks this long after its start. The host's
  * timeout for the entry (guardTimeoutSeconds, 30 s) is longer, so the guard's

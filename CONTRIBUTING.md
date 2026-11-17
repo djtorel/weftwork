@@ -36,8 +36,9 @@ Node.
 5. Open a pull request with the template. Say what was wrong, what you
    changed, and paste the output that proves it.
 
-[`CONVENTIONS.md`](CONVENTIONS.md) has the code, test, commit and evidence
-rules. [`AGENTS.md`](AGENTS.md) has the architecture and the commands; it is
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) is the map of `src/` and says
+where new code goes. [`CONVENTIONS.md`](CONVENTIONS.md) has the code, test,
+commit and evidence rules. [`AGENTS.md`](AGENTS.md) has the commands; it is
 also what a coding agent reads in this repository.
 
 ## Commit and pull request titles

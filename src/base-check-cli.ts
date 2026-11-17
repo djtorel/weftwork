@@ -5,10 +5,10 @@
 //
 // Exit 0 when it ran, found no changed tests, or is off: it reports and never
 // gates. Exit 2 when it cannot run, with the reason on stderr.
-import { readJsonObject, terminalSafe } from './cli-io.ts';
-import { baseCheckReport, checkOnBase } from './base-check.ts';
-import { loadProof } from './base-check-setting.ts';
-import { baseCommit } from './ui.ts';
+import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
+import { baseCheckReport, checkOnBase } from './proof/base-check.ts';
+import { loadProof } from './proof/base-check-setting.ts';
+import { baseCommit } from './review/ui.ts';
 
 function fail(error: string): void {
   process.stderr.write(`base check: ${terminalSafe(error)}\n`);
