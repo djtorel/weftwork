@@ -34,7 +34,7 @@ Merge only when all of these hold on the PR's latest commit:
 
 ## Steps
 
-After `all-ready`'s step 8:
+After `all-ready`'s step 9:
 
 1. **Check the gate.** Check each line above and keep the output. When the
    branch fell behind `main`, rebase, run Preflight through the engine again,

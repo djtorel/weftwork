@@ -1,0 +1,118 @@
+// story: e16s02
+// The design CLI as a real process in a temporary repository, with a fake
+// reviewer that prints a fixed reply: a round is graded, its record and the
+// marked screenshot are kept in the clone's design folder, the loop stops at
+// its ceiling, and a lesson reaches the next round's prompt.
+import { after, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { cleanupTempDirs, isolatedEnv, makeTempDir, makeTestRepo } from '../test-support/test-helpers.ts';
+import { criteria } from './design.ts';
+import { decodePng, encodePng } from './png-mark.ts';
+
+after(cleanupTempDirs);
+
+const designCli = join(import.meta.dirname, '..', 'design-cli.ts');
+
+function run(cwd: string, input: object) {
+  const out = spawnSync(process.execPath, [designCli], { cwd, input: JSON.stringify(input), env: isolatedEnv(), encoding: 'utf8', timeout: 30000 });
+  return { status: out.status, stdout: out.stdout, stderr: out.stderr };
+}
+
+function reply(grade: number, extra = ''): string {
+  return `${criteria.map((c) => `GRADE ${c.key}: ${c.key === 'layout' ? grade : 5} ok`).join('\n')}\n${extra}`;
+}
+
+/** A repository whose one design reviewer saves its prompt and prints the file `answer`. */
+function setup(maxRounds = 5) {
+  const dir = makeTempDir();
+  const answer = join(dir, 'answer.txt');
+  const reviewer = `cat > "$WEFTWORK_IMAGES_DIR/prompt.txt"; cat ${JSON.stringify(answer)}`;
+  const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${JSON.stringify(reviewer)}]\n  max_rounds: ${maxRounds}\n` });
+  const image = join(dir, 'home.desktop.png');
+  writeFileSync(image, encodePng({ width: 200, height: 100, rgba: Buffer.alloc(200 * 100 * 4, 255) }));
+  const common = join(repo, '.git', 'weftwork', 'design');
+  return { repo, image, common, answer: (text: string) => writeFileSync(answer, text) };
+}
+
+test('a round below the pass mark: changes, exit 1, with the record, the marked image and the index', () => {
+  const t = setup();
+  t.answer(reply(2, 'MARK home.desktop.png 20,10,100,50 layout: The cards overlap. Fix: add 24px between them.'));
+  const out = run(t.repo, { images: [t.image], brief: 'The home screen of a notes app.' });
+  assert.equal(out.status, 1, out.stderr);
+  assert.match(out.stdout, /^weftwork design: changes$/m);
+  assert.match(out.stdout, /^round: 1 of 5$/m);
+  assert.match(out.stdout, /^below the pass mark: layout 2$/m);
+  assert.match(out.stdout, /^mark 1 \(cat\) home\.desktop\.png \[20,10,100,50\] layout: The cards overlap\./m);
+  const round = join(t.common, 'main', 'app', 'round-01');
+  assert.match(readFileSync(join(round, 'round.md'), 'utf8'), /\| layout \| 2 \| 2 \(below\) \|/);
+  assert.match(readFileSync(join(round, 'prompt.txt'), 'utf8'), /home\.desktop\.png, 200 by 100 pixels/);
+  const marked = decodePng(readFileSync(join(round, 'home.desktop.marked.png')));
+  assert.ok(marked !== null);
+  const at = (59 * 200 + 60) * 4;
+  assert.deepEqual([...marked.rgba.subarray(at, at + 3)], [230, 0, 80], 'the bottom edge of the box is red');
+  assert.match(readFileSync(join(t.common, 'README.md'), 'utf8'), /\| main \| \[app\]\(<main\/app\/loop\.md>\) \| 1 \|/);
+  assert.match(readFileSync(join(t.common, 'main', 'app', 'loop.md'), 'utf8'), /\| \[1\]/);
+});
+
+test('a round at the pass mark with no must-fix: pass, exit 0', () => {
+  const t = setup();
+  t.answer(reply(4));
+  const out = run(t.repo, { images: [t.image], brief: 'b', loop: 'canvas' });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^weftwork design: pass$/m);
+  assert.ok(existsSync(join(t.common, 'main', 'canvas', 'round-01', 'round.md')));
+});
+
+test('the ceiling: the last round stops the loop with exit 5, and a round past it runs no reviewer', () => {
+  const t = setup(2);
+  t.answer(reply(2));
+  assert.equal(run(t.repo, { images: [t.image], brief: 'b' }).status, 1);
+  const second = run(t.repo, { images: [t.image], brief: 'b' });
+  assert.equal(second.status, 5, second.stderr);
+  assert.match(second.stdout, /^stop: the ceiling: 2 of 2 rounds run$/m);
+  assert.match(readFileSync(join(t.common, 'main', 'app', 'round-02', 'prompt.txt'), 'utf8'), /This is round 2\. Round 1 gave the lowest grades/);
+  const third = run(t.repo, { images: [t.image], brief: 'b' });
+  assert.equal(third.status, 5);
+  assert.match(third.stdout, /^weftwork design: stopped$/m);
+  assert.equal(existsSync(join(t.common, 'main', 'app', 'round-03')), false);
+});
+
+test('a lesson is kept in the clone and reaches the next round', () => {
+  const t = setup();
+  const kept = run(t.repo, { lesson: 'Primary buttons are 44px tall.', from: 'main/app round 1' });
+  assert.equal(kept.status, 0, kept.stderr);
+  assert.match(readFileSync(join(t.common, 'LESSONS.md'), 'utf8'), /^- Primary buttons are 44px tall\. \(from main\/app round 1, \d{4}-\d\d-\d\d\)$/m);
+  t.answer(reply(5));
+  run(t.repo, { images: [t.image], brief: 'b' });
+  assert.match(readFileSync(join(t.common, 'main', 'app', 'round-01', 'prompt.txt'), 'utf8'), /Primary buttons are 44px tall/);
+});
+
+test('a reply that grades nothing: no verdict, exit 3', () => {
+  const t = setup();
+  t.answer('Looks great!');
+  const out = run(t.repo, { images: [t.image], brief: 'b' });
+  assert.equal(out.status, 3, out.stderr);
+  assert.match(out.stdout, /^reviewer 1, cat: failed, the reply does not grade purpose/m);
+});
+
+test('bad input: exit 2 with the reason on stderr and nothing run', () => {
+  const t = setup();
+  writeFileSync(join(t.repo, 'not.png'), 'text');
+  assert.equal(run(t.repo, { images: ['not.png'], brief: 'b' }).status, 2);
+  assert.equal(run(t.repo, { images: [], brief: 'b' }).status, 2);
+  assert.equal(run(t.repo, { images: [t.image] }).status, 2);
+  assert.equal(existsSync(join(t.common, 'main')), false);
+});
+
+test('status: the loop rounds and where the record is', () => {
+  const t = setup();
+  t.answer(reply(3));
+  run(t.repo, { images: [t.image], brief: 'b' });
+  const out = run(t.repo, { status: true });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^weftwork design: 1 round on main\/app, last: changes, mean/m);
+  assert.match(out.stdout, /^record: .*design\/main\/app\/loop\.md$/m);
+});

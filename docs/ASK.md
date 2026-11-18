@@ -27,6 +27,17 @@ asks the owner with the question tool. Under `all-in`, merging the task's own
 pull request is not a trigger while its merge gate holds; a gate that cannot
 pass is one, and the pull request stays open and unmerged.
 
+## A second opinion before the owner
+
+A task, or a part of one, that needs judgement or taste is never skipped,
+deferred or reordered for that reason. The agent does as much of it as it
+can, and settles a judgement call with a second opinion first: a reviewer
+from another model family, read-only, or a subagent, and for a visual
+choice the design loop (`docs/DESIGN-LOOP.md`). It logs the answer it takes
+as a decision. It asks the owner only on a trigger above, or when the second
+opinion could not settle a question whose answer changes the result, and
+then only after the rest of the task is done.
+
 ## The guard's two triggers
 
 The guard (`docs/GUARD.md`) runs them when the hook's project folder is in
