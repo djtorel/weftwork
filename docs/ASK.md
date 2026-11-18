@@ -15,7 +15,7 @@ question that is not asked can do harm that a review cannot undo.
 | A push to `main`, `master` or the remote's default branch | The guard (PreToolUse), for Bash `git push` |
 | An irreversible or destructive action (delete data, rewrite shared history, deploy, publish) | The `all-ready` and `all-in` skills |
 | A security-sensitive change (auth, secrets, permissions, the guard itself) | The `all-ready` and `all-in` skills |
-| Any other effect outside the worktree (another repository, a service, a message) | The `all-ready` and `all-in` skills |
+| Any other effect outside the worktree (another repository, a service, a message); the task's own frames in a design canvas the session is connected to are not one (`docs/DESIGN-LOOP.md`) | The `all-ready` and `all-in` skills |
 | A task or plan too broken or ambiguous to follow | The `all-ready` and `all-in` skills |
 | Spend past the budget (the engine answers exhausted) | The engine (`docs/BUDGET.md`) |
 | A change the agent cannot prove, or a check it cannot make pass | The `all-ready` and `all-in` skills |
@@ -26,6 +26,17 @@ opens a draft pull request with the proof and the handoff note, and then
 asks the owner with the question tool. Under `all-in`, merging the task's own
 pull request is not a trigger while its merge gate holds; a gate that cannot
 pass is one, and the pull request stays open and unmerged.
+
+## A second opinion before the owner
+
+A task, or a part of one, that needs judgement or taste is never skipped,
+deferred or reordered for that reason. The agent does as much of it as it
+can, and settles a judgement call with a second opinion first: a reviewer
+from another model family, read-only, or a subagent, and for a visual
+choice the design loop (`docs/DESIGN-LOOP.md`). It logs the answer it takes
+as a decision. It asks the owner only on a trigger above, or when the second
+opinion could not settle a question whose answer changes the result, and
+then only after the rest of the task is done.
 
 ## The guard's two triggers
 

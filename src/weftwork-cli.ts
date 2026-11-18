@@ -30,6 +30,7 @@ const about: Record<string, string> = {
   'review-outcome': 'Record what became of a review finding, or report them',
   'base-check': 'Run the tests a change adds or edits against the base commit',
   ui: 'Take before or after screenshots of a UI change',
+  design: 'Run one design round: grade UI screenshots, mark what to change, keep the record',
   measure: 'Measure the done gate against seeded false successes (JSON on stdin)',
   resume: 'Check the handoff note at the start of a session',
   handoff: 'Write the handoff note for the next session',

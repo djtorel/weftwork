@@ -59,6 +59,8 @@ under its own hooks (below).
    git worktree is fine; each worktree has its own engine state.
 3. Make the smallest change that does the task. For behaviour, write the test
    first and watch it fail, then make it pass.
+   For UI work, run the design loop until it passes or stops
+   (`docs/DESIGN-LOOP.md`).
 4. Prove it: run the task's check and Preflight, and keep the output.
 5. Review with the `second-opinion` skill (Codex, read-only, at most 3 rounds).
 6. File the PR with the `pr-it` skill, wait for CI, fix real failures. Stop
@@ -78,6 +80,7 @@ then merges.
 | Base check | `echo '{}' \| node src/base-check-cli.ts` |
 | Finding outcomes | `echo '{"report":true}' \| node src/review-outcome-cli.ts` |
 | UI screenshots | `echo '{"phase":"after"}' \| node src/ui-cli.ts` |
+| Design round | `echo '{"images":["shot.png"],"brief":"..."}' \| node src/design-cli.ts` |
 | Detect a project | `echo '{"run":false}' \| node src/detect-cli.ts` |
 | File overlap | `echo '{"tasks":[{"name":"a","files":["src/a.ts"]},{"name":"b","branch":"main"}]}' \| node src/overlap-cli.ts` |
 | Measure (R10 E1) | `echo '{"out":"/tmp/weftwork-measure.jsonl"}' \| node src/measure-cli.ts` |
@@ -126,6 +129,7 @@ new code goes. In short:
   (the PreToolUse guard and the ask triggers; `docs/ASK.md`), `state/` (the
   state file, handoff, resume and decision log; `docs/STATE.md`), `review/`
   (review rounds and UI screenshots; `docs/REVIEW.md`, `docs/UI.md`),
+  `design/` (the design loop; `docs/DESIGN-LOOP.md`),
   `proof/` (the PR Proof block and the base check; `docs/PR-PROOF.md`,
   `docs/BASE-CHECK.md`), `setup/` (setup, init and update;
   `docs/SETUP.md`), `detect/` (`docs/DETECT.md`), `convert/`

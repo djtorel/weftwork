@@ -49,9 +49,11 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
   ],
   'all-ready/SKILL.md': [
     '3fe0398ad9929b1d5031aaa08d05146e4573086b39fcd9c2a4deda06babadacf',
+    'a743086f6b9df98a9f6337f69150486cc71ebad7eb52ac420ac2ebea50fe0ab1',
   ],
   'all-in/SKILL.md': [
     'c2db72138ef0f4c9b484e56783752abd5295d01230ac02e42143c4ad389173ee',
+    '6f1d587cc9202ae8687a047464f85723e8446e4f28f5c5740c9f3aede907ebc8',
   ],
   'second-opinion/SKILL.md': [
     'f6318ad028b3e7fe4319bff9bd01ad272a9cd2ff5fecdef0633d51fa74de95c7',

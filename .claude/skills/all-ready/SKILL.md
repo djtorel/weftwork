@@ -19,9 +19,13 @@ The user grants you permission to:
 - Open and update the pull request.
 - Use the test methods that proof needs without asking first: running the app
   or a dev server, browser automation, screenshots.
+- Create and change frames for this task in a design canvas the session is
+  already connected to, and export them, for the design loop. This is not
+  the outside-the-worktree ask trigger below.
 
 This grant does not cover merging, enabling auto-merge, pushing to `main`,
-deleting data, or anything outside this repository.
+deleting data, or anything outside this repository other than the design
+canvas frames above.
 
 ## Steps
 
@@ -31,15 +35,34 @@ deleting data, or anything outside this repository.
    links.
 2. **Branch.** Fetch, start from the latest `main`, and run
    `git checkout -b <type>/<short-name>`. Never work on `main`.
-3. **Change.** Make the smallest change that does the task. Fix the case that
-   happened, not every case that could. For behaviour, write the test first,
+3. **Change.** For a UI task with a design canvas, do the canvas part of
+   step 4 first, then build the last canvas design, whether its loop passed
+   or stopped. Make the smallest change that does
+   the task. Fix the case that happened, not every case that could. For behaviour, write the test first,
    run it, and see it fail for the right reason. Log each choice you make
    without the owner when you make it (`docs/ASK.md`):
    `echo '{"question":"...","choice":"...","reason":"..."}' | node src/decision-cli.ts`.
    When `weftwork.yaml` sets `ui` and the task changes a file in `ui.paths`,
    run `echo '{"phase":"before"}' | node src/ui-cli.ts` before the first such
    edit (`docs/UI.md`).
-4. **Prove.** Run the task's check, then Preflight through the engine, so its
+   Do every part of the task, including the parts that need judgement or
+   taste (below, Work that needs the owner).
+4. **Design.** For a task that adds or changes a screen, a component or a
+   style, run the design loop (`docs/DESIGN-LOOP.md`). When the session has
+   a design canvas tool (for example the Doop MCP server), design the screen
+   there before you build it: export each frame as a PNG, download it into
+   the temp folder, and run rounds with `"loop":"canvas"` until the loop
+   passes or stops. Once it is built, take screenshots of the running app,
+   one for each viewport and state the change touches, and run rounds on them:
+   `echo '{"images":["<png>",...],"brief":"<what the screen is for, who uses it, what changed>","loop":"app"}' | node src/design-cli.ts`.
+   After each round, open the marked images it names with your file tool,
+   change the design for each mark, and run the next round. Stop at exit 0
+   (pass) or exit 5 (stopped). Keep a rule a round taught that later work
+   should follow:
+   `echo '{"lesson":"...","from":"<branch> <loop> round <n>"}' | node src/design-cli.ts`,
+   and add it to the project's design reference (`ui.design`) when the task
+   owns that file.
+5. **Prove.** Run the task's check, then Preflight through the engine, so its
    done gate decides and the ledger counts the budget:
    `echo '{"command":"<Preflight>"}' | node src/cli.ts` (Preflight is in
    `AGENTS.md`). When `weftwork.yaml` sets `proof`, run the base check,
@@ -49,8 +72,8 @@ deleting data, or anything outside this repository.
    behaviour, also run it and look; green mocked tests do not prove a
    user-facing change. For a UI change, then run
    `echo '{"phase":"after"}' | node src/ui-cli.ts`; the review needs it.
-5. **Review.** Use the `second-opinion` skill. Fix what it finds, prove each fix.
-6. **File.** Rebase onto the latest `main`, run Preflight through the engine
+6. **Review.** Use the `second-opinion` skill. Fix what it finds, prove each fix.
+7. **File.** Rebase onto the latest `main`, run Preflight through the engine
    again, then get the proof block with the same command string and this
    session's transcript, so the budget line shows the tokens
    (`docs/PR-PROOF.md`):
@@ -66,14 +89,16 @@ deleting data, or anything outside this repository.
    gives the same block without tokens. Paste its output, and the base check's, into the
    PR's Proof block as it is,
    and the output of `node src/decision-cli.ts list` into its Decisions.
+   For a UI task, add each design loop's last report (its first lines and
+   the record path) to the Proof block.
    Exit 0: push and open the PR with the `pr-it` skill. Exit 1: the gate
    says draft; fix it and run the engine again, or stop early (below).
-7. **Wait for CI.** `gh pr checks <number> --watch --interval 15`. Fix real
+8. **Wait for CI.** `gh pr checks <number> --watch --interval 15`. Fix real
    failures, prove the fix, push, and wait again. Tell a flaky run from a real
    failure by its log.
-8. **Backlog.** Tick the task in the local backlog and add any follow-ups you
+9. **Backlog.** Tick the task in the local backlog and add any follow-ups you
    found, with one line each.
-9. **Report** in your final message: the PR link, the final head commit, your
+10. **Report** in your final message: the PR link, the final head commit, your
    proof, the review outcome, each decision you made alone, and what remains
    unverified. Say plainly that the PR is open and unmerged.
 
@@ -87,6 +112,28 @@ The PR is ready when all of these hold on its latest commit:
   each must-fix with a written dispute and its evidence. A must-fix that is
   open with no dispute makes the PR a draft.
 - The branch is up to date with `main` and GitHub reports it mergeable.
+- For a UI task, the design loop passed or stopped, and the PR shows its
+  last report. A design that stopped below the pass mark does not make the
+  PR a draft: list the criteria still below it in Decisions, for the owner.
+
+## Work that needs the owner
+
+Never skip, defer or reorder a task, or a part of one, because it may need
+the owner's feedback: a design choice, wording, a trade-off, a matter of
+taste. Do as much of it as you can.
+
+1. Settle a judgement call with a second opinion before you ask the owner.
+   Ask a reviewer from another model family, read-only (the reviewer in
+   `second-opinion`), or a subagent with the options and the context. For a
+   visual choice, run a design round on each option, each as its own loop,
+   and take the one with the better grades.
+2. Take the answer when it is sensible, log it with
+   `node src/decision-cli.ts` (choice and reason, naming the second
+   opinion), and go on.
+3. Ask the owner only when a trigger below holds, or when the second opinion
+   could not settle a question whose answer changes the result. Then finish
+   everything else first, so that the question is the last thing and the
+   PR shows the rest done.
 
 ## Asking the user
 
@@ -99,9 +146,11 @@ on one of these triggers (`docs/ASK.md`):
   history, a deploy, a publish, a merge.
 - A security-sensitive change: auth, secrets, permissions, the guard.
 - Any other effect outside this worktree: another repository, a service, a
-  message to a person.
+  message to a person. The design canvas frames the grant above allows are
+  not one.
 - A task or plan too broken or ambiguous to follow, in a way that changes the
-  result, or another PR that makes this one obsolete.
+  result, after a second opinion could not settle it (above), or another PR
+  that makes this one obsolete.
 - Spend past the budget: the engine answers exhausted.
 - A change you cannot prove, or a check that cannot pass and you cannot fix.
 
