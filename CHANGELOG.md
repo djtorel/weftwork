@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/djtorel/weftwork/compare/v0.2.0...v0.3.0) (2026-11-18)
+
+
+### Features
+
+* **design:** grade UI work in design review rounds with marked screenshots ([#137](https://github.com/djtorel/weftwork/issues/137)) ([eefefd2](https://github.com/djtorel/weftwork/commit/eefefd2ac88cf266a01b665e71387255644bb964))
+* **engine:** run weftwork without a global install: from this clone only, a dev dependency, or PATH ([#131](https://github.com/djtorel/weftwork/issues/131)) ([8bf9028](https://github.com/djtorel/weftwork/commit/8bf9028bcfa09d9a11c80cef9b4a5aa1115d6ac1))
+
+
+### Bug fixes
+
+* **convert:** copy the old plans to the main checkout when converting in a worktree ([#134](https://github.com/djtorel/weftwork/issues/134)) ([2df31a7](https://github.com/djtorel/weftwork/commit/2df31a7a8d33ea4cf297883c7e760b86ca8fd1f7))
+* **convert:** keep the old plan's order in the backlog ([#133](https://github.com/djtorel/weftwork/issues/133)) ([0368510](https://github.com/djtorel/weftwork/commit/03685109fdc3a85810d4e30fd69d37b0d6860e37))
+* **engine:** a setting file the Stop hook cannot use lets the stop go ahead as not done, not a block that loops ([#135](https://github.com/djtorel/weftwork/issues/135)) ([4b073f1](https://github.com/djtorel/weftwork/commit/4b073f180610719511160574517b1ca1798cab53))
+
 ## [0.2.0](https://github.com/djtorel/weftwork/compare/v0.1.0...v0.2.0) (2026-11-16)
 
 
