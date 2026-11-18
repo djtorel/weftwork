@@ -42,18 +42,19 @@ echo '{"images":["/tmp/shots/home.desktop.png","/tmp/shots/home.mobile.png"],"br
 
 | Field | What it is |
 | --- | --- |
-| `images` | 1 to 20 PNG files, as paths from the current folder: regular files (not symlinks), each at most 20 MiB, with distinct file names and no comma in the name. Name each one `<screen>.<viewport>.<state>.png`, as in `docs/UI.md`. |
+| `images` | 1 to 20 PNG files, as paths from the current folder: regular files (not symlinks), each at most 20 MiB, with distinct file names that end in `.png` and have no comma or space. Name each one `<screen>.<viewport>.<state>.png`, as in `docs/UI.md`. |
 | `brief` | What the screen is for, who uses it, in what context, and what changed. The reviewers grade fit to purpose against it, so write it as a designer's brief. At most 20,000 characters. |
 | `loop` | The loop's name, for example `canvas` or `app`. Rounds are counted per branch and loop. Optional, `app` by default. |
 
 The engine copies the images into the round's folder, and the reviewers read
 the copies. So the record keeps what was reviewed, even when the canvas or
 the app changes later. Each reviewer gets the prompt on stdin, with
-`WEFTWORK_IMAGES` set to the copies (joined by commas) and
-`WEFTWORK_IMAGES_DIR` set to their folder. The prompt holds the brief, each
-image with its size in pixels, the design reference (`ui.design`, when it is
-set), the newest lessons (below), the rubric and, from round 2 on, the last
-round's grades and marks.
+`WEFTWORK_IMAGES` set to the copies (joined by commas), then the last
+round's images, and `WEFTWORK_IMAGES_DIR` set to the loop's folder, which
+holds both. The prompt holds the brief, each image with its size in pixels,
+the design reference (`ui.design`, when it is set), the newest lessons
+(below), the rubric and, from round 2 on, the last round's grades, marks and
+images, to compare with.
 
 | Exit | First line | Meaning |
 | --- | --- | --- |
@@ -91,7 +92,8 @@ leaves a criterion out fails, and counts as neither a pass nor a block.
 
 The round passes when the lowest grade of each criterion, across the
 reviewers that answered, meets the pass mark (4 by default), and no reviewer
-found an objective break. An objective break is a `MUST-FIX`: a layout that
+found an objective break. A reply with no numeric grade (only `n/a`) fails,
+unless it reports a must-fix, which still blocks. An objective break is a `MUST-FIX`: a layout that
 is broken at a viewport shown, a design reference rule that is broken, or a
 screen that cannot do its job. As in `docs/UI.md`, a contrast or exact-colour
 problem seen only in pixels is a mark and not a must-fix.
@@ -112,8 +114,11 @@ MARK home.desktop.png - colour: The palette has four accent colours. Fix: keep t
 MUST-FIX home.mobile.png 0,600,390,40 layout: The footer covers the last card at 390px. Fix: pad the list by the footer height.
 ```
 
+A `MUST-FIX` line that does not fit this format still blocks the round, as
+a must-fix with no box.
+
 The engine numbers the marks of a round from 1, and draws each box with its
-number in red on a copy of the image (`<name>.marked.png`). Coordinates
+number in red on a copy of the image (`marked/<name>`). Coordinates
 drawn on a screenshot made model critiques better in R18 [S3]. A box is only
 a pointer, because vision models misplace fine detail (R18 [S6]), so the text
 of each mark must make sense without the box. A box on an image that the
@@ -139,9 +144,15 @@ design/
     round-01/
       round.md              the brief, the grades, the marks by image, the replies
       home.desktop.png      the image as reviewed
-      home.desktop.marked.png
+      marked/home.desktop.png   the same image with the numbered boxes
       reply-1.txt           each reviewer's reply as it came
 ```
+
+A branch or loop name with a character other than a letter, a digit, `.`,
+`_` or `-` gets a folder name with those characters as `-`, then `~` and a
+short hash of the name, so `feature/login` (`feature-login~<hash>`) and
+`feature-login` keep separate records. Git does not allow `~` in a branch
+name, and a loop name with `~` is hashed too.
 
 To find the folder in the main checkout:
 `echo "$(git rev-parse --path-format=absolute --git-common-dir)/weftwork/design"`.

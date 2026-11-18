@@ -10,6 +10,8 @@
 // the next round), 3 no verdict (every reviewer failed, or the tree changed),
 // 5 stopped (the ceiling, or the grades stopped rising; no more rounds), 2
 // when it cannot run, with the reason on stderr.
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
 import { currentBranch, fingerprintTree } from './engine/tree.ts';
 import { readDesign } from './review/ui.ts';
@@ -17,7 +19,7 @@ import { loadUi } from './review/ui-setting.ts';
 import { designPrompt, loopStop, runDesignReviewers } from './design/design.ts';
 import { finishRound, gradeText, verdictMeans } from './design/design-round.ts';
 import { loadDesign } from './design/design-setting.ts';
-import { addLesson, designRoot, loopDir, readImages, readLessons, readLoop, startRound } from './design/design-store.ts';
+import { addLesson, designRoot, loopDir, readImages, readLessons, readLoop, roundDir, startRound } from './design/design-store.ts';
 
 const maxBrief = 20000;
 
@@ -90,12 +92,13 @@ async function main(): Promise<void> {
   const round = record.rounds.length + 1;
   const started = startRound(dir, round, images.images);
   if (!started.ok) return fail(started.error);
-  const previous = last === undefined ? null : { round: last.round, grades: last.grades, marks: last.markTexts };
+  const previousImages = last === undefined ? [] : last.images.map((name) => join(roundDir(dir, last.round), name)).filter((path) => existsSync(path));
+  const previous = last === undefined ? null : { round: last.round, grades: last.grades, marks: last.markTexts, images: previousImages };
   const prompt = designPrompt({ brief, images: images.images, pass: setting.design.pass, round, design, lessons: lessons.lessons, previous });
   // Only this round's images go to the reviewers; values from the caller are dropped.
   const { WEFTWORK_IMAGES: _images, WEFTWORK_IMAGES_DIR: _dir, ...env } = process.env;
   const names = images.images.map((image) => image.name);
-  const results = await runDesignReviewers(setting.design, cwd, prompt, names, { ...env, WEFTWORK_IMAGES: started.paths.join(','), WEFTWORK_IMAGES_DIR: started.folder });
+  const results = await runDesignReviewers(setting.design, cwd, prompt, names, { ...env, WEFTWORK_IMAGES: [...started.paths, ...previousImages].join(','), WEFTWORK_IMAGES_DIR: dir });
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const finished = finishRound({

@@ -20,10 +20,12 @@ The user grants you permission to:
 - Use the test methods that proof needs without asking first: running the app
   or a dev server, browser automation, screenshots.
 - Create and change frames for this task in a design canvas the session is
-  connected to, for the design loop.
+  already connected to, and export them, for the design loop. This is not
+  the outside-the-worktree ask trigger below.
 
 This grant does not cover merging, enabling auto-merge, pushing to `main`,
-deleting data, or anything outside this repository.
+deleting data, or anything outside this repository other than the design
+canvas frames above.
 
 ## Steps
 
@@ -33,8 +35,10 @@ deleting data, or anything outside this repository.
    links.
 2. **Branch.** Fetch, start from the latest `main`, and run
    `git checkout -b <type>/<short-name>`. Never work on `main`.
-3. **Change.** Make the smallest change that does the task. Fix the case that
-   happened, not every case that could. For behaviour, write the test first,
+3. **Change.** For a UI task with a design canvas, do the canvas part of
+   step 4 first, then build the last canvas design, whether its loop passed
+   or stopped. Make the smallest change that does
+   the task. Fix the case that happened, not every case that could. For behaviour, write the test first,
    run it, and see it fail for the right reason. Log each choice you make
    without the owner when you make it (`docs/ASK.md`):
    `echo '{"question":"...","choice":"...","reason":"..."}' | node src/decision-cli.ts`.
@@ -46,14 +50,15 @@ deleting data, or anything outside this repository.
 4. **Design.** For a task that adds or changes a screen, a component or a
    style, run the design loop (`docs/DESIGN-LOOP.md`). When the session has
    a design canvas tool (for example the Doop MCP server), design the screen
-   there first: export each frame as a PNG, download it into the temp
-   folder, and run rounds with `"loop":"canvas"` until the loop passes or
-   stops; then build it. Then take screenshots of the running app, one for each viewport and
-   state the change touches, and run rounds on them:
+   there before you build it: export each frame as a PNG, download it into
+   the temp folder, and run rounds with `"loop":"canvas"` until the loop
+   passes or stops. Once it is built, take screenshots of the running app,
+   one for each viewport and state the change touches, and run rounds on them:
    `echo '{"images":["<png>",...],"brief":"<what the screen is for, who uses it, what changed>","loop":"app"}' | node src/design-cli.ts`.
    After each round, open the marked images it names with your file tool,
    change the design for each mark, and run the next round. Stop at exit 0
-   (pass) or exit 5 (stopped). Keep a rule a round taught that later work should follow:
+   (pass) or exit 5 (stopped). Keep a rule a round taught that later work
+   should follow:
    `echo '{"lesson":"...","from":"<branch> <loop> round <n>"}' | node src/design-cli.ts`,
    and add it to the project's design reference (`ui.design`) when the task
    owns that file.
@@ -141,7 +146,8 @@ on one of these triggers (`docs/ASK.md`):
   history, a deploy, a publish, a merge.
 - A security-sensitive change: auth, secrets, permissions, the guard.
 - Any other effect outside this worktree: another repository, a service, a
-  message to a person.
+  message to a person. The design canvas frames the grant above allows are
+  not one.
 - A task or plan too broken or ambiguous to follow, in a way that changes the
   result, after a second opinion could not settle it (above), or another PR
   that makes this one obsolete.

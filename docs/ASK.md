@@ -15,7 +15,7 @@ question that is not asked can do harm that a review cannot undo.
 | A push to `main`, `master` or the remote's default branch | The guard (PreToolUse), for Bash `git push` |
 | An irreversible or destructive action (delete data, rewrite shared history, deploy, publish) | The `all-ready` and `all-in` skills |
 | A security-sensitive change (auth, secrets, permissions, the guard itself) | The `all-ready` and `all-in` skills |
-| Any other effect outside the worktree (another repository, a service, a message) | The `all-ready` and `all-in` skills |
+| Any other effect outside the worktree (another repository, a service, a message); the task's own frames in a design canvas the session is connected to are not one (`docs/DESIGN-LOOP.md`) | The `all-ready` and `all-in` skills |
 | A task or plan too broken or ambiguous to follow | The `all-ready` and `all-in` skills |
 | Spend past the budget (the engine answers exhausted) | The engine (`docs/BUDGET.md`) |
 | A change the agent cannot prove, or a check it cannot make pass | The `all-ready` and `all-in` skills |

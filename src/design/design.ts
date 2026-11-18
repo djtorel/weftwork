@@ -42,6 +42,7 @@ const anchors = [
 const gradeLine = /^\s*(?:[-*]\s*)?GRADE\s+([a-z]+)\s*:\s*(n\/a|[1-5])(?![\d.])\s*(.*)$/i;
 const markLine = /^\s*(?:[-*]\s*)?(MARK|MUST-FIX)\s+(\S+)\s+(?:(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)|-)\s+([a-z]+)\s*:\s*(.+?)\s*$/i;
 const compareLine = /^\s*COMPARE:\s*(BETTER|SAME|WORSE)\b/im;
+const looseMustFix = /^\s*(?:[-*]\s*)?MUST-FIX\b:?\s*(.+?)\s*$/i;
 
 /** The grades and marks in a reviewer's reply, or why it cannot be read: a
  * reply must grade every criterion, with a number or n/a. A box on an image
@@ -58,13 +59,21 @@ export function parseDesignReply(reply: string, images: string[]): ({ ok: true }
       continue;
     }
     const mark = markLine.exec(line);
-    if (mark === null) continue;
+    if (mark === null) {
+      // A must-fix the format does not fit still blocks (review round 1).
+      const loose = looseMustFix.exec(line);
+      if (loose !== null) marks.push({ kind: 'must-fix', image: '', box: null, criterion: '', text: loose[1] ?? '' });
+      continue;
+    }
     const [, kind = '', image = '', x, y, w, h, criterion = '', text = ''] = mark;
     const box = x === undefined || !images.includes(image) ? null : { x: Number(x), y: Number(y), w: Number(w), h: Number(h) };
     marks.push({ kind: kind.toUpperCase() === 'MUST-FIX' ? 'must-fix' : 'mark', image, box, criterion: criterion.toLowerCase(), text });
   }
   const missing = keys.filter((key) => !(key in grades));
   if (missing.length > 0) return { ok: false, error: `the reply does not grade ${missing.join(', ')}` };
+  // All n/a cannot pass a round, but a must-fix with it still blocks (review rounds 1 and 2).
+  const noGrade = Object.values(grades).every((grade) => grade === null);
+  if (noGrade && !marks.some((mark) => mark.kind === 'must-fix')) return { ok: false, error: 'the reply has no numeric grade, only n/a' };
   const compare = compareLine.exec(reply)?.[1]?.toLowerCase() as Compare | undefined;
   return compare === undefined ? { ok: true, grades, marks } : { ok: true, grades, marks, compare };
 }
@@ -113,7 +122,8 @@ export type PromptInput = {
   round: number;
   design: string | null;
   lessons: string | null;
-  previous: { round: number; grades: Grades; marks: string[] } | null;
+  /** The last round: its lowest grades, its marks, and its images' paths. */
+  previous: { round: number; grades: Grades; marks: string[]; images: string[] } | null;
 };
 
 /** The text each reviewer reads on stdin. */
@@ -133,8 +143,9 @@ export function designPrompt(input: PromptInput): string {
   if (input.previous !== null) {
     const grades = criteria.map((c) => `${c.key} ${input.previous?.grades[c.key] ?? 'n/a'}`).join(', ');
     parts.push(
-      `This is round ${input.round}. Round ${input.previous.round} gave the lowest grades ${grades}, and these marks:\n${input.previous.marks.length === 0 ? '- none' : input.previous.marks.map((mark) => `- ${mark}`).join('\n')}\nMark again only what is still wrong. Then say whether this round is better than round ${input.previous.round} with one COMPARE line.`,
+      `This is round ${input.round}. Round ${input.previous.round} gave the lowest grades ${grades}, and these marks:\n${input.previous.marks.length === 0 ? '- none' : input.previous.marks.map((mark) => `- ${mark}`).join('\n')}\nMark again only what is still wrong. Then compare this round's images with round ${input.previous.round}'s, and say whether this round is better with one COMPARE line.`,
     );
+    if (input.previous.images.length > 0) parts.push(`Round ${input.previous.round}'s images, to compare with; do not mark them:\n${input.previous.images.map((path) => `- ${path}`).join('\n')}`);
   }
   parts.push(
     [

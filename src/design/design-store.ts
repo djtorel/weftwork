@@ -4,8 +4,9 @@
 // untracked, every worktree of the clone writes to the same folder, and it
 // stays when a worktree is removed, so the owner can read every round and the
 // lessons reach later tasks without a commit.
+import { createHash } from 'node:crypto';
 import { constants, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, closeSync, rmSync, writeFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { messageOf, type Failure } from '../shared/errors.ts';
 import { readRegularFile, strictUtf8, writeAtomic } from '../shared/regular-file.ts';
 import { commonDir } from '../guard/guard-worktree.ts';
@@ -27,10 +28,13 @@ export async function designRoot(cwd: string): Promise<string | null> {
   return common === null ? null : join(common, 'weftwork', 'design');
 }
 
-/** A branch or loop name as one safe folder name. */
+/** A branch or loop name as one safe folder name. A name that had to change
+ * gets `~` and a short hash of itself, so `feature/login` and `feature-login`
+ * keep separate records; a name kept as it is has no `~` (review rounds 1 and 2). */
 export function slug(name: string): string {
   const safe = name.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[-.]+|-+$/g, '').slice(0, 80);
-  return safe === '' ? 'unnamed' : safe;
+  if (safe === name) return safe;
+  return `${safe === '' ? 'unnamed' : safe}~${createHash('sha256').update(name).digest('hex').slice(0, 8)}`;
 }
 
 export function loopDir(root: string, branch: string, loop: string): string {
@@ -66,7 +70,10 @@ export function readImages(cwd: string, paths: unknown): { ok: true; images: Inp
     const full = resolve(cwd, path);
     const name = basename(full);
     // WEFTWORK_IMAGES joins the paths with commas (docs/UI.md).
+    if (!/\.png$/i.test(name)) return { ok: false, error: `${name} must end in .png` };
     if (name.includes(',')) return { ok: false, error: `${name} has a comma in its name` };
+    // A mark names its image by one word (design.ts).
+    if (/\s/.test(name)) return { ok: false, error: `${name} has a space in its name` };
     if (images.some((image) => image.name === name)) return { ok: false, error: `two images are named ${name}` };
     let bytes: Buffer;
     try {
@@ -109,6 +116,7 @@ export function startRound(dir: string, round: number, images: InputImage[]): { 
 /** Write one file of a round; null when written. */
 export function writeRoundFile(folder: string, name: string, data: string | Buffer): Failure | null {
   try {
+    mkdirSync(dirname(join(folder, name)), { recursive: true });
     writeFileSync(join(folder, name), data);
     return null;
   } catch (error) {

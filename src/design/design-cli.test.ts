@@ -29,7 +29,8 @@ function reply(grade: number, extra = ''): string {
 function setup(maxRounds = 5) {
   const dir = makeTempDir();
   const answer = join(dir, 'answer.txt');
-  const reviewer = `cat > "$WEFTWORK_IMAGES_DIR/prompt.txt"; cat ${JSON.stringify(answer)}`;
+  // It saves the prompt beside the first image, in this round's folder.
+  const reviewer = `cat > "$(dirname "\${WEFTWORK_IMAGES%%,*}")/prompt.txt"; d="$(dirname "\${WEFTWORK_IMAGES%%,*}")"; echo "$WEFTWORK_IMAGES" > "$d/images.txt"; echo "$WEFTWORK_IMAGES_DIR" > "$d/dir.txt"; cat ${JSON.stringify(answer)}`;
   const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${JSON.stringify(reviewer)}]\n  max_rounds: ${maxRounds}\n` });
   const image = join(dir, 'home.desktop.png');
   writeFileSync(image, encodePng({ width: 200, height: 100, rgba: Buffer.alloc(200 * 100 * 4, 255) }));
@@ -49,7 +50,8 @@ test('a round below the pass mark: changes, exit 1, with the record, the marked 
   const round = join(t.common, 'main', 'app', 'round-01');
   assert.match(readFileSync(join(round, 'round.md'), 'utf8'), /\| layout \| 2 \| 2 \(below\) \|/);
   assert.match(readFileSync(join(round, 'prompt.txt'), 'utf8'), /home\.desktop\.png, 200 by 100 pixels/);
-  const marked = decodePng(readFileSync(join(round, 'home.desktop.marked.png')));
+  const marked = decodePng(readFileSync(join(round, 'marked', 'home.desktop.png')));
+  assert.deepEqual(readFileSync(join(round, 'home.desktop.png')), readFileSync(t.image), 'the original is kept as it was');
   assert.ok(marked !== null);
   const at = (59 * 200 + 60) * 4;
   assert.deepEqual([...marked.rgba.subarray(at, at + 3)], [230, 0, 80], 'the bottom edge of the box is red');
@@ -73,7 +75,11 @@ test('the ceiling: the last round stops the loop with exit 5, and a round past i
   const second = run(t.repo, { images: [t.image], brief: 'b' });
   assert.equal(second.status, 5, second.stderr);
   assert.match(second.stdout, /^stop: the ceiling: 2 of 2 rounds run$/m);
-  assert.match(readFileSync(join(t.common, 'main', 'app', 'round-02', 'prompt.txt'), 'utf8'), /This is round 2\. Round 1 gave the lowest grades/);
+  const round2 = join(t.common, 'main', 'app', 'round-02');
+  assert.match(readFileSync(join(round2, 'prompt.txt'), 'utf8'), /This is round 2\. Round 1 gave the lowest grades/);
+  assert.match(readFileSync(join(round2, 'prompt.txt'), 'utf8'), /Round 1's images, to compare with; do not mark them:\n- .*round-01\/home\.desktop\.png/);
+  assert.deepEqual(readFileSync(join(round2, 'images.txt'), 'utf8').trim().split(',').map((path) => path.split('/').slice(-2).join('/')), ['round-02/home.desktop.png', 'round-01/home.desktop.png']);
+  assert.match(readFileSync(join(round2, 'dir.txt'), 'utf8').trim(), /design\/main\/app$/);
   const third = run(t.repo, { images: [t.image], brief: 'b' });
   assert.equal(third.status, 5);
   assert.match(third.stdout, /^weftwork design: stopped$/m);
@@ -115,4 +121,49 @@ test('status: the loop rounds and where the record is', () => {
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^weftwork design: 1 round on main\/app, last: changes, mean/m);
   assert.match(out.stdout, /^record: .*design\/main\/app\/loop\.md$/m);
+});
+
+test('a stall below the ceiling stops the loop, and the next call runs no reviewer', () => {
+  const t = setup(9);
+  const outs = [3, 3, 3].map((grade) => {
+    t.answer(reply(grade));
+    return run(t.repo, { images: [t.image], brief: 'b' });
+  });
+  assert.deepEqual(outs.map((out) => out.status), [1, 1, 5], 'the round that stalls says so itself');
+  assert.match(outs[2]?.stdout ?? '', /^stop: stalled: 2 rounds in a row did not beat the best mean grade/m);
+  const loop = readFileSync(join(t.common, 'main', 'app', 'loop.md'), 'utf8');
+  assert.match(loop, /The loop stopped: stalled: 2 rounds in a row did not beat the best mean grade/);
+  const next = run(t.repo, { images: [t.image], brief: 'b' });
+  assert.equal(next.status, 5);
+  assert.match(next.stdout, /^why: stalled/m);
+  assert.equal(existsSync(join(t.common, 'main', 'app', 'round-04')), false);
+});
+
+test('branch names that make the same folder name keep separate records', async () => {
+  const { designRoot, loopDir } = await import('./design-store.ts');
+  const t = setup();
+  const root = (await designRoot(t.repo)) as string;
+  assert.notEqual(loopDir(root, 'feature/login', 'app'), loopDir(root, 'feature-login', 'app'));
+  const encoded = loopDir(root, 'feature/login', 'app').split('/').at(-2) ?? '';
+  assert.match(encoded, /^feature-login~[0-9a-f]{8}$/, 'an encoded name has a ~, which no name kept as it is can have');
+  assert.notEqual(loopDir(root, encoded, 'app'), loopDir(root, 'feature/login', 'app'));
+  assert.equal(loopDir(root, 'feature-login', 'app'), join(root, 'feature-login', 'app'));
+});
+
+test('an image whose name does not end in .png is refused', () => {
+  const t = setup();
+  const bare = join(t.repo, '..', 'marked');
+  writeFileSync(bare, readFileSync(t.image));
+  const out = run(t.repo, { images: [bare], brief: 'b' });
+  assert.equal(out.status, 2);
+  assert.match(out.stderr, /must end in \.png/);
+});
+
+test('an image name with a space is refused, since a mark names its image by one word', () => {
+  const t = setup();
+  const spaced = join(t.repo, '..', 'home page.png');
+  writeFileSync(spaced, readFileSync(t.image));
+  const out = run(t.repo, { images: [spaced], brief: 'b' });
+  assert.equal(out.status, 2);
+  assert.match(out.stderr, /has a space/);
 });

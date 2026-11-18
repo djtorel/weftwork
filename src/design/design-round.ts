@@ -45,7 +45,8 @@ export function finishRound(input: FinishInput): { ok: true; lines: string[]; ex
   for (const image of input.images) {
     const boxes = marks.flatMap((mark) => (mark.image === image.name && mark.box !== null ? [{ ...mark.box, n: mark.n }] : []));
     const png = boxes.length === 0 ? null : markPng(image.bytes, boxes);
-    const name = `${image.name.replace(/\.png$/i, '')}.marked.png`;
+    // In their own folder, so a marked copy never overwrites an image (review round 1).
+    const name = `marked/${image.name}`;
     marked[image.name] = png === null ? null : name;
     const wrote = png === null ? null : writeRoundFile(folder, name, png);
     if (wrote !== null) return wrote;

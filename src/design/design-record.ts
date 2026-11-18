@@ -88,7 +88,8 @@ export function roundMarkdown(input: {
     if (summary.images.includes(image)) lines.push(marked === null || marked === undefined ? `![${text(image)}](${target(image)})` : `![${text(image)}, marked](${target(marked)})`, '');
     for (const mark of marks) {
       const where = mark.box === null ? 'no box' : `box ${mark.box.x},${mark.box.y},${mark.box.w},${mark.box.h}`;
-      lines.push(`${mark.n}. ${mark.kind === 'must-fix' ? '**MUST-FIX** ' : ''}**${text(mark.criterion)}** (${text(mark.reviewer)}, ${where}): ${text(mark.text)}`);
+      // The number as text, not a Markdown list, so it stays the box's number (review round 1).
+      lines.push(`- **${mark.n}.** ${mark.kind === 'must-fix' ? '**MUST-FIX** ' : ''}**${text(mark.criterion)}** (${text(mark.reviewer)}, ${where}): ${text(mark.text)}`);
     }
     lines.push('');
   }

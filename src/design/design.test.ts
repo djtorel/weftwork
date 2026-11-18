@@ -78,7 +78,7 @@ test('the prompt names every criterion, each image with its size, the pass mark,
     round: 2,
     design: 'Primary: #0055ff',
     lessons: '- Buttons are 44px tall.',
-    previous: { round: 1, grades: { ...fours, colour: 2 }, marks: ['m1 colour: Too pale.'] },
+    previous: { round: 1, grades: { ...fours, colour: 2 }, marks: ['m1 colour: Too pale.'], images: [] },
   });
   for (const c of criteria) assert.match(prompt, new RegExp(`GRADE ${c.key}:`));
   assert.match(prompt, /login\.mobile\.png, 390 by 844 pixels/);
@@ -88,4 +88,40 @@ test('the prompt names every criterion, each image with its size, the pass mark,
   assert.match(prompt, /round 1/i);
   assert.match(prompt, /m1 colour: Too pale\./);
   assert.match(prompt, /COMPARE:/);
+});
+
+test('a reply with no numeric grade fails, so all n/a cannot pass a round', () => {
+  const allNa = parseDesignReply(criteria.map((c) => `GRADE ${c.key}: n/a`).join('\n'), ['a.png']);
+  assert.equal(allNa.ok, false);
+  assert.match(allNa.ok ? '' : allNa.error, /no numeric grade/);
+});
+
+test('a MUST-FIX line the format does not fit still blocks, as a must-fix with no box', () => {
+  const parsed = parseDesignReply(`${allFour}\nMUST-FIX home desktop.png 1,2,3,4 layout: The footer covers the list.`, ['home desktop.png']);
+  assert.ok(parsed.ok);
+  assert.equal(parsed.marks.length, 1);
+  assert.equal(parsed.marks[0]?.kind, 'must-fix');
+  assert.equal(parsed.marks[0]?.box, null);
+  assert.match(parsed.marks[0]?.text ?? '', /footer covers the list/);
+});
+
+test('from round 2 the prompt lists the last round images for COMPARE only', () => {
+  const prompt = designPrompt({
+    brief: 'b',
+    images: [{ name: 'a.png', width: 1, height: 1 }],
+    pass: 4,
+    round: 2,
+    design: null,
+    lessons: null,
+    previous: { round: 1, grades: fours, marks: [], images: ['/x/round-01/a.png'] },
+  });
+  assert.match(prompt, /Round 1's images, to compare with; do not mark them:\n- \/x\/round-01\/a\.png/);
+});
+
+test('an all n/a reply that reports a must-fix keeps it, so the round needs changes', () => {
+  const reply = `${criteria.map((c) => `GRADE ${c.key}: n/a`).join('\n')}\nMUST-FIX a.png 0,0,10,10 layout: The header is clipped. Fix: let it wrap.`;
+  const parsed = parseDesignReply(reply, ['a.png']);
+  assert.ok(parsed.ok);
+  const naWithBreak: DesignResult = { name: 'r', ...parsed, reply };
+  assert.equal(roundOutcome([naWithBreak, result(Object.fromEntries(criteria.map((c) => [c.key, 5])))], 4), 'changes');
 });
