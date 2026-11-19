@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/djtorel/weftwork/compare/v0.4.1...v0.4.2) (2026-11-19)
+
+
+### Bug fixes
+
+* **all-ready:** ask the owner how to unblock the named task instead of switching to another ([#142](https://github.com/djtorel/weftwork/issues/142)) ([bd6f14d](https://github.com/djtorel/weftwork/commit/bd6f14d808b4bdbbbef9a17b6a435e36510aab20))
+
 ## [0.4.1](https://github.com/djtorel/weftwork/compare/v0.4.0...v0.4.1) (2026-11-19)
 
 
