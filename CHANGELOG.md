@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/djtorel/weftwork/compare/v0.3.0...v0.4.0) (2026-11-19)
+
+
+### Features
+
+* **ui:** let a project take up to 200 screenshots a phase, 50 by default, instead of a fixed 20 ([#138](https://github.com/djtorel/weftwork/issues/138)) ([b400fe0](https://github.com/djtorel/weftwork/commit/b400fe0fe263c25545bf2310e5b339fecbb710e3))
+
 ## [0.3.0](https://github.com/djtorel/weftwork/compare/v0.2.0...v0.3.0) (2026-11-18)
 
 
