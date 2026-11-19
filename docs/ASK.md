@@ -31,8 +31,9 @@ pass is one, and the pull request stays open and unmerged.
 A blocked task is never swapped for another one. When the task the owner
 named waits on the owner or on unfinished work, the agent does what does not
 wait, then asks: what blocks it, the exact steps that unblock it, and the
-options to go on, to take the next task that is not blocked, or to stop.
-When it changed no files, it makes no branch and no pull request first.
+options to go on, to take the next task that is not blocked (when there is
+one), or to stop. When it changed no files, it writes no handoff, makes no
+branch and no pull request, and asks without a pull request link.
 
 ## A second opinion before the owner
 

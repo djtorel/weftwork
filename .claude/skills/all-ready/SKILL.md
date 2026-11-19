@@ -33,8 +33,9 @@ canvas frames above.
    and read the note it points to. Read the task in the local backlog,
    `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"`, and anything it
    links. The task is the one the owner named; "the next" one is the first
-   unticked task from the top. Before you branch, check that it is not
-   blocked. If it is, stop and ask (below, A blocked task).
+   unticked task from the top. Before you branch, check whether it is
+   blocked (below, A blocked task). When the whole task is blocked, make no
+   branch: stop and ask. When only a part is, go on and leave that part last.
 2. **Branch.** Fetch, start from the latest `main`, and run
    `git checkout -b <type>/<short-name>`. Never work on `main`.
 3. **Change.** For a UI task with a design canvas, do the canvas part of
@@ -178,7 +179,7 @@ When it stops the whole task:
    the exact steps that unblock it: the canvas and the frames and the status
    they need, the command to run, the pull request to merge, or the answer
    you need. Give the options "Unblocked, go on" first, then the first task
-   below it that is not blocked, by its id, then "Stop".
+   below it that is not blocked, by its id, when there is one, then "Stop".
 
 Start another task only when the owner picks it.
 
@@ -209,7 +210,9 @@ draft with what you have, the proof block and the handoff note in its body.
 The engine answering blocked, stalled or exhausted ends the run the same way.
 Then ask with the question tool (`AskUserQuestion` in Claude Code), with all
 the context in the question: the PR link, what blocks you, and the options
-with your recommendation first.
+with your recommendation first. A blocked task that changed no files is the
+one exception: write no handoff, run no engine and open no PR, and ask
+without a PR link, as A blocked task says.
 
 Decide everything else with sensible defaults. Log each decision with
 `node src/decision-cli.ts`, and list them in the PR and the report.
