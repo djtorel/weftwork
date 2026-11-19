@@ -23,6 +23,7 @@ ui:
     - 'web/**'
     - '**/*.css'
   timeout_seconds: 600
+  max_shots: 50
   design: DESIGN.md
 ```
 
@@ -31,6 +32,7 @@ ui:
 | `screenshot` | A command that writes PNG files into the folder named by `$WEFTWORK_SHOTS` | a non-empty command | none |
 | `paths` | Glob patterns from the repository root (`path.matchesGlob`); a change that touches one is a UI change | 1 to 50 | none |
 | `timeout_seconds` | Time for the screenshot command | 1 to 3600 | 600 |
+| `max_shots` | The most PNG files one phase may write. Every reviewer reads each before and after screenshot, so more shots cost more review time and tokens. `WEFTWORK_IMAGES` holds all their paths, and Linux allows one variable 128 KiB: at the ceiling, a path longer than about 320 bytes makes a reviewer fail to start | 1 to 200 | 50 |
 | `design` | The design reference: a path from the repository root to a file of colours, type, spacing and component rules (a DESIGN.md; bigpowers `extract-design` can make one) | a path inside the repository | none |
 
 `screenshot` and `paths` go together: a file that leaves one unset is an
@@ -55,7 +57,7 @@ review time.
 
 The engine empties `<git dir>/weftwork/ui/<phase>/`, runs `screenshot` in
 the working tree with `WEFTWORK_SHOTS` set to that folder, and checks what
-it wrote: at least one and at most 20 `.png` files, each with the PNG
+it wrote: at least one and at most `ui.max_shots` `.png` files, each with the PNG
 signature and at most 20 MiB. It keeps a manifest with each file's size and
 SHA-256, the branch, the base commit, and the fingerprint of the tree they show.
 
@@ -64,7 +66,7 @@ SHA-256, the branch, the base commit, and the fingerprint of the tree they show.
 | 0 | `weftwork ui: taken` | The screenshots are kept; one line each, with its path and hash |
 | 0 | `weftwork ui: off` | No `ui` mapping; nothing ran |
 | 1 | `weftwork ui: refused` | Before screenshots, but the tree already changes `ui.paths`, so they would show the change. The command does not run. |
-| 1 | `weftwork ui: failed` | The command failed or timed out, wrote no PNG, wrote a file that is not one, or changed the tree |
+| 1 | `weftwork ui: failed` | The command failed or timed out, wrote no PNG or more than `ui.max_shots`, wrote a file that is not one, or changed the tree |
 | 2 | none | Bad input, no git working tree, a bad setting file, a `ui.design` file the review cannot use; the reason is on stderr |
 
 Take the before screenshots before the first edit to a UI file, and the

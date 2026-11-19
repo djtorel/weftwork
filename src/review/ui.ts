@@ -23,8 +23,6 @@ export type Shot = { name: string; bytes: number; sha256: string };
 export type Shots = { phase: Phase; at: string; branch: string | null; base: string; fingerprint: string; files: Shot[] };
 
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-/** More screenshots than this is an error: the reviewers read every one. */
-const maxShots = 20;
 const maxShotBytes = 20 * 1024 * 1024;
 
 /** The folder for one phase's screenshots, in the engine's own folder. */
@@ -72,11 +70,12 @@ export function uiFiles(paths: string[], patterns: string[]): string[] {
   return paths.filter((path) => patterns.some((pattern) => matchesGlob(path, pattern)));
 }
 
-/** The PNG files in `dir`, each checked by its signature, sorted by name. */
-async function readPngs(dir: string): Promise<{ ok: true; files: Shot[] } | Failure> {
+/** The PNG files in `dir`, each checked by its signature, sorted by name.
+ * More than `maxShots` (ui.max_shots) is an error: the reviewers read every one. */
+async function readPngs(dir: string, maxShots: number): Promise<{ ok: true; files: Shot[] } | Failure> {
   const names = (await readdir(dir)).filter((name) => name.toLowerCase().endsWith('.png')).sort();
   if (names.length === 0) return { ok: false, error: 'the screenshot command wrote no PNG file' };
-  if (names.length > maxShots) return { ok: false, error: `the screenshot command wrote ${names.length} PNG files; at most ${maxShots}` };
+  if (names.length > maxShots) return { ok: false, error: `the screenshot command wrote ${names.length} PNG files; at most ${maxShots} (ui.max_shots)` };
   const files: Shot[] = [];
   const comma = names.find((name) => name.includes(','));
   // WEFTWORK_IMAGES joins the paths with commas (e11s06).
@@ -155,7 +154,7 @@ export async function takeShots(request: { cwd: string; weftwork: string; ui: Ui
   const after = await fingerprintTree(cwd);
   if (!after.ok || after.fingerprint !== tree.fingerprint) return { kind: 'failed', why: 'the screenshot command changed the tree' };
   try {
-    const pngs = await readPngs(dir);
+    const pngs = await readPngs(dir, ui.maxShots);
     if (!pngs.ok) return { kind: 'failed', why: pngs.error };
     const shots: Shots = { phase, at: new Date().toISOString(), branch: request.branch, base: request.base, fingerprint: tree.fingerprint, files: pngs.files };
     await writeFile(join(dir, 'manifest.json'), `${JSON.stringify(shots)}\n`);

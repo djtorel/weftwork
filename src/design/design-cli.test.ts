@@ -26,12 +26,12 @@ function reply(grade: number, extra = ''): string {
 }
 
 /** A repository whose one design reviewer saves its prompt and prints the file `answer`. */
-function setup(maxRounds = 5) {
+function setup(maxRounds = 5, extra = '') {
   const dir = makeTempDir();
   const answer = join(dir, 'answer.txt');
   // It saves the prompt beside the first image, in this round's folder.
   const reviewer = `cat > "$(dirname "\${WEFTWORK_IMAGES%%,*}")/prompt.txt"; d="$(dirname "\${WEFTWORK_IMAGES%%,*}")"; echo "$WEFTWORK_IMAGES" > "$d/images.txt"; echo "$WEFTWORK_IMAGES_DIR" > "$d/dir.txt"; cat ${JSON.stringify(answer)}`;
-  const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${JSON.stringify(reviewer)}]\n  max_rounds: ${maxRounds}\n` });
+  const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${JSON.stringify(reviewer)}]\n  max_rounds: ${maxRounds}\n${extra}` });
   const image = join(dir, 'home.desktop.png');
   writeFileSync(image, encodePng({ width: 200, height: 100, rgba: Buffer.alloc(200 * 100 * 4, 255) }));
   const common = join(repo, '.git', 'weftwork', 'design');
@@ -166,4 +166,26 @@ test('an image name with a space is refused, since a mark names its image by one
   const out = run(t.repo, { images: [spaced], brief: 'b' });
   assert.equal(out.status, 2);
   assert.match(out.stderr, /has a space/);
+});
+
+/** `count` copies of the test image, named home.<n>.png, beside it. */
+function copies(image: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const path = join(image, '..', `home.${i + 1}.png`);
+    writeFileSync(path, readFileSync(image));
+    return path;
+  });
+}
+
+test('the default allows 50 images a round, and design.max_images changes it', () => {
+  const t = setup();
+  t.answer(reply(4));
+  const fifty = run(t.repo, { images: copies(t.image, 50), brief: 'b' });
+  assert.equal(fifty.status, 0, fifty.stderr);
+  const many = run(t.repo, { images: copies(t.image, 51), brief: 'b' });
+  assert.equal(many.status, 2);
+  assert.match(many.stderr, /"images" must be a list of 1 to 50 PNG file paths \(design\.max_images\)/);
+  const raised = setup(5, '  max_images: 60\n');
+  raised.answer(reply(4));
+  assert.equal(run(raised.repo, { images: copies(raised.image, 60), brief: 'b' }).status, 0);
 });

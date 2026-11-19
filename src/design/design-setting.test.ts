@@ -8,10 +8,10 @@ import { resolveDesign } from './design-setting.ts';
 
 const review = { reviewers: ['codex exec -'], timeoutSeconds: 1200 };
 
-test('no design mapping: 5 rounds, pass mark 4, stall after 2, and the review reviewers', () => {
+test('no design mapping: 5 rounds, pass mark 4, stall after 2, at most 50 images, and the review reviewers', () => {
   const resolved = resolveDesign({ user: null, repo: null }, review);
   assert.ok(resolved.ok);
-  assert.deepEqual(resolved.design, { reviewers: ['codex exec -'], maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: 1200 });
+  assert.deepEqual(resolved.design, { reviewers: ['codex exec -'], maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: 1200, maxImages: 50 });
 });
 
 test('the repository file wins over the user file key by key', () => {
@@ -19,7 +19,7 @@ test('the repository file wins over the user file key by key', () => {
   const repo = { path: 'weftwork.yaml', text: 'design:\n  pass: 5\n  reviewers: [claude -p]\n' };
   const resolved = resolveDesign({ user, repo }, review);
   assert.ok(resolved.ok);
-  assert.deepEqual(resolved.design, { reviewers: ['claude -p'], maxRounds: 8, pass: 5, stallAfter: 2, timeoutSeconds: 1200 });
+  assert.deepEqual(resolved.design, { reviewers: ['claude -p'], maxRounds: 8, pass: 5, stallAfter: 2, timeoutSeconds: 1200, maxImages: 50 });
 });
 
 test('a bad value or an unknown key is an error that names the file and the key', () => {
@@ -28,4 +28,14 @@ test('a bad value or an unknown key is an error that names the file and the key'
   assert.match(bad.ok ? '' : bad.error, /weftwork\.yaml: design\.pass must be an integer from 1 to 5/);
   const unknown = resolveDesign({ user: null, repo: { path: 'weftwork.yaml', text: 'design:\n  colour: red\n' } }, review);
   assert.match(unknown.ok ? '' : unknown.error, /design\.colour is not a known key/);
+});
+
+test('design.max_images sets how many images one round may take, from 1 to 200', () => {
+  const set = resolveDesign({ user: null, repo: { path: 'weftwork.yaml', text: 'design:\n  max_images: 80\n' } }, review);
+  assert.ok(set.ok);
+  assert.equal(set.design.maxImages, 80);
+  for (const value of [0, 201]) {
+    const bad = resolveDesign({ user: null, repo: { path: 'weftwork.yaml', text: `design:\n  max_images: ${value}\n` } }, review);
+    assert.match(bad.ok ? '' : bad.error, /weftwork\.yaml: design\.max_images must be an integer from 1 to 200/);
+  }
 });

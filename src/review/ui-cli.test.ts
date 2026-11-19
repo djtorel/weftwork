@@ -20,9 +20,12 @@ function ui(cwd: string, input: object) {
   return { status: out.status, stdout: out.stdout, stderr: out.stderr };
 }
 
-function uiRepo(screenshot: string): string {
-  return makeTestRepo({ 'weftwork.yaml': `---\nui:\n  screenshot: ${JSON.stringify(screenshot)}\n  paths: ['web/**']\n`, 'web/a.html': '<p>a</p>\n' });
+function uiRepo(screenshot: string, extra = ''): string {
+  return makeTestRepo({ 'weftwork.yaml': `---\nui:\n  screenshot: ${JSON.stringify(screenshot)}\n  paths: ['web/**']\n${extra}`, 'web/a.html': '<p>a</p>\n' });
 }
+
+/** A screenshot command that writes `count` PNG files. */
+const writePngs = (count: number) => `for i in $(seq 1 ${count}); do ${writePng('shot$i.png')}; done`;
 
 test('no ui setting: UI checks are off, exit 0, and nothing runs', () => {
   const out = ui(makeTestRepo(), { phase: 'before' });
@@ -86,4 +89,21 @@ test('a bad phase: exit 2 with the reason on stderr', () => {
   const out = ui(makeTestRepo(), { phase: 'during' });
   assert.equal(out.status, 2);
   assert.match(out.stderr, /"phase" must be "before" or "after"/);
+});
+
+test('the default allows 50 screenshots a phase, and 51 is too many', () => {
+  const fifty = ui(uiRepo(writePngs(50)), { phase: 'after' });
+  assert.equal(fifty.status, 0, fifty.stderr);
+  assert.match(fifty.stdout, /^weftwork ui: taken$/m);
+  const many = ui(uiRepo(writePngs(51)), { phase: 'after' });
+  assert.equal(many.status, 1, many.stderr);
+  assert.match(many.stdout, /^why: the screenshot command wrote 51 PNG files; at most 50 \(ui\.max_shots\)$/m);
+});
+
+test('ui.max_shots raises or lowers the limit', () => {
+  const raised = ui(uiRepo(writePngs(60), '  max_shots: 60\n'), { phase: 'after' });
+  assert.equal(raised.status, 0, raised.stderr);
+  const lowered = ui(uiRepo(writePngs(3), '  max_shots: 2\n'), { phase: 'after' });
+  assert.equal(lowered.status, 1, lowered.stderr);
+  assert.match(lowered.stdout, /^why: the screenshot command wrote 3 PNG files; at most 2 \(ui\.max_shots\)$/m);
 });
