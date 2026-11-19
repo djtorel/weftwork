@@ -17,6 +17,7 @@ question that is not asked can do harm that a review cannot undo.
 | A security-sensitive change (auth, secrets, permissions, the guard itself) | The `all-ready` and `all-in` skills |
 | Any other effect outside the worktree (another repository, a service, a message); the task's own frames in a design canvas the session is connected to are not one (`docs/DESIGN-LOOP.md`) | The `all-ready` and `all-in` skills |
 | A task or plan too broken or ambiguous to follow | The `all-ready` and `all-in` skills |
+| The task the owner named is blocked: it waits on an owner step (an approval, an answer, a setting) or on work that is not done | The `all-ready` and `all-in` skills |
 | Spend past the budget (the engine answers exhausted) | The engine (`docs/BUDGET.md`) |
 | A change the agent cannot prove, or a check it cannot make pass | The `all-ready` and `all-in` skills |
 
@@ -26,6 +27,12 @@ opens a draft pull request with the proof and the handoff note, and then
 asks the owner with the question tool. Under `all-in`, merging the task's own
 pull request is not a trigger while its merge gate holds; a gate that cannot
 pass is one, and the pull request stays open and unmerged.
+
+A blocked task is never swapped for another one. When the task the owner
+named waits on the owner or on unfinished work, the agent does what does not
+wait, then asks: what blocks it, the exact steps that unblock it, and the
+options to go on, to take the next task that is not blocked, or to stop.
+When it changed no files, it makes no branch and no pull request first.
 
 ## A second opinion before the owner
 
