@@ -2,13 +2,14 @@
 // The design loop setting, from the `design` mapping of the same two setting
 // files as the budget (docs/DESIGN-LOOP.md). The repository file wins over the
 // user file key by key. With no mapping the loop still runs, with built-in
-// values and the review's reviewers.
+// values and the review's reviewers. `max_images` caps the images of one
+// round, since every reviewer reads each one.
 import type { Failure } from '../shared/errors.ts';
 import { isInteger } from '../shared/json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from '../engine/budget.ts';
 import { loadReview, type ReviewSetting } from '../review/review-setting.ts';
 
-export type DesignSetting = { reviewers: string[]; maxRounds: number; pass: number; stallAfter: number; timeoutSeconds: number };
+export type DesignSetting = { reviewers: string[]; maxRounds: number; pass: number; stallAfter: number; timeoutSeconds: number; maxImages: number };
 export type DesignSettingResult = { ok: true; design: DesignSetting } | Failure;
 
 const integerKeys = {
@@ -16,6 +17,10 @@ const integerKeys = {
   pass: { field: 'pass', max: 5 },
   stall_after: { field: 'stallAfter', max: 10 },
   timeout_seconds: { field: 'timeoutSeconds', max: 3600 },
+  // WEFTWORK_IMAGES holds this round's and the last round's paths in one
+  // variable, which Linux caps at 128 KiB: 400 paths fit while each is under
+  // about 320 bytes (review rounds 1 and 2).
+  max_images: { field: 'maxImages', max: 200 },
 } as const;
 const knownKeys = ['reviewers', ...Object.keys(integerKeys)];
 const maxReviewers = 5;
@@ -54,7 +59,7 @@ function readDesignKeys(file: SettingFile): { ok: true; set: Partial<DesignSetti
 
 /** The design setting from the two files, over the review's reviewers and timeout. */
 export function resolveDesign(files: { user: SettingFile | null; repo: SettingFile | null }, review: Pick<ReviewSetting, 'reviewers' | 'timeoutSeconds'>): DesignSettingResult {
-  const design: DesignSetting = { reviewers: [...review.reviewers], maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: review.timeoutSeconds };
+  const design: DesignSetting = { reviewers: [...review.reviewers], maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: review.timeoutSeconds, maxImages: 50 };
   for (const file of [files.user, files.repo]) {
     if (file === null) continue;
     const read = readDesignKeys(file);

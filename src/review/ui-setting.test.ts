@@ -13,20 +13,25 @@ test('no file, or no ui mapping: UI checks are off', () => {
   assert.deepEqual(resolveUi({ user: null, repo: file('---\nreview:\n  max_rounds: 2\n') }), { ok: true, ui: null });
 });
 
-test('screenshot and paths turn UI checks on, with a 600 s timeout by default', () => {
+test('screenshot and paths turn UI checks on, with a 600 s timeout and at most 50 screenshots by default', () => {
   const result = resolveUi({ user: null, repo: file("---\nui:\n  screenshot: node shoot.js\n  paths: ['web/**']\n") });
-  assert.deepEqual(result, { ok: true, ui: { screenshot: 'node shoot.js', paths: ['web/**'], timeoutSeconds: 600 } });
+  assert.deepEqual(result, { ok: true, ui: { screenshot: 'node shoot.js', paths: ['web/**'], timeoutSeconds: 600, maxShots: 50 } });
 });
 
 test('ui.design names the design reference, a path from the repository root (e11s06)', () => {
   const result = resolveUi({ user: null, repo: file("---\nui:\n  screenshot: a\n  paths: [x]\n  design: docs/DESIGN.md\n") });
-  assert.deepEqual(result, { ok: true, ui: { screenshot: 'a', paths: ['x'], timeoutSeconds: 600, design: 'docs/DESIGN.md' } });
+  assert.deepEqual(result, { ok: true, ui: { screenshot: 'a', paths: ['x'], timeoutSeconds: 600, maxShots: 50, design: 'docs/DESIGN.md' } });
 });
 
 test('the repository file wins over the user file, key by key', () => {
   const user = file('---\nui:\n  screenshot: a\n  paths: [x]\n  timeout_seconds: 30\n', '/home/u/.config/weftwork/config.yaml');
   const repo = file('---\nui:\n  paths: [y, z]\n');
-  assert.deepEqual(resolveUi({ user, repo }), { ok: true, ui: { screenshot: 'a', paths: ['y', 'z'], timeoutSeconds: 30 } });
+  assert.deepEqual(resolveUi({ user, repo }), { ok: true, ui: { screenshot: 'a', paths: ['y', 'z'], timeoutSeconds: 30, maxShots: 50 } });
+});
+
+test('ui.max_shots sets how many screenshots one phase may write', () => {
+  const result = resolveUi({ user: null, repo: file('---\nui:\n  screenshot: a\n  paths: [x]\n  max_shots: 120\n') });
+  assert.deepEqual(result, { ok: true, ui: { screenshot: 'a', paths: ['x'], timeoutSeconds: 600, maxShots: 120 } });
 });
 
 for (const [name, text, error] of [
@@ -36,6 +41,8 @@ for (const [name, text, error] of [
   ['empty paths', 'screenshot: a\n  paths: []', /ui\.paths must be a list of 1 to 50 patterns/],
   ['a path that is not text', 'screenshot: a\n  paths: [1]', /ui\.paths must be a list of 1 to 50 patterns/],
   ['timeout 0', 'screenshot: a\n  paths: [a]\n  timeout_seconds: 0', /ui\.timeout_seconds must be an integer from 1 to 3600/],
+  ['max_shots 0', 'screenshot: a\n  paths: [a]\n  max_shots: 0', /ui\.max_shots must be an integer from 1 to 200/],
+  ['max_shots past 200', 'screenshot: a\n  paths: [a]\n  max_shots: 201', /ui\.max_shots must be an integer from 1 to 200/],
   ['an absolute design path', 'screenshot: a\n  paths: [a]\n  design: /etc/DESIGN.md', /ui\.design must be a path inside the repository/],
   ['a design path that leaves the repository', 'screenshot: a\n  paths: [a]\n  design: ../DESIGN.md', /ui\.design must be a path inside the repository/],
   ['an unknown key', 'shots: a', /ui\.shots is not a known key/],

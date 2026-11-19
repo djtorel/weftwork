@@ -15,7 +15,6 @@ import { pngSize } from './png-mark.ts';
 
 export type InputImage = { name: string; bytes: Buffer; width: number; height: number };
 
-const maxImages = 20;
 const maxImageBytes = 20 * 1024 * 1024;
 const maxLoopBytes = 1024 * 1024;
 /** The lessons the prompt carries: the end of the file, newest last. */
@@ -59,11 +58,12 @@ export function readLoop(dir: string, branch: string, loop: string): { ok: true;
   }
 }
 
-/** The images of a round, read from `paths` (from `cwd`): 1 to 20 regular
- * PNG files, not symlinks, of at most 20 MiB, with distinct file names. */
-export function readImages(cwd: string, paths: unknown): { ok: true; images: InputImage[] } | Failure {
+/** The images of a round, read from `paths` (from `cwd`): 1 to `maxImages`
+ * (design.max_images) regular PNG files, not symlinks, of at most 20 MiB,
+ * with distinct file names. */
+export function readImages(cwd: string, paths: unknown, maxImages: number): { ok: true; images: InputImage[] } | Failure {
   if (!Array.isArray(paths) || paths.length < 1 || paths.length > maxImages || !paths.every((path) => typeof path === 'string' && path !== '' && !path.includes('\0'))) {
-    return { ok: false, error: `"images" must be a list of 1 to ${maxImages} PNG file paths` };
+    return { ok: false, error: `"images" must be a list of 1 to ${maxImages} PNG file paths (design.max_images)` };
   }
   const images: InputImage[] = [];
   for (const path of paths as string[]) {

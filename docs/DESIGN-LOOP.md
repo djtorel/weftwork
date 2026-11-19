@@ -42,7 +42,7 @@ echo '{"images":["/tmp/shots/home.desktop.png","/tmp/shots/home.mobile.png"],"br
 
 | Field | What it is |
 | --- | --- |
-| `images` | 1 to 20 PNG files, as paths from the current folder: regular files (not symlinks), each at most 20 MiB, with distinct file names that end in `.png` and have no comma or space. Name each one `<screen>.<viewport>.<state>.png`, as in `docs/UI.md`. |
+| `images` | 1 to `design.max_images` PNG files (50 by default), as paths from the current folder: regular files (not symlinks), each at most 20 MiB, with distinct file names that end in `.png` and have no comma or space. Name each one `<screen>.<viewport>.<state>.png`, as in `docs/UI.md`. |
 | `brief` | What the screen is for, who uses it, in what context, and what changed. The reviewers grade fit to purpose against it, so write it as a designer's brief. At most 20,000 characters. |
 | `loop` | The loop's name, for example `canvas` or `app`. Rounds are counted per branch and loop. Optional, `app` by default. |
 
@@ -188,6 +188,7 @@ design:
   pass: 4
   stall_after: 2
   timeout_seconds: 1200
+  max_images: 50
   reviewers:
     - codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
 ```
@@ -198,6 +199,7 @@ design:
 | `pass` | The pass mark for every criterion | 1 to 5 | 4 |
 | `stall_after` | Stop when this many rounds in a row did not beat the best mean grade before them (rounds with no verdict do not count) | 1 to 10 | 2 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | `review.timeout_seconds` |
+| `max_images` | The most images one round may take. Every reviewer reads each one, and the last round's images too. `WEFTWORK_IMAGES` holds all their paths, and Linux allows one variable 128 KiB: at the ceiling, a path longer than about 320 bytes makes a reviewer fail to start | 1 to 200 | 50 |
 | `reviewers` | Reviewer commands, read-only, at most 2 run at once | 1 to 5 | `review.reviewers` |
 
 A Claude Code reviewer reads the images with its file tool, so it needs

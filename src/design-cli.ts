@@ -68,10 +68,10 @@ async function main(): Promise<void> {
 
   const brief = input['brief'];
   if (typeof brief !== 'string' || brief.trim() === '' || brief.length > maxBrief) return fail(`"brief" must be a non-empty string of at most ${maxBrief} characters`);
-  const images = readImages(cwd, input['images']);
-  if (!images.ok) return fail(images.error);
   const setting = await loadDesign(cwd, process.env);
   if (!setting.ok) return fail(setting.error);
+  const images = readImages(cwd, input['images'], setting.design.maxImages);
+  if (!images.ok) return fail(images.error);
   const stopped = loopStop(verdictMeans(record.rounds), setting.design.maxRounds, setting.design.stallAfter, record.rounds.length);
   if (stopped !== null) {
     return answer(['weftwork design: stopped', `why: ${stopped}`, ...(last === undefined ? [] : [`last round: ${last.outcome}, ${gradeText(last.grades)}`]), `record: ${dir}/loop.md`], 5);
