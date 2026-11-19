@@ -60,9 +60,9 @@ images, to compare with.
 | --- | --- | --- |
 | 0 | `weftwork design: pass` | Every criterion meets the pass mark and no reviewer found an objective break |
 | 1 | `weftwork design: changes` | Change the design for each mark, take new images and run the next round |
-| 3 | `weftwork design: no-verdict` | Every reviewer failed, or the tree changed during the round (a reviewer must be read-only) |
-| 5 | `weftwork design: stopped`, or a round's report that ends with `stop:` | The ceiling, or the grades stopped rising. Run no more rounds; list what is still below the mark in the pull request. |
-| 2 | none | Bad input, a detached HEAD, or a setting or file that cannot be used. The reason is on stderr. |
+| 3 | `weftwork design: no-verdict` | Every reviewer failed, or the tree changed during the round (a reviewer must be read-only). The round uses up one of `max_rounds`. Fix the cause and run once more; after a second round in a row with no verdict, stop the loop and say in the pull request that the design was not graded, why, and the record path. |
+| 5 | `weftwork design: stopped`, or a round's report that ends with `stop:` | The ceiling, or the grades stopped rising. Run no more rounds; list what is still below the mark in the pull request. When the last round's first line is `weftwork design: no-verdict`, say instead that the design was not graded, as for exit 3. |
+| 2 | none | Bad input, a detached HEAD, or a setting or file that cannot be used. The reason is on stderr. Bad input or a setting runs no round and uses none up: fix it and run the round again. When a record file could not be written, `{"status": true, "loop": "<loop>"}` shows whether the round was kept. |
 
 `{"status": true, "loop": "app"}` prints the loop's rounds and where its
 record is. `{"lesson": "...", "from": "..."}` keeps a lesson (below).
@@ -195,7 +195,7 @@ design:
 
 | Key | What it is | Range | Built-in |
 | --- | --- | --- | --- |
-| `max_rounds` | Rounds per branch and loop | 1 to 10 | 5 |
+| `max_rounds` | Rounds per branch and loop, rounds with no verdict included | 1 to 10 | 5 |
 | `pass` | The pass mark for every criterion | 1 to 5 | 4 |
 | `stall_after` | Stop when this many rounds in a row did not beat the best mean grade before them (rounds with no verdict do not count) | 1 to 10 | 2 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | `review.timeout_seconds` |
