@@ -32,7 +32,10 @@ canvas frames above.
 1. **Pick up.** If the task continues earlier work, run `node src/resume-cli.ts`
    and read the note it points to. Read the task in the local backlog,
    `"$(git rev-parse --git-common-dir)/weftwork/BACKLOG.md"`, and anything it
-   links.
+   links. The task is the one the owner named; "the next" one is the first
+   unticked task from the top. Before you branch, check whether it is
+   blocked (below, A blocked task). When the whole task is blocked, make no
+   branch: stop and ask. When only a part is, go on and leave that part last.
 2. **Branch.** Fetch, start from the latest `main`, and run
    `git checkout -b <type>/<short-name>`. Never work on `main`.
 3. **Change.** For a UI task with a design canvas, do the canvas part of
@@ -150,6 +153,36 @@ taste. Do as much of it as you can.
    everything else first, so that the question is the last thing and the
    PR shows the rest done.
 
+## A blocked task
+
+The owner chose the task. Never change to another task because this one is
+blocked, and never treat the owner's silence as permission to change. A task
+is blocked when the next step of it waits on something you cannot do:
+
+- An owner step: a backlog line or a part of the task that names the owner,
+  a design that waits for the owner's approval (for example canvas frames
+  not yet marked approved, such as Doop's `ready_for_dev`), a question the
+  owner has not answered, a setting, an account or a secret only the owner
+  can give.
+- Other work: a task it depends on that is not ticked, or a pull request it
+  needs that is not merged.
+
+A judgement call that a second opinion can settle is not a blocker (above).
+
+When the blocker stops only a part of the task, do the rest first, as above.
+When it stops the whole task:
+
+1. Do no other task's work, and make no branch for one.
+2. If this run or an earlier one changed files for this task, end the run
+   blocked as on a trigger (below). If not, make no branch and no PR.
+3. Ask with the question tool. Name the task and what blocks it, and give
+   the exact steps that unblock it: the canvas and the frames and the status
+   they need, the command to run, the pull request to merge, or the answer
+   you need. Give the options "Unblocked, go on" first, then the first task
+   below it that is not blocked, by its id, when there is one, then "Stop".
+
+Start another task only when the owner picks it.
+
 ## Asking the user
 
 A question in a normal message goes unseen and the thread looks done. Ask only
@@ -166,6 +199,7 @@ on one of these triggers (`docs/ASK.md`):
 - A task or plan too broken or ambiguous to follow, in a way that changes the
   result, after a second opinion could not settle it (above), or another PR
   that makes this one obsolete.
+- The task the owner named is blocked (above, A blocked task).
 - Spend past the budget: the engine answers exhausted.
 - A change you cannot prove, or a check that cannot pass and you cannot fix.
 
@@ -176,7 +210,9 @@ draft with what you have, the proof block and the handoff note in its body.
 The engine answering blocked, stalled or exhausted ends the run the same way.
 Then ask with the question tool (`AskUserQuestion` in Claude Code), with all
 the context in the question: the PR link, what blocks you, and the options
-with your recommendation first.
+with your recommendation first. A blocked task that changed no files is the
+one exception: write no handoff, run no engine and open no PR, and ask
+without a PR link, as A blocked task says.
 
 Decide everything else with sensible defaults. Log each decision with
 `node src/decision-cli.ts`, and list them in the PR and the report.
