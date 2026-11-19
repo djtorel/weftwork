@@ -1,6 +1,6 @@
 {
   "name": "weftwork",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A workflow engine for coding agents: from a short request to a pull request that proves it is ready to merge",
   "keywords": [
     "claude-code",
