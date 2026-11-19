@@ -2,7 +2,8 @@
 // The design CLI as a real process in a temporary repository, with a fake
 // reviewer that prints a fixed reply: a round is graded, its record and the
 // marked screenshot are kept in the clone's design folder, the loop stops at
-// its ceiling, and a lesson reaches the next round's prompt.
+// its ceiling (rounds with no verdict included), and a lesson reaches the
+// next round's prompt.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -102,6 +103,16 @@ test('a reply that grades nothing: no verdict, exit 3', () => {
   const out = run(t.repo, { images: [t.image], brief: 'b' });
   assert.equal(out.status, 3, out.stderr);
   assert.match(out.stdout, /^reviewer 1, cat: failed, the reply does not grade purpose/m);
+});
+
+test('a round with no verdict uses up a round: a second one reaches a ceiling of 2, still no verdict, exit 5', () => {
+  const t = setup(2);
+  t.answer('Looks great!');
+  assert.equal(run(t.repo, { images: [t.image], brief: 'b' }).status, 3);
+  const second = run(t.repo, { images: [t.image], brief: 'b' });
+  assert.equal(second.status, 5, second.stderr);
+  assert.match(second.stdout, /^weftwork design: no-verdict$/m);
+  assert.match(second.stdout, /^stop: the ceiling: 2 of 2 rounds run$/m);
 });
 
 test('bad input: exit 2 with the reason on stderr and nothing run', () => {

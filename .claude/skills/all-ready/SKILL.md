@@ -36,8 +36,8 @@ canvas frames above.
 2. **Branch.** Fetch, start from the latest `main`, and run
    `git checkout -b <type>/<short-name>`. Never work on `main`.
 3. **Change.** For a UI task with a design canvas, do the canvas part of
-   step 4 first, then build the last canvas design, whether its loop passed
-   or stopped. Make the smallest change that does
+   step 4 first, then build the last canvas design, whether its loop passed,
+   stopped or had no verdict. Make the smallest change that does
    the task. Fix the case that happened, not every case that could. For behaviour, write the test first,
    run it, and see it fail for the right reason. Log each choice you make
    without the owner when you make it (`docs/ASK.md`):
@@ -57,8 +57,19 @@ canvas frames above.
    `echo '{"images":["<png>",...],"brief":"<what the screen is for, who uses it, what changed>","loop":"app"}' | node src/design-cli.ts`.
    After each round, open the marked images it names with your file tool,
    change the design for each mark, and run the next round. Stop at exit 0
-   (pass) or exit 5 (stopped). Keep a rule a round taught that later work
-   should follow:
+   (pass) or exit 5 (stopped). On exit 2, read the reason on stderr. Bad
+   input or a setting (for example the image paths, the brief, a detached
+   HEAD, or `design` or `ui.design` in `weftwork.yaml`) runs no round and
+   uses none up: fix it and run the round again. When a record file could
+   not be written, `{"status":true,"loop":"<loop>"}` shows whether the round
+   was kept. Exit 3 (no verdict) uses up a round: every reviewer failed, or
+   the tree changed while it ran. Do not edit the tree while a round runs.
+   Fix the cause from the report's `failed` and `why` lines, and run once
+   more. If that round has no verdict too, stop the loop. When the loop ends
+   on a round with no verdict (first line `weftwork design: no-verdict`,
+   with exit 3 or 5), say in the PR's Decisions that the design was not
+   graded, why, and the record path. Keep a rule a round taught that
+   later work should follow:
    `echo '{"lesson":"...","from":"<branch> <loop> round <n>"}' | node src/design-cli.ts`,
    and add it to the project's design reference (`ui.design`) when the task
    owns that file.
@@ -112,9 +123,13 @@ The PR is ready when all of these hold on its latest commit:
   each must-fix with a written dispute and its evidence. A must-fix that is
   open with no dispute makes the PR a draft.
 - The branch is up to date with `main` and GitHub reports it mergeable.
-- For a UI task, the design loop passed or stopped, and the PR shows its
-  last report. A design that stopped below the pass mark does not make the
-  PR a draft: list the criteria still below it in Decisions, for the owner.
+- For a UI task, the design loop passed, stopped, or had no verdict twice
+  in a row, and the PR shows its last report. A design that stopped below
+  the pass mark does not make the PR a draft: list the criteria still below
+  it in Decisions, for the owner. A loop that ended with no verdict, at the
+  ceiling too, does not make the PR a draft either: say in Decisions that
+  the design was not graded, why, and the record path. The code review
+  stays the merge gate.
 
 ## Work that needs the owner
 
