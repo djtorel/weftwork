@@ -11,8 +11,11 @@ detail.
 ## 1. Install
 
 You need git and Node 26 or later with npm. For the first all-ready run you also
-need Claude Code, the GitHub CLI `gh` signed in, and the Codex CLI (the
-default reviewer, from another model family).
+need Claude Code and the GitHub CLI `gh` signed in. A code review asks one
+reviewer: Gemini Neon through the Antigravity CLI (`agy`), then Codex, then
+Claude Opus when the one before is missing or out of quota; a sensitive
+change, a design round and a "Full panel" ask all three
+(`docs/REVIEW.md`). Sign in to the ones you have; one is enough.
 
 ```bash
 npm install -g weftwork
@@ -143,7 +146,7 @@ it is never committed. Open Claude Code in your project and name a task:
 The `all-ready` skill takes it to a pull request that is ready to merge,
 without asking you more than it must. It branches from `main`, makes the
 change, proves it with the Preflight through the engine's done gate, has
-Codex review it (at most 3 rounds), opens the pull request with a Proof block
+the reviewers review it (at most 3 rounds), opens the pull request with a Proof block
 and a list of the decisions it made alone, and waits for CI. It never merges.
 You read the pull request and merge it. To have it merge too, end the task
 with "All in." instead: the `all-in` skill does the same work, then merges

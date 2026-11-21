@@ -8,10 +8,10 @@ import { resolveDesign } from './design-setting.ts';
 
 const review = { reviewers: ['codex exec -'], timeoutSeconds: 1200 };
 
-test('no design mapping: 5 rounds, pass mark 4, stall after 2, at most 50 images, and the review reviewers', () => {
+test('no design mapping: 5 rounds, pass mark 4, stall after 2, at most 50 images, and the review reviewers, a panel of 3', () => {
   const resolved = resolveDesign({ user: null, repo: null }, review);
   assert.ok(resolved.ok);
-  assert.deepEqual(resolved.design, { reviewers: ['codex exec -'], maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: 1200, maxImages: 50 });
+  assert.deepEqual(resolved.design, { reviewers: ['codex exec -'], panel: 3, maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: 1200, maxImages: 50 });
 });
 
 test('the repository file wins over the user file key by key', () => {
@@ -19,7 +19,7 @@ test('the repository file wins over the user file key by key', () => {
   const repo = { path: 'weftwork.yaml', text: 'design:\n  pass: 5\n  reviewers: [claude -p]\n' };
   const resolved = resolveDesign({ user, repo }, review);
   assert.ok(resolved.ok);
-  assert.deepEqual(resolved.design, { reviewers: ['claude -p'], maxRounds: 8, pass: 5, stallAfter: 2, timeoutSeconds: 1200, maxImages: 50 });
+  assert.deepEqual(resolved.design, { reviewers: ['claude -p'], panel: 3, maxRounds: 8, pass: 5, stallAfter: 2, timeoutSeconds: 1200, maxImages: 50 });
 });
 
 test('a bad value or an unknown key is an error that names the file and the key', () => {
@@ -38,4 +38,12 @@ test('design.max_images sets how many images one round may take, from 1 to 200',
     const bad = resolveDesign({ user: null, repo: { path: 'weftwork.yaml', text: `design:\n  max_images: ${value}\n` } }, review);
     assert.match(bad.ok ? '' : bad.error, /weftwork\.yaml: design\.max_images must be an integer from 1 to 200/);
   }
+});
+
+test('design.panel sets how many reviewers must answer a design round, from 1 to 5', () => {
+  const set = resolveDesign({ user: null, repo: { path: 'weftwork.yaml', text: 'design:\n  panel: 1\n' } }, review);
+  assert.ok(set.ok);
+  assert.equal(set.design.panel, 1);
+  const bad = resolveDesign({ user: null, repo: { path: 'weftwork.yaml', text: 'design:\n  panel: 6\n' } }, review);
+  assert.match(bad.ok ? '' : bad.error, /weftwork\.yaml: design\.panel must be an integer from 1 to 5/);
 });

@@ -46,12 +46,14 @@ echo '{"images":["/tmp/shots/home.desktop.png","/tmp/shots/home.mobile.png"],"br
 | `brief` | What the screen is for, who uses it, in what context, and what changed. The reviewers grade fit to purpose against it, so write it as a designer's brief. At most 20,000 characters. |
 | `loop` | The loop's name, for example `canvas` or `app`. Rounds are counted per branch and loop. Optional, `app` by default. |
 
-The engine copies the images into the round's folder, and the reviewers read
-the copies. So the record keeps what was reviewed, even when the canvas or
-the app changes later. Each reviewer gets the prompt on stdin, with
-`WEFTWORK_IMAGES` set to the copies (joined by commas), then the last
-round's images, and `WEFTWORK_IMAGES_DIR` set to the loop's folder, which
-holds both. The prompt holds the brief, each image with its size in pixels,
+The engine copies the images into the round's folder, so the record keeps
+what was reviewed, even when the canvas or the app changes later. The
+reviewers read copies of those in a new private folder outside the git dir,
+removed after the round, since Claude Code reads no file under `.git`
+(`docs/UI.md` § The images). Each reviewer gets the prompt on stdin, with
+`WEFTWORK_IMAGES` set to this round's images (joined by commas), then the
+last round's, and `WEFTWORK_IMAGES_DIR` set to the folder that holds both.
+The prompt holds the brief, each image with its path and size in pixels,
 the design reference (`ui.design`, when it is set), the newest lessons
 (below), the rubric and, from round 2 on, the last round's grades, marks and
 images, to compare with.
@@ -189,6 +191,7 @@ design:
   stall_after: 2
   timeout_seconds: 1200
   max_images: 50
+  panel: 3
   reviewers:
     - codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
 ```
@@ -201,13 +204,19 @@ design:
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | `review.timeout_seconds` |
 | `max_images` | The most images one round may take. Every reviewer reads each one, and the last round's images too. `WEFTWORK_IMAGES` holds all their paths, and Linux allows one variable 128 KiB: at the ceiling, a path longer than about 320 bytes makes a reviewer fail to start | 1 to 200 | 50 |
 | `reviewers` | Reviewer commands, read-only, at most 2 run at once | 1 to 5 | `review.reviewers` |
+| `panel` | How many reviewers must answer a round; the next in the list stands in for one that fails (`docs/REVIEW.md` § The panel) | 1 to 5 | 3 |
 
-A Claude Code reviewer reads the images with its file tool, so it needs
-their folder:
-
-```bash
-claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
-```
+With no `design.reviewers`, a round uses the review's reviewers: by
+default Gemini Neon, Codex and Claude Opus. Unlike a code review, which
+asks one of them by default, a design round asks for 3, so each design
+gets every opinion: the owner's choice, since more opinions on design
+choices pay off. R18 calls several models judging one design ceremony
+until measured, but its papers show it helping (`docs/research/R18-vision-design-judging.md`).
+A reviewer that fails, such as one whose CLI is not installed or out of
+quota, is replaced by the next when there is one; otherwise the round goes
+on without it, and the grades come from the ones that answered. The Claude Code and
+Antigravity reviewers read the images with their file tool, so the
+built-in entries open `WEFTWORK_IMAGES_DIR` (`docs/UI.md`).
 
 An unknown key, or a value out of its range, is an error that names the file
 and the key.

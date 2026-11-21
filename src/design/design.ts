@@ -8,7 +8,7 @@
 // loop goes on; it never gates a merge (docs/UI.md, R18).
 import type { Failure } from '../shared/errors.ts';
 import { maxCaptureBytes, runCapture } from '../engine/process.ts';
-import { maxParallelReviewers, reviewerName } from '../review/review.ts';
+import { reviewerName, runPanel } from '../review/review.ts';
 import type { Box } from './png-mark.ts';
 
 /** What a UI and UX designer grades: Nielsen's usability heuristics and the
@@ -117,7 +117,9 @@ export function loopStop(means: number[], maxRounds: number, stallAfter: number,
 
 export type PromptInput = {
   brief: string;
-  images: { name: string; width: number; height: number }[];
+  /** Each image with its copy in the round folder, so a reviewer with no
+   * shell (agy) can open it by path. */
+  images: { name: string; width: number; height: number; path?: string }[];
   pass: number;
   round: number;
   design: string | null;
@@ -131,7 +133,7 @@ export function designPrompt(input: PromptInput): string {
   const parts = [
     'You are a senior UI and UX designer. Review the design in the images for the brief below, as you would in a design critique: for the person who uses it and the job they do.',
     `Brief:\n${input.brief.replace(/\n*$/, '')}`,
-    `Images (open each one; boxes are in these pixels, from the top left):\n${input.images.map((image) => `- ${image.name}, ${image.width} by ${image.height} pixels`).join('\n')}`,
+    `Images (open each one; boxes are in these pixels, from the top left):\n${input.images.map((image) => `- ${image.name}${image.path === undefined ? '' : ` at ${image.path}`}, ${image.width} by ${image.height} pixels`).join('\n')}`,
   ];
   parts.push(
     input.design === null
@@ -162,11 +164,10 @@ export function designPrompt(input: PromptInput): string {
   return `${parts.join('\n\n')}\n`;
 }
 
-/** Run each reviewer on `prompt`, at most maxParallelReviewers at once, and
- * read its reply; results in setting order. Never rejects. */
-export async function runDesignReviewers(setting: { reviewers: string[]; timeoutSeconds: number }, cwd: string, prompt: string, images: string[], env: NodeJS.ProcessEnv): Promise<DesignResult[]> {
-  const results: DesignResult[] = [];
-  let next = 0;
+/** Run the reviewers on `prompt` as a panel of `setting.panel` (review.ts
+ * runPanel: in order, the next standing in for one that fails, at most 2 at
+ * once), and read each reply; results in the order they ran. Never rejects. */
+export async function runDesignReviewers(setting: { reviewers: string[]; panel: number; timeoutSeconds: number }, cwd: string, prompt: string, images: string[], env: NodeJS.ProcessEnv): Promise<DesignResult[]> {
   const one = async (command: string): Promise<DesignResult> => {
     const name = reviewerName(command);
     const out = await runCapture(command, cwd, setting.timeoutSeconds * 1000, prompt, env);
@@ -176,12 +177,5 @@ export async function runDesignReviewers(setting: { reviewers: string[]; timeout
     const parsed = parseDesignReply(out.stdout, images);
     return parsed.ok ? { name, ...parsed, reply: out.stdout } : { name, ok: false, error: parsed.error };
   };
-  const worker = async () => {
-    while (next < setting.reviewers.length) {
-      const index = next++;
-      results[index] = await one(setting.reviewers[index] ?? '');
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(maxParallelReviewers, setting.reviewers.length) }, worker));
-  return results;
+  return runPanel(setting.reviewers, setting.panel, one);
 }

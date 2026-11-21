@@ -7,7 +7,7 @@
 // exist, since a finding the reviewer cannot point at does not block.
 import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { lstat, readFile, realpath, rm, stat } from 'node:fs/promises';
+import { lstat, mkdir, readFile, realpath, rm, stat } from 'node:fs/promises';
 import { isAbsolute, join, matchesGlob, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { messageOf, type Failure } from '../shared/errors.ts';
@@ -51,7 +51,7 @@ async function gitIn(cwd: string, args: string[], env: NodeJS.ProcessEnv, input?
 /** The paths that differ between two commits or trees. */
 export async function changedBetween(cwd: string, from: string, to: string): Promise<{ ok: true; paths: string[] } | Failure> {
   try {
-    const text = strictUtf8(await gitOutput(cwd, ['diff', '--name-only', '-z', '--no-renames', from, to, '--']));
+    const text = strictUtf8(await gitOutput(cwd, ['diff', '--no-relative', '--name-only', '-z', '--no-renames', from, to, '--']));
     if (text === null) return { ok: false, error: 'a changed path is not UTF-8' };
     return { ok: true, paths: text.split('\0').filter((path) => path !== '') };
   } catch (error) {
@@ -63,7 +63,7 @@ export async function changedBetween(cwd: string, from: string, to: string): Pro
  * counts none. */
 export async function diffLines(cwd: string, from: string, to: string): Promise<{ ok: true; lines: number } | Failure> {
   try {
-    const records = (await gitOutput(cwd, ['diff', '--numstat', '-z', '--no-renames', from, to, '--'])).toString('latin1').split('\0');
+    const records = (await gitOutput(cwd, ['diff', '--no-relative', '--numstat', '-z', '--no-renames', from, to, '--'])).toString('latin1').split('\0');
     let lines = 0;
     for (const record of records) {
       const [added, deleted] = record.split('\t');
@@ -72,6 +72,21 @@ export async function diffLines(cwd: string, from: string, to: string): Promise<
     return { ok: true, lines };
   } catch (error) {
     return { ok: false, error: messageOf(error) };
+  }
+}
+
+/** The change from `base` to `tree` as a git diff in
+ * `<scratch>/review/change.diff`, for a reviewer that cannot run git (the
+ * Gemini reviewer runs no shell command). Git writes the file itself, so a
+ * large diff is not held in memory. */
+export async function writeChangeDiff(cwd: string, scratch: string, base: string, tree: string): Promise<{ ok: true; path: string } | Failure> {
+  const path = join(scratch, 'review', 'change.diff');
+  try {
+    await mkdir(join(scratch, 'review'), { recursive: true });
+    await gitOutput(cwd, ['diff', '--no-relative', '--no-ext-diff', '--no-textconv', '--no-color', `--output=${path}`, base, tree, '--']);
+    return { ok: true, path };
+  } catch (error) {
+    return { ok: false, error: `the diff could not be written: ${messageOf(error)}` };
   }
 }
 
@@ -152,17 +167,18 @@ export async function ruleFiles(root: string): Promise<string[]> {
 }
 
 /** What one round is of: the repository root, the tree it reviews, the
- * lines changed from the base and the first changed file that makes the
- * change sensitive (both null when there is no base and nothing needs one),
+ * base commit, the lines changed from it and the first changed file that
+ * makes the change sensitive (all null when there is no base and nothing
+ * needs one),
  * and the files changed since the last round (null in round 1, or when the
  * last round's tree is not known). */
-export type RoundScope = { root: string; tree: string; diffLines: number | null; sensitiveBy: string | null; changedSinceLast: string[] | null };
+export type RoundScope = { root: string; tree: string; base: string | null; diffLines: number | null; sensitiveBy: string | null; changedSinceLast: string[] | null };
 
 export async function roundScope(input: { cwd: string; scratch: string; base: string | undefined; sensitivePaths: string[]; last: ReviewEntry | undefined }): Promise<{ ok: true; scope: RoundScope } | Failure> {
   const snapshot = await snapshotTree(input.cwd, input.scratch);
   if (!snapshot.ok) return snapshot;
   const root = (await repositoryRoot(input.cwd)).toString('utf8');
-  const scope: RoundScope = { root, tree: snapshot.tree, diffLines: null, sensitiveBy: null, changedSinceLast: null };
+  const scope: RoundScope = { root, tree: snapshot.tree, base: null, diffLines: null, sensitiveBy: null, changedSinceLast: null };
   if (input.last?.tree !== undefined) {
     const since = await changedBetween(input.cwd, input.last.tree, snapshot.tree);
     if (since.ok) scope.changedSinceLast = since.paths;
@@ -182,6 +198,7 @@ export async function roundScope(input: { cwd: string; scratch: string; base: st
   if (!base.ok) return { ok: true, scope };
   const size = await diffLines(input.cwd, base.sha, snapshot.tree);
   if (!size.ok) return size;
+  scope.base = base.sha;
   scope.diffLines = size.lines;
   return { ok: true, scope };
 }

@@ -6,11 +6,12 @@
 // it cannot run.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, git, isolatedEnv, makeTempDir, makeTestRepo, writePng } from '../test-support/test-helpers.ts';
 import { ledgerPath, weftworkDir } from '../engine/ledger.ts';
+import { defaultReviewers } from './review-setting.ts';
 
 after(cleanupTempDirs);
 
@@ -52,6 +53,52 @@ test('a reviewer reads the brief and the reply format on stdin; an approval pass
   assert.match(out.stdout, /^weftwork review: pass$/m);
   assert.match(out.stdout, /^round: 1 of 3$/m);
   assert.match(out.stdout, /^reviewer 1, grep: 0 must-fix, 0 should-fix$/m);
+});
+
+test('the engine writes the change from the base to a file, names it in the brief and in WEFTWORK_DIFF, for a reviewer that cannot run git', () => {
+  const dir = makeTempDir();
+  const repo = makeTestRepo({ 'tracked.txt': 'one\n' });
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(`cat > ${dir}/prompt; cp "$WEFTWORK_DIFF" ${dir}/diff; echo 'VERDICT: APPROVE'`)}`);
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-qm', 'setting');
+  writeFileSync(join(repo, 'tracked.txt'), 'two\n');
+  writeFileSync(join(repo, 'new.txt'), 'untracked\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const out = node(reviewCli, repo, { command: verify, brief: 'Review the diff.' }, { WEFTWORK_DIFF: '/from/the/caller' });
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  const diff = readFileSync(join(dir, 'diff'), 'utf8');
+  assert.match(diff, /^-one\n\+two$/m);
+  assert.match(diff, /^\+\+\+ b\/new\.txt\n@@ -0,0 \+1 @@\n\+untracked$/m);
+  const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
+  assert.match(readFileSync(join(dir, 'prompt'), 'utf8'), new RegExp(`^The change from the base ${base} to the working tree under review, untracked files included, is the git diff in /.+/change\\.diff\\.`, 'm'));
+});
+
+test('the diff file and the diff size cover the whole change from a subfolder, also with diff.relative set', () => {
+  const dir = makeTempDir();
+  const repo = makeTestRepo({ 'tracked.txt': 'one\n', 'sub/a.txt': 'a\n' });
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(`cp "$WEFTWORK_DIFF" ${dir}/diff; echo 'VERDICT: APPROVE'`)}`);
+  git(repo, 'add', '-A');
+  git(repo, 'commit', '-qm', 'setting');
+  git(repo, 'config', 'diff.relative', 'true');
+  writeFileSync(join(repo, 'tracked.txt'), 'two\n');
+  const sub = join(repo, 'sub');
+  assert.equal(node(engineCli, sub, { command: verify }).status, 0);
+  const out = node(reviewCli, sub, { command: verify, brief: 'Review the diff.' });
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.match(readFileSync(join(dir, 'diff'), 'utf8'), /^\+\+\+ b\/tracked\.txt$/m);
+  assert.match(out.stdout, /^diff: 2 lines changed from the base$/m);
+});
+
+test('with no base there is no diff file, and a WEFTWORK_DIFF from the caller does not reach a reviewer', () => {
+  const dir = makeTempDir();
+  const repo = makeTestRepo();
+  git(repo, 'branch', '-m', 'trunk');
+  writeFileSync(join(repo, 'weftwork.yaml'), `---\nreview:\n${reviewers(`cat > ${dir}/prompt; echo "\${WEFTWORK_DIFF-unset}" > ${dir}/diff; echo 'VERDICT: APPROVE'`)}`);
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const out = node(reviewCli, repo, { command: verify, brief: 'Review the diff.' }, { WEFTWORK_DIFF: '/from/the/caller' });
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.equal(readFileSync(join(dir, 'diff'), 'utf8').trim(), 'unset');
+  assert.doesNotMatch(readFileSync(join(dir, 'prompt'), 'utf8'), /The change from the base/);
 });
 
 test('a must-fix blocks: exit 1, and the round is counted in the ledger', async () => {
@@ -207,6 +254,13 @@ test('a reviewer that fails counts as neither pass nor block', () => {
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /^reviewer 1, exit: failed, exit 3$/m);
 
+  // A reviewer whose CLI is not installed fails, and the next stands in (docs/REVIEW.md § The panel).
+  const missing = readyRepo(reviewers('weftwork-no-such-reviewer -p', "echo 'VERDICT: APPROVE'"));
+  const gone = review(missing);
+  assert.equal(gone.status, 0, gone.stderr);
+  assert.match(gone.stdout, /^reviewer 1, weftwork-no-such-reviewer: failed, exit 127: .*not found$/m);
+  assert.match(gone.stdout, /^reviewer 2, echo: 0 must-fix, 0 should-fix$/m);
+
   const big = readyRepo(reviewers("echo 'VERDICT: APPROVE'; head -c 1100000 /dev/zero | tr '\\0' x"));
   const cut = review(big);
   assert.equal(cut.status, 3, cut.stderr);
@@ -220,6 +274,82 @@ test('a reviewer that fails counts as neither pass nor block', () => {
   assert.match(all.stdout, /^reviewer 2, echo: failed, the reply has no VERDICT line$/m);
 });
 
+/** Three reviewers named cat, touch and echo (the first word) that each
+ * leave a mark in `dir` when they run. Each answers only when `dir/<x>-ok`
+ * exists, else exits 7; cat and echo approve, touch blocks. */
+function panelReviewers(dir: string): string[] {
+  const answer = (x: string, reply: string) => `test -f ${dir}/${x}-ok || exit 7; printf '${reply}'`;
+  return [
+    `cat > /dev/null; touch ${dir}/a; ${answer('a', 'VERDICT: APPROVE\\n')}`,
+    `touch ${dir}/b; ${answer('b', 'VERDICT: CHANGES\\nMUST-FIX tracked.txt:1 bad\\n')}`,
+    `echo > /dev/null; touch ${dir}/c; ${answer('c', 'VERDICT: APPROVE\\n')}`,
+  ];
+}
+
+/** Which of the panelReviewers ran, and make `names` answer. */
+const ran = (dir: string) => ['a', 'b', 'c'].filter((name) => existsSync(join(dir, name)));
+const ok = (dir: string, ...names: string[]) => names.forEach((name) => writeFileSync(join(dir, `${name}-ok`), ''));
+
+test('a panel of 1 (the built-in): only the first reviewer runs when it answers (docs/REVIEW.md § The panel)', () => {
+  const dir = makeTempDir();
+  ok(dir, 'a', 'b', 'c');
+  const out = review(readyRepo(reviewers(...panelReviewers(dir))));
+  assert.equal(out.status, 0, out.stderr);
+  assert.deepEqual(ran(dir), ['a']);
+  assert.match(out.stdout, /^panel: 1 of 3 reviewers \(review\.panel\)$/m);
+  assert.doesNotMatch(out.stdout, /^reviewer 2/m);
+});
+
+test('a reviewer that fails is replaced by the next in order, and the later ones do not run', () => {
+  const dir = makeTempDir();
+  ok(dir, 'b', 'c');
+  const out = review(readyRepo(reviewers(...panelReviewers(dir))));
+  assert.equal(out.status, 1, out.stdout + out.stderr);
+  assert.deepEqual(ran(dir), ['a', 'b']);
+  assert.match(out.stdout, /^reviewer 1, cat: failed, exit 7$/m);
+  assert.match(out.stdout, /^reviewer 2, touch: 1 must-fix, 0 should-fix$/m);
+});
+
+test('a sensitive change, and a request for "all", run every reviewer; a bad panel is exit 2', () => {
+  const dir = makeTempDir();
+  ok(dir, 'a', 'b', 'c');
+  const sensitive = review(readyRepo(reviewers(...panelReviewers(dir))), { sensitive: true });
+  assert.equal(sensitive.status, 1, sensitive.stderr);
+  assert.deepEqual(ran(dir), ['a', 'b', 'c']);
+  assert.match(sensitive.stdout, /^panel: 3 of 3 reviewers \(a sensitive change\)$/m);
+
+  const all = makeTempDir();
+  ok(all, 'a', 'b', 'c');
+  const asked = review(readyRepo(reviewers(...panelReviewers(all))), { panel: 'all' });
+  assert.deepEqual(ran(all), ['a', 'b', 'c']);
+  assert.match(asked.stdout, /^panel: 3 of 3 reviewers \(asked for in the request\)$/m);
+
+  for (const panel of [0, 6, 'some', 1.5]) {
+    const bad = review(readyRepo(reviewers("echo 'VERDICT: APPROVE'")), { panel });
+    assert.equal(bad.status, 2, `${panel}: ${bad.stdout}`);
+    assert.match(bad.stderr, /"panel" must be "all" or an integer from 1 to 5/);
+  }
+});
+
+test('a later round asks first the reviewer that answered the last one, and the ledger keeps it', async () => {
+  const dir = makeTempDir();
+  ok(dir, 'b');
+  const repo = readyRepo(reviewers(...panelReviewers(dir)));
+  const one = review(repo);
+  assert.equal(one.status, 1, one.stdout + one.stderr);
+  assert.deepEqual(ran(dir), ['a', 'b']);
+  assert.match(readFileSync((await ledgerPath(repo)) as string, 'utf8'), /"answered":\["touch"\]/);
+  // Now cat would answer too, but touch raised the must-fix, so it goes first.
+  ok(dir, 'a');
+  rmSync(join(dir, 'a'));
+  rmSync(join(dir, 'b'));
+  writeFileSync(join(repo, 'tracked.txt'), 'fixed\n');
+  assert.equal(node(engineCli, repo, { command: verify }).status, 0);
+  const two = review(repo);
+  assert.equal(two.status, 1, two.stdout + two.stderr);
+  assert.deepEqual(ran(dir), ['b']);
+});
+
 test('a reviewer that changes the tree: no verdict, since the review was not of this tree', () => {
   const repo = readyRepo(reviewers("echo two > tracked.txt; echo 'VERDICT: APPROVE'"));
   const out = review(repo);
@@ -227,11 +357,12 @@ test('a reviewer that changes the tree: no verdict, since the review was not of 
   assert.match(out.stdout, /^why: the tree changed during the review; a reviewer must be read-only$/m);
 });
 
-test('at most 2 reviewers run at once', () => {
+test('at most 2 reviewers run at once, also in a panel of all', () => {
   const log = join(makeTempDir(), 'log');
   const one = `echo s >> ${log}; sleep 0.4; echo e >> ${log}; echo 'VERDICT: APPROVE'`;
   const repo = readyRepo(reviewers(one, one, one));
-  assert.equal(review(repo).status, 0);
+  assert.equal(review(repo, { panel: 'all' }).status, 0);
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, 6);
   let running = 0;
   let most = 0;
   for (const mark of readFileSync(log, 'utf8').trim().split('\n')) {
@@ -379,6 +510,19 @@ test('each reviewer gets the screenshots in WEFTWORK_IMAGES, comma-separated, be
   assert.match(readFileSync(seen, 'utf8'), /^\/.*\/ui\/after\/home\.png$/);
 });
 
+test('the reviewers get copies of the screenshots outside the git dir, which Claude Code will not read, and the copies are gone after the round', async () => {
+  const dir = makeTempDir();
+  const repo = uiChangedRepo(`printf '%s\\n%s' "$WEFTWORK_IMAGES" "$WEFTWORK_IMAGES_DIR" > ${dir}/seen; cat "$WEFTWORK_IMAGES" > ${dir}/copy.png; cat > ${dir}/prompt; echo 'VERDICT: APPROVE'`);
+  assert.equal(node(uiCli, repo, { phase: 'after' }).status, 0);
+  assert.equal(review(repo).status, 0);
+  const [image = '', folder = ''] = readFileSync(join(dir, 'seen'), 'utf8').split('\n');
+  assert.doesNotMatch(image, /\/\.git\//);
+  assert.ok(image.startsWith(`${folder}/`), `${folder} does not hold ${image}`);
+  assert.deepEqual(readFileSync(join(dir, 'copy.png')), readFileSync(join((await weftworkDir(repo)) as string, 'ui', 'after', 'home.png')));
+  assert.ok(readFileSync(join(dir, 'prompt'), 'utf8').includes(`after: ${image} `), 'the brief names the copy');
+  assert.equal(existsSync(image), false);
+});
+
 test('a change that is not a UI change: WEFTWORK_IMAGES is not set (e11s06)', () => {
   const seen = join(makeTempDir(), 'images');
   const repo = readyRepo(reviewers(`printf '%s' "\${WEFTWORK_IMAGES-unset}" > ${seen}; echo 'VERDICT: APPROVE'`));
@@ -396,16 +540,21 @@ function documentedEntry(host: string): string {
   return line;
 }
 
-/** A fake `name` on PATH: it checks the brief is on stdin, writes its
- * arguments one per line and then WEFTWORK_IMAGES, and approves. */
+/** A fake `name` on PATH: it checks the brief is on stdin or in its
+ * arguments (agy takes it as `-p`), writes its arguments one per line and
+ * then WEFTWORK_IMAGES, and approves. */
 function fakeHost(name: string): { path: string; seen: string } {
   const bin = makeTempDir();
   const seen = join(makeTempDir(), 'seen');
-  writeFileSync(join(bin, name), `#!/bin/sh\ngrep -q 'Review the diff' || exit 9\nprintf '%s\\n' "$@" "images=\${WEFTWORK_IMAGES-unset}" > ${seen}\necho 'VERDICT: APPROVE'\n`, { mode: 0o755 });
+  writeFileSync(join(bin, name), `#!/bin/sh\n{ printf '%s\\n' "$@" | grep -q 'Review the diff'; } || grep -q 'Review the diff' || exit 9\nprintf '%s\\n' "$@" "imagesdir=\${WEFTWORK_IMAGES_DIR-unset}" "images=\${WEFTWORK_IMAGES-unset}" > ${seen}\necho 'VERDICT: APPROVE'\n`, { mode: 0o755 });
   return { path: `${bin}:${process.env['PATH'] ?? ''}`, seen };
 }
 
-for (const [host, flag] of [['claude', '--add-dir'], ['gemini', '--include-directories']] as const) {
+test('the claude and agy entries in docs/UI.md are the built-in reviewers', () => {
+  for (const host of ['claude', 'agy']) assert.ok(defaultReviewers.includes(documentedEntry(host)), `${host}: ${documentedEntry(host)}`);
+});
+
+for (const [host, flag] of [['claude', '--add-dir'], ['agy', '--add-dir'], ['gemini', '--include-directories']] as const) {
   test(`the ${host} reviewers entry in docs/UI.md opens the folder that holds every screenshot for a UI change only (e11s06 follow-up)`, () => {
     const fake = fakeHost(host);
     const repo = uiChangedRepo(documentedEntry(host));
@@ -414,15 +563,17 @@ for (const [host, flag] of [['claude', '--add-dir'], ['gemini', '--include-direc
     assert.equal(out.status, 0, out.stdout + out.stderr);
     const args = readFileSync(fake.seen, 'utf8').trimEnd().split('\n');
     const images = (args.at(-1) ?? '').replace(/^images=/, '').split(',');
-    const dir = args[args.indexOf(flag) + 1] ?? '';
-    assert.ok(args.includes(flag), args.join(' '));
+    // agy also opens the diff's folder; the screenshots' folder is the first.
+    const folders = (list: string[]) => list.filter((_, index) => list[index - 1] === flag);
+    const dir = folders(args)[0] ?? '';
     assert.ok(images.length > 0 && images.every((image) => image.startsWith(`${dir}/`)), `${dir} does not hold ${images.join(', ')}`);
 
     const plain = fakeHost(host);
     const other = readyRepo(reviewers(documentedEntry(host)));
-    assert.equal(node(reviewCli, other, { command: verify, brief: 'Review the diff.' }, { PATH: plain.path }).status, 0);
+    assert.equal(node(reviewCli, other, { command: verify, brief: 'Review the diff.' }, { PATH: plain.path, WEFTWORK_IMAGES_DIR: '/from/the/caller' }).status, 0);
     const plainArgs = readFileSync(plain.seen, 'utf8').trimEnd().split('\n');
-    assert.equal(plainArgs.includes(flag), false, plainArgs.join(' '));
+    assert.ok(plainArgs.includes('imagesdir=unset') && !plainArgs.includes('/from/the/caller'), plainArgs.join(' '));
+    assert.equal(folders(plainArgs).some((folder) => folder.endsWith('/ui')), false, plainArgs.join(' '));
     assert.equal(plainArgs.at(-1), 'images=unset');
   });
 }

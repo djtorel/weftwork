@@ -30,6 +30,7 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
     '83725397f1641b28a86d4129700841abcb4d96ded013922cc0d289a46fc6bfea',
     '22f99bfcd3cb4afffc3a895bf2bf5674b78d5c6a1ecd0457b4e071c88cbd7077', // PR #126
     '23cf353199033b2bbd50e912adabaecf752b2de03eb3e3f0066bb1d89623b4ba',
+    '7950388ab1ad9992a930ab3741dbb817158cced4c23ff88b296739c5120443af',
   ],
   'TSTACK-LICENSE': [
     '8095f9a9f97d074131f6a2ce09b952d12c18b36f09f4e5df0517c4e64e82c851',
@@ -59,6 +60,7 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
   ],
   'second-opinion/SKILL.md': [
     'f6318ad028b3e7fe4319bff9bd01ad272a9cd2ff5fecdef0633d51fa74de95c7',
+    '83f0fa22b038f07d490e331afb53597a799c9853f235a6352eaad1f9c9b0d513',
   ],
   'pr-it/SKILL.md': [
     'c000cda6a77ec0df063c2923f7dfb76039e233fd1674cd62e6b24c18a586b9c3',

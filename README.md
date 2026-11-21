@@ -7,7 +7,7 @@
 
 A workflow engine for coding agents. You give the agent a short task; it
 works on a branch, proves the change, has it reviewed by a model from another
-family, and opens a pull request that says what it proved. You answer the
+family (more for a risky change or a design), and opens a pull request that says what it proved. You answer the
 few questions that need a person, and you merge.
 
 Prose instructions alone do not hold an unattended agent to that, so the
@@ -34,8 +34,12 @@ engine enforces the parts that matter:
 - git, and the GitHub CLI [`gh`](https://cli.github.com/) signed in
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code), the agent
   host
-- The [Codex CLI](https://github.com/openai/codex), the default reviewer
-  (any read-only reviewer command works; see [Configure](#configure))
+- The default reviewers' CLIs, in the order a round tries them: the
+  Antigravity CLI (`agy`, Gemini Neon), the
+  [Codex CLI](https://github.com/openai/codex) (GPT Sol) and Claude Code
+  (Opus). One is enough;
+  the next stands in when one is missing or out of quota (any read-only
+  reviewer command works; see [Configure](#configure))
 
 ## Install
 
@@ -116,7 +120,7 @@ that you can end a prompt with.
 | --- | --- | --- |
 | `all-ready` | "… All ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
 | `all-in` | "… All in." | The same, then it merges the pull request when the merge gate passes: green checks, review settled, no change requested, the proven commit. You are not asked. |
-| `second-opinion` | "Second opinion." | Only the review: read-only reviewers, by default from another model family, 3 rounds (5 for a sensitive change). |
+| `second-opinion` | "Second opinion." | Only the review: read-only reviewers: Gemini Neon by default, Codex then Opus as fallbacks, all three for a sensitive change or a "Full panel"; 3 rounds (5 for a sensitive change). |
 | `pr-it` | "PR it." | Only the pull request, with its Proof and Decisions sections. |
 | `retro` | "Retro." | With `history: local` on, proposes one small, checked fix for the failure that recurs most in your tasks ([`docs/HISTORY.md`](docs/HISTORY.md)). |
 

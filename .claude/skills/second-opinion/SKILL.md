@@ -1,12 +1,13 @@
 ---
 name: second-opinion
-description: Use when the user says "second opinion", and as the review step of all-ready.
+description: Use when the user says "second opinion" or "full panel", and as the review step of all-ready.
 ---
 
 # Second Opinion
 
-Have reviewer models, from another family by default, review
-your change, read-only, in a loop, before the pull request. The engine runs
+Have a reviewer model (Gemini Neon by default, then Codex, then Opus when
+the one before fails) review your change, read-only, in a loop, before the
+pull request. The engine runs
 the reviewers, reads the findings and counts the rounds (`docs/REVIEW.md`).
 Make the smallest changes that answer real findings, and fight scope creep:
 push back with evidence when a finding is wrong or not needed.
@@ -20,6 +21,11 @@ push back with evidence when a finding is wrong or not needed.
   and the report says why. Round 1 is full; from round 2 the engine tells
   the reviewer which files changed since the last round and which must-fix
   findings are open, and asks for those only.
+- One reviewer answers a round (`review.panel`); the engine asks the next
+  in line when one fails, and asks every reviewer for a sensitive change.
+  When the owner asks for a "full panel" (or "Full panel." closes the
+  task), add `"panel": "all"` to every round's request, so each reviewer
+  answers. Later rounds ask first the reviewer that answered the last one.
 - Only a must-fix with a real `<file>:<line>` blocks; the engine turns any
   other into a should-fix. Stop early when a round passes. Declined
   should-fix findings and comment, doc or format-only fixes need no new
