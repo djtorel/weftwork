@@ -18,10 +18,12 @@ import { prProof } from './proof/pr-proof.ts';
 import type { RoundVerdict } from './review/review-ledger.ts';
 import { loadReview } from './review/review-setting.ts';
 import { groundResults, roundScope, ruleFiles, writeChangeDiff } from './review/review-scope.ts';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review/review.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, panelOrder, reviewPrompt, roundCeiling, roundPanel, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review/review.ts';
+import { isInteger } from './shared/json.ts';
 import { currentBranch, fingerprintTree } from './engine/tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './review/ui.ts';
 import { loadUi, type UiSetting } from './review/ui-setting.ts';
+import { copyImages, removeImages } from './review/reviewer-images.ts';
 
 const exitCodes: Record<RoundVerdict, number> = { pass: 0, block: 1, 'no-verdict': 3 };
 
@@ -38,11 +40,12 @@ function answer(text: string, exitCode: number): void {
 async function main(): Promise<void> {
   const read = await readJsonObject();
   if (read.kind === 'refused') return fail(read.error);
-  const { command, brief, sensitive = false, base } = read.input;
+  const { command, brief, sensitive = false, base, panel: asked } = read.input;
   if (typeof command !== 'string' || command.trim() === '') return fail('"command" must be a non-empty string');
   if (typeof brief !== 'string' || brief.trim() === '') return fail('"brief" must be a non-empty string');
   if (typeof sensitive !== 'boolean') return fail('"sensitive" must be true or false');
   if (base !== undefined && (typeof base !== 'string' || base === '')) return fail('"base" must be a non-empty string');
+  if (asked !== undefined && asked !== 'all' && !(isInteger(asked) && asked >= 1 && asked <= 5)) return fail('"panel" must be "all" or an integer from 1 to 5');
   const cwd = process.cwd();
   const tree = await fingerprintTree(cwd);
   if (!tree.ok) return fail(`no git working tree: ${tree.error}`);
@@ -84,32 +87,41 @@ async function main(): Promise<void> {
   const later = last !== undefined && scope.changedSinceLast !== null ? { round, changed: scope.changedSinceLast, open: last.mustFix } : null;
   const diff = scope.base === null ? null : await writeChangeDiff(cwd, weftwork, scope.base, scope.tree);
   if (diff !== null && !diff.ok) return fail(diff.error);
-  const parts = [brief.replace(/\n*$/, ''), auditPrompt({ sensitive: sensitive || scope.sensitiveBy !== null, ruleFiles: await ruleFiles(scope.root) })];
-  if (diff !== null && scope.base !== null) parts.push(`The change from the base ${scope.base} to the working tree under review, untracked files included, is the git diff in ${diff.path}. Read it there if you cannot run git.`);
-  if (ready !== null) parts.push(uiPrompt(weftwork, ready, design));
-  if (later !== null) parts.push(laterRoundPrompt(round, later.changed, later.open));
-  const prompt = parts.join('\n\n');
   // Only the engine sets these; values from the caller are dropped (review round 1).
   const { WEFTWORK_IMAGES: _images, WEFTWORK_IMAGES_DIR: _dir, WEFTWORK_DIFF: _diff, ...env } = process.env;
   if (diff !== null) env['WEFTWORK_DIFF'] = diff.path;
+  // The reviewers read copies of the screenshots outside the git dir, at the
+  // same place under the copies' folder as under the engine's (reviewer-images.ts).
+  let copies: string | null = null;
   if (ready !== null) {
     const images = imagesValue(weftwork, ready);
     if (!images.ok) return fail(images.error);
-    env['WEFTWORK_IMAGES'] = images.value;
-    env['WEFTWORK_IMAGES_DIR'] = join(weftwork, 'ui');
+    const copied = await copyImages(weftwork, images.value.split(','));
+    if (!copied.ok) return fail(copied.error);
+    copies = copied.dir;
+    env['WEFTWORK_IMAGES'] = copied.paths.join(',');
+    env['WEFTWORK_IMAGES_DIR'] = join(copies, 'ui');
   }
-  const replies = await runReviewers(setting.review, cwd, reviewPrompt(prompt), env);
+  const parts = [brief.replace(/\n*$/, ''), auditPrompt({ sensitive: sensitive || scope.sensitiveBy !== null, ruleFiles: await ruleFiles(scope.root) })];
+  if (diff !== null && scope.base !== null) parts.push(`The change from the base ${scope.base} to the working tree under review, untracked files included, is the git diff in ${diff.path}. Read it there if you cannot run git.`);
+  if (ready !== null && copies !== null) parts.push(uiPrompt(copies, ready, design));
+  if (later !== null) parts.push(laterRoundPrompt(round, later.changed, later.open));
+  const prompt = parts.join('\n\n');
+  const panel = roundPanel(setting.review, { asked: asked as number | 'all' | undefined, sensitive: sensitive || scope.sensitiveBy !== null });
+  const order = panelOrder(setting.review.reviewers, last?.answered);
+  const replies = await runReviewers(order, panel.size, setting.review.timeoutSeconds, cwd, reviewPrompt(prompt), env).finally(() => (copies === null ? undefined : removeImages(copies)));
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const grounded = await groundResults(scope.root, replies);
   const results = later === null ? grounded : newOnUnchanged(grounded, later);
   const verdict = changed ? 'no-verdict' : roundVerdict(results);
   const sizes = scope.diffLines === null ? {} : { diffLines: scope.diffLines };
-  const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results), tree: scope.tree, ...sizes }, new Date());
+  const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results), tree: scope.tree, ...sizes, answered: results.flatMap((result) => (result.ok ? [result.name] : [])) }, new Date());
   if (!stored.ok) return fail(`the round could not be written to the ledger: ${stored.error}`);
   const why = changed ? 'the tree changed during the review; a reviewer must be read-only' : undefined;
   const screenshots = ready === null ? [] : [...(ready.before === null ? ['before: none were taken'] : shotLines(weftwork, ready.before)), ...shotLines(weftwork, ready.after)];
   const notes = [];
+  notes.push(`panel: ${panel.size} of ${setting.review.reviewers.length} ${setting.review.reviewers.length === 1 ? 'reviewer' : 'reviewers'} (${panel.why})`);
   if (scope.sensitiveBy !== null) notes.push(`sensitive: yes, ${terminalSafe(scope.sensitiveBy)} matches review.sensitive_paths`);
   else if (sensitive) notes.push('sensitive: yes, the brief asked');
   if (scope.diffLines !== null) notes.push(...diffReport(scope.diffLines, rounds.find((entry) => entry.round === 1)?.diffLines));

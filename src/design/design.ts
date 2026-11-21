@@ -8,7 +8,7 @@
 // loop goes on; it never gates a merge (docs/UI.md, R18).
 import type { Failure } from '../shared/errors.ts';
 import { maxCaptureBytes, runCapture } from '../engine/process.ts';
-import { maxParallelReviewers, reviewerName } from '../review/review.ts';
+import { reviewerName, runPanel } from '../review/review.ts';
 import type { Box } from './png-mark.ts';
 
 /** What a UI and UX designer grades: Nielsen's usability heuristics and the
@@ -164,11 +164,10 @@ export function designPrompt(input: PromptInput): string {
   return `${parts.join('\n\n')}\n`;
 }
 
-/** Run each reviewer on `prompt`, at most maxParallelReviewers at once, and
- * read its reply; results in setting order. Never rejects. */
-export async function runDesignReviewers(setting: { reviewers: string[]; timeoutSeconds: number }, cwd: string, prompt: string, images: string[], env: NodeJS.ProcessEnv): Promise<DesignResult[]> {
-  const results: DesignResult[] = [];
-  let next = 0;
+/** Run the reviewers on `prompt` as a panel of `setting.panel` (review.ts
+ * runPanel: in order, the next standing in for one that fails, at most 2 at
+ * once), and read each reply; results in the order they ran. Never rejects. */
+export async function runDesignReviewers(setting: { reviewers: string[]; panel: number; timeoutSeconds: number }, cwd: string, prompt: string, images: string[], env: NodeJS.ProcessEnv): Promise<DesignResult[]> {
   const one = async (command: string): Promise<DesignResult> => {
     const name = reviewerName(command);
     const out = await runCapture(command, cwd, setting.timeoutSeconds * 1000, prompt, env);
@@ -178,12 +177,5 @@ export async function runDesignReviewers(setting: { reviewers: string[]; timeout
     const parsed = parseDesignReply(out.stdout, images);
     return parsed.ok ? { name, ...parsed, reply: out.stdout } : { name, ok: false, error: parsed.error };
   };
-  const worker = async () => {
-    while (next < setting.reviewers.length) {
-      const index = next++;
-      results[index] = await one(setting.reviewers[index] ?? '');
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(maxParallelReviewers, setting.reviewers.length) }, worker));
-  return results;
+  return runPanel(setting.reviewers, setting.panel, one);
 }

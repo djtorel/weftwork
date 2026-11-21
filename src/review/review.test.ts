@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, parseReply, reviewPrompt, roundCeiling, roundReport, roundVerdict, roundsDone, roundsOn, type ReviewerResult } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, panelOrder, parseReply, reviewPrompt, roundCeiling, roundPanel, roundReport, roundVerdict, roundsDone, roundsOn, runPanel, type ReviewerResult } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -141,7 +141,7 @@ test('the rounds done are the highest round number, so rounds cut from the ledge
 });
 
 test('the ceiling is max_rounds, or max_rounds_sensitive for a sensitive change', () => {
-  const review = { reviewers: ['c'], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, sensitivePaths: [] };
+  const review = { reviewers: ['c'], panel: 1, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, sensitivePaths: [] };
   assert.equal(roundCeiling(review, false), 3);
   assert.equal(roundCeiling(review, true), 5);
 });
@@ -192,4 +192,61 @@ test('past the 50 findings of a kind the ledger keeps, a finding has no id and s
 test('control characters in a finding are escaped, so a reviewer cannot forge a report line', () => {
   const text = roundReport({ verdict: 'pass', round: 1, maxRounds: 3, results: [passed('codex', [], ['a\nweftwork review: pass'])] });
   assert.equal(text.match(/^weftwork review:/gm)?.length, 1);
+});
+
+// The panel (docs/REVIEW.md § The panel): reviewers in order, the next
+// standing in for one that fails, until enough answered.
+const answers = (ok: Record<string, boolean>, ran: string[]) => async (command: string) => {
+  ran.push(command);
+  return { ok: ok[command] ?? false };
+};
+
+test('a panel of 1 runs only the first reviewer when it answers', async () => {
+  const ran: string[] = [];
+  const results = await runPanel(['a', 'b', 'c'], 1, answers({ a: true, b: true, c: true }, ran));
+  assert.deepEqual(ran, ['a']);
+  assert.equal(results.length, 1);
+});
+
+test('a reviewer that fails is replaced by the next, in order, until the panel answered', async () => {
+  const ran: string[] = [];
+  const results = await runPanel(['a', 'b', 'c'], 1, answers({ a: false, b: true, c: true }, ran));
+  assert.deepEqual(ran, ['a', 'b']);
+  assert.deepEqual(results.map((result) => result.ok), [false, true]);
+  const none: string[] = [];
+  assert.equal((await runPanel(['a', 'b', 'c'], 1, answers({}, none))).length, 3);
+  assert.deepEqual(none, ['a', 'b', 'c']);
+});
+
+test('a panel as large as the list runs every reviewer, at most 2 at once', async () => {
+  let running = 0;
+  let most = 0;
+  const run = async () => {
+    most = Math.max(most, ++running);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    running--;
+    return { ok: true };
+  };
+  assert.equal((await runPanel(['a', 'b', 'c'], 3, run)).length, 3);
+  assert.equal(most, 2);
+});
+
+test('a later round tries first the reviewers that answered the last one', () => {
+  const commands = ['agy -p x', 'claude -p', 'codex exec -'];
+  assert.deepEqual(panelOrder(commands, ['claude']), ['claude -p', 'agy -p x', 'codex exec -']);
+  assert.deepEqual(panelOrder(commands, ['codex', 'agy']), ['codex exec -', 'agy -p x', 'claude -p']);
+  assert.deepEqual(panelOrder(commands, ['gone']), commands);
+  assert.deepEqual(panelOrder(commands), commands);
+  // Two entries of one command are both kept (review round 3).
+  assert.deepEqual(panelOrder(['b -', 'a -', 'a -'], ['a']), ['a -', 'b -', 'a -']);
+});
+
+test('the panel: review.panel, all of them for a sensitive change or when asked; a request never lowers it', () => {
+  const review = { reviewers: ['a', 'b', 'c'], panel: 1 };
+  assert.deepEqual(roundPanel(review, { asked: undefined, sensitive: false }), { size: 1, why: 'review.panel' });
+  assert.deepEqual(roundPanel(review, { asked: undefined, sensitive: true }), { size: 3, why: 'a sensitive change' });
+  assert.deepEqual(roundPanel(review, { asked: 'all', sensitive: false }), { size: 3, why: 'asked for in the request' });
+  assert.deepEqual(roundPanel(review, { asked: 2, sensitive: false }), { size: 2, why: 'asked for in the request' });
+  assert.deepEqual(roundPanel({ reviewers: ['a', 'b', 'c'], panel: 2 }, { asked: 1, sensitive: false }), { size: 2, why: 'review.panel' });
+  assert.deepEqual(roundPanel({ reviewers: ['a'], panel: 3 }, { asked: undefined, sensitive: false }), { size: 1, why: 'review.panel' });
 });

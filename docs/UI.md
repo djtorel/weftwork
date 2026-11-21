@@ -131,8 +131,13 @@ existing screens.
 
 For a UI change, each reviewer runs with `WEFTWORK_IMAGES` set to the
 absolute paths of the screenshots, before then after, joined by commas, and
-`WEFTWORK_IMAGES_DIR` set to the folder that holds them
-(`<git dir>/weftwork/ui/`). A reviewer that can attach images uses
+`WEFTWORK_IMAGES_DIR` set to the folder that holds them. These are copies
+in a new private folder in the system's temporary folder, outside the git
+dir, removed after the round: Claude Code 2.1.329 does not read a file
+under `.git` in `dontAsk` mode, even in an added folder with an allow rule
+(checked by hand on 2026-11-21: the same screenshot was read from a folder
+outside `.git` and refused inside it). The brief names the copies; the
+report and the PR name the screenshots in `<git dir>/weftwork/ui/`. A reviewer that can attach images uses
 `WEFTWORK_IMAGES`, so the model gets the images and not only their paths.
 The built-in Codex reviewer does this:
 
@@ -156,9 +161,9 @@ folder for a UI change only. The first two lines are built-in reviewers
 (`docs/REVIEW.md` § The built-in reviewers):
 
 ```bash
-claude -p --model opus --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
+claude -p --model opus --effort high --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
 agy --model gemini-4-neon-high --mode plan --settings '{"permissions":{"deny":["command(*)","write_file(*)","read_url(*)","execute_url(*)","mcp(*)"]}}' ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"} ${WEFTWORK_DIFF:+--add-dir "${WEFTWORK_DIFF%/*}"} -p "$(cat)"
-gemini --approval-mode plan ${WEFTWORK_IMAGES:+--include-directories "$(git rev-parse --absolute-git-dir)/weftwork/ui"} -p 'Do the review above.'
+gemini --approval-mode plan ${WEFTWORK_IMAGES_DIR:+--include-directories "$WEFTWORK_IMAGES_DIR"} -p 'Do the review above.'
 ```
 
 Put a line in `review.reviewers` as it is. `src/review/review-cli.test.ts`
@@ -175,7 +180,9 @@ runs the three lines from this file with a fake `claude`, `agy` and
   allow more. Checked by hand with 2.1.325 on 2026-11-15: the reviewer ran
   `git status` and `git diff --stat`, Write, `touch` and
   `git diff --output=<file>` were denied, and it read a screenshot in an
-  added folder (and could not read it without `--add-dir`).
+  added folder (and could not read it without `--add-dir`). With 2.1.329 it
+  reads one only outside `.git`, hence the copies above. `--effort high`
+  sets its reasoning effort.
 - **Antigravity CLI** (`agy --help` and `agy models`, 1.5.14;
   antigravity.google/docs/permissions.md and docs/sandbox.md; all read
   2026-11-21). `agy -p` does not read stdin, so the shell reads the brief

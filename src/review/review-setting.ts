@@ -8,26 +8,29 @@ import type { Failure } from '../shared/errors.ts';
 import { isInteger } from '../shared/json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from '../engine/budget.ts';
 
-export type ReviewSetting = { reviewers: string[]; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
+export type ReviewSetting = { reviewers: string[]; panel: number; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
 export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
-/** Three reviewers from three model families, each read-only: Claude Opus
- * and Codex (GPT Sol, its default model) with the user's own settings off,
- * and Gemini Neon through the Antigravity CLI, whose deny rules win over the
- * user's settings (docs/REVIEW.md § The built-in reviewers).
- * A reviewer whose CLI is not installed drops out of the round. Each prints
- * only its answer on stdout. Claude and Codex read the prompt on stdin; agy
- * does not read stdin, so the prompt is its `-p` argument. For a UI change
- * Codex gets the screenshots as images and the others open the folder that
- * holds them (e11s06, docs/UI.md). agy runs no shell command, so it reads the
- * change from the diff file (WEFTWORK_DIFF). */
+/** Three reviewers from three model families, in the order a round tries
+ * them: Gemini Neon through the Antigravity CLI, then Codex (GPT Sol, its
+ * default model), then Claude Opus at high effort, last because the owner
+ * writes code with Opus and a review gains most from another family. A
+ * round needs `review.panel` of them to answer (1 by default); one that
+ * fails, such as one out of quota or not installed, is replaced by the next
+ * (docs/REVIEW.md § The panel). Each is read-only: Claude and Codex with the
+ * user's own settings off, agy by deny rules that win over the user's
+ * settings. Each prints only its answer on stdout. Claude and Codex read the
+ * prompt on stdin; agy does not read stdin, so the prompt is its `-p`
+ * argument. For a UI change Codex gets the screenshots as images and the
+ * others open the folder that holds them (e11s06, docs/UI.md). agy runs no
+ * shell command, so it reads the change from the diff file (WEFTWORK_DIFF). */
 export const defaultReviewers: readonly string[] = [
-  'claude -p --model opus --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}',
-  'codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -',
   `agy --model gemini-4-neon-high --mode plan --settings '{"permissions":{"deny":["command(*)","write_file(*)","read_url(*)","execute_url(*)","mcp(*)"]}}' \${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"} \${WEFTWORK_DIFF:+--add-dir "\${WEFTWORK_DIFF%/*}"} -p "$(cat)"`,
+  'codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -',
+  'claude -p --model opus --effort high --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}',
 ];
 
-const builtIn: ReviewSetting = { reviewers: [...defaultReviewers], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
+const builtIn: ReviewSetting = { reviewers: [...defaultReviewers], panel: 1, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
 
 const maxReviewers = 5;
 
@@ -35,6 +38,7 @@ const maxSensitivePaths = 100;
 
 /** Each integer key: its field and its range. */
 const integerKeys = {
+  panel: { field: 'panel', max: 5 },
   max_rounds: { field: 'maxRounds', max: 10 },
   max_rounds_sensitive: { field: 'maxRoundsSensitive', max: 10 },
   timeout_seconds: { field: 'timeoutSeconds', max: 3600 },

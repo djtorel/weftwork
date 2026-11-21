@@ -177,20 +177,52 @@ async function runReviewer(command: string, cwd: string, prompt: string, timeout
   return parsed.ok ? { name, ...parsed } : { name, ok: false, error: parsed.error };
 }
 
-/** Run the reviewers on `prompt`, at most maxParallelReviewers at once, and
- * return the results in setting order. `env` is each reviewer's
- * environment (e11s06: WEFTWORK_IMAGES for a UI change). */
-export async function runReviewers(review: ReviewSetting, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
-  const results: ReviewerResult[] = [];
+/** Run `commands` in order until `panel` of them answered, at most
+ * maxParallelReviewers at once: one that fails (not installed, out of quota,
+ * timed out, no VERDICT line) is replaced by the next (docs/REVIEW.md § The
+ * panel). The results of those that ran, in the order they started. */
+export async function runPanel<T extends { ok: boolean }>(commands: readonly string[], panel: number, run: (command: string) => Promise<T>): Promise<T[]> {
+  const results: T[] = [];
   let next = 0;
-  const worker = async () => {
-    while (next < review.reviewers.length) {
-      const index = next++;
-      results[index] = await runReviewer(review.reviewers[index] ?? '', cwd, prompt, review.timeoutSeconds, env);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(maxParallelReviewers, review.reviewers.length) }, worker));
+  let answered = 0;
+  while (answered < panel && next < commands.length) {
+    const wave = commands.slice(next, next + Math.min(maxParallelReviewers, panel - answered));
+    next += wave.length;
+    const done = await Promise.all(wave.map(run));
+    results.push(...done);
+    answered += done.filter((result) => result.ok).length;
+  }
   return results;
+}
+
+/** The order a round tries the reviewers in: those that answered the last
+ * round first (by name, as the ledger keeps them), so the reviewer that
+ * raised a finding checks it, then the rest in setting order. */
+export function panelOrder(commands: readonly string[], answeredLast: readonly string[] = []): string[] {
+  // By position, so two entries of one command both stay (review round 3).
+  const first: number[] = [];
+  for (const name of answeredLast) {
+    const index = commands.findIndex((command, at) => !first.includes(at) && reviewerName(command) === name);
+    if (index !== -1) first.push(index);
+  }
+  const rest = commands.map((_, at) => at).filter((at) => !first.includes(at));
+  return [...first, ...rest].map((at) => commands[at] ?? '');
+}
+
+/** How many reviewers must answer: review.panel, raised to all of them for a
+ * sensitive change or by the request ("all" or a number), never lowered by
+ * it; at most the number of reviewers. */
+export function roundPanel(review: Pick<ReviewSetting, 'reviewers' | 'panel'>, input: { asked: number | 'all' | undefined; sensitive: boolean }): { size: number; why: string } {
+  const all = review.reviewers.length;
+  const asked = input.asked === 'all' ? all : (input.asked ?? 0);
+  const [size, why] = input.sensitive ? [all, 'a sensitive change'] : asked > review.panel ? [asked, 'asked for in the request'] : [review.panel, 'review.panel'];
+  return { size: Math.min(size, all), why };
+}
+
+/** Run the reviewers on `prompt` as a panel of `panel`, in `order`. `env`
+ * is each reviewer's environment (e11s06: WEFTWORK_IMAGES for a UI change). */
+export async function runReviewers(order: readonly string[], panel: number, timeoutSeconds: number, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
+  return runPanel(order, panel, (command) => runReviewer(command, cwd, prompt, timeoutSeconds, env));
 }
 
 const verdictText: Record<RoundVerdict, string> = { pass: 'pass', block: 'block', 'no-verdict': 'no verdict' };

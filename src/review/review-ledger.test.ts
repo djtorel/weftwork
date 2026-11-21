@@ -34,3 +34,14 @@ test('a review line with a bad field is skipped, not counted as a round', async 
   assert.equal(tail.reviews.length, 1);
   assert.equal(tail.skipped, 2);
 });
+
+test('a review line keeps the reviewers that answered, so the next round asks them first (docs/REVIEW.md § The panel)', async () => {
+  const path = (await ledgerPath(makeTestRepo())) as string;
+  assert.deepEqual(await appendReview(path, { ...round, answered: ['agy'] }, at), { ok: true });
+  appendFileSync(path, `${JSON.stringify({ ...round, at: at.toISOString(), round: 2, answered: 'agy' })}\n`);
+  const tail = await readLedgerTail(path, 1024 * 1024);
+  assert.ok(tail.ok);
+  assert.deepEqual(tail.reviews[0]?.answered, ['agy']);
+  assert.equal(tail.reviews[1]?.answered, undefined, 'a bad answered field is dropped, not the round');
+  assert.equal(tail.reviews.length, 2);
+});

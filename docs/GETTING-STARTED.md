@@ -11,11 +11,11 @@ detail.
 ## 1. Install
 
 You need git and Node 26 or later with npm. For the first all-ready run you also
-need Claude Code and the GitHub CLI `gh` signed in. The default reviewers
-are Claude Opus, Codex and Gemini Neon, through Claude Code, the Codex CLI
-and the Antigravity CLI (`agy`), each signed in. A reviewer whose CLI is
-missing drops out of the round, and one reviewer is enough
-(`docs/REVIEW.md`).
+need Claude Code and the GitHub CLI `gh` signed in. A code review asks one
+reviewer: Gemini Neon through the Antigravity CLI (`agy`), then Codex, then
+Claude Opus when the one before is missing or out of quota; a sensitive
+change, a design round and a "Full panel" ask all three
+(`docs/REVIEW.md`). Sign in to the ones you have; one is enough.
 
 ```bash
 npm install -g weftwork
