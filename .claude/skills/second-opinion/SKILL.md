@@ -5,8 +5,8 @@ description: Use when the user says "second opinion", and as the review step of 
 
 # Second Opinion
 
-Have reviewer models, from another family by default, review
-your change, read-only, in a loop, before the pull request. The engine runs
+Have reviewer models (Claude Opus, Codex and Gemini Neon by default)
+review your change, read-only, in a loop, before the pull request. The engine runs
 the reviewers, reads the findings and counts the rounds (`docs/REVIEW.md`).
 Make the smallest changes that answer real findings, and fight scope creep:
 push back with evidence when a finding is wrong or not needed.

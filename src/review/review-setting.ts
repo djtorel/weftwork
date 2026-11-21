@@ -11,11 +11,21 @@ import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yam
 export type ReviewSetting = { reviewers: string[]; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
 export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
-/** One reviewer from another model family than Claude, read-only, with the
- * user's own Codex settings off (the second-opinion skill). It prints only its
- * answer on stdout and reads the prompt from stdin. For a UI change it gets
- * the screenshots as images (e11s06, docs/UI.md). */
-export const defaultReviewers: readonly string[] = ['codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -'];
+/** Three reviewers from three model families, each read-only: Claude Opus
+ * and Codex (GPT Sol, its default model) with the user's own settings off,
+ * and Gemini Neon through the Antigravity CLI, whose deny rules win over the
+ * user's settings (docs/REVIEW.md § The built-in reviewers).
+ * A reviewer whose CLI is not installed drops out of the round. Each prints
+ * only its answer on stdout. Claude and Codex read the prompt on stdin; agy
+ * does not read stdin, so the prompt is its `-p` argument. For a UI change
+ * Codex gets the screenshots as images and the others open the folder that
+ * holds them (e11s06, docs/UI.md). agy runs no shell command, so it reads the
+ * change from the diff file (WEFTWORK_DIFF). */
+export const defaultReviewers: readonly string[] = [
+  'claude -p --model opus --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}',
+  'codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -',
+  `agy --model gemini-4-neon-high --mode plan --settings '{"permissions":{"deny":["command(*)","write_file(*)","read_url(*)","execute_url(*)","mcp(*)"]}}' \${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"} \${WEFTWORK_DIFF:+--add-dir "\${WEFTWORK_DIFF%/*}"} -p "$(cat)"`,
+];
 
 const builtIn: ReviewSetting = { reviewers: [...defaultReviewers], maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
 

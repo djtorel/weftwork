@@ -17,8 +17,8 @@ after(cleanupTempDirs);
 
 const designCli = join(import.meta.dirname, '..', 'design-cli.ts');
 
-function run(cwd: string, input: object) {
-  const out = spawnSync(process.execPath, [designCli], { cwd, input: JSON.stringify(input), env: isolatedEnv(), encoding: 'utf8', timeout: 30000 });
+function run(cwd: string, input: object, env: NodeJS.ProcessEnv = {}) {
+  const out = spawnSync(process.execPath, [designCli], { cwd, input: JSON.stringify(input), env: { ...isolatedEnv(), ...env }, encoding: 'utf8', timeout: 30000 });
   return { status: out.status, stdout: out.stdout, stderr: out.stderr };
 }
 
@@ -31,7 +31,7 @@ function setup(maxRounds = 5, extra = '') {
   const dir = makeTempDir();
   const answer = join(dir, 'answer.txt');
   // It saves the prompt beside the first image, in this round's folder.
-  const reviewer = `cat > "$(dirname "\${WEFTWORK_IMAGES%%,*}")/prompt.txt"; d="$(dirname "\${WEFTWORK_IMAGES%%,*}")"; echo "$WEFTWORK_IMAGES" > "$d/images.txt"; echo "$WEFTWORK_IMAGES_DIR" > "$d/dir.txt"; cat ${JSON.stringify(answer)}`;
+  const reviewer = `cat > "$(dirname "\${WEFTWORK_IMAGES%%,*}")/prompt.txt"; d="$(dirname "\${WEFTWORK_IMAGES%%,*}")"; echo "$WEFTWORK_IMAGES" > "$d/images.txt"; echo "$WEFTWORK_IMAGES_DIR" > "$d/dir.txt"; echo "\${WEFTWORK_DIFF-unset}" > "$d/diff.txt"; cat ${JSON.stringify(answer)}`;
   const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${JSON.stringify(reviewer)}]\n  max_rounds: ${maxRounds}\n${extra}` });
   const image = join(dir, 'home.desktop.png');
   writeFileSync(image, encodePng({ width: 200, height: 100, rgba: Buffer.alloc(200 * 100 * 4, 255) }));
@@ -50,7 +50,8 @@ test('a round below the pass mark: changes, exit 1, with the record, the marked 
   assert.match(out.stdout, /^mark 1 \(cat\) home\.desktop\.png \[20,10,100,50\] layout: The cards overlap\./m);
   const round = join(t.common, 'main', 'app', 'round-01');
   assert.match(readFileSync(join(round, 'round.md'), 'utf8'), /\| layout \| 2 \| 2 \(below\) \|/);
-  assert.match(readFileSync(join(round, 'prompt.txt'), 'utf8'), /home\.desktop\.png, 200 by 100 pixels/);
+  // The path, so a reviewer with no shell (agy) can open an image from outside the repository.
+  assert.ok(readFileSync(join(round, 'prompt.txt'), 'utf8').includes(`- home.desktop.png at ${join(round, 'home.desktop.png')}, 200 by 100 pixels`));
   const marked = decodePng(readFileSync(join(round, 'marked', 'home.desktop.png')));
   assert.deepEqual(readFileSync(join(round, 'home.desktop.png')), readFileSync(t.image), 'the original is kept as it was');
   assert.ok(marked !== null);
@@ -85,6 +86,13 @@ test('the ceiling: the last round stops the loop with exit 5, and a round past i
   assert.equal(third.status, 5);
   assert.match(third.stdout, /^weftwork design: stopped$/m);
   assert.equal(existsSync(join(t.common, 'main', 'app', 'round-03')), false);
+});
+
+test('a WEFTWORK_DIFF from the caller does not reach a design reviewer, which would open its folder', () => {
+  const t = setup();
+  t.answer(reply(5));
+  assert.equal(run(t.repo, { images: [t.image], brief: 'b' }, { WEFTWORK_DIFF: '/elsewhere/change.diff' }).status, 0);
+  assert.equal(readFileSync(join(t.common, 'main', 'app', 'round-01', 'diff.txt'), 'utf8').trim(), 'unset');
 });
 
 test('a lesson is kept in the clone and reaches the next round', () => {

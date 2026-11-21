@@ -94,9 +94,10 @@ async function main(): Promise<void> {
   if (!started.ok) return fail(started.error);
   const previousImages = last === undefined ? [] : last.images.map((name) => join(roundDir(dir, last.round), name)).filter((path) => existsSync(path));
   const previous = last === undefined ? null : { round: last.round, grades: last.grades, marks: last.markTexts, images: previousImages };
-  const prompt = designPrompt({ brief, images: images.images, pass: setting.design.pass, round, design, lessons: lessons.lessons, previous });
+  const shown = images.images.map((image, index) => ({ ...image, path: started.paths[index] ?? image.name }));
+  const prompt = designPrompt({ brief, images: shown, pass: setting.design.pass, round, design, lessons: lessons.lessons, previous });
   // Only this round's images go to the reviewers; values from the caller are dropped.
-  const { WEFTWORK_IMAGES: _images, WEFTWORK_IMAGES_DIR: _dir, ...env } = process.env;
+  const { WEFTWORK_IMAGES: _images, WEFTWORK_IMAGES_DIR: _dir, WEFTWORK_DIFF: _diff, ...env } = process.env;
   const names = images.images.map((image) => image.name);
   const results = await runDesignReviewers(setting.design, cwd, prompt, names, { ...env, WEFTWORK_IMAGES: [...started.paths, ...previousImages].join(','), WEFTWORK_IMAGES_DIR: dir });
   const after = await fingerprintTree(cwd);

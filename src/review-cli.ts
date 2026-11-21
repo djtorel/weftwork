@@ -11,12 +11,13 @@
 // ceiling (no reviewer ran), 2 when it cannot run (a detached HEAD among the
 // causes, since rounds are counted per branch), with the reason on stderr and
 // nothing on stdout.
+import { join } from 'node:path';
 import { readJsonObject, terminalSafe } from './shared/cli-io.ts';
 import { appendReview, ledgerPath, ledgerReadCap, readLedgerTail, weftworkDir } from './engine/ledger.ts';
 import { prProof } from './proof/pr-proof.ts';
 import type { RoundVerdict } from './review/review-ledger.ts';
 import { loadReview } from './review/review-setting.ts';
-import { groundResults, roundScope, ruleFiles } from './review/review-scope.ts';
+import { groundResults, roundScope, ruleFiles, writeChangeDiff } from './review/review-scope.ts';
 import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, reviewPrompt, roundCeiling, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review/review.ts';
 import { currentBranch, fingerprintTree } from './engine/tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './review/ui.ts';
@@ -81,16 +82,21 @@ async function main(): Promise<void> {
 
   const round = roundsDone(rounds) + 1;
   const later = last !== undefined && scope.changedSinceLast !== null ? { round, changed: scope.changedSinceLast, open: last.mustFix } : null;
+  const diff = scope.base === null ? null : await writeChangeDiff(cwd, weftwork, scope.base, scope.tree);
+  if (diff !== null && !diff.ok) return fail(diff.error);
   const parts = [brief.replace(/\n*$/, ''), auditPrompt({ sensitive: sensitive || scope.sensitiveBy !== null, ruleFiles: await ruleFiles(scope.root) })];
+  if (diff !== null && scope.base !== null) parts.push(`The change from the base ${scope.base} to the working tree under review, untracked files included, is the git diff in ${diff.path}. Read it there if you cannot run git.`);
   if (ready !== null) parts.push(uiPrompt(weftwork, ready, design));
   if (later !== null) parts.push(laterRoundPrompt(round, later.changed, later.open));
   const prompt = parts.join('\n\n');
-  // Only a UI change sets WEFTWORK_IMAGES; one from the caller is dropped (review round 1).
-  const { WEFTWORK_IMAGES: _inherited, ...env } = process.env;
+  // Only the engine sets these; values from the caller are dropped (review round 1).
+  const { WEFTWORK_IMAGES: _images, WEFTWORK_IMAGES_DIR: _dir, WEFTWORK_DIFF: _diff, ...env } = process.env;
+  if (diff !== null) env['WEFTWORK_DIFF'] = diff.path;
   if (ready !== null) {
     const images = imagesValue(weftwork, ready);
     if (!images.ok) return fail(images.error);
     env['WEFTWORK_IMAGES'] = images.value;
+    env['WEFTWORK_IMAGES_DIR'] = join(weftwork, 'ui');
   }
   const replies = await runReviewers(setting.review, cwd, reviewPrompt(prompt), env);
   const after = await fingerprintTree(cwd);

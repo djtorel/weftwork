@@ -9,21 +9,42 @@ import { defaultReviewers, resolveReview } from './review-setting.ts';
 
 const file = (text: string, path = '/repo/weftwork.yaml') => ({ path, text });
 
-test('no file: one reviewer from another family, 3 rounds, 5 when sensitive, 1200 s', () => {
+test('no file: Claude Opus, Codex and Gemini Neon, 3 rounds, 5 when sensitive, 1200 s', () => {
   const result = resolveReview({ user: null, repo: null });
   assert.deepEqual(result, {
     ok: true,
     review: { reviewers: defaultReviewers, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] },
   });
-  assert.equal(defaultReviewers.length, 1);
-  assert.match(defaultReviewers[0] ?? '', /^codex exec .*--sandbox read-only/);
+  assert.deepEqual(
+    defaultReviewers.map((command) => command.split(' ')[0]),
+    ['claude', 'codex', 'agy'],
+  );
 });
 
-test('the built-in reviewer attaches the screenshots with --image only when WEFTWORK_IMAGES is set (e11s06)', () => {
-  // The same shell text, with codex exec swapped for printf, shows the argv codex would get.
-  const argv = (env: NodeJS.ProcessEnv) => spawnSync((defaultReviewers[0] ?? '').replace(/^codex exec/, "printf '[%s]'"), { shell: true, env, encoding: 'utf8' }).stdout;
-  assert.equal(argv({ PATH: process.env['PATH'], WEFTWORK_IMAGES: '/a b/x.png,/y.png' }), '[--ignore-user-config][--sandbox][read-only][--ephemeral][--image][/a b/x.png,/y.png][-]');
-  assert.equal(argv({ PATH: process.env['PATH'] }), '[--ignore-user-config][--sandbox][read-only][--ephemeral][-]');
+/** The argv a built-in reviewer's command gives its program: the same shell
+ * text, with the program swapped for printf, and the brief on stdin. */
+function argv(program: string, env: NodeJS.ProcessEnv): string {
+  const command = defaultReviewers.find((entry) => entry.startsWith(`${program} `)) ?? '';
+  return spawnSync(command.replace(program, "printf '[%s]'"), { shell: '/bin/sh', env: { PATH: process.env['PATH'], ...env }, input: 'the brief', encoding: 'utf8' }).stdout;
+}
+
+const ui = { WEFTWORK_IMAGES: '/a b/ui/after/x.png,/y.png', WEFTWORK_IMAGES_DIR: '/a b/ui', WEFTWORK_DIFF: '/g d/review/change.diff' };
+
+test('the Claude reviewer is Opus with read tools only, and opens the screenshot folder only when there is one (e11s06)', () => {
+  const plain = '[-p][--model][opus][--setting-sources][][--tools][Read,Grep,Glob,Bash][--permission-mode][dontAsk]';
+  assert.equal(argv('claude', ui), `${plain}[--add-dir][/a b/ui]`);
+  assert.equal(argv('claude', {}), plain);
+});
+
+test('the Codex reviewer attaches the screenshots with --image only when WEFTWORK_IMAGES is set (e11s06)', () => {
+  assert.equal(argv('codex exec', ui), '[--ignore-user-config][--sandbox][read-only][--ephemeral][--image][/a b/ui/after/x.png,/y.png][-]');
+  assert.equal(argv('codex exec', {}), '[--ignore-user-config][--sandbox][read-only][--ephemeral][-]');
+});
+
+test('the Gemini reviewer is Neon in plan mode with every command, write, URL and MCP tool denied, gets the brief as -p, and opens the diff and screenshot folders when set', () => {
+  const plain = `[--model][gemini-4-neon-high][--mode][plan][--settings][{"permissions":{"deny":["command(*)","write_file(*)","read_url(*)","execute_url(*)","mcp(*)"]}}]`;
+  assert.equal(argv('agy', ui), `${plain}[--add-dir][/a b/ui][--add-dir][/g d/review][-p][the brief]`);
+  assert.equal(argv('agy', {}), `${plain}[-p][the brief]`);
 });
 
 test('a file without a review mapping sets nothing; the budget key is left to budget.ts', () => {

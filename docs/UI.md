@@ -130,9 +130,11 @@ existing screens.
 ### The images
 
 For a UI change, each reviewer runs with `WEFTWORK_IMAGES` set to the
-absolute paths of the screenshots, before then after, joined by commas. A
-reviewer that can attach images uses it, so the model gets the images and
-not only their paths. The built-in reviewer does this:
+absolute paths of the screenshots, before then after, joined by commas, and
+`WEFTWORK_IMAGES_DIR` set to the folder that holds them
+(`<git dir>/weftwork/ui/`). A reviewer that can attach images uses
+`WEFTWORK_IMAGES`, so the model gets the images and not only their paths.
+The built-in Codex reviewer does this:
 
 ```bash
 codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
@@ -140,43 +142,69 @@ codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGE
 
 `${WEFTWORK_IMAGES:+...}` adds `--image` only for a UI change. Write a
 `reviewers` entry in `weftwork.yaml` the same way. For a change that is not a UI
-change, `WEFTWORK_IMAGES` is not set, even when the caller had set it. A
+change, neither variable is set, even when the caller had set it. A
 screenshot path with a comma of its own (in the git directory's path, say)
 stops the review with exit 2.
 
-### Claude Code and Gemini CLI reviewers
+### Claude Code, Antigravity and Gemini CLI reviewers
 
-Neither `claude -p` nor `gemini -p` has a flag that attaches an image.
-Both have a file tool that reads an image and gives it to the model, and
-the brief tells each reviewer to open each screenshot. The screenshots are
-in `<git dir>/weftwork/ui/`, which is outside the working tree in a git
-worktree, so the entry adds that folder for a UI change only:
+Neither `claude -p`, `agy -p` nor `gemini -p` has a flag that attaches an
+image. Each has a file tool that reads an image and gives it to the model,
+and the brief tells each reviewer to open each screenshot. The screenshots
+are outside the working tree in a git worktree, so the entry adds their
+folder for a UI change only. The first two lines are built-in reviewers
+(`docs/REVIEW.md` § The built-in reviewers):
 
 ```bash
-claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES:+--add-dir "$(git rev-parse --absolute-git-dir)/weftwork/ui"}
+claude -p --model opus --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
+agy --model gemini-4-neon-high --mode plan --settings '{"permissions":{"deny":["command(*)","write_file(*)","read_url(*)","execute_url(*)","mcp(*)"]}}' ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"} ${WEFTWORK_DIFF:+--add-dir "${WEFTWORK_DIFF%/*}"} -p "$(cat)"
 gemini --approval-mode plan ${WEFTWORK_IMAGES:+--include-directories "$(git rev-parse --absolute-git-dir)/weftwork/ui"} -p 'Do the review above.'
 ```
 
-Put a line in `review.reviewers` as it is. `src/review/review-cli.test.ts` runs both
-lines from this file with a fake `claude` and `gemini`, and checks that the
-folder they get holds every path in `WEFTWORK_IMAGES`.
+Put a line in `review.reviewers` as it is. `src/review/review-cli.test.ts`
+runs the three lines from this file with a fake `claude`, `agy` and
+`gemini`, checks that the folder they get holds every path in
+`WEFTWORK_IMAGES`, and checks that the first two are the built-in ones.
 
 - **Claude Code** (`claude --help`, 2.1.325; code.claude.com/docs/en/cli-reference
   and the Agent SDK's Read tool, through Context7; both read 2026-11-15).
-  The brief comes on stdin. `--tools` keeps only the read tools and Bash;
+  The brief comes on stdin. `--model opus` is the alias for the latest
+  Opus. `--tools` keeps only the read tools and Bash;
   `dontAsk` denies each call that would ask for permission; and
   `--setting-sources ""` loads no user or project settings that could
   allow more. Checked by hand with 2.1.325 on 2026-11-15: the reviewer ran
   `git status` and `git diff --stat`, Write, `touch` and
   `git diff --output=<file>` were denied, and it read a screenshot in an
   added folder (and could not read it without `--add-dir`).
+- **Antigravity CLI** (`agy --help` and `agy models`, 1.5.14;
+  antigravity.google/docs/permissions.md and docs/sandbox.md; all read
+  2026-11-21). `agy -p` does not read stdin, so the shell reads the brief
+  into the `-p` argument; Linux caps one argument at 128 KiB, so a larger
+  brief fails this reviewer. agy has no flag that skips the user's
+  `settings.json`; the deny rules keep it read-only, since a deny rule wins
+  over any allow rule there. `plan` mode is a second layer (do not add
+  `--disable-slash-commands`: agy then warns that `--mode plan` has no
+  effect). It runs no shell command, so it reads the change from the diff
+  file the engine writes (`WEFTWORK_DIFF`, `docs/REVIEW.md`), and the
+  design brief gives each image's path. Checked by hand with Gemini 4 Neon
+  on 2026-11-21: `git diff --output=<file>`, `curl`, `write_file` and
+  `edit_file` were denied, also in a subagent it started, and the reply
+  went on; it read a file and described a screenshot in an added folder.
+  An allow rule is not enough: with `command(git diff)` allowed,
+  `git diff --output=<file>` wrote the file, and a command no rule allowed
+  ended the run with no reply and exit 0. What the rules cannot turn off
+  (agy ignores a deny rule on a tool name): `search_web`, which sends a
+  query to Google search, not to a site of the brief's choosing; subagents,
+  which keep the deny rules; and a schedule, which ends with the session.
+  A subagent the reviewer waits on can hold the round until
+  `timeout_seconds`.
 - **Gemini CLI** (`gemini --help`, 0.68.0; github.com/google-gemini/gemini-cli
   `docs/cli/cli-reference.md`, `docs/tools/file-system.md` and
   `docs/reference/commands.md`, through Context7; all read 2026-11-15).
   `-p` adds its text after the brief on stdin. `plan` is the read-only
   mode: it runs no shell command, so this reviewer reads the files but
-  cannot run `git diff`, and the engine does not add the diff to the
-  brief. With this entry, put the diff in the brief yourself.
+  cannot run `git diff`. This entry does not open the folder of the
+  engine's diff file; with it, put the diff in the brief yourself.
   `read_file` reads images. This entry is NOT
   checked with a real model: the docs say git-aware filtering hides `.git/`
   from `@` paths, and if it hides the screenshots from `read_file` too,
@@ -194,7 +222,7 @@ does not.
 - The images stay in the engine's folder; the pull request lists them by
   path and hash, it does not embed them.
 - A reviewer that cannot take `WEFTWORK_IMAGES` must open the image files by
-  path, as the Claude Code and Gemini CLI entries above do. One that can do
+  path, as the Claude Code, Antigravity and Gemini CLI entries above do. One that can do
   neither reviews the diff alone, and should say so.
 - Vision models judge visual design weakly: absolute scores rarely match
   people, zero-shot critiques are often wrong, and fine colour and spatial

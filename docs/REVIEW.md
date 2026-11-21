@@ -2,7 +2,9 @@
 
 <!-- story: e11s03, e13s02, e13s03, e13s05 -->
 
-Before a pull request, one or more reviewer models read the change. The
+Before a pull request, one or more reviewer models read the change: by
+default Claude Opus, Codex (GPT Sol) and Gemini Neon, one from each of three
+model families. The
 engine runs the reviewers, reads their findings and counts the rounds, so
 the round ceiling does not depend on the agent's prose. The `second-opinion`
 skill calls it.
@@ -29,6 +31,7 @@ The guard blocks the agent from editing either file (`docs/GUARD.md`).
 review:
   reviewers:
     - codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
+    - claude -p --model sonnet --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
   max_rounds: 3
   max_rounds_sensitive: 5
   timeout_seconds: 1200
@@ -38,7 +41,7 @@ review:
 
 | Key | What it is | Range | Built-in |
 | --- | --- | --- | --- |
-| `reviewers` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode (`docs/UI.md` gives `claude -p` and `gemini -p` entries that also get the screenshots). A file's list replaces the list before it whole. | 1 to 5 | One Codex reviewer, read-only (another model family than Claude) |
+| `reviewers` | Reviewer commands, for example `codex exec`, `claude -p` or `gemini -p`, each in its read-only mode (`docs/UI.md` gives `claude -p`, `agy -p` and `gemini -p` entries that also get the screenshots). A file's list replaces the list before it whole. | 1 to 5 | Claude Opus, Codex and Gemini Neon, each read-only (below) |
 | `max_rounds` | Rounds on one branch | 1 to 10 | 3 |
 | `max_rounds_sensitive` | Rounds on one branch for a `sensitive` change | 1 to 10 | 5 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | 1200 |
@@ -47,13 +50,49 @@ review:
 A file that cannot be used stops the review with exit 2, under the same
 file rules as the budget. An unknown key under `review` is an error.
 
+## The built-in reviewers
+
+With no `review.reviewers`, three reviewers read each change, one from each
+model family, and the design loop uses the same three (`docs/DESIGN-LOOP.md`):
+
+```bash
+claude -p --model opus --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
+codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
+agy --model gemini-4-neon-high --mode plan --settings '{"permissions":{"deny":["command(*)","write_file(*)","read_url(*)","execute_url(*)","mcp(*)"]}}' ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"} ${WEFTWORK_DIFF:+--add-dir "${WEFTWORK_DIFF%/*}"} -p "$(cat)"
+```
+
+| Reviewer | CLI | Model | Read-only by |
+| --- | --- | --- | --- |
+| `claude` | Claude Code | Opus, the `opus` alias for the latest | Read tools and Bash only, `dontAsk`, no settings files |
+| `codex` | Codex CLI | Codex's default, GPT Sol (`gpt-6.2-sol` on 2026-11-21) | `--sandbox read-only`, no user config |
+| `agy` | Antigravity CLI | Gemini 4 Neon, high effort | Deny rules on every shell command, file write, URL and MCP tool, over the user's settings; `plan` mode |
+
+Claude and Codex run with the user's own settings off. agy has no way to
+skip them, so its deny rules, which win over any rule there, keep it
+read-only. `docs/UI.md` gives how each was checked and what agy can still
+do (web search). To change the
+model, the effort or the list, set `review.reviewers` (and
+`design.reviewers` for the design loop only); `agy models` lists the
+Antigravity models.
+
+A reviewer whose CLI is not installed, is signed out or is out of quota
+fails, and the report says why (`exit 127` and `not found` for a missing
+CLI). It counts as neither a pass nor a block, so the round goes on with
+the others, and one reviewer that answers is enough for a verdict. To stop
+a reviewer from running at all, leave it out of `review.reviewers`.
+
 ## A reviewer
 
 Each command runs in a shell in the working directory, in its own process
 group, with the brief and the reply format on stdin. Its stdout is the reply
 (a reply larger than 1 MiB fails the reviewer, since a cut reply could drop
 a must-fix). At most 2 reviewers run at once (AGENTS.md: never more
-than 2 subagents at once). For a UI change the brief holds the screenshots and
+than 2 subagents at once), so a third starts when one of the first two ends.
+When there is a base, the engine writes the change from the base to the
+snapshot of the working tree, untracked files included, as a git diff in
+`<git dir>/weftwork/review/change.diff`, names it in the brief and sets
+`WEFTWORK_DIFF` to its path, for a reviewer that cannot run git (the
+Gemini reviewer runs no shell command). For a UI change the brief holds the screenshots and
 a design checklist, and `WEFTWORK_IMAGES` holds the image paths
 (`docs/UI.md`). The engine asks for this format:
 

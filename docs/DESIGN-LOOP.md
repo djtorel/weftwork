@@ -202,12 +202,13 @@ design:
 | `max_images` | The most images one round may take. Every reviewer reads each one, and the last round's images too. `WEFTWORK_IMAGES` holds all their paths, and Linux allows one variable 128 KiB: at the ceiling, a path longer than about 320 bytes makes a reviewer fail to start | 1 to 200 | 50 |
 | `reviewers` | Reviewer commands, read-only, at most 2 run at once | 1 to 5 | `review.reviewers` |
 
-A Claude Code reviewer reads the images with its file tool, so it needs
-their folder:
-
-```bash
-claude -p --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}
-```
+With no `design.reviewers`, a round uses the review's reviewers: by
+default Claude Opus, Codex and Gemini Neon, so each design gets three
+opinions (`docs/REVIEW.md` § The built-in reviewers). A reviewer that
+fails, such as one whose CLI is not installed, drops out of the round, and
+the grades come from the ones that answered. The Claude Code and
+Antigravity reviewers read the images with their file tool, so the
+built-in entries open `WEFTWORK_IMAGES_DIR` (`docs/UI.md`).
 
 An unknown key, or a value out of its range, is an error that names the file
 and the key.

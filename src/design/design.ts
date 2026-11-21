@@ -117,7 +117,9 @@ export function loopStop(means: number[], maxRounds: number, stallAfter: number,
 
 export type PromptInput = {
   brief: string;
-  images: { name: string; width: number; height: number }[];
+  /** Each image with its copy in the round folder, so a reviewer with no
+   * shell (agy) can open it by path. */
+  images: { name: string; width: number; height: number; path?: string }[];
   pass: number;
   round: number;
   design: string | null;
@@ -131,7 +133,7 @@ export function designPrompt(input: PromptInput): string {
   const parts = [
     'You are a senior UI and UX designer. Review the design in the images for the brief below, as you would in a design critique: for the person who uses it and the job they do.',
     `Brief:\n${input.brief.replace(/\n*$/, '')}`,
-    `Images (open each one; boxes are in these pixels, from the top left):\n${input.images.map((image) => `- ${image.name}, ${image.width} by ${image.height} pixels`).join('\n')}`,
+    `Images (open each one; boxes are in these pixels, from the top left):\n${input.images.map((image) => `- ${image.name}${image.path === undefined ? '' : ` at ${image.path}`}, ${image.width} by ${image.height} pixels`).join('\n')}`,
   ];
   parts.push(
     input.design === null

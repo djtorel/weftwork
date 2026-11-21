@@ -12,8 +12,8 @@ questions that really need a person, and to merge. Prose instructions alone do
 not hold an unattended agent to that (see `docs/research/R17-practitioner-autonomy.md`),
 so the engine enforces the parts that matter: "done" is a command the engine
 ran and watched pass, the loop has counted ceilings, and a hard stop leaves a
-handoff note. Everything else is light: short tasks, a reviewer from another
-model family, a pull request that says what it proved.
+handoff note. Everything else is light: short tasks, reviewers from three model
+families, a pull request that says what it proved.
 
 It is TypeScript on Node 26 or later, one package with one CLI (`weftwork`)
 and no library API yet (`docs/RELEASING.md`), tested with the built-in
@@ -62,7 +62,8 @@ under its own hooks (below).
    For UI work, run the design loop until it passes or stops
    (`docs/DESIGN-LOOP.md`).
 4. Prove it: run the task's check and Preflight, and keep the output.
-5. Review with the `second-opinion` skill (Codex, read-only, at most 3 rounds).
+5. Review with the `second-opinion` skill (Claude Opus, Codex and Gemini Neon
+   by default, read-only, at most 3 rounds).
 6. File the PR with the `pr-it` skill, wait for CI, fix real failures. Stop
    when it is ready. The owner merges, unless the task said "all in".
 7. Update the backlog: tick the task and add any follow-ups you found.

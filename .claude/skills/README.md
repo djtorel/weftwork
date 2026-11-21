@@ -7,7 +7,7 @@ They have their own names here so that they do not clash with tstack when both
 are installed, and because they do not do the same things. Changes: they
 follow this repository's rules (`AGENTS.md`), `all-ready` never merges and
 carries `full-send`'s steps itself, `second-opinion` runs the reviewers through
-the engine (the Codex CLI by default), and `pr-it` adds no model line,
+the engine (Claude Opus, Codex and Gemini Neon by default), and `pr-it` adds no model line,
 because a squash merge can carry the PR body into the commit.
 weftwork's research brief R17 (practitioner autonomy) explains why.
 

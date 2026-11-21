@@ -6,8 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A workflow engine for coding agents. You give the agent a short task; it
-works on a branch, proves the change, has it reviewed by a model from another
-family, and opens a pull request that says what it proved. You answer the
+works on a branch, proves the change, has it reviewed by models from three
+families, and opens a pull request that says what it proved. You answer the
 few questions that need a person, and you merge.
 
 Prose instructions alone do not hold an unattended agent to that, so the
@@ -34,8 +34,11 @@ engine enforces the parts that matter:
 - git, and the GitHub CLI [`gh`](https://cli.github.com/) signed in
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code), the agent
   host
-- The [Codex CLI](https://github.com/openai/codex), the default reviewer
-  (any read-only reviewer command works; see [Configure](#configure))
+- The default reviewers' CLIs: Claude Code, the
+  [Codex CLI](https://github.com/openai/codex) and the Antigravity CLI
+  (`agy`), for Claude Opus, GPT Sol and Gemini Neon. A missing one drops out
+  of the round (any read-only reviewer command works; see
+  [Configure](#configure))
 
 ## Install
 
@@ -116,7 +119,7 @@ that you can end a prompt with.
 | --- | --- | --- |
 | `all-ready` | "… All ready." | Takes the task to a pull request that is ready to merge: branch, change, done gate, review, PR, CI. It never merges. |
 | `all-in` | "… All in." | The same, then it merges the pull request when the merge gate passes: green checks, review settled, no change requested, the proven commit. You are not asked. |
-| `second-opinion` | "Second opinion." | Only the review: read-only reviewers, by default from another model family, 3 rounds (5 for a sensitive change). |
+| `second-opinion` | "Second opinion." | Only the review: read-only reviewers, by default Claude Opus, Codex and Gemini Neon, 3 rounds (5 for a sensitive change). |
 | `pr-it` | "PR it." | Only the pull request, with its Proof and Decisions sections. |
 | `retro` | "Retro." | With `history: local` on, proposes one small, checked fix for the failure that recurs most in your tasks ([`docs/HISTORY.md`](docs/HISTORY.md)). |
 
@@ -153,7 +156,7 @@ flowchart LR
   branch --> change[Smallest change, test first]
   change --> gate{"Done gate:<br/>the engine runs<br/>your checks"}
   gate -- fail --> change
-  gate -- pass --> review{"Review by<br/>another model<br/>(max 3 rounds)"}
+  gate -- pass --> review{"Review by<br/>three models<br/>(max 3 rounds)"}
   review -- must-fix --> change
   review -- pass --> pr["PR with proof<br/>and decisions"]
   pr --> ci{CI green?}
