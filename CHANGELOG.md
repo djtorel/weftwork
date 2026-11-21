@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/djtorel/weftwork/compare/v0.4.2...v0.5.0) (2026-11-21)
+
+
+### Features
+
+* **review:** get a second opinion from another family on every PR (Gemini, then Codex, then Opus) and all three on risky changes and designs ([#144](https://github.com/djtorel/weftwork/issues/144)) ([02f96fc](https://github.com/djtorel/weftwork/commit/02f96fc37cfb3b1b7dbf562f47209df67888f60a))
+
 ## [0.4.2](https://github.com/djtorel/weftwork/compare/v0.4.1...v0.4.2) (2026-11-19)
 
 
