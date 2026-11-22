@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, panelOrder, parseReply, reviewPrompt, roundCeiling, roundPanel, roundReport, roundVerdict, roundsDone, roundsOn, runPanel, shortPanel, usageLimit, type ReviewerResult, type Stop } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, panelOrder, parseReply, reviewPrompt, roundCeiling, roundPanel, roundReport, roundVerdict, roundsDone, roundsOn, runPanel, runReply, shortPanel, usageLimit, type ReviewerResult, type Stop } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -298,12 +298,23 @@ test('a usage limit in what a failed reviewer printed is found, with its line', 
   for (const line of ['', 'sh: 1: agy: not found', 'exit 7', 'the 4290 lines changed']) assert.equal(usageLimit(line), null);
 });
 
+test('a stand-in stopped as not needed is not out of usage, whatever it had printed, and does not rest', async () => {
+  const stop = new AbortController();
+  const reply = runReply("echo 'the brief: review the usage limit code' >&2; sleep 20", process.cwd(), '', 30, undefined, stop.signal);
+  setTimeout(() => stop.abort({ error: 'stopped: not needed, the panel had answered', rest: false } satisfies Stop), 300);
+  assert.deepEqual(await reply, { ok: false, error: 'stopped: not needed, the panel had answered' });
+  // One that ends by itself on its limit is out of usage, and rests.
+  assert.deepEqual(await runReply("echo 'ERROR: usage limit' >&2; exit 1", process.cwd(), '', 30), { ok: false, error: 'out of usage: ERROR: usage limit', rest: true });
+});
+
 test('a round with fewer answers than its panel says which reviewers to ask again', () => {
   const ok: ReviewerResult = { name: 'codex', ok: true, mustFix: [], shouldFix: [], followUp: [] };
   const out: ReviewerResult = { name: 'agy', ok: false, error: 'out of usage: quota', rest: true };
   assert.equal(shortPanel([ok, out], 3), 'review again: 1 of 3 reviewers answered; agy did not (out of usage: quota). Go on with this round; list it in the pull request and the backlog');
   assert.equal(shortPanel([ok, out], 1), null);
   assert.equal(shortPanel([ok], 1), null);
+  // With no answer there is no round to go on with: the no-verdict steps apply.
+  assert.equal(shortPanel([out], 1), 'review again: 0 of 1 reviewers answered; agy did not (out of usage: quota). List it in the pull request and the backlog');
 });
 
 test('a later round tries first the reviewers that answered the last one', () => {

@@ -73,7 +73,7 @@ export function finishRound(input: FinishInput): { ok: true; lines: string[]; ex
   };
   const rounds = [...input.record.rounds, summary];
   summary.stop = outcome === 'pass' ? null : loopStop(verdictMeans(rounds), setting.maxRounds, setting.stallAfter, rounds.length);
-  const reviewers = results.map((result) => (result.ok ? { name: result.name, ok: true, grades: result.grades } : { name: result.name, ok: false, error: result.error }));
+  const reviewers = results.map((result) => (result.ok ? { name: result.name, ok: true, grades: result.grades } : { name: result.name, ok: false, error: result.error, ...(result.skipped ? { skipped: true } : {}) }));
   const page = roundMarkdown({ record: input.record, summary, brief: input.brief, pass: setting.pass, maxRounds: setting.maxRounds, reviewers, marks, marked });
   const wrote = writeRoundFile(folder, 'round.md', page);
   if (wrote !== null) return wrote;

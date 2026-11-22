@@ -190,12 +190,16 @@ export async function runReply(command: string, cwd: string, prompt: string, tim
     // A cut reply could drop a must-fix after the VERDICT line (review round 1).
     return out.stdoutCut ? { ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` } : { ok: true, stdout: out.stdout };
   }
+  // The panel stopped it: its reason stands, whatever the reviewer had
+  // printed, so a stand-in that was not needed does not rest (review round 1).
+  if (out.reason === 'killed') {
+    const { error, rest } = stop?.reason as Stop;
+    return rest ? { ok: false, error, rest } : { ok: false, error };
+  }
   const usage = usageLimit(`${out.stderrTail}\n${out.stdout.slice(-400)}`);
   if (usage !== null) return { ok: false, error: `out of usage: ${usage}`, rest: true };
   if (out.reason === 'timeout') return { ok: false, error: `timed out after ${timeoutSeconds} s`, rest: true };
-  if (out.reason !== 'killed') return { ok: false, error: why(out, out.stderrTail) };
-  const { error, rest } = stop?.reason as Stop;
-  return rest ? { ok: false, error, rest } : { ok: false, error };
+  return { ok: false, error: why(out, out.stderrTail) };
 }
 
 /** Run one reviewer and read its reply. Never rejects. */
@@ -268,13 +272,14 @@ export async function runPanel<T extends { ok: boolean }>(commands: readonly str
 }
 
 /** The line for a round with fewer answers than its panel: which reviewers
- * to ask again later, and that the round stands (docs/REVIEW.md § A reviewer
+ * to ask again later, and that a round with an answer stands (docs/REVIEW.md § A reviewer
  * with no usage). Null when the panel answered or no reviewer failed. */
 export function shortPanel(results: readonly ({ name: string; ok: true } | { name: string; ok: false; error: string })[], panel: number): string | null {
   const failed = results.flatMap((result) => (result.ok ? [] : [`${result.name} did not (${result.error})`]));
   const answered = results.length - failed.length;
   if (answered >= panel || failed.length === 0) return null;
-  return `review again: ${answered} of ${panel} reviewers answered; ${failed.join(', ')}. Go on with this round; list it in the pull request and the backlog`;
+  // With no answer the round has no verdict, and there is none to go on with.
+  return `review again: ${answered} of ${panel} reviewers answered; ${failed.join(', ')}. ${answered === 0 ? 'List' : 'Go on with this round; list'} it in the pull request and the backlog`;
 }
 
 /** The order a round tries the reviewers in: those that answered the last

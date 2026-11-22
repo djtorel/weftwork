@@ -145,6 +145,10 @@ test('a design round goes on with the reviewers that have usage, says which to a
   assert.equal(two.status, 0, two.stdout + two.stderr);
   assert.equal(existsSync(join(dir, 'ran')), false);
   assert.match(two.stdout, /^reviewer 3, touch: not asked, resting until \S+ \(out of usage: RESOURCE_EXHAUSTED: quota exceeded\)$/m);
+  // The round's page says the same, not that the reviewer failed.
+  const page = readFileSync(/^record: (.+)$/m.exec(two.stdout)?.[1] ?? '', 'utf8');
+  assert.match(page, /^Reviewer 3 not asked: resting until /m);
+  assert.doesNotMatch(page, /failed/);
 });
 
 test('a lesson is kept in the clone and reaches the next round', () => {

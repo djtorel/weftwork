@@ -4,7 +4,7 @@
 // later round does not wait on it.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanupTempDirs, makeTempDir } from '../test-support/test-helpers.ts';
 import { askOrder, keepResting, readResting } from './reviewer-rest.ts';
@@ -17,6 +17,9 @@ const later = (minutes: number) => new Date(noon.getTime() + minutes * 60000);
 test('a reviewer that must rest is kept for an hour, then asked again', () => {
   const path = join(makeTempDir(), 'weftwork', 'reviewers-resting.json');
   assert.deepEqual(readResting(path, noon), {});
+  // A round that changes nothing writes no file.
+  assert.equal(keepResting(path, [{ name: 'claude', ok: true }], noon), null);
+  assert.equal(existsSync(path), false);
   const results = [
     { name: 'agy', ok: false, error: 'out of usage: quota', rest: true },
     { name: 'codex', ok: false, error: 'exit 7' },

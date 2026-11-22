@@ -156,8 +156,8 @@ Each command runs in a shell in the working directory, in its own process
 group, with the brief and the reply format on stdin. Its stdout is the reply
 (a reply larger than 1 MiB fails the reviewer, since a cut reply could drop
 a must-fix). At most 2 reviewers run at once (AGENTS.md: never more
-than 2 subagents at once), so in a panel of 3 the third starts after the
-first two.
+than 2 subagents at once), so in a panel of 3 the third starts as soon as
+one of the first two ends.
 When there is a base, the engine writes the change from the base to the
 snapshot of the working tree, untracked files included, as a git diff in
 `<git dir>/weftwork/review/change.diff`, names it in the brief and sets

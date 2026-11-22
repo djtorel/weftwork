@@ -60,14 +60,17 @@ export function askOrder(commands: readonly string[], resting: Resting): { ask: 
 /** After a round: a reviewer that must rest does, from `now`, and one that
  * answered rests no more. */
 export function keepResting(path: string, results: readonly { name: string; ok: boolean; error?: string; rest?: boolean }[], now: Date): Failure | null {
-  if (!results.some((result) => result.ok || result.rest === true)) return null;
   const resting = readResting(path, now);
   const until = new Date(now.getTime() + restMinutes * 60000).toISOString();
+  let changed = false;
   for (const result of results) {
-    if (result.ok) delete resting[result.name];
-    else if (result.rest === true) resting[result.name] = { until, why: (result.error ?? '').slice(0, 300) };
+    if (result.rest === true) resting[result.name] = { until, why: (result.error ?? '').slice(0, 300) };
+    else if (!result.ok || resting[result.name] === undefined) continue;
+    else delete resting[result.name];
+    changed = true;
   }
-  return writeAtomic(path, `${JSON.stringify(resting)}\n`, undefined);
+  // A round that rests no one and wakes no one writes no file.
+  return changed ? writeAtomic(path, `${JSON.stringify(resting)}\n`, undefined) : null;
 }
 
 /** Run a round's reviewers without the resting ones, and keep who must rest

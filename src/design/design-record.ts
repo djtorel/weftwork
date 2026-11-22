@@ -45,7 +45,8 @@ export function roundMarkdown(input: {
   brief: string;
   pass: number;
   maxRounds: number;
-  reviewers: { name: string; ok: boolean; error?: string; grades?: Grades; reply?: string }[];
+  /** `skipped`: a resting reviewer the round did not ask (reviewer-rest.ts). */
+  reviewers: { name: string; ok: boolean; error?: string; skipped?: boolean; grades?: Grades; reply?: string }[];
   marks: NumberedMark[];
   marked: Record<string, string | null>;
 }): string {
@@ -71,10 +72,10 @@ export function roundMarkdown(input: {
   for (const { key } of criteria) {
     const lowest = summary.grades[key];
     const flag = typeof lowest === 'number' && lowest < input.pass ? ' (below)' : '';
-    lines.push(`| ${key} | ${input.reviewers.map((reviewer) => (reviewer.ok ? (reviewer.grades?.[key] ?? 'n/a') : 'failed')).join(' | ')} | ${lowest ?? 'n/a'}${flag} |`);
+    lines.push(`| ${key} | ${input.reviewers.map((reviewer) => (reviewer.ok ? (reviewer.grades?.[key] ?? 'n/a') : reviewer.skipped ? 'not asked' : 'failed')).join(' | ')} | ${lowest ?? 'n/a'}${flag} |`);
   }
   for (const [index, reviewer] of input.reviewers.entries()) {
-    if (!reviewer.ok) lines.push('', `Reviewer ${index + 1} failed: ${text(reviewer.error ?? '')}`);
+    if (!reviewer.ok) lines.push('', `Reviewer ${index + 1} ${reviewer.skipped ? 'not asked' : 'failed'}: ${text(reviewer.error ?? '')}`);
   }
   if (summary.compare.length > 0) lines.push('', `Compared with round ${summary.round - 1}: ${summary.compare.join(', ')}`);
   lines.push('', '## Marks', '');
@@ -93,7 +94,7 @@ export function roundMarkdown(input: {
     }
     lines.push('');
   }
-  lines.push('## Replies', '', ...input.reviewers.map((reviewer, index) => `- Reviewer ${index + 1}, ${text(reviewer.name)}: ${reviewer.ok ? `[reply](<reply-${index + 1}.txt>)` : 'failed'}`), '');
+  lines.push('## Replies', '', ...input.reviewers.map((reviewer, index) => `- Reviewer ${index + 1}, ${text(reviewer.name)}: ${reviewer.ok ? `[reply](<reply-${index + 1}.txt>)` : reviewer.skipped ? 'not asked' : 'failed'}`), '');
   return `${lines.join('\n')}\n`;
 }
 
