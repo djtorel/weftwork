@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/djtorel/weftwork/compare/v0.5.0...v0.6.0) (2026-11-22)
+
+
+### Features
+
+* **history:** show where a task's time goes, and ask 2 design reviewers instead of 3 ([#147](https://github.com/djtorel/weftwork/issues/147)) ([67e47ee](https://github.com/djtorel/weftwork/commit/67e47eede1af4367c3ad5fe7f29e382cd6bbd5bb))
+
+
+### Bug fixes
+
+* **review:** go on with the reviewers that have usage instead of waiting for one that is out or hung ([#146](https://github.com/djtorel/weftwork/issues/146)) ([74d74d1](https://github.com/djtorel/weftwork/commit/74d74d15ed7a52df8d4656c29a41ae0b5e07d7a6))
+
 ## [0.5.0](https://github.com/djtorel/weftwork/compare/v0.4.2...v0.5.0) (2026-11-21)
 
 
