@@ -4,7 +4,7 @@
 // reviewer that fails is neither pass nor block) and the round ceiling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, panelOrder, parseReply, reviewPrompt, roundCeiling, roundPanel, roundReport, roundVerdict, roundsDone, roundsOn, runPanel, type ReviewerResult } from './review.ts';
+import { auditPrompt, diffReport, exhaustedReport, storedFindings, laterRoundPrompt, newOnUnchanged, panelOrder, parseReply, reviewPrompt, roundCeiling, roundPanel, roundReport, roundVerdict, roundsDone, roundsOn, runPanel, shortPanel, usageLimit, type ReviewerResult, type Stop } from './review.ts';
 import type { ReviewEntry } from './review-ledger.ts';
 
 test('the prompt is the brief, then the reply format the engine reads', () => {
@@ -141,7 +141,7 @@ test('the rounds done are the highest round number, so rounds cut from the ledge
 });
 
 test('the ceiling is max_rounds, or max_rounds_sensitive for a sensitive change', () => {
-  const review = { reviewers: ['c'], panel: 1, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, sensitivePaths: [] };
+  const review = { reviewers: ['c'], panel: 1, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1, slowSeconds: 1, sensitivePaths: [] };
   assert.equal(roundCeiling(review, false), 3);
   assert.equal(roundCeiling(review, true), 5);
 });
@@ -229,6 +229,81 @@ test('a panel as large as the list runs every reviewer, at most 2 at once', asyn
   };
   assert.equal((await runPanel(['a', 'b', 'c'], 3, run)).length, 3);
   assert.equal(most, 2);
+});
+
+// A reviewer that answers after `ms`, or never (`null`); it ends at once
+// when the panel stops it, as a killed process does.
+type Fake = { ok: boolean; name: string; error?: string; rest?: boolean };
+const timed = (ms: Record<string, number | null>, started: string[] = []) => (command: string, stop: AbortSignal) =>
+  new Promise<Fake>((resolve) => {
+    started.push(command);
+    const wait = ms[command];
+    const timer = wait === null || wait === undefined ? undefined : setTimeout(() => resolve({ ok: true, name: command }), wait);
+    stop.addEventListener('abort', () => {
+      clearTimeout(timer);
+      resolve({ ok: false, name: command, ...(stop.reason as Stop) });
+    });
+  });
+
+test('a stand-in starts as soon as a reviewer fails, not when the other one running ends', async () => {
+  const events: string[] = [];
+  const run = async (command: string) => {
+    events.push(`start ${command}`);
+    if (command === 'b') await new Promise((resolve) => setTimeout(resolve, 60));
+    events.push(`end ${command}`);
+    return { ok: command !== 'a' };
+  };
+  const results = await runPanel(['a', 'b', 'c'], 2, run);
+  assert.deepEqual(results.map((result) => result.ok), [false, true, true]);
+  assert.ok(events.indexOf('start c') < events.indexOf('end b'), events.join(', '));
+});
+
+test('a reviewer with no reply after the slow time gets a stand-in, and is stopped when the stand-in answers', async () => {
+  const started: string[] = [];
+  const results = await runPanel(['a', 'b', 'c'], 1, timed({ a: null, b: 5, c: 5 }, started), 20);
+  assert.deepEqual(started, ['a', 'b']);
+  assert.deepEqual(results, [
+    { ok: false, name: 'a', error: 'stopped as slow: no reply after 0.02 s', rest: true },
+    { ok: true, name: 'b' },
+  ]);
+});
+
+test('a slow reviewer that answers before its stand-in keeps the round; the stand-in is stopped and does not rest', async () => {
+  const results = await runPanel(['a', 'b'], 1, timed({ a: 80, b: null }), 50);
+  assert.deepEqual(results, [
+    { ok: true, name: 'a' },
+    { ok: false, name: 'b', error: 'stopped: not needed, the panel had answered', rest: false },
+  ]);
+});
+
+test('with no stand-in left, a slow reviewer is stopped once the others answered and it ran twice as long as the slowest of them', async () => {
+  const before = Date.now();
+  const results = await runPanel(['a', 'b', 'c'], 3, timed({ a: null, b: 5, c: 5 }), 20);
+  assert.deepEqual(results.map((result) => result.ok), [false, true, true]);
+  assert.equal(results[0]?.error, 'stopped as slow: no reply after 0.02 s');
+  assert.ok(Date.now() - before < 500);
+  // One that is slow but answers within twice the slowest answer is kept.
+  const kept = await runPanel(['a', 'b'], 2, timed({ a: 90, b: 60 }), 40);
+  assert.deepEqual(kept.map((result) => result.ok), [true, true]);
+});
+
+test('a slow reviewer is not stopped while no reviewer has answered: it is the only verdict there can be', async () => {
+  const results = await runPanel(['a'], 1, timed({ a: 50 }), 10);
+  assert.deepEqual(results, [{ ok: true, name: 'a' }]);
+});
+
+test('a usage limit in what a failed reviewer printed is found, with its line', () => {
+  assert.equal(usageLimit("thinking\nERROR: You've hit your usage limit. Upgrade to Pro, or try again at Nov 22nd, 2026 9:44 AM.\n"), "ERROR: You've hit your usage limit. Upgrade to Pro, or try again at Nov 22nd, 2026 9:44 AM.");
+  for (const line of ['Error 429: Too Many Requests', 'RESOURCE_EXHAUSTED: Quota exceeded for model', 'Claude usage limit reached', "You've hit your limit, resets 3pm", 'rate limit exceeded']) assert.equal(usageLimit(line), line);
+  for (const line of ['', 'sh: 1: agy: not found', 'exit 7', 'the 4290 lines changed']) assert.equal(usageLimit(line), null);
+});
+
+test('a round with fewer answers than its panel says which reviewers to ask again', () => {
+  const ok: ReviewerResult = { name: 'codex', ok: true, mustFix: [], shouldFix: [], followUp: [] };
+  const out: ReviewerResult = { name: 'agy', ok: false, error: 'out of usage: quota', rest: true };
+  assert.equal(shortPanel([ok, out], 3), 'review again: 1 of 3 reviewers answered; agy did not (out of usage: quota). Go on with this round; list it in the pull request and the backlog');
+  assert.equal(shortPanel([ok, out], 1), null);
+  assert.equal(shortPanel([ok], 1), null);
 });
 
 test('a later round tries first the reviewers that answered the last one', () => {

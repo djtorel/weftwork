@@ -26,6 +26,14 @@ push back with evidence when a finding is wrong or not needed.
   When the owner asks for a "full panel" (or "Full panel." closes the
   task), add `"panel": "all"` to every round's request, so each reviewer
   answers. Later rounds ask first the reviewer that answered the last one.
+- Never wait for a reviewer. The engine goes on with the ones that have
+  usage: it replaces one that is out of usage at once, gives a slow one a
+  stand-in, and does not ask a resting one (`docs/REVIEW.md` § A reviewer
+  with no usage). Do not sleep, schedule a wake-up or stop the task until a
+  reviewer's usage comes back, and do not run a round again to get a
+  reviewer that did not answer. A round with fewer answers than its panel
+  stands. Its report has a `review again:` line: paste it into the PR, and
+  add a backlog line to review the change again with the reviewers it names.
 - Only a must-fix with a real `<file>:<line>` blocks; the engine turns any
   other into a should-fix. Stop early when a round passes. Declined
   should-fix findings and comment, doc or format-only fixes need no new
@@ -76,7 +84,11 @@ files in the change while the review runs: a changed tree gives no verdict.
 A failed or timed-out reviewer counts as neither pass nor block. On exit 3
 (every reviewer failed), fix the cause and run again once; if it fails
 again, use one fresh-context subagent of your own host as the reviewer with
-the same brief and the reply format, and say so in the PR.
+the same brief and the reply format, and say so in the PR. When the
+reviewers failed for usage (`out of usage`, `resting`, `stopped as slow`,
+`timed out`), there is no cause for you to fix: do not run again and do not
+wait. Use the subagent at once, and add the review-again line to the PR and
+the backlog as above.
 
 Round 1 brief:
 

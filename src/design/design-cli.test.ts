@@ -126,6 +126,27 @@ test('a design round runs every reviewer by default; with design.panel 1, one th
   assert.match(out.stdout, /^reviewer 1, touch: failed, exit 7$/m);
 });
 
+test('a design round goes on with the reviewers that have usage, says which to ask again, and does not ask that one in the next round', () => {
+  const dir = makeTempDir();
+  const answer = join(dir, 'answer.txt');
+  writeFileSync(answer, reply(5));
+  const image = join(dir, 'home.desktop.png');
+  writeFileSync(image, encodePng({ width: 20, height: 10, rgba: Buffer.alloc(20 * 10 * 4, 255) }));
+  const out = `touch ${dir}/ran; echo 'RESOURCE_EXHAUSTED: quota exceeded' >&2; exit 1`;
+  const works = `cat ${JSON.stringify(answer)}`;
+  const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${[out, works, works].map((c) => JSON.stringify(c)).join(', ')}]\n` });
+  const one = run(repo, { images: [image], brief: 'b' });
+  assert.equal(one.status, 0, one.stdout + one.stderr);
+  assert.match(one.stdout, /^reviewer 1, touch: failed, out of usage: RESOURCE_EXHAUSTED: quota exceeded$/m);
+  assert.match(one.stdout, /^review again: 2 of 3 reviewers answered; touch did not \(out of usage: RESOURCE_EXHAUSTED: quota exceeded\)\. Go on with this round; list it in the pull request and the backlog$/m);
+
+  rmSync(join(dir, 'ran'));
+  const two = run(repo, { images: [image], brief: 'b' });
+  assert.equal(two.status, 0, two.stdout + two.stderr);
+  assert.equal(existsSync(join(dir, 'ran')), false);
+  assert.match(two.stdout, /^reviewer 3, touch: not asked, resting until \S+ \(out of usage: RESOURCE_EXHAUSTED: quota exceeded\)$/m);
+});
+
 test('a lesson is kept in the clone and reaches the next round', () => {
   const t = setup();
   const kept = run(t.repo, { lesson: 'Primary buttons are 44px tall.', from: 'main/app round 1' });

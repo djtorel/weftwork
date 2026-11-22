@@ -7,8 +7,7 @@
 // or when the grades stop rising. The grade decides only whether the design
 // loop goes on; it never gates a merge (docs/UI.md, R18).
 import type { Failure } from '../shared/errors.ts';
-import { maxCaptureBytes, runCapture } from '../engine/process.ts';
-import { reviewerName, runPanel } from '../review/review.ts';
+import { reviewerName, runPanel, runReply } from '../review/review.ts';
 import type { Box } from './png-mark.ts';
 
 /** What a UI and UX designer grades: Nielsen's usability heuristics and the
@@ -28,7 +27,7 @@ export type Grades = Record<string, number | null>;
 export type Mark = { kind: 'mark' | 'must-fix'; image: string; box: Box | null; criterion: string; text: string };
 export type Compare = 'better' | 'same' | 'worse';
 export type DesignReply = { grades: Grades; marks: Mark[]; compare?: Compare };
-export type DesignResult = ({ name: string; ok: true; reply: string } & DesignReply) | { name: string; ok: false; error: string };
+export type DesignResult = ({ name: string; ok: true; reply: string } & DesignReply) | { name: string; ok: false; error: string; rest?: true; skipped?: true };
 export type RoundOutcome = 'pass' | 'changes' | 'no-verdict';
 
 const anchors = [
@@ -165,17 +164,16 @@ export function designPrompt(input: PromptInput): string {
 }
 
 /** Run the reviewers on `prompt` as a panel of `setting.panel` (review.ts
- * runPanel: in order, the next standing in for one that fails, at most 2 at
- * once), and read each reply; results in the order they ran. Never rejects. */
-export async function runDesignReviewers(setting: { reviewers: string[]; panel: number; timeoutSeconds: number }, cwd: string, prompt: string, images: string[], env: NodeJS.ProcessEnv): Promise<DesignResult[]> {
-  const one = async (command: string): Promise<DesignResult> => {
+ * runPanel: in order, the next standing in for one that fails or is slow, at
+ * most 2 at once), and read each reply; results in the order they ran. Never
+ * rejects. */
+export async function runDesignReviewers(setting: { reviewers: readonly string[]; panel: number; timeoutSeconds: number; slowSeconds: number }, cwd: string, prompt: string, images: string[], env: NodeJS.ProcessEnv): Promise<DesignResult[]> {
+  const one = async (command: string, stop: AbortSignal): Promise<DesignResult> => {
     const name = reviewerName(command);
-    const out = await runCapture(command, cwd, setting.timeoutSeconds * 1000, prompt, env);
-    if (out.reason === 'timeout') return { name, ok: false, error: `timed out after ${setting.timeoutSeconds} s` };
-    if (out.reason !== 'passed') return { name, ok: false, error: `${out.reason === 'exit-nonzero' ? `exit ${out.exitCode}` : out.reason}${out.stderrTail.trim() === '' ? '' : `: ${out.stderrTail.trim().split('\n').at(-1)}`}` };
-    if (out.stdoutCut) return { name, ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` };
+    const out = await runReply(command, cwd, prompt, setting.timeoutSeconds, env, stop);
+    if (!out.ok) return { name, ...out };
     const parsed = parseDesignReply(out.stdout, images);
     return parsed.ok ? { name, ...parsed, reply: out.stdout } : { name, ok: false, error: parsed.error };
   };
-  return runPanel(setting.reviewers, setting.panel, one);
+  return runPanel(setting.reviewers, setting.panel, one, setting.slowSeconds * 1000);
 }

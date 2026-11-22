@@ -8,7 +8,7 @@ import type { Failure } from '../shared/errors.ts';
 import { isInteger } from '../shared/json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from '../engine/budget.ts';
 
-export type ReviewSetting = { reviewers: string[]; panel: number; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; sensitivePaths: string[] };
+export type ReviewSetting = { reviewers: string[]; panel: number; maxRounds: number; maxRoundsSensitive: number; timeoutSeconds: number; slowSeconds: number; sensitivePaths: string[] };
 export type ReviewSettingResult = { ok: true; review: ReviewSetting } | Failure;
 
 /** Three reviewers from three model families, in the order a round tries
@@ -30,7 +30,7 @@ export const defaultReviewers: readonly string[] = [
   'claude -p --model opus --effort high --setting-sources "" --tools Read,Grep,Glob,Bash --permission-mode dontAsk ${WEFTWORK_IMAGES_DIR:+--add-dir "$WEFTWORK_IMAGES_DIR"}',
 ];
 
-const builtIn: ReviewSetting = { reviewers: [...defaultReviewers], panel: 1, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, sensitivePaths: [] };
+const builtIn: ReviewSetting = { reviewers: [...defaultReviewers], panel: 1, maxRounds: 3, maxRoundsSensitive: 5, timeoutSeconds: 1200, slowSeconds: 300, sensitivePaths: [] };
 
 const maxReviewers = 5;
 
@@ -42,6 +42,8 @@ const integerKeys = {
   max_rounds: { field: 'maxRounds', max: 10 },
   max_rounds_sensitive: { field: 'maxRoundsSensitive', max: 10 },
   timeout_seconds: { field: 'timeoutSeconds', max: 3600 },
+  // A reviewer with no reply after this long gets a stand-in (review.ts runPanel).
+  slow_seconds: { field: 'slowSeconds', max: 3600 },
 } as const;
 
 const knownKeys = ['reviewers', 'sensitive_paths', ...Object.keys(integerKeys)];
