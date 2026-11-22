@@ -105,8 +105,8 @@ How many must answer:
 The report says which in a `panel:` line, such as
 `panel: 1 of 3 reviewers (review.panel)`. One reviewer is the default, and
 more only where it pays: R19 found false alarms the common failure of AI
-review and advised against a three-provider review of every change; the
-owner chose three for every design round (`docs/DESIGN-LOOP.md`).
+review and advised against a three-provider review of every change; a
+design round asks two (`docs/DESIGN-LOOP.md`).
 
 A later round on the same branch asks first the reviewers that answered the
 round before (the ledger keeps their names), so the reviewer that raised a

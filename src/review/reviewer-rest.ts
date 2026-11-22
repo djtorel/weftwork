@@ -81,7 +81,7 @@ export async function withRest<T extends { name: string; ok: boolean; error?: st
   const { ask, skipped } = askOrder(order, path === null ? {} : readResting(path, now()));
   const started = now().getTime();
   const results = await run(ask);
-  const seconds = Math.round((now().getTime() - started) / 100) / 10;
+  const seconds = Math.max(0, Math.round((now().getTime() - started) / 100) / 10);
   const kept = path === null ? null : keepResting(path, results, now());
   return { results: [...results, ...skipped], note: kept === null ? null : `resting record: not written, ${kept.error}`, seconds };
 }

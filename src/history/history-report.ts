@@ -36,10 +36,11 @@ function median(values: number[]): number {
 const span = (seconds: number): string => (seconds < 120 ? `${Math.round(seconds)} s` : `${Math.round(seconds / 60)} min`);
 
 /** Where the time went (docs/HISTORY.md § Time): medians over the tasks
- * whose record holds time, then each reviewer over those tasks. Empty when
- * no task recorded time. */
+ * whose record holds time (version 2), then each reviewer over those tasks.
+ * Empty when no task recorded time. */
 function timeLines(records: TaskRecord[]): string[] {
-  const timed = records.filter((record) => record.history === 2 && (record.gateSeconds ?? 0) + (record.reviewSeconds ?? 0) + (record.designSeconds ?? 0) > 0);
+  // Every version 2 record holds time, also one whose runs rounded to 0 s (review round 1).
+  const timed = records.filter((record) => record.history === 2);
   if (timed.length === 0) return [];
   const of = (pick: (record: TaskRecord) => number | null | undefined, from = timed): number => median(from.flatMap((record) => pick(record) ?? []));
   const lines = ['', `Time, the median of the ${plural(timed.length, 'task')} that recorded it:`];

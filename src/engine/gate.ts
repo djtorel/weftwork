@@ -217,8 +217,9 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * ledger is only written here, never read: done comes from the run (C4).
  */
 async function record(path: string | null, verdict: Verdict, started: number, runId?: string, hookKey?: string): Promise<LoggedVerdict> {
-  // How long the run took, to a tenth of a second, for the history (docs/HISTORY.md § Time).
-  const seconds = Math.round((Date.now() - started) / 100) / 10;
+  // How long the run took, to a tenth of a second, for the history (docs/HISTORY.md
+  // § Time); never negative, also when the wall clock steps back.
+  const seconds = Math.max(0, Math.round((Date.now() - started) / 100) / 10);
   const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId, hookKey, seconds);
   if (result?.ok) {
     return { verdict, writeProblem: null };

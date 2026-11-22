@@ -187,7 +187,7 @@ export type Reply = { ok: true; stdout: string; seconds: number } | { ok: false;
 export async function runReply(command: string, cwd: string, prompt: string, timeoutSeconds: number, env?: NodeJS.ProcessEnv, stop?: AbortSignal): Promise<Reply> {
   const started = Date.now();
   const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt, env, stop);
-  const seconds = Math.round((Date.now() - started) / 100) / 10;
+  const seconds = Math.max(0, Math.round((Date.now() - started) / 100) / 10);
   if (out.reason === 'passed') {
     // A cut reply could drop a must-fix after the VERDICT line (review round 1).
     return out.stdoutCut ? { ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes`, seconds, end: 'failed' } : { ok: true, stdout: out.stdout, seconds };

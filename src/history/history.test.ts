@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import type { LedgerEntry, StateEntry } from '../engine/ledger.ts';
 import type { ReviewEntry } from '../review/review-ledger.ts';
 import type { GuardLine } from '../engine/ledger.ts';
-import { classesOf, parseHistory, recurring, summarize, type TaskRecord } from './history.ts';
+import { classesOf, parseHistory, recurring, summarize, toDesignRound, type TaskRecord } from './history.ts';
 import { historyReport } from './history-report.ts';
 
 const run = (at: string, done: boolean, command = 'npm test'): LedgerEntry => ({
@@ -97,6 +97,13 @@ test('a record holds where the time went: the task, the gate runs, the runs on a
   for (const bad of [{ gateSeconds: -1 }, { reviewers: { agy: { runs: 1 } } }, { taskSeconds: 'long' }]) assert.equal(parseHistory(`${JSON.stringify({ ...made, ...bad })}\n`).skipped, 1, JSON.stringify(bad));
 });
 
+test('a design round is read from the loop record with only its right fields', () => {
+  const reviewers = [{ name: 'claude', seconds: 150.4, end: 'answered' }];
+  assert.deepEqual(toDesignRound({ at: '2026-11-15T10:30:00.000Z', outcome: 'pass', seconds: 150.4, reviewers, grades: {} }), { at: '2026-11-15T10:30:00.000Z', outcome: 'pass', seconds: 150.4, reviewers });
+  assert.deepEqual(toDesignRound({ at: 'then', outcome: 'changes', seconds: -3, reviewers: [{ name: 'claude' }] }), { at: 'then', outcome: 'changes' });
+  for (const bad of [null, 'round', { outcome: 'pass' }, { at: 5, outcome: 'pass' }]) assert.equal(toDesignRound(bad), null);
+});
+
 test('the report says where the time went, as medians of the tasks that recorded it, and how each reviewer did', () => {
   const time = (branch: string, task: number, gate: number, repeat: number, review: number, design: number): TaskRecord =>
     record(branch, '2026-11-20T00:00:00.000Z', {
@@ -112,6 +119,10 @@ test('the report says where the time went, as medians of the tasks that recorded
   assert.match(text, /^- design rounds: 15 min, in the 2 tasks with a design loop$/m);
   assert.match(text, /^Reviewers, in those tasks:$/m);
   assert.match(text, /^- agy: 6 runs, 3 answered, 400 s a run$/m);
+  // A task whose runs were under half a second still counts: its record is version 2.
+  const quick = historyReport({ records: [time('quick', 40, 0, 0, 0, 0)], skipped: 0, minTasks: 3, improvements: [] });
+  assert.match(quick, /^Time, the median of the 1 task that recorded it:$/m);
+  assert.match(quick, /^- gate runs: 0 s, 0 s of it on a tree that had already passed$/m);
   // With no task that recorded time, the report has no time section.
   assert.doesNotMatch(historyReport({ records: [record('old', '2026-11-01T00:00:00.000Z')], skipped: 0, minTasks: 3, improvements: [] }), /^Time/m);
 });
