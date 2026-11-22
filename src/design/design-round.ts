@@ -8,7 +8,7 @@ import { roundMarkdown, type LoopRecord, type NumberedMark, type RoundSummary } 
 import type { DesignSetting } from './design-setting.ts';
 import { saveLoop, writeRoundFile, type InputImage } from './design-store.ts';
 import { markPng } from './png-mark.ts';
-import { shortPanel } from '../review/review.ts';
+import { runsOf, shortPanel, timeLine } from '../review/review.ts';
 
 const exitCodes: Record<RoundOutcome, number> = { pass: 0, changes: 1, 'no-verdict': 3 };
 
@@ -33,6 +33,8 @@ export type FinishInput = {
   results: DesignResult[];
   /** A line for the report when the resting record could not be kept, or null. */
   note: string | null;
+  /** How long the reviewers took in all, in seconds. */
+  seconds: number;
   /** Why the round has no verdict whatever the reviewers said, or null. */
   void: string | null;
 };
@@ -70,6 +72,8 @@ export function finishRound(input: FinishInput): { ok: true; lines: string[]; ex
     stop: null,
     images: input.images.map((image) => image.name),
     markTexts: marks.slice(0, 50).map((mark) => `m${mark.n} ${mark.image} ${mark.criterion}: ${mark.text}`.slice(0, 400)),
+    seconds: input.seconds,
+    reviewers: runsOf(results),
   };
   const rounds = [...input.record.rounds, summary];
   summary.stop = outcome === 'pass' ? null : loopStop(verdictMeans(rounds), setting.maxRounds, setting.stallAfter, rounds.length);
@@ -100,6 +104,7 @@ function report(input: { summary: RoundSummary; setting: DesignSetting; results:
   const again = shortPanel(input.results, Math.min(setting.panel, setting.reviewers.length));
   if (again !== null) lines.push(again);
   if (input.note !== null) lines.push(input.note);
+  lines.push(timeLine(summary.seconds ?? 0, summary.reviewers ?? []));
   for (const mark of input.marks) {
     const where = mark.box === null ? '' : ` [${mark.box.x},${mark.box.y},${mark.box.w},${mark.box.h}]`;
     lines.push(`${mark.kind} ${mark.n} (${mark.reviewer}) ${mark.image}${where} ${mark.criterion}: ${mark.text}`);

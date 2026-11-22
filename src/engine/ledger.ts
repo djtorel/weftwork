@@ -46,6 +46,9 @@ export type LedgerEntry = {
   /** Set only on a run by the Stop hook: the key of the directory and the
    * environment it ran in. The hook reuses only such a pass (reuse.ts). */
   hookKey?: string;
+  /** How long the command ran, in seconds; absent on a line from before
+   * the history counted time (docs/HISTORY.md § Time). */
+  seconds?: number;
 };
 
 export type LedgerRead =
@@ -101,13 +104,15 @@ export async function ledgerPath(cwd: string): Promise<string | null> {
 }
 
 /** Append one entry for `verdict`, with the engine call's `runId` when
- * given, and `hookKey` for a run by the Stop hook. Never throws. */
+ * given, `hookKey` for a run by the Stop hook, and how long the command
+ * ran. Never throws. */
 export async function appendEntry(
   path: string,
   verdict: Verdict,
   at: Date,
   runId?: string,
   hookKey?: string,
+  seconds?: number,
 ): Promise<AppendResult> {
   const entry: LedgerEntry = {
     at: at.toISOString(),
@@ -118,6 +123,7 @@ export async function appendEntry(
     fingerprint: verdict.fingerprint,
     ...(runId === undefined ? {} : { runId }),
     ...(hookKey === undefined ? {} : { hookKey }),
+    ...(seconds === undefined ? {} : { seconds }),
   };
   return writeLine(path, entry);
 }
@@ -172,7 +178,8 @@ function toEntry(data: unknown): LedgerEntry | null {
     return null;
   }
   const hook = typeof data.hookKey === 'string' ? { hookKey: data.hookKey } : {};
-  return { at, done, exitCode, reason, command, fingerprint, ...(runId === undefined ? {} : { runId }), ...hook };
+  const seconds = typeof data.seconds === 'number' && Number.isFinite(data.seconds) && data.seconds >= 0 ? { seconds: data.seconds } : {};
+  return { at, done, exitCode, reason, command, fingerprint, ...(runId === undefined ? {} : { runId }), ...hook, ...seconds };
 }
 
 type Parsed = { entry: LedgerEntry } | { state: StateEntry } | { review: ReviewEntry } | { guard: GuardLine } | 'guard' | null;

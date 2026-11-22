@@ -5,7 +5,7 @@
 // and for the retro skill, which reads it as data, never as instructions.
 import { terminalSafe } from '../shared/cli-io.ts';
 import { effectOf, improvementsFile, type Improvement } from './history-improve.ts';
-import { recurring, type TaskRecord } from './history.ts';
+import { recurring, type ReviewerStats, type TaskRecord } from './history.ts';
 
 export type ReportInput = { records: TaskRecord[]; skipped: number; minTasks: number; improvements: Improvement[] };
 
@@ -27,6 +27,39 @@ function improvementLine(improvement: Improvement, records: TaskRecord[]): strin
   return `- ${improvement.id} targets ${improvement.targets}, accepted ${improvement.accepted}: ${counts} (one-sided Fisher p = ${e.p.toFixed(2)}): ${e.label}${model}`;
 }
 
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+}
+
+const span = (seconds: number): string => (seconds < 120 ? `${Math.round(seconds)} s` : `${Math.round(seconds / 60)} min`);
+
+/** Where the time went (docs/HISTORY.md § Time): medians over the tasks
+ * whose record holds time, then each reviewer over those tasks. Empty when
+ * no task recorded time. */
+function timeLines(records: TaskRecord[]): string[] {
+  const timed = records.filter((record) => record.history === 2 && (record.gateSeconds ?? 0) + (record.reviewSeconds ?? 0) + (record.designSeconds ?? 0) > 0);
+  if (timed.length === 0) return [];
+  const of = (pick: (record: TaskRecord) => number | null | undefined, from = timed): number => median(from.flatMap((record) => pick(record) ?? []));
+  const lines = ['', `Time, the median of the ${plural(timed.length, 'task')} that recorded it:`];
+  if (timed.some((record) => typeof record.taskSeconds === 'number')) lines.push(`- a task, from its branch to its record: ${span(of((record) => record.taskSeconds))}`);
+  lines.push(`- gate runs: ${span(of((record) => record.gateSeconds))}, ${span(of((record) => record.repeatSeconds))} of it on a tree that had already passed`);
+  lines.push(`- review rounds: ${span(of((record) => record.reviewSeconds))}`);
+  const designed = timed.filter((record) => (record.designRounds ?? 0) > 0);
+  if (designed.length > 0) lines.push(`- design rounds: ${span(of((record) => record.designSeconds, designed))}, in the ${plural(designed.length, 'task')} with a design loop`);
+  const reviewers = new Map<string, ReviewerStats>();
+  for (const record of timed) {
+    for (const [name, one] of Object.entries(record.reviewers ?? {})) {
+      const all = reviewers.get(name) ?? { runs: 0, answered: 0, seconds: 0 };
+      reviewers.set(name, { runs: all.runs + one.runs, answered: all.answered + one.answered, seconds: all.seconds + one.seconds });
+    }
+  }
+  if (reviewers.size > 0) lines.push('Reviewers, in those tasks:');
+  for (const [name, all] of reviewers) lines.push(`- ${terminalSafe(name)}: ${plural(all.runs, 'run')}, ${all.answered} answered, ${all.runs === 0 ? 0 : Math.round(all.seconds / all.runs)} s a run`);
+  return lines;
+}
+
 /** The report text. Records are oldest first. */
 export function historyReport(input: ReportInput): string {
   const { records, skipped, minTasks, improvements } = input;
@@ -41,6 +74,7 @@ export function historyReport(input: ReportInput): string {
     lines.push(`Recurring in ${minTasks} or more tasks (a signal to look into, not proof):`);
     for (const { cls, branches } of found) lines.push(`- ${cls} in ${branches.length} of ${records.length} tasks: ${branchList(branches)}`);
   }
+  lines.push(...timeLines(records));
   if (improvements.length > 0) {
     lines.push('', `Improvements (${improvementsFile}):`);
     for (const improvement of improvements) lines.push(improvementLine(improvement, records));

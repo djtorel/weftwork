@@ -8,6 +8,7 @@
 // loop goes on; it never gates a merge (docs/UI.md, R18).
 import type { Failure } from '../shared/errors.ts';
 import { reviewerName, runPanel, runReply } from '../review/review.ts';
+import type { RunEnd } from '../review/review-ledger.ts';
 import type { Box } from './png-mark.ts';
 
 /** What a UI and UX designer grades: Nielsen's usability heuristics and the
@@ -27,7 +28,7 @@ export type Grades = Record<string, number | null>;
 export type Mark = { kind: 'mark' | 'must-fix'; image: string; box: Box | null; criterion: string; text: string };
 export type Compare = 'better' | 'same' | 'worse';
 export type DesignReply = { grades: Grades; marks: Mark[]; compare?: Compare };
-export type DesignResult = ({ name: string; ok: true; reply: string } & DesignReply) | { name: string; ok: false; error: string; rest?: true; skipped?: true };
+export type DesignResult = ({ name: string; ok: true; reply: string; seconds?: number } & DesignReply) | { name: string; ok: false; error: string; rest?: true; skipped?: true; seconds?: number; end?: RunEnd };
 export type RoundOutcome = 'pass' | 'changes' | 'no-verdict';
 
 const anchors = [
@@ -173,7 +174,7 @@ export async function runDesignReviewers(setting: { reviewers: readonly string[]
     const out = await runReply(command, cwd, prompt, setting.timeoutSeconds, env, stop);
     if (!out.ok) return { name, ...out };
     const parsed = parseDesignReply(out.stdout, images);
-    return parsed.ok ? { name, ...parsed, reply: out.stdout } : { name, ok: false, error: parsed.error };
+    return parsed.ok ? { name, ...parsed, reply: out.stdout, seconds: out.seconds } : { name, ok: false, error: parsed.error, seconds: out.seconds, end: 'failed' };
   };
   return runPanel(setting.reviewers, setting.panel, one, setting.slowSeconds * 1000);
 }

@@ -104,16 +104,24 @@ test('a WEFTWORK_DIFF from the caller does not reach a design reviewer, which wo
   assert.equal(readFileSync(join(t.seen, 'round-01', 'diff.txt'), 'utf8').trim(), 'unset');
 });
 
-test('a design round runs every reviewer by default; with design.panel 1, one that fails is replaced by the next', () => {
+test('a design round asks 2 reviewers by default, both at once, and the third only as a stand-in; with design.panel 1, one that fails is replaced by the next', () => {
   const dir = makeTempDir();
   const answer = join(dir, 'answer.txt');
   writeFileSync(answer, reply(5));
   const image = join(dir, 'home.desktop.png');
   writeFileSync(image, encodePng({ width: 20, height: 10, rgba: Buffer.alloc(20 * 10 * 4, 255) }));
   const fake = (name: string, works: boolean) => `touch ${dir}/${name}; ${works ? `cat ${JSON.stringify(answer)}` : 'exit 7'}`;
-  const list = (panel: string) => `---\ndesign:\n  reviewers: [${[fake('a', false), fake('b', true), fake('c', true)].map((c) => JSON.stringify(c)).join(', ')}]\n${panel}`;
+  const reviewers = (first: boolean) => `---\ndesign:\n  reviewers: [${[fake('a', first), fake('b', true), fake('c', true)].map((c) => JSON.stringify(c)).join(', ')}]\n`;
+  const list = (panel: string) => `${reviewers(false)}${panel}`;
   const ran = () => ['a', 'b', 'c'].filter((name) => existsSync(join(dir, name)));
 
+  // Two answer: the third does not run, so a round is one pair, not a pair and then one more.
+  const two = makeTestRepo({ 'weftwork.yaml': reviewers(true) });
+  assert.equal(run(two, { images: [image], brief: 'b' }).status, 0);
+  assert.deepEqual(ran(), ['a', 'b']);
+
+  // The first fails: the third stands in for it.
+  for (const name of ['a', 'b']) rmSync(join(dir, name));
   const all = makeTestRepo({ 'weftwork.yaml': list('') });
   assert.equal(run(all, { images: [image], brief: 'b' }).status, 0);
   assert.deepEqual(ran(), ['a', 'b', 'c']);
@@ -134,10 +142,15 @@ test('a design round goes on with the reviewers that have usage, says which to a
   writeFileSync(image, encodePng({ width: 20, height: 10, rgba: Buffer.alloc(20 * 10 * 4, 255) }));
   const out = `touch ${dir}/ran; echo 'RESOURCE_EXHAUSTED: quota exceeded' >&2; exit 1`;
   const works = `cat ${JSON.stringify(answer)}`;
-  const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  reviewers: [${[out, works, works].map((c) => JSON.stringify(c)).join(', ')}]\n` });
+  const repo = makeTestRepo({ 'weftwork.yaml': `---\ndesign:\n  panel: 3\n  reviewers: [${[out, works, works].map((c) => JSON.stringify(c)).join(', ')}]\n` });
   const one = run(repo, { images: [image], brief: 'b' });
   assert.equal(one.status, 0, one.stdout + one.stderr);
   assert.match(one.stdout, /^reviewer 1, touch: failed, out of usage: RESOURCE_EXHAUSTED: quota exceeded$/m);
+  assert.match(one.stdout, /^time: \S+ s: touch \S+ s \(out of usage\), cat \S+ s, cat \S+ s$/m);
+  const folder = /^record: (.+)\/round-01\/round\.md$/m.exec(one.stdout)?.[1] ?? '';
+  const loop = JSON.parse(readFileSync(join(folder, 'loop.json'), 'utf8')) as { rounds: { seconds: number; reviewers: { name: string; end: string }[] }[] };
+  assert.deepEqual(loop.rounds[0]?.reviewers.map((run) => [run.name, run.end]), [['touch', 'usage'], ['cat', 'answered'], ['cat', 'answered']]);
+  assert.ok((loop.rounds[0]?.seconds ?? -1) >= 0);
   assert.match(one.stdout, /^review again: 2 of 3 reviewers answered; touch did not \(out of usage: RESOURCE_EXHAUSTED: quota exceeded\)\. Go on with this round; list it in the pull request and the backlog$/m);
 
   rmSync(join(dir, 'ran'));

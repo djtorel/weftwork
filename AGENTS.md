@@ -13,7 +13,7 @@ not hold an unattended agent to that (see `docs/research/R17-practitioner-autono
 so the engine enforces the parts that matter: "done" is a command the engine
 ran and watched pass, the loop has counted ceilings, and a hard stop leaves a
 handoff note. Everything else is light: short tasks, a reviewer from another model
-family (three for a risky change or a design), a pull request that says what it proved.
+family (two for a design, three for a risky change), a pull request that says what it proved.
 
 It is TypeScript on Node 26 or later, one package with one CLI (`weftwork`)
 and no library API yet (`docs/RELEASING.md`), tested with the built-in

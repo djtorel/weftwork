@@ -216,8 +216,10 @@ export type LoggedVerdict = { verdict: Verdict; writeProblem: string | null };
  * is `no-ledger` and not done; any other verdict is kept as it is. The
  * ledger is only written here, never read: done comes from the run (C4).
  */
-async function record(path: string | null, verdict: Verdict, runId?: string, hookKey?: string): Promise<LoggedVerdict> {
-  const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId, hookKey);
+async function record(path: string | null, verdict: Verdict, started: number, runId?: string, hookKey?: string): Promise<LoggedVerdict> {
+  // How long the run took, to a tenth of a second, for the history (docs/HISTORY.md § Time).
+  const seconds = Math.round((Date.now() - started) / 100) / 10;
+  const result = path === null ? null : await appendEntry(path, verdict, new Date(), runId, hookKey, seconds);
   if (result?.ok) {
     return { verdict, writeProblem: null };
   }
@@ -238,7 +240,8 @@ export async function runLoggedGate(
   runId: string,
   signal?: AbortSignal,
 ): Promise<LoggedVerdict> {
-  return record(path, await decide(request, signal), runId, request.stopHook);
+  const started = Date.now();
+  return record(path, await decide(request, signal), started, runId, request.stopHook);
 }
 
 /**
@@ -247,6 +250,7 @@ export async function runLoggedGate(
  * runs, the whole process group is killed and the reason is `killed`.
  */
 export async function runGate(request: GateRequest, signal?: AbortSignal): Promise<Verdict> {
+  const started = Date.now();
   const verdict = await decide(request, signal);
-  return (await record(await ledgerPath(request.cwd), verdict)).verdict;
+  return (await record(await ledgerPath(request.cwd), verdict, started)).verdict;
 }

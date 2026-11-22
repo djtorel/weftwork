@@ -7,7 +7,7 @@
 import { terminalSafe } from '../shared/cli-io.ts';
 import type { Failure } from '../shared/errors.ts';
 import { maxCaptureBytes, runCapture } from '../engine/process.ts';
-import type { ReviewEntry, RoundVerdict } from './review-ledger.ts';
+import type { ReviewEntry, ReviewerRun, RoundVerdict, RunEnd } from './review-ledger.ts';
 import { anchorOf } from './review-scope.ts';
 import type { ReviewSetting } from './review-setting.ts';
 
@@ -16,8 +16,8 @@ import type { ReviewSetting } from './review-setting.ts';
 export const maxParallelReviewers = 2;
 
 export type ReviewerResult =
-  | { name: string; ok: true; mustFix: string[]; shouldFix: string[]; followUp: string[]; score?: number }
-  | { name: string; ok: false; error: string; rest?: true; skipped?: true };
+  | { name: string; ok: true; mustFix: string[]; shouldFix: string[]; followUp: string[]; score?: number; seconds?: number }
+  | { name: string; ok: false; error: string; rest?: true; skipped?: true; seconds?: number; end?: RunEnd };
 
 const replyFormat = [
   'Reply in this format. The engine reads only these lines:',
@@ -176,30 +176,45 @@ export function usageLimit(text: string): string | null {
 
 /** Why the panel stopped a reviewer, as the abort reason of its signal;
  * `rest` when later rounds should not ask it for a while. */
-export type Stop = { error: string; rest: boolean };
+export type Stop = { error: string; rest: boolean; end: 'slow' | 'not-needed' };
 
-/** A reviewer's reply, or why there is none. `rest`: it is out of usage,
- * timed out or was stopped as slow, so later rounds skip it for a while
- * (reviewer-rest.ts). */
-export type Reply = { ok: true; stdout: string } | { ok: false; error: string; rest?: true };
+/** A reviewer's reply, or why there is none, and how long it ran. `rest`:
+ * it is out of usage, timed out or was stopped as slow, so later rounds skip
+ * it for a while (reviewer-rest.ts). */
+export type Reply = { ok: true; stdout: string; seconds: number } | { ok: false; error: string; rest?: true; seconds: number; end: RunEnd };
 
 /** Run one reviewer command with `prompt` on its stdin. Never rejects. */
 export async function runReply(command: string, cwd: string, prompt: string, timeoutSeconds: number, env?: NodeJS.ProcessEnv, stop?: AbortSignal): Promise<Reply> {
+  const started = Date.now();
   const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt, env, stop);
+  const seconds = Math.round((Date.now() - started) / 100) / 10;
   if (out.reason === 'passed') {
     // A cut reply could drop a must-fix after the VERDICT line (review round 1).
-    return out.stdoutCut ? { ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` } : { ok: true, stdout: out.stdout };
+    return out.stdoutCut ? { ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes`, seconds, end: 'failed' } : { ok: true, stdout: out.stdout, seconds };
   }
   // The panel stopped it: its reason stands, whatever the reviewer had
   // printed, so a stand-in that was not needed does not rest (review round 1).
   if (out.reason === 'killed') {
-    const { error, rest } = stop?.reason as Stop;
-    return rest ? { ok: false, error, rest } : { ok: false, error };
+    const { error, rest, end } = stop?.reason as Stop;
+    return rest ? { ok: false, error, rest, seconds, end } : { ok: false, error, seconds, end };
   }
   const usage = usageLimit(`${out.stderrTail}\n${out.stdout.slice(-400)}`);
-  if (usage !== null) return { ok: false, error: `out of usage: ${usage}`, rest: true };
-  if (out.reason === 'timeout') return { ok: false, error: `timed out after ${timeoutSeconds} s`, rest: true };
-  return { ok: false, error: why(out, out.stderrTail) };
+  if (usage !== null) return { ok: false, error: `out of usage: ${usage}`, rest: true, seconds, end: 'usage' };
+  if (out.reason === 'timeout') return { ok: false, error: `timed out after ${timeoutSeconds} s`, rest: true, seconds, end: 'timeout' };
+  return { ok: false, error: why(out, out.stderrTail), seconds, end: 'failed' };
+}
+
+/** Each result as a reviewer run, for the ledger and the history: how long
+ * it ran and how it ended. */
+export function runsOf(results: readonly { name: string; ok: boolean; seconds?: number; end?: RunEnd }[]): ReviewerRun[] {
+  return results.map((result) => ({ name: result.name, seconds: result.seconds ?? 0, end: result.ok ? 'answered' : (result.end ?? 'failed') }));
+}
+
+const endText: Record<RunEnd, string> = { answered: '', failed: ' (failed)', usage: ' (out of usage)', timeout: ' (timed out)', slow: ' (stopped as slow)', 'not-needed': ' (not needed)', 'not-asked': ' (not asked)' };
+
+/** The time line of a round's report: the round, then each reviewer. */
+export function timeLine(seconds: number, runs: readonly ReviewerRun[]): string {
+  return `time: ${seconds} s: ${runs.map((run) => `${run.name} ${run.seconds} s${endText[run.end]}`).join(', ')}`;
 }
 
 /** Run one reviewer and read its reply. Never rejects. */
@@ -208,7 +223,7 @@ async function runReviewer(command: string, cwd: string, prompt: string, timeout
   const out = await runReply(command, cwd, prompt, timeoutSeconds, env, stop);
   if (!out.ok) return { name, ...out };
   const parsed = parseReply(out.stdout);
-  return parsed.ok ? { name, ...parsed } : { name, ok: false, error: parsed.error };
+  return parsed.ok ? { name, ...parsed, seconds: out.seconds } : { name, ok: false, error: parsed.error, seconds: out.seconds, end: 'failed' };
 }
 
 /** Run `commands` in order until `panel` of them answered, at most
@@ -224,7 +239,7 @@ async function runReviewer(command: string, cwd: string, prompt: string, timeout
 export async function runPanel<T extends { ok: boolean }>(commands: readonly string[], panel: number, run: (command: string, stop: AbortSignal) => Promise<T>, slowMs = Infinity): Promise<T[]> {
   const results: T[] = [];
   const running = new Map<number, { started: number; stop: AbortController; slow: boolean }>();
-  const slowStop: Stop = { error: `stopped as slow: no reply after ${slowMs / 1000} s`, rest: true };
+  const slowStop: Stop = { error: `stopped as slow: no reply after ${slowMs / 1000} s`, rest: true, end: 'slow' };
   let next = 0;
   let answered = 0;
   let longest = 0;
@@ -251,7 +266,7 @@ export async function runPanel<T extends { ok: boolean }>(commands: readonly str
       if (entry.stop.signal.aborted) continue;
       entry.slow ||= now - entry.started >= slowMs;
       const end = !entry.slow ? entry.started + slowMs : noneLeft && answered > 0 ? entry.started + Math.max(slowMs, 2 * longest) : Infinity;
-      if (answered >= panel) entry.stop.abort(entry.slow ? slowStop : { error: 'stopped: not needed, the panel had answered', rest: false });
+      if (answered >= panel) entry.stop.abort(entry.slow ? slowStop : ({ error: 'stopped: not needed, the panel had answered', rest: false, end: 'not-needed' } satisfies Stop));
       else if (entry.slow && now >= end) entry.stop.abort(slowStop);
       else due = Math.min(due, end);
     }

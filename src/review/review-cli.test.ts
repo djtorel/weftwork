@@ -368,6 +368,18 @@ test('a reviewer out of usage is replaced at once and rests: the next round does
   assert.match(two.stdout, /^reviewer 1, echo: 0 must-fix, 0 should-fix$/m);
   assert.match(two.stdout, /^reviewer 2, touch: not asked, resting until \d{4}-\d\d-\d\dT\d\d:\d\dZ \(out of usage: ERROR: You've hit your usage limit\. Try again at 9:44 AM\.\)$/m);
   assert.match(two.stdout, /^review again: 1 of 2 reviewers answered; touch did not \(resting until .*\)\. Go on with this round; list it in the pull request and the backlog$/m);
+  assert.match(two.stdout, /^time: \S+ s: echo \S+ s, touch 0 s \(not asked\)$/m);
+});
+
+test('the report and the ledger say how long the round and each reviewer took, and how each ended', async () => {
+  const repo = readyRepo(reviewers('exit 3', "sleep 0.3; echo 'VERDICT: APPROVE'"));
+  const out = review(repo);
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.match(out.stdout, /^time: \d+(\.\d)? s: exit \d+(\.\d)? s \(failed\), sleep \d+(\.\d)? s$/m);
+  const line = readFileSync((await ledgerPath(repo)) as string, 'utf8').trim().split('\n').at(-1) ?? '';
+  const entry = JSON.parse(line) as { seconds: number; reviewers: { name: string; seconds: number; end: string }[] };
+  assert.deepEqual(entry.reviewers.map((run) => [run.name, run.end]), [['exit', 'failed'], ['sleep', 'answered']]);
+  assert.ok((entry.reviewers[1]?.seconds ?? 0) >= 0.3 && entry.seconds >= 0.3 && entry.seconds < 20, line);
 });
 
 test('a reviewer with no reply after review.slow_seconds gets a stand-in, and is stopped when the stand-in answers', () => {

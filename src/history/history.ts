@@ -8,13 +8,19 @@
 // history-report.ts prints the report.
 import { basename } from 'node:path';
 import type { GuardLine, LedgerEntry, StateEntry } from '../engine/ledger.ts';
-import type { ReviewEntry } from '../review/review-ledger.ts';
+import { toReviewerRuns, type ReviewEntry, type ReviewerRun } from '../review/review-ledger.ts';
 import { isInteger, isRecord } from '../shared/json.ts';
 
 /** One task, as the engine counted it when the task was filed. `model` is the
  * agent's claim, used only to say when a change should be re-checked. */
+/** One reviewer over a task's review and design rounds: how often it ran,
+ * how often it answered, and its seconds in all. */
+export type ReviewerStats = { runs: number; answered: number; seconds: number };
+
 export type TaskRecord = {
-  history: 1;
+  /** 2 from when the record counts time. In a version 1 record
+   * `noVerdictRounds` also counts each round where a reviewer failed. */
+  history: 1 | 2;
   at: string;
   branch: string;
   head: string | null;
@@ -29,7 +35,25 @@ export type TaskRecord = {
   rounds: number;
   reviewCeiling: boolean;
   noVerdictRounds: number;
+  /** Version 2 only, in whole seconds (docs/HISTORY.md § Time). Review
+   * rounds where a reviewer failed, was out of usage, timed out or was
+   * stopped as slow, while the round may still have had a verdict. */
+  reviewerFailedRounds?: number;
+  /** From the branch's start to this record; null with no reflog. */
+  taskSeconds?: number | null;
+  gateSeconds?: number;
+  /** Gate runs on a tree that had already passed the same command. */
+  repeatRuns?: number;
+  repeatSeconds?: number;
+  reviewSeconds?: number;
+  designRounds?: number;
+  designSeconds?: number;
+  designNoVerdictRounds?: number;
+  reviewers?: Record<string, ReviewerStats>;
 };
+
+/** One design round, as the loop record keeps it (design-record.ts). */
+export type DesignRound = { at: string; outcome: string; seconds?: number; reviewers?: ReviewerRun[] };
 
 export type SummaryInput = {
   at: string;
@@ -42,6 +66,8 @@ export type SummaryInput = {
   states: StateEntry[];
   reviews: ReviewEntry[];
   guards: GuardLine[];
+  /** The rounds of the branch's design loops; none when left out. */
+  design?: DesignRound[];
 };
 
 const stopStates = new Set(['blocked', 'stalled', 'exhausted', 'killed']);
@@ -83,6 +109,53 @@ function stopCounts(states: StateEntry[]): Record<string, number> {
   return countBy(keys);
 }
 
+/** The design round in `data`, a round of a loop record, with only the
+ * fields that are right: the record is a file the agent can write. Null
+ * when it has no time or outcome. */
+export function toDesignRound(data: unknown): DesignRound | null {
+  if (!isRecord(data) || typeof data['at'] !== 'string' || typeof data['outcome'] !== 'string') return null;
+  const round: DesignRound = { at: data['at'], outcome: data['outcome'] };
+  const seconds = data['seconds'];
+  if (typeof seconds === 'number' && Number.isFinite(seconds) && seconds >= 0) round.seconds = seconds;
+  const reviewers = toReviewerRuns(data['reviewers']);
+  if (reviewers !== null) round.reviewers = reviewers;
+  return round;
+}
+
+/** The runs on a tree that had already passed the same command: the pass
+ * before them was the answer, so their time bought nothing new. */
+function repeats(entries: LedgerEntry[]): LedgerEntry[] {
+  const passed = new Set<string>();
+  const again: LedgerEntry[] = [];
+  for (const entry of entries) {
+    if (entry.fingerprint === null) continue;
+    const key = JSON.stringify([entry.command, entry.fingerprint]);
+    if (passed.has(key)) again.push(entry);
+    else if (entry.done) passed.add(key);
+  }
+  return again;
+}
+
+const sum = (values: (number | undefined)[]): number => Math.round(values.reduce<number>((total, value) => total + (value ?? 0), 0));
+
+/** A reviewer failed in the round: by its runs when the line has them, else
+ * by its `failed` list (a line from before the runs were kept). */
+function reviewerFailed(round: ReviewEntry): boolean {
+  if (round.reviewers === undefined) return round.failed.length > 0;
+  return round.reviewers.some((run) => run.end === 'failed' || run.end === 'usage' || run.end === 'timeout' || run.end === 'slow');
+}
+
+function reviewerStats(runs: ReviewerRun[]): Record<string, ReviewerStats> {
+  const stats = new Map<string, ReviewerStats>();
+  for (const run of runs) {
+    if (run.end === 'not-asked') continue;
+    const name = safeName(run.name);
+    const one = stats.get(name) ?? { runs: 0, answered: 0, seconds: 0 };
+    stats.set(name, { runs: one.runs + 1, answered: one.answered + (run.end === 'answered' ? 1 : 0), seconds: one.seconds + run.seconds });
+  }
+  return Object.fromEntries([...stats].map(([name, one]) => [name, { ...one, seconds: Math.round(one.seconds) }]));
+}
+
 /** The record of one task: the ledger lines since the branch began, and the
  * review rounds of this branch only. */
 export function summarize(input: SummaryInput): TaskRecord {
@@ -92,8 +165,11 @@ export function summarize(input: SummaryInput): TaskRecord {
   const rounds = recent(input.reviews).filter((round) => round.branch === input.branch);
   const guards = countBy(recent(input.guards).map((line) => safeName(basename(line.target))));
   const last = rounds.at(-1);
+  const design = recent(input.design ?? []);
+  const again = repeats(entries);
+  const started = since === null ? Number.NaN : Date.parse(since);
   return {
-    history: 1,
+    history: 2,
     at: input.at,
     branch: input.branch,
     head: input.head,
@@ -105,7 +181,17 @@ export function summarize(input: SummaryInput): TaskRecord {
     guards,
     rounds: rounds.length,
     reviewCeiling: last !== undefined && last.review !== 'pass' && last.round >= last.maxRounds,
-    noVerdictRounds: rounds.filter((round) => round.review === 'no-verdict' || round.failed.length > 0).length,
+    noVerdictRounds: rounds.filter((round) => round.review === 'no-verdict').length,
+    reviewerFailedRounds: rounds.filter(reviewerFailed).length,
+    taskSeconds: Number.isNaN(started) ? null : Math.max(0, Math.round((Date.parse(input.at) - started) / 1000)),
+    gateSeconds: sum(entries.map((entry) => entry.seconds)),
+    repeatRuns: again.length,
+    repeatSeconds: sum(again.map((entry) => entry.seconds)),
+    reviewSeconds: sum(rounds.map((round) => round.seconds)),
+    designRounds: design.length,
+    designSeconds: sum(design.map((round) => round.seconds)),
+    designNoVerdictRounds: design.filter((round) => round.outcome === 'no-verdict').length,
+    reviewers: reviewerStats([...rounds, ...design].flatMap((round) => round.reviewers ?? [])),
   };
 }
 
@@ -121,7 +207,10 @@ export function classesOf(record: TaskRecord): string[] {
   for (const target of Object.keys(record.guards)) classes.push(`guard:${target}`);
   if (record.rounds >= 2) classes.push('review:second-round');
   if (record.reviewCeiling) classes.push('review:ceiling');
-  if (record.noVerdictRounds > 0) classes.push('review:no-verdict');
+  // A version 1 record counted a round where a reviewer failed as one with
+  // no verdict, so its count can say only that a reviewer failed.
+  if (record.history === 2 && record.noVerdictRounds > 0) classes.push('review:no-verdict');
+  if ((record.history === 2 ? (record.reviewerFailedRounds ?? 0) : record.noVerdictRounds) > 0) classes.push('review:reviewer-failed');
   return classes;
 }
 
@@ -129,17 +218,28 @@ const isCount = (value: unknown): value is number => isInteger(value) && value >
 const isCounts = (value: unknown): value is Record<string, number> =>
   isRecord(value) && Object.entries(value).every(([key, count]) => safeName(key) === key && isCount(count));
 const isNullableText = (value: unknown): value is string | null => value === null || typeof value === 'string';
+const isReviewers = (value: unknown): value is Record<string, ReviewerStats> =>
+  isRecord(value) && Object.entries(value).every(([name, one]) => safeName(name) === name && isRecord(one) && isCount(one['runs']) && isCount(one['answered']) && isCount(one['seconds']));
 
 /** The record in `data`, or null when a field is missing or wrong. The file
  * is in the git dir, where the agent can write, so every field is checked
  * before a report prints it. */
 export function toRecord(data: unknown): TaskRecord | null {
-  if (!isRecord(data) || data['history'] !== 1) return null;
+  if (!isRecord(data) || (data['history'] !== 1 && data['history'] !== 2)) return null;
   const { at, branch, head, model, runs, failures, longestFailStreak, stops, guards, rounds, reviewCeiling, noVerdictRounds } = data;
   if (typeof at !== 'string' || typeof branch !== 'string' || branch === '' || !isNullableText(head) || !isNullableText(model)) return null;
   if (!isCount(runs) || !isCount(failures) || !isCount(longestFailStreak) || !isCount(rounds) || !isCount(noVerdictRounds)) return null;
   if (!isCounts(stops) || !isCounts(guards) || typeof reviewCeiling !== 'boolean') return null;
-  return { history: 1, at, branch, head, model, runs, failures, longestFailStreak, stops, guards, rounds, reviewCeiling, noVerdictRounds };
+  const first = { at, branch, head, model, runs, failures, longestFailStreak, stops, guards, rounds, reviewCeiling, noVerdictRounds };
+  if (data['history'] === 1) return { history: 1, ...first };
+  const { reviewerFailedRounds, taskSeconds, gateSeconds, repeatRuns, repeatSeconds, reviewSeconds, designRounds, designSeconds, designNoVerdictRounds, reviewers } = data;
+  const counts = [reviewerFailedRounds, gateSeconds, repeatRuns, repeatSeconds, reviewSeconds, designRounds, designSeconds, designNoVerdictRounds];
+  if (!counts.every(isCount) || !(taskSeconds === null || isCount(taskSeconds)) || !isReviewers(reviewers)) return null;
+  const [failed, gate, again, againSeconds, review, design, designTime, designNone] = counts as number[];
+  return {
+    history: 2, ...first, reviewerFailedRounds: failed ?? 0, taskSeconds, gateSeconds: gate ?? 0, repeatRuns: again ?? 0, repeatSeconds: againSeconds ?? 0,
+    reviewSeconds: review ?? 0, designRounds: design ?? 0, designSeconds: designTime ?? 0, designNoVerdictRounds: designNone ?? 0, reviewers,
+  };
 }
 
 /** The records in the file's text, the last one of each branch only (a task

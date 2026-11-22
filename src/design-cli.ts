@@ -108,7 +108,7 @@ async function main(): Promise<void> {
   const names = images.images.map((image) => image.name);
   const reviewerEnv = { ...env, WEFTWORK_IMAGES: copies.paths.join(','), WEFTWORK_IMAGES_DIR: copies.dir };
   // A resting reviewer (out of usage, or hung in an earlier round) is not asked (reviewer-rest.ts).
-  const { results, note } = await withRest(cwd, setting.design.reviewers, (ask) => runDesignReviewers({ ...setting.design, reviewers: ask }, cwd, prompt, names, reviewerEnv)).finally(() => removeImages(copies.dir));
+  const { results, note, seconds } = await withRest(cwd, setting.design.reviewers, (ask) => runDesignReviewers({ ...setting.design, reviewers: ask }, cwd, prompt, names, reviewerEnv)).finally(() => removeImages(copies.dir));
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const finished = finishRound({
@@ -122,6 +122,7 @@ async function main(): Promise<void> {
     setting: setting.design,
     results,
     note,
+    seconds,
     void: changed ? 'the tree changed during the review; a reviewer must be read-only' : null,
   });
   if (!finished.ok) return fail(finished.error);
