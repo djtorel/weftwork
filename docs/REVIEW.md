@@ -37,6 +37,7 @@ review:
   max_rounds: 3
   max_rounds_sensitive: 5
   timeout_seconds: 1200
+  slow_seconds: 300
   sensitive_paths:
     - src/guard*.ts
 ```
@@ -48,6 +49,7 @@ review:
 | `max_rounds` | Rounds on one branch | 1 to 10 | 3 |
 | `max_rounds_sensitive` | Rounds on one branch for a `sensitive` change | 1 to 10 | 5 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | 1200 |
+| `slow_seconds` | A reviewer with no reply after this long is slow: the next in the list starts as its stand-in (below, A reviewer with no usage). Set it to `timeout_seconds` to turn the rule off | 1 to 3600 | 300 |
 | `sensitive_paths` | Glob patterns (as `ui.paths`); a change to a matching file gets `max_rounds_sensitive` whatever the brief says (R19: the change sets the tier, not the author). The files are compared with the default base, never the `base` in the request, so a base of `HEAD` cannot hide a committed change | 1 to 100 patterns | none |
 
 A file that cannot be used stops the review with exit 2, under the same
@@ -84,9 +86,11 @@ do (web search). To change the model, the effort or the order, set
 A round asks the reviewers in the list's order until `panel` of them have
 answered, at most 2 at once. A reviewer that fails (its CLI not installed,
 signed out or out of quota, a timeout, a reply with no `VERDICT:` line) is
-replaced by the next in the list; the report shows it with the reason, and
-it counts as neither a pass nor a block. The ones after the panel is full do
-not run. With the built-in list and a panel of 1, Gemini reviews; when it
+replaced by the next in the list at once, also while another reviewer still
+runs; the report shows it with the reason, and it counts as neither a pass
+nor a block. The ones after the panel is full do not run. A round never
+waits for a reviewer's usage to come back (below, A reviewer with no
+usage). With the built-in list and a panel of 1, Gemini reviews; when it
 fails, Codex; when that fails too, Opus. A panel of 2 is Gemini and Codex. When every reviewer failed, the
 round has no verdict (exit 3).
 
@@ -110,14 +114,50 @@ must-fix checks whether it is resolved; the others follow in list order. A
 reviewer is known by its name, the first word of its command, so two
 entries of one CLI share it.
 
+## A reviewer with no usage
+
+A round goes on with the reviewers that can answer. It does not wait for one
+that cannot:
+
+- **Out of usage.** A reviewer that fails and whose last output names a
+  usage limit (`usage limit`, `rate limit`, `quota`, `429`, `limit reached`
+  and the like) is reported as `failed, out of usage: <its line>`, and the
+  next in the list starts at once.
+- **Slow.** A reviewer with no reply after `slow_seconds` (300) is slow: it
+  runs on, and the next in the list starts as its stand-in when one of the 2
+  places is free. When the panel has answered, the reviewers still running
+  are stopped. With no stand-in left, a slow reviewer is stopped once another
+  reviewer has answered and it has run twice as long as the slowest one that
+  answered. So a hung reviewer costs about `slow_seconds`, not
+  `timeout_seconds`. While no reviewer has answered, a slow one runs on to
+  `timeout_seconds`, since it is the only verdict there can be.
+- **Resting.** A reviewer that was out of usage, timed out or was stopped as
+  slow rests for 60 minutes: later rounds, on any branch and in any worktree
+  of the clone, do not ask it, and the report shows it as `not asked,
+  resting until <time> (<why>)`. The record is
+  `<git common dir>/weftwork/reviewers-resting.json`; delete it to ask every
+  reviewer again. A reviewer that answers rests no more. When every
+  reviewer rests, each is asked, since a round with no reviewer has no
+  verdict.
+- **Review again.** A round with fewer answers than its panel still stands:
+  2 of 3, or Opus alone. Its report has a `review again:` line that names
+  the reviewers that did not answer. The agent goes on, lists the line in
+  the pull request, and adds a backlog line to review the change again with
+  those reviewers.
+
+The engine reads a usage limit only from what a failed reviewer printed
+last (the end of its stderr and stdout), never from a reply. A CLI that
+hangs with no message, or ends with exit 0 and no output, is caught by the
+slow rule or as a reply with no `VERDICT:` line.
+
 ## A reviewer
 
 Each command runs in a shell in the working directory, in its own process
 group, with the brief and the reply format on stdin. Its stdout is the reply
 (a reply larger than 1 MiB fails the reviewer, since a cut reply could drop
 a must-fix). At most 2 reviewers run at once (AGENTS.md: never more
-than 2 subagents at once), so in a panel of 3 the third starts after the
-first two.
+than 2 subagents at once), so in a panel of 3 the third starts as soon as
+one of the first two ends.
 When there is a base, the engine writes the change from the base to the
 snapshot of the working tree, untracked files included, as a git diff in
 `<git dir>/weftwork/review/change.diff`, names it in the brief and sets
@@ -138,8 +178,9 @@ file. A FOLLOW-UP is a real defect the change did not cause: it never
 blocks, and the agent lists it in the PR and adds it to the backlog (R19:
 most of a 50-round loop at Anthropic was findings on old code).
 
-A reviewer fails when it exits non-zero, times out (its whole process group
-is killed), does not start, or replies with no `VERDICT:` line. A failed
+A reviewer fails when it exits non-zero, times out or is stopped as slow
+(its whole process group is killed), does not start, or replies with no
+`VERDICT:` line. A failed
 reviewer counts as neither a pass nor a block, and the report says why. The
 command must be read-only: give it its read-only mode (`--sandbox read-only`
 for Codex). The engine checks the tree after the round. When it changed, the
@@ -204,7 +245,7 @@ or `sensitive` set says why in a `sensitive:` line.
 | --- | --- | --- | --- |
 | 0 | `weftwork review: pass` | No must-fix from any reviewer that answered | File the PR; list the should-fix findings in it |
 | 1 | `weftwork review: block` | A must-fix | Fix it, pass the done gate again, review again |
-| 3 | `weftwork review: no verdict` | Every reviewer failed, or the tree changed during the review | Fix the cause, or review with a fresh-context subagent and say so in the PR |
+| 3 | `weftwork review: no verdict` | Every reviewer failed, or the tree changed during the review | Fix the cause, or review with a fresh-context subagent and say so in the PR. Never wait for a reviewer's usage to come back |
 | 4 | `weftwork review: not run` | The done gate has not passed for `command` on this tree, or the change touches `ui.paths` and there are no after screenshots of this tree, or a screenshot no longer matches its hash (`docs/UI.md`) | Run the engine first, or take the screenshots again |
 | 5 | `weftwork review: exhausted` | The rounds on this branch reached the ceiling | Open the PR with the unresolved findings listed |
 | 2 | none | Bad input, no git working tree, a detached HEAD, a bad setting file, a ledger it cannot read or write, a snapshot git cannot make, or no base when `base` or `sensitive_paths` needs one; the reason is on stderr | Fix the cause |

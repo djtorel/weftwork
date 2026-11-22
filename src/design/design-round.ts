@@ -8,6 +8,7 @@ import { roundMarkdown, type LoopRecord, type NumberedMark, type RoundSummary } 
 import type { DesignSetting } from './design-setting.ts';
 import { saveLoop, writeRoundFile, type InputImage } from './design-store.ts';
 import { markPng } from './png-mark.ts';
+import { shortPanel } from '../review/review.ts';
 
 const exitCodes: Record<RoundOutcome, number> = { pass: 0, changes: 1, 'no-verdict': 3 };
 
@@ -30,6 +31,8 @@ export type FinishInput = {
   images: InputImage[];
   setting: DesignSetting;
   results: DesignResult[];
+  /** A line for the report when the resting record could not be kept, or null. */
+  note: string | null;
   /** Why the round has no verdict whatever the reviewers said, or null. */
   void: string | null;
 };
@@ -70,16 +73,16 @@ export function finishRound(input: FinishInput): { ok: true; lines: string[]; ex
   };
   const rounds = [...input.record.rounds, summary];
   summary.stop = outcome === 'pass' ? null : loopStop(verdictMeans(rounds), setting.maxRounds, setting.stallAfter, rounds.length);
-  const reviewers = results.map((result) => (result.ok ? { name: result.name, ok: true, grades: result.grades } : { name: result.name, ok: false, error: result.error }));
+  const reviewers = results.map((result) => (result.ok ? { name: result.name, ok: true, grades: result.grades } : { name: result.name, ok: false, error: result.error, ...(result.skipped ? { skipped: true } : {}) }));
   const page = roundMarkdown({ record: input.record, summary, brief: input.brief, pass: setting.pass, maxRounds: setting.maxRounds, reviewers, marks, marked });
   const wrote = writeRoundFile(folder, 'round.md', page);
   if (wrote !== null) return wrote;
   const saved = saveLoop(input.root, input.dir, { ...input.record, rounds }, setting.pass);
   if (saved !== null) return saved;
-  return { ok: true, ...report({ summary, setting, results, marks, marked, folder, loop: input.record.loop, why: input.void }) };
+  return { ok: true, ...report({ summary, setting, results, marks, marked, folder, loop: input.record.loop, why: input.void, note: input.note }) };
 }
 
-function report(input: { summary: RoundSummary; setting: DesignSetting; results: DesignResult[]; marks: NumberedMark[]; marked: Record<string, string | null>; folder: string; loop: string; why: string | null }) {
+function report(input: { summary: RoundSummary; setting: DesignSetting; results: DesignResult[]; marks: NumberedMark[]; marked: Record<string, string | null>; folder: string; loop: string; why: string | null; note: string | null }) {
   const { summary, setting } = input;
   const lines = [`weftwork design: ${summary.outcome}`, `round: ${summary.round} of ${setting.maxRounds}`, `loop: ${input.loop}`];
   if (input.why !== null) lines.push(`why: ${input.why}`);
@@ -91,8 +94,12 @@ function report(input: { summary: RoundSummary; setting: DesignSetting; results:
   if (below.length > 0) lines.push(`below the pass mark: ${below.join(', ')}`);
   input.results.forEach((result, index) => {
     const label = `reviewer ${index + 1}, ${result.name}`;
-    lines.push(result.ok ? `${label}: ${result.marks.length} marks${result.compare === undefined ? '' : `, ${result.compare} than round ${summary.round - 1}`}` : `${label}: failed, ${result.error}`);
+    lines.push(result.ok ? `${label}: ${result.marks.length} marks${result.compare === undefined ? '' : `, ${result.compare} than round ${summary.round - 1}`}` : `${label}: ${result.skipped ? 'not asked' : 'failed'}, ${result.error}`);
   });
+  // Fewer answers than the panel: the round stands, and the rest are asked later.
+  const again = shortPanel(input.results, Math.min(setting.panel, setting.reviewers.length));
+  if (again !== null) lines.push(again);
+  if (input.note !== null) lines.push(input.note);
   for (const mark of input.marks) {
     const where = mark.box === null ? '' : ` [${mark.box.x},${mark.box.y},${mark.box.w},${mark.box.h}]`;
     lines.push(`${mark.kind} ${mark.n} (${mark.reviewer}) ${mark.image}${where} ${mark.criterion}: ${mark.text}`);

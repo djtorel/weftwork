@@ -20,6 +20,7 @@ import { designPrompt, loopStop, runDesignReviewers } from './design/design.ts';
 import { finishRound, gradeText, verdictMeans } from './design/design-round.ts';
 import { loadDesign } from './design/design-setting.ts';
 import { copyImages, removeImages } from './review/reviewer-images.ts';
+import { withRest } from './review/reviewer-rest.ts';
 import { addLesson, designRoot, loopDir, readImages, readLessons, readLoop, roundDir, startRound } from './design/design-store.ts';
 
 const maxBrief = 20000;
@@ -105,7 +106,9 @@ async function main(): Promise<void> {
   // Only this round's images go to the reviewers; values from the caller are dropped.
   const { WEFTWORK_IMAGES: _images, WEFTWORK_IMAGES_DIR: _dir, WEFTWORK_DIFF: _diff, ...env } = process.env;
   const names = images.images.map((image) => image.name);
-  const results = await runDesignReviewers(setting.design, cwd, prompt, names, { ...env, WEFTWORK_IMAGES: copies.paths.join(','), WEFTWORK_IMAGES_DIR: copies.dir }).finally(() => removeImages(copies.dir));
+  const reviewerEnv = { ...env, WEFTWORK_IMAGES: copies.paths.join(','), WEFTWORK_IMAGES_DIR: copies.dir };
+  // A resting reviewer (out of usage, or hung in an earlier round) is not asked (reviewer-rest.ts).
+  const { results, note } = await withRest(cwd, setting.design.reviewers, (ask) => runDesignReviewers({ ...setting.design, reviewers: ask }, cwd, prompt, names, reviewerEnv)).finally(() => removeImages(copies.dir));
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const finished = finishRound({
@@ -118,6 +121,7 @@ async function main(): Promise<void> {
     images: images.images,
     setting: setting.design,
     results,
+    note,
     void: changed ? 'the tree changed during the review; a reviewer must be read-only' : null,
   });
   if (!finished.ok) return fail(finished.error);

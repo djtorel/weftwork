@@ -11,7 +11,7 @@ import { isInteger } from '../shared/json.ts';
 import { clip, isMapping, readSettingFile, repoSettingPath, userSettingPath, yamlData, type SettingFile } from '../engine/budget.ts';
 import { loadReview, type ReviewSetting } from '../review/review-setting.ts';
 
-export type DesignSetting = { reviewers: string[]; panel: number; maxRounds: number; pass: number; stallAfter: number; timeoutSeconds: number; maxImages: number };
+export type DesignSetting = { reviewers: string[]; panel: number; maxRounds: number; pass: number; stallAfter: number; timeoutSeconds: number; slowSeconds: number; maxImages: number };
 export type DesignSettingResult = { ok: true; design: DesignSetting } | Failure;
 
 const integerKeys = {
@@ -20,6 +20,7 @@ const integerKeys = {
   pass: { field: 'pass', max: 5 },
   stall_after: { field: 'stallAfter', max: 10 },
   timeout_seconds: { field: 'timeoutSeconds', max: 3600 },
+  slow_seconds: { field: 'slowSeconds', max: 3600 },
   // WEFTWORK_IMAGES holds this round's and the last round's paths in one
   // variable, which Linux caps at 128 KiB: 400 paths fit while each is under
   // about 320 bytes (review rounds 1 and 2).
@@ -60,9 +61,9 @@ function readDesignKeys(file: SettingFile): { ok: true; set: Partial<DesignSetti
   return checked.ok ? checked : { ok: false, error: `${file.path}: ${checked.error}` };
 }
 
-/** The design setting from the two files, over the review's reviewers and timeout. */
-export function resolveDesign(files: { user: SettingFile | null; repo: SettingFile | null }, review: Pick<ReviewSetting, 'reviewers' | 'timeoutSeconds'>): DesignSettingResult {
-  const design: DesignSetting = { reviewers: [...review.reviewers], panel: 3, maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: review.timeoutSeconds, maxImages: 50 };
+/** The design setting from the two files, over the review's reviewers and times. */
+export function resolveDesign(files: { user: SettingFile | null; repo: SettingFile | null }, review: Pick<ReviewSetting, 'reviewers' | 'timeoutSeconds' | 'slowSeconds'>): DesignSettingResult {
+  const design: DesignSetting = { reviewers: [...review.reviewers], panel: 3, maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: review.timeoutSeconds, slowSeconds: review.slowSeconds, maxImages: 50 };
   for (const file of [files.user, files.repo]) {
     if (file === null) continue;
     const read = readDesignKeys(file);

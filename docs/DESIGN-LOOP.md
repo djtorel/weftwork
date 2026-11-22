@@ -62,7 +62,7 @@ images, to compare with.
 | --- | --- | --- |
 | 0 | `weftwork design: pass` | Every criterion meets the pass mark and no reviewer found an objective break |
 | 1 | `weftwork design: changes` | Change the design for each mark, take new images and run the next round |
-| 3 | `weftwork design: no-verdict` | Every reviewer failed, or the tree changed during the round (a reviewer must be read-only). The round uses up one of `max_rounds`. Fix the cause and run once more; after a second round in a row with no verdict, stop the loop and say in the pull request that the design was not graded, why, and the record path. |
+| 3 | `weftwork design: no-verdict` | Every reviewer failed, or the tree changed during the round (a reviewer must be read-only). The round uses up one of `max_rounds`. Fix the cause and run once more; after a second round in a row with no verdict, stop the loop and say in the pull request that the design was not graded, why, and the record path. A reviewer with no usage is not a cause to wait for: never wait for its usage to come back. |
 | 5 | `weftwork design: stopped`, or a round's report that ends with `stop:` | The ceiling, or the grades stopped rising. Run no more rounds; list what is still below the mark in the pull request. When the last round's first line is `weftwork design: no-verdict`, say instead that the design was not graded, as for exit 3. |
 | 2 | none | Bad input, a detached HEAD, or a setting or file that cannot be used. The reason is on stderr. Bad input or a setting runs no round and uses none up: fix it and run the round again. When a record file could not be written, `{"status": true, "loop": "<loop>"}` shows whether the round was kept. |
 
@@ -190,6 +190,7 @@ design:
   pass: 4
   stall_after: 2
   timeout_seconds: 1200
+  slow_seconds: 300
   max_images: 50
   panel: 3
   reviewers:
@@ -202,6 +203,7 @@ design:
 | `pass` | The pass mark for every criterion | 1 to 5 | 4 |
 | `stall_after` | Stop when this many rounds in a row did not beat the best mean grade before them (rounds with no verdict do not count) | 1 to 10 | 2 |
 | `timeout_seconds` | Time for one reviewer | 1 to 3600 | `review.timeout_seconds` |
+| `slow_seconds` | A reviewer with no reply after this long is slow (`docs/REVIEW.md` § A reviewer with no usage) | 1 to 3600 | `review.slow_seconds` |
 | `max_images` | The most images one round may take. Every reviewer reads each one, and the last round's images too. `WEFTWORK_IMAGES` holds all their paths, and Linux allows one variable 128 KiB: at the ceiling, a path longer than about 320 bytes makes a reviewer fail to start | 1 to 200 | 50 |
 | `reviewers` | Reviewer commands, read-only, at most 2 run at once | 1 to 5 | `review.reviewers` |
 | `panel` | How many reviewers must answer a round; the next in the list stands in for one that fails (`docs/REVIEW.md` § The panel) | 1 to 5 | 3 |
@@ -214,7 +216,14 @@ choices pay off. R18 calls several models judging one design ceremony
 until measured, but its papers show it helping (`docs/research/R18-vision-design-judging.md`).
 A reviewer that fails, such as one whose CLI is not installed or out of
 quota, is replaced by the next when there is one; otherwise the round goes
-on without it, and the grades come from the ones that answered. The Claude Code and
+on without it, and the grades come from the ones that answered. A design
+round never waits for all three: with one out of usage or hung, the two
+others grade it, and with two, the one that is left (Opus, with the
+built-in list). The round's report then has a `review again:` line that
+names the reviewers that did not answer, for the pull request and the
+backlog. A reviewer that was out of usage or hung rests for 60 minutes, so
+the next rounds do not ask it (`docs/REVIEW.md` § A reviewer with no
+usage). The Claude Code and
 Antigravity reviewers read the images with their file tool, so the
 built-in entries open `WEFTWORK_IMAGES_DIR` (`docs/UI.md`).
 

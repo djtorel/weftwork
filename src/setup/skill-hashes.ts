@@ -53,6 +53,7 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
     'a743086f6b9df98a9f6337f69150486cc71ebad7eb52ac420ac2ebea50fe0ab1',
     'fa11a3bff3a3f6479085253260f68ebb76780219338dfdaca709dfef26a39a06',
     'a2e493e06353e5a71e2b0c33c15cbc8f26559115156212406af852ed8d6f8031',
+    '80cb1aa1e3afcfea48fcf1f0e7348e55eefc0183e1c0fc1817d990ff5360e020',
   ],
   'all-in/SKILL.md': [
     'c2db72138ef0f4c9b484e56783752abd5295d01230ac02e42143c4ad389173ee',
@@ -61,6 +62,7 @@ export const shippedSkillTexts: Readonly<Record<string, readonly string[]>> = {
   'second-opinion/SKILL.md': [
     'f6318ad028b3e7fe4319bff9bd01ad272a9cd2ff5fecdef0633d51fa74de95c7',
     '83f0fa22b038f07d490e331afb53597a799c9853f235a6352eaad1f9c9b0d513',
+    '52ba6310d7f1b0268bd7f667164bb8fdd718c3005c60a037ba5e9336529a2269',
   ],
   'pr-it/SKILL.md': [
     'c000cda6a77ec0df063c2923f7dfb76039e233fd1674cd62e6b24c18a586b9c3',

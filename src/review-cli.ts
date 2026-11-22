@@ -18,7 +18,8 @@ import { prProof } from './proof/pr-proof.ts';
 import type { RoundVerdict } from './review/review-ledger.ts';
 import { loadReview } from './review/review-setting.ts';
 import { groundResults, roundScope, ruleFiles, writeChangeDiff } from './review/review-scope.ts';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, panelOrder, reviewPrompt, roundCeiling, roundPanel, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, storedFindings } from './review/review.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, panelOrder, reviewPrompt, roundCeiling, roundPanel, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, shortPanel, storedFindings } from './review/review.ts';
+import { withRest } from './review/reviewer-rest.ts';
 import { isInteger } from './shared/json.ts';
 import { currentBranch, fingerprintTree } from './engine/tree.ts';
 import { baseCommit, imagesValue, readDesign, shotLines, uiForReview, uiPrompt, type Design, type UiForReview } from './review/ui.ts';
@@ -109,7 +110,9 @@ async function main(): Promise<void> {
   const prompt = parts.join('\n\n');
   const panel = roundPanel(setting.review, { asked: asked as number | 'all' | undefined, sensitive: sensitive || scope.sensitiveBy !== null });
   const order = panelOrder(setting.review.reviewers, last?.answered);
-  const replies = await runReviewers(order, panel.size, setting.review.timeoutSeconds, cwd, reviewPrompt(prompt), env).finally(() => (copies === null ? undefined : removeImages(copies)));
+  // A resting reviewer (out of usage, or hung in an earlier round) is not asked (reviewer-rest.ts).
+  const rested = await withRest(cwd, order, (ask) => runReviewers(ask, panel.size, setting.review, cwd, reviewPrompt(prompt), env)).finally(() => (copies === null ? undefined : removeImages(copies)));
+  const replies = rested.results;
   const after = await fingerprintTree(cwd);
   const changed = !after.ok || after.fingerprint !== tree.fingerprint;
   const grounded = await groundResults(scope.root, replies);
@@ -122,6 +125,9 @@ async function main(): Promise<void> {
   const screenshots = ready === null ? [] : [...(ready.before === null ? ['before: none were taken'] : shotLines(weftwork, ready.before)), ...shotLines(weftwork, ready.after)];
   const notes = [];
   notes.push(`panel: ${panel.size} of ${setting.review.reviewers.length} ${setting.review.reviewers.length === 1 ? 'reviewer' : 'reviewers'} (${panel.why})`);
+  const again = shortPanel(replies, panel.size);
+  if (again !== null) notes.push(terminalSafe(again));
+  if (rested.note !== null) notes.push(terminalSafe(rested.note));
   if (scope.sensitiveBy !== null) notes.push(`sensitive: yes, ${terminalSafe(scope.sensitiveBy)} matches review.sensitive_paths`);
   else if (sensitive) notes.push('sensitive: yes, the brief asked');
   if (scope.diffLines !== null) notes.push(...diffReport(scope.diffLines, rounds.find((entry) => entry.round === 1)?.diffLines));

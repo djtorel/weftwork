@@ -128,9 +128,11 @@ function collect(stream: NodeJS.ReadableStream | null, max: number, tail: boolea
 /**
  * Run `command` like runCommand, with `input` on its stdin, and keep its
  * stdout (the first 1 MiB; `stdoutCut` when there was more) and the end of its stderr (e11s03: a reviewer's
- * reply and why it failed). Resolves, never rejects.
+ * reply and why it failed). An abort of `signal` kills its group at once, and
+ * the reason is `killed`. Resolves, never rejects.
  */
-export async function runCapture(command: string, cwd: string, timeoutMs: number, input: string, env?: NodeJS.ProcessEnv): Promise<Captured> {
+export async function runCapture(command: string, cwd: string, timeoutMs: number, input: string, env?: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<Captured> {
+  if (signal?.aborted) return { ...killed, stdout: '', stdoutCut: false, stderrTail: '' };
   try {
     const child = spawn(command, { cwd, env: env ?? process.env, shell: true, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
     const stdout = collect(child.stdout, maxCaptureBytes, false);
@@ -138,7 +140,7 @@ export async function runCapture(command: string, cwd: string, timeoutMs: number
     // A command that does not read its stdin closes the pipe: EPIPE is not a failure.
     child.stdin?.on('error', () => {});
     child.stdin?.end(input);
-    const outcome = await watchChild(child, timeoutMs);
+    const outcome = await watchChild(child, timeoutMs, signal);
     const out = stdout();
     return { ...outcome, stdout: out.text, stdoutCut: out.cut, stderrTail: stderr().text };
   } catch {

@@ -68,7 +68,11 @@ canvas frames above.
    was kept. Exit 3 (no verdict) uses up a round: every reviewer failed, or
    the tree changed while it ran. Do not edit the tree while a round runs.
    Fix the cause from the report's `failed` and `why` lines, and run once
-   more. If that round has no verdict too, stop the loop. When the loop ends
+   more. If that round has no verdict too, stop the loop. Never wait for a
+   design reviewer: a round graded by two reviewers, or by one, stands. Go
+   on with it, and put its `review again:` line in the PR's Decisions and
+   in the backlog (step 9). A reviewer with no usage is not a cause you can
+   fix: do not run the round again for it. When the loop ends
    on a round with no verdict (first line `weftwork design: no-verdict`,
    with exit 3 or 5), say in the PR's Decisions that the design was not
    graded, why, and the record path. Keep a rule a round taught that
@@ -111,7 +115,8 @@ canvas frames above.
    failures, prove the fix, push, and wait again. Tell a flaky run from a real
    failure by its log.
 9. **Backlog.** Tick the task in the local backlog and add any follow-ups you
-   found, with one line each.
+   found, with one line each. For each `review again:` line of a review or
+   design round, add one line: the PR, and the reviewers to ask again.
 10. **Report** in your final message: the PR link, the final head commit, your
    proof, the review outcome, each decision you made alone, and what remains
    unverified. Say plainly that the PR is open and unmerged.
@@ -168,6 +173,9 @@ is blocked when the next step of it waits on something you cannot do:
   needs that is not merged.
 
 A judgement call that a second opinion can settle is not a blocker (above).
+A reviewer that is out of usage, slow or resting is not a blocker either:
+never wait for it, in the code review or the design loop. Go on with the
+reviewers that answered and note the review to run again (`second-opinion`).
 
 When the blocker stops only a part of the task, do the rest first, as above.
 When it stops the whole task:

@@ -17,7 +17,7 @@ export const maxParallelReviewers = 2;
 
 export type ReviewerResult =
   | { name: string; ok: true; mustFix: string[]; shouldFix: string[]; followUp: string[]; score?: number }
-  | { name: string; ok: false; error: string };
+  | { name: string; ok: false; error: string; rest?: true; skipped?: true };
 
 const replyFormat = [
   'Reply in this format. The engine reads only these lines:',
@@ -158,41 +158,128 @@ export function reviewerName(command: string): string {
   return command.trim().split(/\s+/)[0] ?? command;
 }
 
-function why(outcome: { reason: string; exitCode: number | null }, timeoutSeconds: number, stderrTail: string): string {
+function why(outcome: { reason: string; exitCode: number | null }, stderrTail: string): string {
   const tail = stderrTail.trim() === '' ? '' : `: ${stderrTail.trim().split('\n').at(-1)}`;
-  if (outcome.reason === 'timeout') return `timed out after ${timeoutSeconds} s`;
   if (outcome.reason === 'not-started') return 'did not start';
   if (outcome.reason === 'exit-nonzero') return `exit ${outcome.exitCode}${tail}`;
   return `ended by a signal${tail}`;
 }
 
+const usageWords = /usage limit|rate.?limit|quota|resource_exhausted|too many requests|\b429\b|hit your limit|limit reached|out of credits/i;
+
+/** The line of `text` that names a usage limit, or null. Only what a failed
+ * reviewer printed is read, never a reply: a review may quote these words. */
+export function usageLimit(text: string): string | null {
+  const line = text.split('\n').find((candidate) => usageWords.test(candidate));
+  return line === undefined ? null : line.trim().slice(0, 200);
+}
+
+/** Why the panel stopped a reviewer, as the abort reason of its signal;
+ * `rest` when later rounds should not ask it for a while. */
+export type Stop = { error: string; rest: boolean };
+
+/** A reviewer's reply, or why there is none. `rest`: it is out of usage,
+ * timed out or was stopped as slow, so later rounds skip it for a while
+ * (reviewer-rest.ts). */
+export type Reply = { ok: true; stdout: string } | { ok: false; error: string; rest?: true };
+
+/** Run one reviewer command with `prompt` on its stdin. Never rejects. */
+export async function runReply(command: string, cwd: string, prompt: string, timeoutSeconds: number, env?: NodeJS.ProcessEnv, stop?: AbortSignal): Promise<Reply> {
+  const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt, env, stop);
+  if (out.reason === 'passed') {
+    // A cut reply could drop a must-fix after the VERDICT line (review round 1).
+    return out.stdoutCut ? { ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` } : { ok: true, stdout: out.stdout };
+  }
+  // The panel stopped it: its reason stands, whatever the reviewer had
+  // printed, so a stand-in that was not needed does not rest (review round 1).
+  if (out.reason === 'killed') {
+    const { error, rest } = stop?.reason as Stop;
+    return rest ? { ok: false, error, rest } : { ok: false, error };
+  }
+  const usage = usageLimit(`${out.stderrTail}\n${out.stdout.slice(-400)}`);
+  if (usage !== null) return { ok: false, error: `out of usage: ${usage}`, rest: true };
+  if (out.reason === 'timeout') return { ok: false, error: `timed out after ${timeoutSeconds} s`, rest: true };
+  return { ok: false, error: why(out, out.stderrTail) };
+}
+
 /** Run one reviewer and read its reply. Never rejects. */
-async function runReviewer(command: string, cwd: string, prompt: string, timeoutSeconds: number, env?: NodeJS.ProcessEnv): Promise<ReviewerResult> {
+async function runReviewer(command: string, cwd: string, prompt: string, timeoutSeconds: number, env?: NodeJS.ProcessEnv, stop?: AbortSignal): Promise<ReviewerResult> {
   const name = reviewerName(command);
-  const out = await runCapture(command, cwd, timeoutSeconds * 1000, prompt, env);
-  if (out.reason !== 'passed') return { name, ok: false, error: why(out, timeoutSeconds, out.stderrTail) };
-  // A cut reply could drop a must-fix after the VERDICT line (review round 1).
-  if (out.stdoutCut) return { name, ok: false, error: `the reply is larger than ${maxCaptureBytes} bytes` };
+  const out = await runReply(command, cwd, prompt, timeoutSeconds, env, stop);
+  if (!out.ok) return { name, ...out };
   const parsed = parseReply(out.stdout);
   return parsed.ok ? { name, ...parsed } : { name, ok: false, error: parsed.error };
 }
 
 /** Run `commands` in order until `panel` of them answered, at most
- * maxParallelReviewers at once: one that fails (not installed, out of quota,
- * timed out, no VERDICT line) is replaced by the next (docs/REVIEW.md § The
- * panel). The results of those that ran, in the order they started. */
-export async function runPanel<T extends { ok: boolean }>(commands: readonly string[], panel: number, run: (command: string) => Promise<T>): Promise<T[]> {
+ * maxParallelReviewers at once (docs/REVIEW.md § The panel). The next starts
+ * as soon as one fails (not installed, out of usage, no VERDICT line). One
+ * with no reply after `slowMs` is slow: it runs on, and the next starts as
+ * its stand-in. When the panel has answered, those still running are
+ * stopped. With no stand-in left, a slow one is stopped once a reviewer has
+ * answered and it has run twice as long as the slowest that did, so a hung
+ * reviewer does not hold the round to its timeout. `run` ends at once when
+ * its signal aborts, with a `Stop` as the reason. The results of those that
+ * ran, in the order they started. */
+export async function runPanel<T extends { ok: boolean }>(commands: readonly string[], panel: number, run: (command: string, stop: AbortSignal) => Promise<T>, slowMs = Infinity): Promise<T[]> {
   const results: T[] = [];
+  const running = new Map<number, { started: number; stop: AbortController; slow: boolean }>();
+  const slowStop: Stop = { error: `stopped as slow: no reply after ${slowMs / 1000} s`, rest: true };
   let next = 0;
   let answered = 0;
-  while (answered < panel && next < commands.length) {
-    const wave = commands.slice(next, next + Math.min(maxParallelReviewers, panel - answered));
-    next += wave.length;
-    const done = await Promise.all(wave.map(run));
-    results.push(...done);
-    answered += done.filter((result) => result.ok).length;
+  let longest = 0;
+  let wake = (): void => undefined;
+  const start = (): void => {
+    const at = next++;
+    const entry = { started: Date.now(), stop: new AbortController(), slow: false };
+    running.set(at, entry);
+    void run(commands[at] ?? '', entry.stop.signal).then((result) => {
+      running.delete(at);
+      results[at] = result;
+      if (result.ok) {
+        answered++;
+        longest = Math.max(longest, Date.now() - entry.started);
+      }
+      wake();
+    });
+  };
+  for (;;) {
+    const now = Date.now();
+    const noneLeft = next >= commands.length;
+    let due = Infinity;
+    for (const entry of running.values()) {
+      if (entry.stop.signal.aborted) continue;
+      entry.slow ||= now - entry.started >= slowMs;
+      const end = !entry.slow ? entry.started + slowMs : noneLeft && answered > 0 ? entry.started + Math.max(slowMs, 2 * longest) : Infinity;
+      if (answered >= panel) entry.stop.abort(entry.slow ? slowStop : { error: 'stopped: not needed, the panel had answered', rest: false });
+      else if (entry.slow && now >= end) entry.stop.abort(slowStop);
+      else due = Math.min(due, end);
+    }
+    let waited = [...running.values()].filter((entry) => !entry.slow).length;
+    while (running.size < maxParallelReviewers && next < commands.length && answered + waited < panel) {
+      start();
+      waited++;
+      due = Math.min(due, Date.now() + slowMs);
+    }
+    if (running.size === 0) return results;
+    let timer: NodeJS.Timeout | undefined;
+    await new Promise<void>((resolve) => {
+      wake = resolve;
+      if (due !== Infinity) timer = setTimeout(resolve, Math.max(0, due - Date.now()));
+    });
+    clearTimeout(timer);
   }
-  return results;
+}
+
+/** The line for a round with fewer answers than its panel: which reviewers
+ * to ask again later, and that a round with an answer stands (docs/REVIEW.md § A reviewer
+ * with no usage). Null when the panel answered or no reviewer failed. */
+export function shortPanel(results: readonly ({ name: string; ok: true } | { name: string; ok: false; error: string })[], panel: number): string | null {
+  const failed = results.flatMap((result) => (result.ok ? [] : [`${result.name} did not (${result.error})`]));
+  const answered = results.length - failed.length;
+  if (answered >= panel || failed.length === 0) return null;
+  // With no answer the round has no verdict, and there is none to go on with.
+  return `review again: ${answered} of ${panel} reviewers answered; ${failed.join(', ')}. ${answered === 0 ? 'List' : 'Go on with this round; list'} it in the pull request and the backlog`;
 }
 
 /** The order a round tries the reviewers in: those that answered the last
@@ -221,8 +308,8 @@ export function roundPanel(review: Pick<ReviewSetting, 'reviewers' | 'panel'>, i
 
 /** Run the reviewers on `prompt` as a panel of `panel`, in `order`. `env`
  * is each reviewer's environment (e11s06: WEFTWORK_IMAGES for a UI change). */
-export async function runReviewers(order: readonly string[], panel: number, timeoutSeconds: number, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
-  return runPanel(order, panel, (command) => runReviewer(command, cwd, prompt, timeoutSeconds, env));
+export async function runReviewers(order: readonly string[], panel: number, times: { timeoutSeconds: number; slowSeconds: number }, cwd: string, prompt: string, env?: NodeJS.ProcessEnv): Promise<ReviewerResult[]> {
+  return runPanel(order, panel, (command, stop) => runReviewer(command, cwd, prompt, times.timeoutSeconds, env, stop), times.slowSeconds * 1000);
 }
 
 const verdictText: Record<RoundVerdict, string> = { pass: 'pass', block: 'block', 'no-verdict': 'no verdict' };
@@ -237,7 +324,7 @@ export function roundReport(round: { verdict: RoundVerdict; round: number; maxRo
   round.results.forEach((result, index) => {
     const label = `reviewer ${index + 1}, ${terminalSafe(result.name)}`;
     const followUps = result.ok && result.followUp.length > 0 ? `, ${result.followUp.length} follow-up` : '';
-    lines.push(result.ok ? `${label}: ${result.mustFix.length} must-fix, ${result.shouldFix.length} should-fix${followUps}` : `${label}: failed, ${terminalSafe(result.error)}`);
+    lines.push(result.ok ? `${label}: ${result.mustFix.length} must-fix, ${result.shouldFix.length} should-fix${followUps}` : `${label}: ${result.skipped ? 'not asked' : 'failed'}, ${terminalSafe(result.error)}`);
   });
   // Ids count each kind across reviewers in setting order, the order
   // storedFindings logs them in (e13s05, review-outcome.ts); past the 50 it

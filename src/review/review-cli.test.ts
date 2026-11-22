@@ -350,6 +350,36 @@ test('a later round asks first the reviewer that answered the last one, and the 
   assert.deepEqual(ran(dir), ['b']);
 });
 
+test('a reviewer out of usage is replaced at once and rests: the next round does not ask it, and says to review again', () => {
+  const dir = makeTempDir();
+  const out = `touch ${dir}/ran; echo "ERROR: You've hit your usage limit. Try again at 9:44 AM." >&2; exit 1`;
+  const repo = readyRepo(reviewers(out, "echo 'VERDICT: APPROVE'"));
+  const one = review(repo);
+  assert.equal(one.status, 0, one.stdout + one.stderr);
+  assert.match(one.stdout, /^reviewer 1, touch: failed, out of usage: ERROR: You've hit your usage limit\. Try again at 9:44 AM\.$/m);
+  assert.match(one.stdout, /^reviewer 2, echo: 0 must-fix, 0 should-fix$/m);
+  // The stand-in filled the panel of 1, so there is nothing to review again.
+  assert.doesNotMatch(one.stdout, /^review again:/m);
+
+  rmSync(join(dir, 'ran'));
+  const two = review(repo, { panel: 'all' });
+  assert.equal(two.status, 0, two.stdout + two.stderr);
+  assert.equal(existsSync(join(dir, 'ran')), false);
+  assert.match(two.stdout, /^reviewer 1, echo: 0 must-fix, 0 should-fix$/m);
+  assert.match(two.stdout, /^reviewer 2, touch: not asked, resting until \d{4}-\d\d-\d\dT\d\d:\d\dZ \(out of usage: ERROR: You've hit your usage limit\. Try again at 9:44 AM\.\)$/m);
+  assert.match(two.stdout, /^review again: 1 of 2 reviewers answered; touch did not \(resting until .*\)\. Go on with this round; list it in the pull request and the backlog$/m);
+});
+
+test('a reviewer with no reply after review.slow_seconds gets a stand-in, and is stopped when the stand-in answers', () => {
+  const repo = readyRepo(`${reviewers('sleep 20', "echo 'VERDICT: APPROVE'")}  slow_seconds: 1\n`);
+  const before = Date.now();
+  const out = review(repo);
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.ok(Date.now() - before < 15000, 'the round did not wait for the hung reviewer');
+  assert.match(out.stdout, /^reviewer 1, sleep: failed, stopped as slow: no reply after 1 s$/m);
+  assert.match(out.stdout, /^reviewer 2, echo: 0 must-fix, 0 should-fix$/m);
+});
+
 test('a reviewer that changes the tree: no verdict, since the review was not of this tree', () => {
   const repo = readyRepo(reviewers("echo two > tracked.txt; echo 'VERDICT: APPROVE'"));
   const out = review(repo);
