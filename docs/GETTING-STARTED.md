@@ -13,8 +13,8 @@ detail.
 You need git and Node 26 or later with npm. For the first all-ready run you also
 need Claude Code and the GitHub CLI `gh` signed in. A code review asks one
 reviewer: Gemini Neon through the Antigravity CLI (`agy`), then Codex, then
-Claude Opus when the one before is missing or out of quota; a sensitive
-change, a design round and a "Full panel" ask all three
+Claude Opus when the one before is missing or out of quota; a design round
+asks two, and a sensitive change and a "Full panel" ask all three
 (`docs/REVIEW.md`). Sign in to the ones you have; one is enough.
 
 ```bash

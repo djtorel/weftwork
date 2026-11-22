@@ -192,7 +192,7 @@ design:
   timeout_seconds: 1200
   slow_seconds: 300
   max_images: 50
-  panel: 3
+  panel: 2
   reviewers:
     - codex exec --ignore-user-config --sandbox read-only --ephemeral ${WEFTWORK_IMAGES:+--image "$WEFTWORK_IMAGES"} -
 ```
@@ -206,20 +206,27 @@ design:
 | `slow_seconds` | A reviewer with no reply after this long is slow (`docs/REVIEW.md` § A reviewer with no usage) | 1 to 3600 | `review.slow_seconds` |
 | `max_images` | The most images one round may take. Every reviewer reads each one, and the last round's images too. `WEFTWORK_IMAGES` holds all their paths, and Linux allows one variable 128 KiB: at the ceiling, a path longer than about 320 bytes makes a reviewer fail to start | 1 to 200 | 50 |
 | `reviewers` | Reviewer commands, read-only, at most 2 run at once | 1 to 5 | `review.reviewers` |
-| `panel` | How many reviewers must answer a round; the next in the list stands in for one that fails (`docs/REVIEW.md` § The panel) | 1 to 5 | 3 |
+| `panel` | How many reviewers must answer a round; the next in the list stands in for one that fails (`docs/REVIEW.md` § The panel) | 1 to 5 | 2 |
 
 With no `design.reviewers`, a round uses the review's reviewers: by
 default Gemini Neon, Codex and Claude Opus. Unlike a code review, which
-asks one of them by default, a design round asks for 3, so each design
-gets every opinion: the owner's choice, since more opinions on design
-choices pay off. R18 calls several models judging one design ceremony
-until measured, but its papers show it helping (`docs/research/R18-vision-design-judging.md`).
+asks one of them by default, a design round asks for 2: the first two in
+the list, with the third as the stand-in when one fails. At most 2
+reviewers run at once, so a panel of 2 is one pair that runs together,
+where a panel of 3 was a pair and then one more (changed from 3 on
+2026-11-22, when the owner asked for faster design rounds). Set `design.panel: 3` for every
+opinion on each design, or `1` for the fastest round. R18 calls several
+models judging one design ceremony until measured, but its papers show it
+helping (`docs/research/R18-vision-design-judging.md`). The round's report
+has a `time:` line with each reviewer's seconds, and the history sums the
+design rounds of a task (`docs/HISTORY.md` § Time), so the cost of a
+panel can be read from the tasks.
 A reviewer that fails, such as one whose CLI is not installed or out of
 quota, is replaced by the next when there is one; otherwise the round goes
 on without it, and the grades come from the ones that answered. A design
-round never waits for all three: with one out of usage or hung, the two
-others grade it, and with two, the one that is left (Opus, with the
-built-in list). The round's report then has a `review again:` line that
+round never waits for a reviewer: with one out of usage or hung, the next
+in the list stands in, and with two, the one that is left grades it (Opus,
+with the built-in list). The round's report then has a `review again:` line that
 names the reviewers that did not answer, for the pull request and the
 backlog. A reviewer that was out of usage or hung rests for 60 minutes, so
 the next rounds do not ask it (`docs/REVIEW.md` § A reviewer with no

@@ -6,7 +6,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { cleanupTempDirs, makeTempDir, makeTestRepo, isolatedEnv } from '../test-support/test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo, isolatedEnv, readRepoLedger } from '../test-support/test-helpers.ts';
 
 after(cleanupTempDirs);
 
@@ -97,6 +97,14 @@ for (const stdin of unreadableCases) {
 
 // The verdict carries the command text, so the command must not spell its
 // own output: the shell joins no''ise into noise.
+test('a run line in the ledger holds how long the command took, in seconds', async () => {
+  const timed = makeTestRepo();
+  assert.equal(runCli(JSON.stringify({ command: 'sleep 0.3' }), timed).status, 0);
+  const { entries } = await readRepoLedger(timed);
+  const seconds = entries.at(-1)?.seconds ?? -1;
+  assert.ok(seconds >= 0.3 && seconds < 10, `seconds: ${seconds}`);
+});
+
 test('AC-e06s01-07 command output never reaches stdout', () => {
   const result = runCli(JSON.stringify({ command: "echo no''ise" }));
   oneJsonLine(result.stdout);

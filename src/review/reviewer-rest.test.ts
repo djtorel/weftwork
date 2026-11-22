@@ -45,7 +45,7 @@ test('a resting reviewer is not asked, and the report says until when and why', 
   const resting = { agy: { until: '2026-11-21T13:00:00.000Z', why: 'out of usage: quota' } };
   assert.deepEqual(askOrder(['agy -p x', 'codex exec -', 'claude -p'], resting), {
     ask: ['codex exec -', 'claude -p'],
-    skipped: [{ name: 'agy', ok: false, error: 'resting until 2026-11-21T13:00Z (out of usage: quota)', skipped: true }],
+    skipped: [{ name: 'agy', ok: false, error: 'resting until 2026-11-21T13:00Z (out of usage: quota)', skipped: true, seconds: 0, end: 'not-asked' }],
   });
   // With every reviewer resting there would be no verdict, so each is asked.
   const all = { a: resting.agy, b: resting.agy };

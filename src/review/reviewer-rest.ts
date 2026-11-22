@@ -17,7 +17,7 @@ export const restMinutes = 60;
 /** Each resting reviewer, by name: until when (ISO), and why. */
 export type Resting = Record<string, { until: string; why: string }>;
 
-export type Skipped = { name: string; ok: false; error: string; skipped: true };
+export type Skipped = { name: string; ok: false; error: string; skipped: true; seconds: 0; end: 'not-asked' };
 
 const maxBytes = 64 * 1024;
 
@@ -53,7 +53,7 @@ export function askOrder(commands: readonly string[], resting: Resting): { ask: 
   const ask = commands.filter((command) => resting[reviewerName(command)] === undefined);
   if (ask.length === 0) return { ask: [...commands], skipped: [] };
   const names = [...new Set(commands.map(reviewerName))].filter((name) => resting[name] !== undefined);
-  const skipped = names.map((name): Skipped => ({ name, ok: false, error: `resting until ${resting[name]?.until.slice(0, 16)}Z (${resting[name]?.why})`, skipped: true }));
+  const skipped = names.map((name): Skipped => ({ name, ok: false, error: `resting until ${resting[name]?.until.slice(0, 16)}Z (${resting[name]?.why})`, skipped: true, seconds: 0, end: 'not-asked' }));
   return { ask, skipped };
 }
 
@@ -74,11 +74,14 @@ export function keepResting(path: string, results: readonly { name: string; ok: 
 }
 
 /** Run a round's reviewers without the resting ones, and keep who must rest
- * after it. `note` is set when the record could not be written. */
-export async function withRest<T extends { name: string; ok: boolean; error?: string; rest?: boolean }>(cwd: string, order: readonly string[], run: (ask: string[]) => Promise<T[]>, now: () => Date = () => new Date()): Promise<{ results: (T | Skipped)[]; note: string | null }> {
+ * after it. `note` is set when the record could not be written; `seconds`
+ * is how long the reviewers took in all. */
+export async function withRest<T extends { name: string; ok: boolean; error?: string; rest?: boolean }>(cwd: string, order: readonly string[], run: (ask: string[]) => Promise<T[]>, now: () => Date = () => new Date()): Promise<{ results: (T | Skipped)[]; note: string | null; seconds: number }> {
   const path = await restingPath(cwd);
   const { ask, skipped } = askOrder(order, path === null ? {} : readResting(path, now()));
+  const started = now().getTime();
   const results = await run(ask);
+  const seconds = Math.max(0, Math.round((now().getTime() - started) / 100) / 10);
   const kept = path === null ? null : keepResting(path, results, now());
-  return { results: [...results, ...skipped], note: kept === null ? null : `resting record: not written, ${kept.error}` };
+  return { results: [...results, ...skipped], note: kept === null ? null : `resting record: not written, ${kept.error}`, seconds };
 }

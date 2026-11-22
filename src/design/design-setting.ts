@@ -2,8 +2,8 @@
 // The design loop setting, from the `design` mapping of the same two setting
 // files as the budget (docs/DESIGN-LOOP.md). The repository file wins over the
 // user file key by key. With no mapping the loop still runs, with built-in
-// values and the review's reviewers, and every one of them answers a round
-// (`panel`, 3 by default: more opinions on design, docs/DESIGN-LOOP.md).
+// values and the review's reviewers, and two of them answer a round
+// (`panel`, 2 by default: both run at once, docs/DESIGN-LOOP.md).
 // `max_images` caps the images of one round, since every reviewer reads each
 // one.
 import type { Failure } from '../shared/errors.ts';
@@ -63,7 +63,7 @@ function readDesignKeys(file: SettingFile): { ok: true; set: Partial<DesignSetti
 
 /** The design setting from the two files, over the review's reviewers and times. */
 export function resolveDesign(files: { user: SettingFile | null; repo: SettingFile | null }, review: Pick<ReviewSetting, 'reviewers' | 'timeoutSeconds' | 'slowSeconds'>): DesignSettingResult {
-  const design: DesignSetting = { reviewers: [...review.reviewers], panel: 3, maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: review.timeoutSeconds, slowSeconds: review.slowSeconds, maxImages: 50 };
+  const design: DesignSetting = { reviewers: [...review.reviewers], panel: 2, maxRounds: 5, pass: 4, stallAfter: 2, timeoutSeconds: review.timeoutSeconds, slowSeconds: review.slowSeconds, maxImages: 50 };
   for (const file of [files.user, files.repo]) {
     if (file === null) continue;
     const read = readDesignKeys(file);

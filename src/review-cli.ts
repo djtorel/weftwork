@@ -18,7 +18,7 @@ import { prProof } from './proof/pr-proof.ts';
 import type { RoundVerdict } from './review/review-ledger.ts';
 import { loadReview } from './review/review-setting.ts';
 import { groundResults, roundScope, ruleFiles, writeChangeDiff } from './review/review-scope.ts';
-import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, panelOrder, reviewPrompt, roundCeiling, roundPanel, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, shortPanel, storedFindings } from './review/review.ts';
+import { auditPrompt, diffReport, exhaustedReport, laterRoundPrompt, newOnUnchanged, panelOrder, reviewPrompt, roundCeiling, roundPanel, roundReport, roundsDone, roundsOn, roundVerdict, runReviewers, runsOf, shortPanel, storedFindings, timeLine } from './review/review.ts';
 import { withRest } from './review/reviewer-rest.ts';
 import { isInteger } from './shared/json.ts';
 import { currentBranch, fingerprintTree } from './engine/tree.ts';
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
   const results = later === null ? grounded : newOnUnchanged(grounded, later);
   const verdict = changed ? 'no-verdict' : roundVerdict(results);
   const sizes = scope.diffLines === null ? {} : { diffLines: scope.diffLines };
-  const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results), tree: scope.tree, ...sizes, answered: results.flatMap((result) => (result.ok ? [result.name] : [])) }, new Date());
+  const stored = await appendReview(path, { review: verdict, branch: branch.branch, round, maxRounds, ...storedFindings(results), tree: scope.tree, ...sizes, answered: results.flatMap((result) => (result.ok ? [result.name] : [])), seconds: rested.seconds, reviewers: runsOf(results) }, new Date());
   if (!stored.ok) return fail(`the round could not be written to the ledger: ${stored.error}`);
   const why = changed ? 'the tree changed during the review; a reviewer must be read-only' : undefined;
   const screenshots = ready === null ? [] : [...(ready.before === null ? ['before: none were taken'] : shotLines(weftwork, ready.before)), ...shotLines(weftwork, ready.after)];
@@ -128,6 +128,7 @@ async function main(): Promise<void> {
   const again = shortPanel(replies, panel.size);
   if (again !== null) notes.push(terminalSafe(again));
   if (rested.note !== null) notes.push(terminalSafe(rested.note));
+  notes.push(terminalSafe(timeLine(rested.seconds, runsOf(results))));
   if (scope.sensitiveBy !== null) notes.push(`sensitive: yes, ${terminalSafe(scope.sensitiveBy)} matches review.sensitive_paths`);
   else if (sensitive) notes.push('sensitive: yes, the brief asked');
   if (scope.diffLines !== null) notes.push(...diffReport(scope.diffLines, rounds.find((entry) => entry.round === 1)?.diffLines));

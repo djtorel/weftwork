@@ -5,6 +5,7 @@
 // escaped Markdown, so it cannot add a link, an image or HTML.
 import { inlineText } from '../shared/markdown-text.ts';
 import { criteria, type Compare, type Grades, type Mark, type RoundOutcome } from './design.ts';
+import type { ReviewerRun } from '../review/review-ledger.ts';
 
 /** A mark with its number in the round and the reviewer that made it. */
 export type NumberedMark = Mark & { n: number; reviewer: string };
@@ -23,6 +24,10 @@ export type RoundSummary = {
   images: string[];
   /** The marks as one line each, for the next round's prompt. */
   markTexts: string[];
+  /** How long the round's reviewers took in all, in seconds, and each
+   * one's run, for the history (docs/HISTORY.md § Time). */
+  seconds?: number;
+  reviewers?: ReviewerRun[];
 };
 
 export type LoopRecord = { branch: string; loop: string; rounds: RoundSummary[] };

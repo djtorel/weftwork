@@ -105,8 +105,8 @@ How many must answer:
 The report says which in a `panel:` line, such as
 `panel: 1 of 3 reviewers (review.panel)`. One reviewer is the default, and
 more only where it pays: R19 found false alarms the common failure of AI
-review and advised against a three-provider review of every change; the
-owner chose three for every design round (`docs/DESIGN-LOOP.md`).
+review and advised against a three-provider review of every change; a
+design round asks two (`docs/DESIGN-LOOP.md`).
 
 A later round on the same branch asks first the reviewers that answered the
 round before (the ledger keeps their names), so the reviewer that raised a
@@ -255,11 +255,15 @@ Only a must-fix blocks. A reviewer of a UI change may add a
 (`docs/UI.md`). A round that ran (exit 0, 1
 or 3) adds one review line to the ledger, with the branch, the round, the
 ceiling, the findings (at most 50 of each kind, 500 characters each), the
-tree it reviewed, the lines changed from the base and the reviewers that
-answered:
+tree it reviewed, the lines changed from the base, the reviewers that
+answered, how long the reviewers took in all (`seconds`) and each one's run
+(`reviewers`: its seconds and how it ended: `answered`, `failed`, `usage`,
+`timeout`, `slow`, `not-needed` or `not-asked`). The report has the same in
+a `time:` line, such as `time: 402.4 s: agy 402.4 s, codex 99.6 s (not
+needed)`, and the history sums it (`docs/HISTORY.md` § Time):
 
 ```json
-{"at":"2026-11-15T12:00:00.000Z","review":"block","branch":"feat/x","round":1,"maxRounds":3,"mustFix":["(codex): a.ts:1 bad"],"shouldFix":[],"followUp":[],"failed":[],"tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","diffLines":42,"answered":["codex"]}
+{"at":"2026-11-15T12:00:00.000Z","review":"block","branch":"feat/x","round":1,"maxRounds":3,"mustFix":["(codex): a.ts:1 bad"],"shouldFix":[],"followUp":[],"failed":[],"tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","diffLines":42,"answered":["codex"],"seconds":61.4,"reviewers":[{"name":"codex","seconds":61.4,"end":"answered"}]}
 ```
 
 The rounds are counted per branch from the last 1 MiB of the ledger: the

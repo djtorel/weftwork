@@ -11,7 +11,8 @@ import type { Failure } from '../shared/errors.ts';
 import { isMissing, messageOf } from '../shared/errors.ts';
 import { commonDir } from '../guard/guard-worktree.ts';
 import { improvementsFile, parseImprovements, type ImprovementsResult } from './history-improve.ts';
-import { parseHistory, summarize, type TaskRecord } from './history.ts';
+import { parseHistory, summarize, toDesignRound, type TaskRecord } from './history.ts';
+import { branchRounds, designRoot } from '../design/design-store.ts';
 import { ledgerPath, ledgerReadCap, openRegular, readLedgerTail, tailText, writeLine } from '../engine/ledger.ts';
 import { readRegularFile } from '../shared/regular-file.ts';
 import { currentBranch, gitOutput, repositoryRoot } from '../engine/tree.ts';
@@ -61,8 +62,8 @@ async function headCommit(cwd: string): Promise<string | null> {
 
 export type RecordResult = { ok: true; record: TaskRecord; path: string } | Failure;
 
-/** Count the current branch's task from this worktree's ledger and append
- * its record. `model` is the agent's claim (docs/HISTORY.md). */
+/** Count the current branch's task from this worktree's ledger and the
+ * branch's design loops, and append its record. `model` is the agent's claim (docs/HISTORY.md). */
 export async function recordTask(cwd: string, model: string | null, now: Date): Promise<RecordResult> {
   const branch = await currentBranch(cwd);
   if (!branch.ok) return branch;
@@ -72,6 +73,8 @@ export async function recordTask(cwd: string, model: string | null, now: Date): 
   if (ledger === null || path === null) return { ok: false, error: 'no git dir for the ledger' };
   const read = await readLedgerTail(ledger, ledgerReadCap);
   if (!read.ok) return { ok: false, error: `the ledger cannot be read: ${read.error}` };
+  const root = await designRoot(cwd);
+  const design = root === null ? [] : branchRounds(root, branch.branch).flatMap((round) => toDesignRound(round) ?? []);
   const record = summarize({
     at: now.toISOString(),
     branch: branch.branch,
@@ -82,6 +85,7 @@ export async function recordTask(cwd: string, model: string | null, now: Date): 
     states: read.states,
     reviews: read.reviews,
     guards: read.guards,
+    design,
   });
   const written = await writeLine(path, record);
   return written.ok ? { ok: true, record, path } : { ok: false, error: `the history cannot be written: ${written.error}` };

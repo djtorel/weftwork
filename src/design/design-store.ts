@@ -44,6 +44,22 @@ export function roundDir(dir: string, round: number): string {
   return join(dir, `round-${String(round).padStart(2, '0')}`);
 }
 
+/** Every round of the branch's design loops, for the history record
+ * (docs/HISTORY.md § Time). A loop that cannot be read counts no rounds. */
+export function branchRounds(root: string, branch: string): LoopRecord['rounds'] {
+  const dir = join(root, slug(branch));
+  let loops: string[];
+  try {
+    loops = readdirSync(dir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+  return loops.flatMap((loop) => {
+    const read = readLoop(join(dir, loop), branch, loop);
+    return read.ok ? read.record.rounds : [];
+  });
+}
+
 /** The loop's record, or a new one when it has no rounds yet. */
 export function readLoop(dir: string, branch: string, loop: string): { ok: true; record: LoopRecord } | Failure {
   const read = readRegularFile(join(dir, 'loop.json'), { follow: false, maxBytes: maxLoopBytes });

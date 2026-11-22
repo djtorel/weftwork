@@ -48,7 +48,10 @@ names only. It holds no command text, no transcript and no code:
 | `runs`, `failures`, `longestFailStreak` | Gate runs (`docs/BUDGET.md`) |
 | `stops` | Stop states other than done, and overrides by kind |
 | `guards` | Guard blocks, by the file or name that was protected |
-| `rounds`, `reviewCeiling`, `noVerdictRounds` | Review rounds (`docs/REVIEW.md`) |
+| `rounds`, `reviewCeiling`, `noVerdictRounds`, `reviewerFailedRounds` | Review rounds (`docs/REVIEW.md`) |
+| `taskSeconds`, `gateSeconds`, `repeatRuns`, `repeatSeconds`, `reviewSeconds` | The time of the task, its gate runs and its review rounds (below, Time) |
+| `designRounds`, `designSeconds`, `designNoVerdictRounds` | The rounds of the branch's design loops (`docs/DESIGN-LOOP.md`) |
+| `reviewers` | Each reviewer's runs, answers and seconds, over the review and design rounds |
 | `branch`, `head`, `at` | Git and the clock |
 | `model` | The agent's claim, used only to say when to re-check a change |
 
@@ -79,7 +82,46 @@ was found on. A class is a signal to look into, not proof.
 | `guard:<name>` | The guard blocked a change to `<name>` |
 | `review:second-round` | The review needed a second round |
 | `review:ceiling` | The last round hit the ceiling without a pass |
-| `review:no-verdict` | A round gave no verdict, or a reviewer failed |
+| `review:no-verdict` | A review round gave no verdict: every reviewer failed, or the tree changed |
+| `review:reviewer-failed` | A reviewer failed, was out of usage, timed out or was stopped as slow in a review round. The round may still have had a verdict from another reviewer. One that was not needed or not asked did not fail |
+
+A record has a version, `history`. Version 1 records, from before the
+history counted time, hold one number for both review classes, so the report
+gives them `review:reviewer-failed` only. For a change that targets
+`review:no-verdict`, the tasks from before version 2 show no case.
+
+## Time
+
+The engine writes how long each gate run took on its run line, and how long
+each review and design round and each of its reviewers took on the round's
+line (`docs/REVIEW.md` § The round). A record sums them, in whole seconds:
+
+| Field | What it is |
+| --- | --- |
+| `taskSeconds` | From the branch's start (its oldest reflog entry) to the record. It holds the time the task waited for the owner too. Null with no reflog |
+| `gateSeconds` | The gate runs since the branch began |
+| `repeatRuns`, `repeatSeconds` | The gate runs on a tree that had already passed the same command. The pass before them was the answer, so this time bought nothing new: a Stop hook run after the agent's own pass (the hook reuses only its own passes, `docs/BUDGET.md`), or a run made again before filing |
+| `reviewSeconds` | The review rounds of the branch |
+| `designRounds`, `designSeconds`, `designNoVerdictRounds` | The design rounds of the branch, their time, and those with no verdict |
+| `reviewers` | For each reviewer name: how often it ran, how often it answered, and its seconds |
+
+The report gives the median of each over the tasks that recorded time, and
+each reviewer's share of answers and mean time of a run:
+
+```text
+Time, the median of the 12 tasks that recorded it:
+- a task, from its branch to its record: 48 min
+- gate runs: 9 min, 3 min of it on a tree that had already passed
+- review rounds: 7 min
+- design rounds: 12 min, in the 4 tasks with a design loop
+Reviewers, in those tasks:
+- agy: 14 runs, 12 answered, 402 s a run
+- claude: 9 runs, 9 answered, 188 s a run
+```
+
+Use it to choose the order of `review.reviewers`, `review.slow_seconds` and
+`design.panel` from your own tasks. A task from before this version has no
+time and is left out of this part.
 
 Exit 0 when it recorded, reported or found history off. Exit 2 when it
 cannot, for example because of bad input, a bad setting or register, a

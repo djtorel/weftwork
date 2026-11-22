@@ -45,3 +45,17 @@ test('a review line keeps the reviewers that answered, so the next round asks th
   assert.equal(tail.reviews[1]?.answered, undefined, 'a bad answered field is dropped, not the round');
   assert.equal(tail.reviews.length, 2);
 });
+
+test('a review line keeps how long the round and each reviewer took; a bad time field is dropped, not the round (docs/HISTORY.md § Time)', async () => {
+  const path = (await ledgerPath(makeTestRepo())) as string;
+  const reviewers = [{ name: 'agy', seconds: 402.4, end: 'answered' as const }, { name: 'codex', seconds: 99.6, end: 'not-needed' as const }];
+  assert.deepEqual(await appendReview(path, { ...round, seconds: 402.4, reviewers }, at), { ok: true });
+  for (const bad of [{ seconds: -1, reviewers: [{ name: 'agy', seconds: 1, end: 'done' }] }, { seconds: '5', reviewers: [{ name: 'agy', seconds: -2, end: 'answered' }] }, { reviewers: 'agy' }]) {
+    appendFileSync(path, `${JSON.stringify({ ...round, at: at.toISOString(), round: 2, ...bad })}\n`);
+  }
+  const tail = await readLedgerTail(path, 1024 * 1024);
+  assert.ok(tail.ok);
+  assert.deepEqual([tail.reviews[0]?.seconds, tail.reviews[0]?.reviewers], [402.4, reviewers]);
+  assert.equal(tail.reviews.length, 4);
+  for (const review of tail.reviews.slice(1)) assert.deepEqual([review.seconds, review.reviewers], [undefined, undefined]);
+});

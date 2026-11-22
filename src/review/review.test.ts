@@ -263,7 +263,7 @@ test('a reviewer with no reply after the slow time gets a stand-in, and is stopp
   const results = await runPanel(['a', 'b', 'c'], 1, timed({ a: null, b: 5, c: 5 }, started), 20);
   assert.deepEqual(started, ['a', 'b']);
   assert.deepEqual(results, [
-    { ok: false, name: 'a', error: 'stopped as slow: no reply after 0.02 s', rest: true },
+    { ok: false, name: 'a', error: 'stopped as slow: no reply after 0.02 s', rest: true, end: 'slow' },
     { ok: true, name: 'b' },
   ]);
 });
@@ -272,7 +272,7 @@ test('a slow reviewer that answers before its stand-in keeps the round; the stan
   const results = await runPanel(['a', 'b'], 1, timed({ a: 80, b: null }), 50);
   assert.deepEqual(results, [
     { ok: true, name: 'a' },
-    { ok: false, name: 'b', error: 'stopped: not needed, the panel had answered', rest: false },
+    { ok: false, name: 'b', error: 'stopped: not needed, the panel had answered', rest: false, end: 'not-needed' },
   ]);
 });
 
@@ -301,10 +301,12 @@ test('a usage limit in what a failed reviewer printed is found, with its line', 
 test('a stand-in stopped as not needed is not out of usage, whatever it had printed, and does not rest', async () => {
   const stop = new AbortController();
   const reply = runReply("echo 'the brief: review the usage limit code' >&2; sleep 20", process.cwd(), '', 30, undefined, stop.signal);
-  setTimeout(() => stop.abort({ error: 'stopped: not needed, the panel had answered', rest: false } satisfies Stop), 300);
-  assert.deepEqual(await reply, { ok: false, error: 'stopped: not needed, the panel had answered' });
+  setTimeout(() => stop.abort({ error: 'stopped: not needed, the panel had answered', rest: false, end: 'not-needed' } satisfies Stop), 300);
+  const stopped = await reply;
+  assert.deepEqual({ ...stopped, seconds: 0 }, { ok: false, error: 'stopped: not needed, the panel had answered', end: 'not-needed', seconds: 0 });
+  assert.ok(stopped.seconds >= 0.3 && stopped.seconds < 10, `seconds: ${stopped.seconds}`);
   // One that ends by itself on its limit is out of usage, and rests.
-  assert.deepEqual(await runReply("echo 'ERROR: usage limit' >&2; exit 1", process.cwd(), '', 30), { ok: false, error: 'out of usage: ERROR: usage limit', rest: true });
+  assert.deepEqual({ ...(await runReply("echo 'ERROR: usage limit' >&2; exit 1", process.cwd(), '', 30)), seconds: 0 }, { ok: false, error: 'out of usage: ERROR: usage limit', rest: true, end: 'usage', seconds: 0 });
 });
 
 test('a round with fewer answers than its panel says which reviewers to ask again', () => {
