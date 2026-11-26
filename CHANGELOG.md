@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/djtorel/weftwork/compare/v0.6.0...v0.7.0) (2026-11-26)
+
+
+### Features
+
+* **claude:** let the owner set the Stop hook's command limit with budget.stop_hook_timeout_seconds, 1800 s by default ([#149](https://github.com/djtorel/weftwork/issues/149)) ([3a62f3a](https://github.com/djtorel/weftwork/commit/3a62f3a0d59eaf26d05005dac45969cc63d40f7b))
+
 ## [0.6.0](https://github.com/djtorel/weftwork/compare/v0.5.0...v0.6.0) (2026-11-22)
 
 
