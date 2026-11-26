@@ -16,24 +16,31 @@ const other = { type: 'command', command: 'npm run lint', timeout: 5 };
 const settings = (hooks: unknown[], extra: Record<string, unknown> = {}) =>
   `${JSON.stringify({ ...extra, hooks: { Stop: [{ hooks }] } }, null, 2)}\n`;
 
-test('entryTimeout gives the timeout of the weftwork entry for the command', () => {
-  assert.equal(entryTimeout([settings([other, ours('npm test', 660)])], 'npm test'), 660);
+const project = (text: string | null) => ({ file: '.claude/settings.json', text });
+const local = (text: string | null) => ({ file: '.claude/settings.local.json', text });
+
+test('entryTimeout gives the timeout of the weftwork entry for the command, and its file', () => {
+  assert.deepEqual(entryTimeout([project(settings([other, ours('npm test', 660)]))], 'npm test'), { timeout: 660, file: '.claude/settings.json' });
 });
 
 test('entryTimeout takes the lowest across files and entries, and ignores other commands', () => {
-  const project = settings([ours('npm test', 1860), ours('npm run check', 70)]);
-  const local = settings([ours('npm test', 900)]);
-  assert.equal(entryTimeout([project, local], 'npm test'), 900);
+  const shared = project(settings([ours('npm test', 1860), ours('npm run check', 70)]));
+  assert.deepEqual(entryTimeout([shared, local(settings([ours('npm test', 900)]))], 'npm test'), { timeout: 900, file: '.claude/settings.local.json' });
+  assert.deepEqual(entryTimeout([shared, local(settings([ours('npm test', 3600)]))], 'npm test'), { timeout: 1860, file: '.claude/settings.json' });
+});
+
+test('entryTimeout finds an entry that is only in the local file', () => {
+  assert.deepEqual(entryTimeout([project(null), local(settings([ours('npm test', 660)]))], 'npm test'), { timeout: 660, file: '.claude/settings.local.json' });
 });
 
 test('entryTimeout reads an entry with no timeout as the host default', () => {
-  assert.equal(entryTimeout([settings([ours('npm test')])], 'npm test'), hostDefaultTimeoutSeconds);
+  assert.deepEqual(entryTimeout([project(settings([ours('npm test')]))], 'npm test'), { timeout: hostDefaultTimeoutSeconds, file: '.claude/settings.json' });
   assert.equal(hostDefaultTimeoutSeconds, 600);
 });
 
 test('entryTimeout is null for no file, no entry, or text of the wrong shape', () => {
   for (const text of [null, '', '{"hooks":', '[]', '{"hooks":{"Stop":7}}', settings([other])]) {
-    assert.equal(entryTimeout([text], 'npm test'), null, String(text));
+    assert.equal(entryTimeout([project(text)], 'npm test'), null, String(text));
   }
 });
 

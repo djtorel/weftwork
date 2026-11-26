@@ -237,13 +237,17 @@ How it fits the host's timeout:
 - The hook stops waiting by itself 15 s before the host's timeout, so a hang
   it cannot abort still ends in its own block.
 - An entry whose `timeout` is too short for the setting, such as the 660 an
-  older weftwork wrote, still blocks: the hook reads the entry from
-  `.claude/settings.json` and `.claude/settings.local.json` and lowers the
-  limit to fit it (660 gives 600 s, as before). The timeout message then
-  names the entry and the repair. `weftwork claude-install` writes the full
-  entry, `weftwork update` raises only the timeout of each weftwork Stop
-  entry that is too short, and `weftwork claude-live` warns about such an
-  entry, with both commands.
+  older weftwork wrote, still blocks: the hook reads its entries from
+  `.claude/settings.json`, `.claude/settings.local.json` and the user
+  settings, takes the lowest timeout, and lowers the limit to fit it (660
+  gives 600 s, as before). When it finds no entry for its command (a hand
+  edit, or a managed or plugin hook), it reads the timeout as 660 and keeps
+  600 s. The timeout message names the file and the repair.
+  `weftwork claude-install` writes the full entry and `weftwork update`
+  raises only the timeout of each weftwork Stop entry that is too short;
+  both edit only `.claude/settings.json`, so a short copy in another file is
+  raised by hand. `weftwork claude-live` warns about each short entry, with
+  the repair.
 - The agent cannot raise its own limit. The hook takes no request from it,
   and the guard protects both setting files and `.claude/settings.json`
   (`docs/GUARD.md`). A `timeoutMs` in a request to the engine CLI is the

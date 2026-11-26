@@ -43,7 +43,9 @@ const answers: Answers = {
 };
 
 function plan(dir: string, options: { stopHook?: boolean; envHook?: boolean } = {}): Plan {
-  const result = planSetup(dir, report(dir), answers, { engineDir, stopHook: options.stopHook ?? false, envHook: options.envHook ?? false });
+  // An empty config home: the owner's own user setting file never changes a result.
+  const env = { XDG_CONFIG_HOME: makeTempDir() };
+  const result = planSetup(dir, report(dir), answers, { engineDir, stopHook: options.stopHook ?? false, envHook: options.envHook ?? false, env });
   assert.ok(result.ok, result.ok ? '' : result.error);
   return result.plan;
 }
@@ -270,4 +272,25 @@ test('skills set up under their old names (full-stop, review-loop, file-pr) are 
 test('no old skill folders: no note about them', () => {
   const dir = makeTestRepo({ 'main.go': 'package main\n' });
   assert.ok(plan(dir).notes.every((line) => !line.includes('old names')));
+});
+
+/** The timeouts of the Stop entries in the planned settings text. */
+function plannedStopTimeouts(p: Plan): unknown[] {
+  const change = p.changes.find((item) => item.path === '.claude/settings.json');
+  const text = change !== undefined && 'text' in change ? String(change.text) : '{}';
+  const value = JSON.parse(text) as { hooks?: { Stop?: { hooks: { timeout?: unknown }[] }[] } };
+  return (value.hooks?.Stop ?? []).flatMap((group) => group.hooks.map((hook) => hook.timeout));
+}
+
+test('init --stop-hook writes the 1860 s timeout with no setting, and the setting plus 60 with one', () => {
+  assert.deepEqual(plannedStopTimeouts(plan(makeTestRepo({ 'main.go': 'package main\n' }), { stopHook: true })), [1860]);
+  const set = makeTestRepo({ 'main.go': 'package main\n', 'weftwork.yaml': '---\nbudget:\n  stop_hook_timeout_seconds: 1200\n' });
+  assert.deepEqual(plannedStopTimeouts(plan(set, { stopHook: true })), [1260]);
+});
+
+test('init --stop-hook refuses a setting it cannot use', () => {
+  const dir = makeTestRepo({ 'main.go': 'package main\n', 'weftwork.yaml': '---\nbudget:\n  stop_hook_timeout_seconds: 0\n' });
+  const result = planSetup(dir, report(dir), answers, { engineDir, stopHook: true, env: { XDG_CONFIG_HOME: makeTempDir() } });
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.error, /budget\.stop_hook_timeout_seconds must be an integer from 60 to 86400/);
 });

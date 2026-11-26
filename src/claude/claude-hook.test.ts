@@ -11,6 +11,7 @@ import {
   blockStop,
   commandLimit,
   hookAnswer,
+  limitDeadlineMs,
   hookDeadline,
   hookDeadlineFor,
   hookRequest,
@@ -50,7 +51,7 @@ const budget =
   'tokens 7 input, 222 output, 74918 cache read, 22705 cache write';
 
 /** The limit when no setting file sets one and the entry fits it. */
-const defaultLimit: CommandLimit = commandLimit(defaultStopHookSeconds, null);
+const defaultLimit: CommandLimit = commandLimit(defaultStopHookSeconds, { timeout: 1860, file: '.claude/settings.json' });
 
 function hookFor(given: Answer, read: TokenRead = tokens, limit: CommandLimit = defaultLimit) {
   return hookAnswer(given, read, limit);
@@ -203,16 +204,32 @@ test('AC-e07s02-01 hookRequest gives the engine the default command limit', () =
   assert.equal(result.request.timeoutMs, 1800000);
 });
 
-test('the command limit is the setting when the entry timeout fits it or is not known', () => {
-  assert.deepEqual(commandLimit(1800, null), { seconds: 1800, setting: 1800, entryTimeout: null });
-  assert.deepEqual(commandLimit(1800, 1860), { seconds: 1800, setting: 1800, entryTimeout: null });
-  assert.deepEqual(commandLimit(900, 3600), { seconds: 900, setting: 900, entryTimeout: null });
+const at = (timeout: number, file = '.claude/settings.json') => ({ timeout, file });
+
+test('the command limit is the setting when the entry timeout fits it', () => {
+  assert.deepEqual(commandLimit(1800, at(1860)), { seconds: 1800, setting: 1800, entry: null });
+  assert.deepEqual(commandLimit(900, at(3600)), { seconds: 900, setting: 900, entry: null });
 });
 
 test('an entry timeout too short for the setting (an old 660) lowers the limit to fit it', () => {
-  assert.deepEqual(commandLimit(1800, 660), { seconds: 600, setting: 1800, entryTimeout: 660 });
-  assert.deepEqual(commandLimit(1800, 1859), { seconds: 1799, setting: 1800, entryTimeout: 1859 });
-  assert.equal(commandLimit(1800, 30).seconds, 1);
+  assert.deepEqual(commandLimit(1800, at(660)), { seconds: 600, setting: 1800, entry: at(660) });
+  assert.deepEqual(commandLimit(1800, at(1859, '/u/settings.json')), { seconds: 1799, setting: 1800, entry: at(1859, '/u/settings.json') });
+  assert.equal(commandLimit(1800, at(30)).seconds, 1);
+});
+
+test('no entry found keeps the limit that fits the 660 s every older entry has', () => {
+  assert.deepEqual(commandLimit(1800, null), { seconds: 600, setting: 1800, entry: { timeout: 660, file: null } });
+  assert.deepEqual(commandLimit(300, null), { seconds: 300, setting: 300, entry: null });
+});
+
+test('the deadline moves with the limit: 15 s under the host timeout it fits', () => {
+  assert.equal(limitDeadlineMs(commandLimit(1800, at(1860))), 1845000);
+  assert.equal(limitDeadlineMs(commandLimit(1800, at(3600))), 1845000);
+  assert.equal(limitDeadlineMs(commandLimit(1800, at(660))), 645000);
+  assert.equal(limitDeadlineMs(commandLimit(1800, null)), 645000);
+  assert.equal(limitDeadlineMs(commandLimit(1800, at(61))), 46000);
+  assert.equal(limitDeadlineMs(commandLimit(1800, at(30))), 15000);
+  assert.ok(limitDeadlineMs(commandLimit(1800, at(1860))) > startDeadlineMs);
 });
 
 const failedWords: Array<[Reason, RegExp]> = [
@@ -283,17 +300,24 @@ test('AC-e07s02-12 a shorter deadline from the variable is used, and never a lon
 });
 
 test('AC-e07s02-15 the timeout line names the limit and the setting that sets it', () => {
-  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(900, null));
+  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(900, { timeout: 960, file: '.claude/settings.json' }));
   assert.match(out.stderr, /past the 900 s limit/);
   assert.match(out.stderr, /budget\.stop_hook_timeout_seconds in weftwork\.yaml sets it/);
   assert.match(out.stderr, /raise budget\.stop_hook_timeout_seconds/);
 });
 
 test('AC-e07s02-15 a limit cut by a short entry timeout names the entry and the repair', () => {
-  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(1800, 660));
+  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(1800, { timeout: 660, file: '.claude/settings.local.json' }));
   assert.match(out.stderr, /past the 600 s limit/);
-  assert.match(out.stderr, /has timeout 660 s, lower than the 1860 s that budget\.stop_hook_timeout_seconds \(1800 s\) needs/);
-  assert.match(out.stderr, /weftwork update, or weftwork claude-install/);
+  assert.match(out.stderr, /entry in \.claude\/settings\.local\.json has timeout 660 s, lower than the 1860 s that budget\.stop_hook_timeout_seconds \(1800 s\) needs/);
+  assert.match(out.stderr, /weftwork claude-install, or weftwork update/);
+  assert.match(out.stderr, /an entry in another file is raised by hand/);
+});
+
+test('AC-e07s02-15 a limit kept because no entry was found says so and names the install', () => {
+  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(1800, null));
+  assert.match(out.stderr, /past the 600 s limit\. No weftwork Stop hook entry for this command was found/);
+  assert.match(out.stderr, /run weftwork claude-install/);
 });
 
 test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded', () => {

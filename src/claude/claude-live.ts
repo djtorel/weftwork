@@ -274,11 +274,19 @@ function timeoutWarnings(entries: Entry[], input: LiveInput): string[] {
   if (!input.stopLimit.ok) return [];
   const setting = input.stopLimit.seconds;
   const needed = hostTimeoutFor(setting);
-  return entries.filter((entry) => entry.asInstalled && entry.timeout < needed).map((entry) =>
-    `The weftwork Stop hook entry in ${entry.file} has timeout ${entry.timeout} s, lower than the ${needed} s ` +
-    `that budget.${stopHookKey} (${setting} s) needs, so the hook stops '${entry.command}' after ` +
-    `${entry.timeout - (needed - setting)} s. Repair it here: weftwork update --yes, or ` +
-    `weftwork claude-install -- ${shellQuote(entry.command)}`);
+  // The hook reads the local and user files too and fits the lowest timeout.
+  const copies = [input.local, input.user].flatMap((source) => {
+    const found = weftworkEntries(source, input);
+    return found.ok ? found.entries : [];
+  });
+  return [...entries, ...copies].filter((entry) => entry.asInstalled && entry.timeout < needed).map((entry) => {
+    const repair = entry.file === input.project.name
+      ? `Repair it here: weftwork claude-install -- ${shellQuote(entry.command)}, or weftwork update --yes`
+      : `Raise it to ${needed} in that file by hand: the install and weftwork update edit only ${input.project.name}`;
+    return `The weftwork Stop hook entry in ${entry.file} has timeout ${entry.timeout} s, lower than the ${needed} s ` +
+      `that budget.${stopHookKey} (${setting} s) needs, so the hook stops '${entry.command}' after ` +
+      `${entry.timeout - (needed - setting)} s. ${repair}.`;
+  });
 }
 
 /** Why the project has no usable weftwork entry, or null when it has one whose

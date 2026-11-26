@@ -258,7 +258,19 @@ test('an entry whose timeout is lower than the setting needs still reads as live
   const [warning] = report.warnings;
   assert.match(warning ?? '', /has timeout 660 s, lower than the 1860 s that budget\.stop_hook_timeout_seconds \(1800 s\) needs/);
   assert.match(warning ?? '', /stops 'npm test' after 600 s/);
-  assert.match(warning ?? '', /weftwork update --yes, or weftwork claude-install -- 'npm test'/);
+  assert.match(warning ?? '', /Repair it here: weftwork claude-install -- 'npm test', or weftwork update --yes/);
+});
+
+test('a short copy in the local or user file is warned about too, with a repair by hand', () => {
+  for (const key of ['local', 'user'] as const) {
+    const name = key === 'local' ? '.claude/settings.local.json' : '/home/u/.claude/settings.json';
+    const copy = source(name, settings([entry()]));
+    const project = source('.claude/settings.json', settings([{ ...entry(), timeout: 1860 }]));
+    const report = liveReport(input({ project, [key]: copy, stopLimit: { ok: true, seconds: 1800 } }));
+    assert.equal(report.warnings.length, 1, key);
+    assert.match(report.warnings[0] ?? '', new RegExp(`entry in ${name.replaceAll('.', '\\.')} has timeout 660 s`));
+    assert.match(report.warnings[0] ?? '', /Raise it to 1860 in that file by hand/);
+  }
 });
 
 test('an entry whose timeout fits the setting, or is longer, has no warning', () => {

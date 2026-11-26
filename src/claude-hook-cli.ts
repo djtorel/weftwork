@@ -43,9 +43,8 @@ import {
   faultOutput,
   hookAnswer,
   hookDeadline,
-  hookDeadlineFor,
   hookRequest,
-  hostTimeoutFor,
+  limitDeadlineMs,
   maxHookInputBytes,
   parseHookInput,
   projectDir,
@@ -59,7 +58,8 @@ import {
   type HookOutput,
 } from './claude/claude-hook.ts';
 import { applyBudget } from './engine/budget.ts';
-import { entryTimeout } from './claude/claude-hook-timeout.ts';
+import { entryTimeout, type SettingsText } from './claude/claude-hook-timeout.ts';
+import { userSettingsPath } from './claude/claude-settings-file.ts';
 import { readRegularFile } from './shared/regular-file.ts';
 import { terminalSafe } from './shared/cli-io.ts';
 import { runEngine } from './engine/engine.ts';
@@ -115,23 +115,27 @@ process.on('uncaughtException', fault);
 process.on('unhandledRejection', fault);
 let deadline = setTimeout(expire, hookDeadline(process.env, startDeadlineMs)).unref();
 
-/** Move the deadline to the one for `limit`, still counted from the start.
- * The host timeout is the one the install writes for the limit, or the hook
- * entry's own when that is lower. */
+/** Move the deadline to the one for `limit` (limitDeadlineMs), still counted
+ * from the start. */
 function moveDeadline(limit: CommandLimit): void {
-  const host = Math.min(hostTimeoutFor(limit.seconds), limit.entryTimeout ?? Infinity);
   clearTimeout(deadline);
-  deadline = setTimeout(expire, hookDeadline(process.env, hookDeadlineFor(host)) - performance.now()).unref();
+  deadline = setTimeout(expire, hookDeadline(process.env, limitDeadlineMs(limit)) - performance.now()).unref();
 }
 
-/** The texts of the project's shared and local settings, for the hook
- * entry's timeout. A file that cannot be read gives none: the setting alone
- * then sets the limit, as when the entry is not found. */
-function settingsTexts(dir: string): (string | null)[] {
-  return ['settings.json', 'settings.local.json'].map((name) => {
+/** The settings files Claude Code reads hooks from that the hook can see: the
+ * project's shared and local files and the user file, for the entry's
+ * timeout. A file that cannot be read gives no text, as a missing one. */
+function settingsTexts(dir: string): SettingsText[] {
+  const user = userSettingsPath(process.env);
+  const files: [string, string][] = [
+    ['.claude/settings.json', join(dir, '.claude', 'settings.json')],
+    ['.claude/settings.local.json', join(dir, '.claude', 'settings.local.json')],
+    ...(user === null ? [] : [[user, user] as [string, string]]),
+  ];
+  return files.map(([file, path]) => {
     // As the live check reads them: following a symlink, at most 1 MiB.
-    const read = readRegularFile(join(dir, '.claude', name), { follow: true, maxBytes: 1024 * 1024 });
-    return read.ok ? read.file?.text ?? null : null;
+    const read = readRegularFile(path, { follow: true, maxBytes: 1024 * 1024 });
+    return { file, text: read.ok ? read.file?.text ?? null : null };
   });
 }
 

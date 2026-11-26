@@ -88,7 +88,7 @@ test('an entry with the old 660 s timeout is live, with a warning that names the
   assert.equal(out.status, 0, out.stdout + out.stderr);
   assert.match(out.stdout, /^weftwork live check: live$/m);
   assert.match(out.stdout, /^Warning: The weftwork Stop hook entry in .*settings\.json has timeout 660 s, lower than the 1860 s/m);
-  assert.match(out.stdout, /Repair it here: weftwork update --yes, or weftwork claude-install -- 'true'/);
+  assert.match(out.stdout, /Repair it here: weftwork claude-install -- 'true', or weftwork update --yes/);
 });
 
 test('the live check notes skills behind this weftwork, and says nothing of skills that are up to date', () => {

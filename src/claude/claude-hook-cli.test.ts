@@ -234,7 +234,7 @@ test('an entry timeout too short for the setting lowers the limit to fit it, and
   assert.ok(Date.now() - started < 4500, 'the command was stopped at the 1 s limit');
   assert.match(out.stderr, /not done \(failed, timeout\): sleep 5/);
   assert.match(out.stderr, /past the 1 s limit\. The Stop hook entry in \.claude\/settings\.json has timeout 61 s/);
-  assert.match(out.stderr, /weftwork update, or weftwork claude-install/);
+  assert.match(out.stderr, /weftwork claude-install, or weftwork update/);
 });
 
 test('a bad budget.stop_hook_timeout_seconds runs nothing and allows the stop as not done, naming the key', () => {

@@ -59,19 +59,36 @@ export function hookDeadlineFor(hostSeconds: number): number {
  * CLI moves it once it knows the limit. */
 export const startDeadlineMs = hookDeadlineFor(hostTimeoutFor(minStopHookSeconds));
 
+/** A hook entry's host `timeout` and the settings file it is in. `file` is
+ * null when no entry for the command was found (claude-hook-timeout.ts). */
+export type EntryTimeout = { timeout: number; file: string | null };
+
+/** The timeout assumed when the hook finds no entry of its own: the one every
+ * install before 0.7.0 wrote. An entry the hook cannot read (a hand edit, a
+ * managed or plugin hook) may still have it, so the hook keeps the limit that
+ * fits it rather than run past the host's timeout. */
+export const unknownEntryTimeout = 660;
+
 /** The command limit the hook uses, in seconds, and where it comes from. The
  * setting asks for `setting`. When the hook entry's own `timeout` in the
- * host's settings (`entryTimeout`) is too short for it, an entry an older
- * weftwork wrote (660), the limit drops to fit the entry, so the hook still
- * answers before the host cuts it off and lets the stop go ahead. */
-export type CommandLimit = { seconds: number; setting: number; entryTimeout: number | null };
+ * host's settings is too short for it, as an older weftwork wrote it (660),
+ * the limit drops to fit the entry, so the hook still answers before the host
+ * cuts it off and lets the stop go ahead. `entry` is set only then. */
+export type CommandLimit = { seconds: number; setting: number; entry: EntryTimeout | null };
 
-/** The command limit for `setting` under a hook entry whose timeout is
- * `entryTimeout` (null: not known). Never below 1 s. */
-export function commandLimit(setting: number, entryTimeout: number | null): CommandLimit {
-  const fits = entryTimeout === null || entryTimeout >= hostTimeoutFor(setting);
-  const seconds = fits ? setting : Math.max(1, entryTimeout - hostTimeoutReserveSeconds);
-  return { seconds, setting, entryTimeout: fits ? null : entryTimeout };
+/** The command limit for `setting` under the entry `found` (null: none found,
+ * read as `unknownEntryTimeout`). Never below 1 s. */
+export function commandLimit(setting: number, found: EntryTimeout | null): CommandLimit {
+  const entry = found ?? { timeout: unknownEntryTimeout, file: null };
+  if (entry.timeout >= hostTimeoutFor(setting)) return { seconds: setting, setting, entry: null };
+  return { seconds: Math.max(1, entry.timeout - hostTimeoutReserveSeconds), setting, entry };
+}
+
+/** The hook deadline for `limit`, counted from the start: under the host
+ * timeout the install writes for the limit, or under the entry's own when
+ * that is lower. */
+export function limitDeadlineMs(limit: CommandLimit): number {
+  return hookDeadlineFor(Math.min(hostTimeoutFor(limit.seconds), limit.entry?.timeout ?? Infinity));
 }
 
 /** How long a signalled CLI waits for work that cannot be aborted before it
@@ -244,11 +261,16 @@ const makeItPass = 'Make that command pass before you stop.';
  * setting files and the settings. */
 function timeoutLine(limit: CommandLimit): string {
   const ran = `The command ran past the ${limit.seconds} s limit.`;
-  if (limit.entryTimeout !== null) {
-    return `${ran} The Stop hook entry in .claude/settings.json has timeout ${limit.entryTimeout} s, ` +
-      `lower than the ${hostTimeoutFor(limit.setting)} s that budget.${stopHookKey} ` +
-      `(${limit.setting} s) needs. Tell the owner to run weftwork update, or weftwork claude-install, ` +
-      'which write the timeout the setting needs.';
+  const needs = `the ${hostTimeoutFor(limit.setting)} s that budget.${stopHookKey} (${limit.setting} s) needs`;
+  if (limit.entry !== null && limit.entry.file === null) {
+    return `${ran} No weftwork Stop hook entry for this command was found in the Claude Code settings, so the ` +
+      `hook keeps the limit that fits an older entry's ${limit.entry.timeout} s timeout, below ${needs}. ` +
+      'Tell the owner to run weftwork claude-install, which writes the entry the setting needs.';
+  }
+  if (limit.entry !== null) {
+    return `${ran} The Stop hook entry in ${limit.entry.file} has timeout ${limit.entry.timeout} s, lower than ${needs}. ` +
+      'Tell the owner to run weftwork claude-install, or weftwork update, which write that timeout into ' +
+      '.claude/settings.json; an entry in another file is raised by hand.';
   }
   return `${ran} budget.${stopHookKey} in weftwork.yaml sets it (docs/BUDGET.md). ` +
     `Make the command finish sooner, or tell the owner, who can raise budget.${stopHookKey}.`;
