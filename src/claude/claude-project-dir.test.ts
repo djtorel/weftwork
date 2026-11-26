@@ -10,10 +10,15 @@ import { guardEntry, installGuardHook } from './claude-guard-install.ts';
 import { installStopHook, parseStopHookCommand, stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { liveReport } from './claude-live.ts';
 import { call, input, source } from './claude-live-test-helpers.ts';
+import { hostTimeoutFor } from './claude-hook.ts';
+import { defaultStopHookSeconds } from '../engine/budget.ts';
+
+/** The timeout the install writes when no setting file sets the limit. */
+const testTimeout = hostTimeoutFor(defaultStopHookSeconds);
 
 const stopCli = '$CLAUDE_PROJECT_DIR/src/claude-hook-cli.ts';
 const declared = 'yamllint . && npm test';
-const stopEntry = { type: 'command', command: `node "${stopCli}" -- '${declared}'`, timeout: 660 };
+const stopEntry = { type: 'command', command: `node "${stopCli}" -- '${declared}'`, timeout: testTimeout };
 const guardGroup = {
   matcher: 'Edit|Write|MultiEdit|NotebookEdit|Bash',
   hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/src/guard-cli.ts"', timeout: 30 }],
@@ -34,7 +39,7 @@ test('a double-quoted adapter with shell expansion after the project folder is n
 });
 
 test('the install from PATH reads the "$CLAUDE_PROJECT_DIR" entries as registered and changes nothing', () => {
-  const stop = installStopHook(repoSettings, weftworkOnPath, declared);
+  const stop = installStopHook(repoSettings, weftworkOnPath, declared, testTimeout);
   assert.ok(stop.ok, JSON.stringify(stop));
   assert.equal(stop.action, 'unchanged');
   const guard = installGuardHook(stop.text, weftworkOnPath);
@@ -43,8 +48,19 @@ test('the install from PATH reads the "$CLAUDE_PROJECT_DIR" entries as registere
   assert.equal(guard.text, repoSettings);
 });
 
+test('an install repairs a "$CLAUDE_PROJECT_DIR" entry with the old 660 s timeout in place', () => {
+  const old = repoSettings.replace(`"timeout": ${testTimeout}`, '"timeout": 660');
+  assert.notEqual(old, repoSettings);
+  const stop = installStopHook(old, weftworkOnPath, declared, testTimeout);
+  assert.ok(stop.ok, JSON.stringify(stop));
+  assert.equal(stop.action, 'replaced');
+  const guard = installGuardHook(stop.text, weftworkOnPath);
+  assert.ok(guard.ok, JSON.stringify(guard));
+  assert.equal(guard.text, repoSettings);
+});
+
 test('a new declared command replaces the "$CLAUDE_PROJECT_DIR" entry in place and keeps its form', () => {
-  const stop = installStopHook(repoSettings, weftworkOnPath, 'npm test');
+  const stop = installStopHook(repoSettings, weftworkOnPath, 'npm test', testTimeout);
   assert.ok(stop.ok, JSON.stringify(stop));
   assert.equal(stop.action, 'replaced');
   const hooks = (JSON.parse(stop.text) as { hooks: { Stop: { hooks: unknown[] }[] } }).hooks.Stop.flatMap((g) => g.hooks);
@@ -56,7 +72,7 @@ test('an install from PATH also removes a PATH Stop entry and a PATH guard besid
     Stop: [{ hooks: [stopEntry, { type: 'command', command: stopHookCommand(weftworkOnPath, 'old'), timeout: 660 }] }],
     PreToolUse: [{ matcher: guardGroup.matcher, hooks: [guardEntry(weftworkOnPath)] }, guardGroup],
   } });
-  const stop = installStopHook(both, weftworkOnPath, declared);
+  const stop = installStopHook(both, weftworkOnPath, declared, testTimeout);
   assert.ok(stop.ok, JSON.stringify(stop));
   const guard = installGuardHook(stop.text, weftworkOnPath);
   assert.ok(guard.ok, JSON.stringify(guard));

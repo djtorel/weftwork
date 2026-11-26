@@ -75,6 +75,22 @@ test('AC-e07s04-08 not registered, then registered but not seen, then live', () 
   assert.match(live.stdout, /^weftwork live check: live$/m);
 });
 
+test('an entry with the old 660 s timeout is live, with a warning that names the repair', () => {
+  const repo = makeTestRepo();
+  const env = cleanEnv();
+  assert.equal(run([installCli, '--', 'true'], { cwd: repo, env }).status, 0);
+  const path = join(repo, '.claude', 'settings.json');
+  const text = readFileSync(path, 'utf8');
+  assert.match(text, /"timeout": 1860/);
+  writeFileSync(path, text.replace('"timeout": 1860', '"timeout": 660'));
+  assert.equal(callHook(repo, env, 'true').status, 0);
+  const out = run([checkCli], { cwd: repo, env });
+  assert.equal(out.status, 0, out.stdout + out.stderr);
+  assert.match(out.stdout, /^weftwork live check: live$/m);
+  assert.match(out.stdout, /^Warning: The weftwork Stop hook entry in .*settings\.json has timeout 660 s, lower than the 1860 s/m);
+  assert.match(out.stdout, /Repair it here: weftwork update --yes, or weftwork claude-install -- 'true'/);
+});
+
 test('the live check notes skills behind this weftwork, and says nothing of skills that are up to date', () => {
   const texts = skillTexts(join(import.meta.dirname, '..', '..'));
   assert.ok(texts.ok);

@@ -5,11 +5,17 @@
 // skill folder from before the rename is deleted when it holds only a text
 // weftwork shipped. It plans first and writes nothing until applied. AGENTS.md,
 // CONVENTIONS.md and the backlog are the owner's and never touched; the hooks
-// run `weftwork` from PATH, so an upgrade of the command updates them.
+// run `weftwork` from PATH, so an upgrade of the command updates them. In
+// .claude/settings.json it changes one thing: a weftwork Stop entry whose
+// timeout is below what the command limit needs (`budget.stop_hook_timeout_seconds`,
+// docs/BUDGET.md), as an older weftwork wrote it (660 s), is raised to it.
 // update-cli.ts is the thin shell. docs/SETUP.md § Update.
 import { createHash } from 'node:crypto';
 import { lstatSync, readdirSync, rmdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { hostTimeoutFor } from '../claude/claude-hook.ts';
+import { repairStopTimeouts } from '../claude/claude-hook-timeout.ts';
+import { stopHookSecondsIn } from '../engine/budget.ts';
 import { isMissing, messageOf, type Failure } from '../shared/errors.ts';
 import { readRegularFile, writeAtomic } from '../shared/regular-file.ts';
 import { oldSkillFolders, pathRefusal, skillTexts } from './setup.ts';
@@ -64,8 +70,32 @@ function oldFolderChange(dir: string, folder: string, shipped: Shipped): UpdateC
   return { path: file, action: 'delete', diff: '(an old name; it holds only a text weftwork shipped)', before: read.file.text };
 }
 
-/** The plan for updating the skills of the project in `dir`. Writes nothing. */
-export function planUpdate(dir: string, engineDir: string, shipped: Shipped = shippedSkillTexts): { ok: true; plan: UpdatePlan } | Failure {
+const settingsPath = '.claude/settings.json';
+
+/** The change that raises a weftwork Stop entry's timeout in the project
+ * settings to what the setting needs, or null when none is below it, or the
+ * file has none or cannot be read (the install says why). A setting file
+ * that cannot be used is refused: the timeout it needs is not known. */
+function settingsChange(dir: string, processEnv: NodeJS.ProcessEnv): UpdateChange | null | Failure {
+  const seconds = stopHookSecondsIn(dir, processEnv);
+  if (!seconds.ok) return seconds;
+  const read = readRegularFile(join(dir, settingsPath), { follow: false, maxBytes: maxFileBytes });
+  if (!read.ok || read.file === null) return null;
+  const repaired = repairStopTimeouts(read.file.text, hostTimeoutFor(seconds.seconds));
+  if (!repaired.ok || !repaired.changed || repaired.text === null) return null;
+  const diff = lineDiff(read.file.text, repaired.text);
+  return { path: settingsPath, action: 'update', text: repaired.text, diff, mode: read.file.mode, before: read.file.text };
+}
+
+/** The plan for updating the skills of the project in `dir`, and the Stop
+ * hook's timeout (settingsChange). Writes nothing. `processEnv` is where the
+ * user setting file is found. */
+export function planUpdate(
+  dir: string,
+  engineDir: string,
+  shipped: Shipped = shippedSkillTexts,
+  processEnv: NodeJS.ProcessEnv = process.env,
+): { ok: true; plan: UpdatePlan } | Failure {
   const skills = skillTexts(engineDir);
   if (!skills.ok) return skills;
   const changes: UpdateChange[] = [];
@@ -80,6 +110,13 @@ export function planUpdate(dir: string, engineDir: string, shipped: Shipped = sh
   }
   if (changes.every((change) => change.action === 'create')) {
     return { ok: false, error: `${dir} has no weftwork skills in ${skillsDir}; set it up with weftwork init` };
+  }
+  const settings = settingsChange(dir, processEnv);
+  if (settings !== null && 'ok' in settings) return settings;
+  if (settings !== null) {
+    const refusal = pathRefusal(dir, settings.path);
+    if (refusal !== null) return { ok: false, error: refusal };
+    changes.push(settings);
   }
   return { ok: true, plan: { changes } };
 }

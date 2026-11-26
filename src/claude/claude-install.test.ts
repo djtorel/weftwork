@@ -8,10 +8,14 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { hookTimeoutSeconds } from './claude-hook.ts';
 import { installStopHook, shellQuote, stopHookCommand } from './claude-install.ts';
 import { isRecord } from '../shared/json.ts';
 import { cleanupTempDirs, makeTempDir } from '../test-support/test-helpers.ts';
+import { hostTimeoutFor } from './claude-hook.ts';
+import { defaultStopHookSeconds } from '../engine/budget.ts';
+
+/** The timeout the install writes when no setting file sets the limit. */
+const testTimeout = hostTimeoutFor(defaultStopHookSeconds);
 
 after(cleanupTempDirs);
 
@@ -19,14 +23,14 @@ const cli = '/opt/weft work/src/claude-hook-cli.ts';
 
 /** The result of an install that must have worked, with its text parsed. */
 function installed(text: string | null, command = 'npm test') {
-  const result = installStopHook(text, cli, command);
+  const result = installStopHook(text, cli, command, testTimeout);
   assert.ok(result.ok, result.ok ? '' : result.error);
   return { ...result, value: JSON.parse(result.text) as unknown };
 }
 
 /** The entry the install writes for `command`. */
 function entry(command: string) {
-  return { type: 'command', command: stopHookCommand(cli, command), timeout: hookTimeoutSeconds };
+  return { type: 'command', command: stopHookCommand(cli, command), timeout: testTimeout };
 }
 
 /** The Stop groups of a parsed settings value. */
@@ -45,7 +49,7 @@ test('AC-e07s03-01 no settings file gives one Stop entry with the host timeout',
       {
         type: 'command',
         command: `node '/opt/weft work/src/claude-hook-cli.ts' -- 'npm test'`,
-        timeout: hookTimeoutSeconds,
+        timeout: testTimeout,
       },
     ],
   });
@@ -54,7 +58,7 @@ test('AC-e07s03-01 no settings file gives one Stop entry with the host timeout',
 });
 
 test('AC-e07s03-01 the output is 2-space JSON with a final newline', () => {
-  const result = installStopHook(null, cli, 'npm test');
+  const result = installStopHook(null, cli, 'npm test', testTimeout);
   assert.ok(result.ok);
   assert.equal(result.text, `${JSON.stringify(JSON.parse(result.text), null, 2)}\n`);
 });
@@ -89,7 +93,7 @@ test('AC-e07s03-02 a settings file with no hooks key gets one', () => {
 
 test('AC-e07s03-03 a second run changes nothing', () => {
   const first = installed(null);
-  const second = installStopHook(first.text, cli, 'npm test');
+  const second = installStopHook(first.text, cli, 'npm test', testTimeout);
   assert.ok(second.ok);
   assert.equal(second.changed, false);
   assert.equal(second.action, 'unchanged');
@@ -98,7 +102,7 @@ test('AC-e07s03-03 a second run changes nothing', () => {
 
 test('AC-e07s03-03 a file with the entry but other spacing is reformatted', () => {
   const first = installed(null);
-  const result = installStopHook(JSON.stringify(JSON.parse(first.text)), cli, 'npm test');
+  const result = installStopHook(JSON.stringify(JSON.parse(first.text)), cli, 'npm test', testTimeout);
   assert.ok(result.ok);
   assert.equal(result.changed, true);
   assert.equal(result.action, 'reformatted');
@@ -111,7 +115,7 @@ test('AC-e07s03-04 a new command replaces the entry in place', () => {
     JSON.stringify({ hooks: { Stop: [other] } }),
     'npm test',
   );
-  const second = installStopHook(first.text, cli, 'npm run check');
+  const second = installStopHook(first.text, cli, 'npm run check', testTimeout);
   assert.ok(second.ok);
   assert.equal(second.action, 'replaced');
   assert.equal(second.changed, true);
@@ -175,7 +179,7 @@ test('AC-e07s03-04 an owner hook that runs the adapter and then more is kept', (
 test('AC-e07s03-03 a command with single quotes is found again on a second run', () => {
   const command = `echo "it's"`;
   const first = installed(null, command);
-  const second = installStopHook(first.text, cli, command);
+  const second = installStopHook(first.text, cli, command, testTimeout);
   assert.ok(second.ok);
   assert.equal(second.action, 'unchanged');
 });
@@ -208,7 +212,7 @@ test('AC-e07s03-05 bad settings are refused, with no text', () => {
     '{"hooks":{"Stop":[{"hooks":"x"}]}}',
   ];
   for (const text of bad) {
-    const result = installStopHook(text, cli, 'npm test');
+    const result = installStopHook(text, cli, 'npm test', testTimeout);
     assert.equal(result.ok, false, text);
     assert.match(result.ok ? '' : result.error, /./, text);
     assert.equal('text' in result, false, text);
@@ -225,7 +229,7 @@ test('AC-e07s03-05 an empty or blank settings file reads as no settings', () => 
 
 test('AC-e07s03-05 a blank command is refused', () => {
   for (const command of ['', '   ', '\n\t']) {
-    const result = installStopHook(null, cli, command);
+    const result = installStopHook(null, cli, command, testTimeout);
     assert.equal(result.ok, false);
   }
 });

@@ -34,6 +34,8 @@ export function input(change: Partial<LiveInput> = {}): LiveInput {
     exists: (path) => path === cli,
     lastCall: { ok: true, call },
     now,
+    // The limit the helper's entry (timeout 660) fits exactly.
+    stopLimit: { ok: true, seconds: 600 },
     ...change,
   };
 }

@@ -138,3 +138,20 @@ test('AC-e09s03-07 a reserveRuns on the request is replaced by the files, or dro
   const unset = makeTestRepo();
   assert.equal('reserveRuns' in (await limitsOf(request(unset, { reserveRuns: 0 }), noUser())), false);
 });
+
+test('a Stop hook request takes its command limit from budget.stop_hook_timeout_seconds', async () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  stop_hook_timeout_seconds: 2400\n' });
+  const got = await limitsOf(request(repo, { stopHook: 'key' }), noUser());
+  assert.equal(got.timeoutMs, 2400000);
+});
+
+test('a Stop hook request with no setting gets the 1800 s default', async () => {
+  const got = await limitsOf(request(makeTestRepo(), { stopHook: 'key' }), noUser());
+  assert.equal(got.timeoutMs, 1800000);
+});
+
+test('an engine CLI request keeps its own timeoutMs whatever budget.stop_hook_timeout_seconds says', async () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  stop_hook_timeout_seconds: 2400\n' });
+  const got = await limitsOf(request(repo), noUser());
+  assert.equal(got.timeoutMs, 1234);
+});

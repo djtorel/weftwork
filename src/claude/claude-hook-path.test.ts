@@ -15,6 +15,11 @@ import { call, entry, input, settings, source } from './claude-live-test-helpers
 import { engineBin } from '../install/launcher.ts';
 import { gitCommonDir } from '../setup/setup.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from '../test-support/test-helpers.ts';
+import { hostTimeoutFor } from './claude-hook.ts';
+import { defaultStopHookSeconds } from '../engine/budget.ts';
+
+/** The timeout the install writes when no setting file sets the limit. */
+const testTimeout = hostTimeoutFor(defaultStopHookSeconds);
 
 after(cleanupTempDirs);
 
@@ -62,11 +67,11 @@ test('the guard entry runs weftwork guard from PATH', () => {
 
 test('an install from PATH replaces an entry that names a checkout file, in place', () => {
   const old = settings([{ type: 'command', command: "node '/old/weftwork/src/claude-hook-cli.ts' -- 'npm test'", timeout: 660 }]);
-  const result = installStopHook(old, weftworkOnPath, 'npm test');
+  const result = installStopHook(old, weftworkOnPath, 'npm test', testTimeout);
   assert.ok(result.ok);
   assert.equal(result.action, 'replaced');
   assert.equal(stopEntryOf(result.text), stopHookCommand(weftworkOnPath, 'npm test'));
-  const again = installStopHook(result.text, weftworkOnPath, 'npm test');
+  const again = installStopHook(result.text, weftworkOnPath, 'npm test', testTimeout);
   assert.ok(again.ok);
   assert.equal(again.changed, false);
 });
@@ -100,8 +105,10 @@ test('a Stop entry as 0.2.0 wrote it, weftwork from PATH only, reads back, is as
   const legacy = { type: 'command', command: `${legacyRequireWeftwork}weftwork claude-hook -- 'npm test'`, timeout: 660 };
   const read = parseStopHookCommand(legacy.command);
   assert.deepEqual(read, { cliPath: weftworkOnPath, command: 'npm test' });
-  assert.ok(read !== null && isAsInstalled(legacy, read));
-  const result = installStopHook(settings([legacy]), weftworkOnPath, 'npm test');
+  // 0.2.0 wrote 660 s: the shape is as installed for a limit it fits.
+  assert.ok(read !== null && isAsInstalled(legacy, read, 660));
+  assert.ok(read !== null && !isAsInstalled(legacy, read, 661));
+  const result = installStopHook(settings([legacy]), weftworkOnPath, 'npm test', testTimeout);
   assert.ok(result.ok);
   assert.equal(result.action, 'replaced');
   assert.equal(stopEntryOf(result.text), stopHookCommand(weftworkOnPath, 'npm test'));

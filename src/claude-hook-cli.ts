@@ -11,8 +11,10 @@
 // Every fault of this adapter ends in exit 2: bad arguments, a bad project
 // directory, input that is too large, empty, unreadable or never ends, a
 // throw, an error nobody handles, SIGTERM or SIGINT (which kill the command's
-// process group first), and a run that has not finished by `hookDeadlineMs`
-// after the start. Every answer leaves through `leave`. The deadline and the
+// process group first), and a run that has not finished by the hook deadline
+// after the start. The deadline starts at the one for the lowest command
+// limit (`startDeadlineMs`) and moves once the setting is read, so it always
+// falls before the host's timeout (claude-hook.ts). Every answer leaves through `leave`. The deadline and the
 // signal path need it, because work that cannot be aborted (a ledger read
 // stuck on a FIFO) would otherwise keep the process alive until the host's
 // own timeout, which lets the stop go ahead. The normal path needs it too
@@ -33,24 +35,32 @@
 // (last-call.ts) before it reads the input, so the live check can tell a hook
 // that runs from one that is only registered. A failed write changes nothing.
 import { writeSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   blockStop,
+  commandLimit,
   failClosed,
   faultOutput,
   hookAnswer,
   hookDeadline,
+  hookDeadlineFor,
   hookRequest,
+  hostTimeoutFor,
   maxHookInputBytes,
   parseHookInput,
   projectDir,
   readHookInput,
   settingUnusable,
   signalGraceMs,
+  startDeadlineMs,
   stdinDeadlineMs,
+  type CommandLimit,
   type HookInput,
   type HookOutput,
 } from './claude/claude-hook.ts';
 import { applyBudget } from './engine/budget.ts';
+import { entryTimeout } from './claude/claude-hook-timeout.ts';
+import { readRegularFile } from './shared/regular-file.ts';
 import { terminalSafe } from './shared/cli-io.ts';
 import { runEngine } from './engine/engine.ts';
 import { lastCallPath, writeLastCall } from './claude/last-call.ts';
@@ -103,7 +113,27 @@ process.on('SIGTERM', terminate);
 process.on('SIGINT', terminate);
 process.on('uncaughtException', fault);
 process.on('unhandledRejection', fault);
-setTimeout(expire, hookDeadline(process.env)).unref();
+let deadline = setTimeout(expire, hookDeadline(process.env, startDeadlineMs)).unref();
+
+/** Move the deadline to the one for `limit`, still counted from the start.
+ * The host timeout is the one the install writes for the limit, or the hook
+ * entry's own when that is lower. */
+function moveDeadline(limit: CommandLimit): void {
+  const host = Math.min(hostTimeoutFor(limit.seconds), limit.entryTimeout ?? Infinity);
+  clearTimeout(deadline);
+  deadline = setTimeout(expire, hookDeadline(process.env, hookDeadlineFor(host)) - performance.now()).unref();
+}
+
+/** The texts of the project's shared and local settings, for the hook
+ * entry's timeout. A file that cannot be read gives none: the setting alone
+ * then sets the limit, as when the entry is not found. */
+function settingsTexts(dir: string): (string | null)[] {
+  return ['settings.json', 'settings.local.json'].map((name) => {
+    // As the live check reads them: following a symlink, at most 1 MiB.
+    const read = readRegularFile(join(dir, '.claude', name), { follow: true, maxBytes: 1024 * 1024 });
+    return read.ok ? read.file?.text ?? null : null;
+  });
+}
 
 /** The host's input, or the block to answer when it cannot be used. A signal
  * that arrived while waiting wins over the input's fault. */
@@ -152,7 +182,13 @@ async function run(args: string[]): Promise<HookOutput> {
     // review F2, CWE-150).
     return settingUnusable(terminalSafe(budgeted.error));
   }
-  const answer = await runEngine(budgeted.request, controller.signal);
+  // The setting sets the command limit (budget.stop_hook_timeout_seconds); an entry
+  // whose timeout is too short for it lowers it, so the hook still answers
+  // before the host cuts it off.
+  const setting = (budgeted.request.timeoutMs ?? 0) / 1000;
+  const limit = commandLimit(setting, entryTimeout(settingsTexts(dir.dir), request.request.command));
+  moveDeadline(limit);
+  const answer = await runEngine({ ...budgeted.request, timeoutMs: limit.seconds * 1000 }, controller.signal);
   // An aborted run answers `killed`, which allows the stop. A signal is not a
   // result, so block.
   if (controller.signal.aborted) {
@@ -160,7 +196,7 @@ async function run(args: string[]): Promise<HookOutput> {
   }
   // The session's tokens, read after the run so they are as late as they can
   // be. A report: an unusable transcript gives a reason, never a block.
-  return hookAnswer(answer, readTranscriptUsage(input.transcriptPath));
+  return hookAnswer(answer, readTranscriptUsage(input.transcriptPath), limit);
 }
 
 leave(await failClosed(() => run(process.argv.slice(2))));

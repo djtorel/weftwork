@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isRecord } from '../shared/json.ts';
 import { lastCallPath, readLastCall } from './last-call.ts';
+import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo, readRepoLedger } from '../test-support/test-helpers.ts';
 
 after(cleanupTempDirs);
@@ -221,4 +222,26 @@ test('the record is written before the input is read, so bad input still leaves 
   const read = await readLastCall(await recordPath(repo));
   assert.ok(read.ok && read.call !== null, 'a record was written');
   assert.equal(read.call.command, 'true');
+});
+
+test('an entry timeout too short for the setting lowers the limit to fit it, and the block names the repair', () => {
+  // 61 s leaves a 1 s limit under the 60 s reserve, so a 5 s command runs past it.
+  const entry = { type: 'command', command: stopHookCommand(weftworkOnPath, 'sleep 5'), timeout: 61 };
+  const repo = makeTestRepo({ '.claude/settings.json': JSON.stringify({ hooks: { Stop: [{ hooks: [entry] }] } }) });
+  const started = Date.now();
+  const out = runHook(stopInput(repo), ['--', 'sleep 5'], repo);
+  assert.equal(out.status, 2, out.stderr);
+  assert.ok(Date.now() - started < 4500, 'the command was stopped at the 1 s limit');
+  assert.match(out.stderr, /not done \(failed, timeout\): sleep 5/);
+  assert.match(out.stderr, /past the 1 s limit\. The Stop hook entry in \.claude\/settings\.json has timeout 61 s/);
+  assert.match(out.stderr, /weftwork update, or weftwork claude-install/);
+});
+
+test('a bad budget.stop_hook_timeout_seconds runs nothing and allows the stop as not done, naming the key', () => {
+  const repo = makeTestRepo({ 'weftwork.yaml': 'budget:\n  stop_hook_timeout_seconds: 5\n' });
+  const out = runHook(stopInput(repo), ['--', 'touch ran.txt'], repo);
+  assert.equal(out.status, 0);
+  assert.match(out.stdout, /not done \(blocked\)/);
+  assert.match(out.stdout, /budget\.stop_hook_timeout_seconds must be an integer from 60 to 86400/);
+  assert.equal(existsSync(join(repo, 'ran.txt')), false);
 });

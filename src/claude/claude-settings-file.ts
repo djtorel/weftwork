@@ -12,7 +12,9 @@ import { lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { installEnvHook } from './claude-env-install.ts';
 import { installGuardHook } from './claude-guard-install.ts';
+import { hostTimeoutFor } from './claude-hook.ts';
 import { installStopHook, weftworkOnPath, type Action } from './claude-install.ts';
+import { stopHookSecondsIn } from '../engine/budget.ts';
 import { isMissing, type Failure } from '../shared/errors.ts';
 import { readRegularFile, writeAtomic, type ReadRegular, type RegularFile } from '../shared/regular-file.ts';
 
@@ -80,18 +82,22 @@ export type HookClis = { stop: string; guard: string };
 
 /** Register the Stop hook and the guard (a PreToolUse hook, e11s01) in
  * `dir`'s .claude/settings.json. `dir` must be the root of a git repository.
- * Writes only when the text changes. Returns an error value, and writes
+ * The Stop entry's timeout fits the command limit the setting files set
+ * (`budget.stop_hook_timeout_seconds`, read with `processEnv`), so an install also repairs
+ * an entry an older weftwork wrote. Writes only when the text changes. Returns an error value, and writes
  * nothing, for anything it will not edit. `action` is the Stop entry's;
  * `guardChanged` says whether the guard entry was added or replaced. */
-export function installInProject(dir: string, clis: HookClis, command: string): InstallInProject {
+export function installInProject(dir: string, clis: HookClis, command: string, processEnv: NodeJS.ProcessEnv = process.env): InstallInProject {
   const claudeDir = join(dir, '.claude');
   const path = join(claudeDir, 'settings.json');
   const refusal = refusalFor(dir, claudeDir);
   if (refusal !== null) return { ok: false, error: refusal };
+  const seconds = stopHookSecondsIn(dir, processEnv);
+  if (!seconds.ok) return seconds;
   const read = readSettings(path);
   if (!read.ok) return read;
   const text = read.file?.text ?? null;
-  const stop = installStopHook(text, clis.stop, command);
+  const stop = installStopHook(text, clis.stop, command, hostTimeoutFor(seconds.seconds));
   if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
   const guard = installGuardHook(stop.text, clis.guard);
   if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };

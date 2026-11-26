@@ -171,8 +171,14 @@ them up:
 Update knows the texts weftwork wrote by their sha256 in
 `src/setup/skill-hashes.ts`: every text setup has written since the skills began
 to call the `weftwork` command, so it works in a fresh clone too, with no
-record of the setup. It never touches AGENTS.md, CONVENTIONS.md, the backlog
-or `.claude/settings.json`. In a terminal it shows the plan and asks `Write
+record of the setup. It never touches AGENTS.md, CONVENTIONS.md or the
+backlog. In `.claude/settings.json` it changes one value: the `timeout` of
+a weftwork Stop hook entry that is too short for the hook's time limit,
+`budget.stop_hook_timeout_seconds` in `weftwork.yaml` (1800 s by default;
+`docs/BUDGET.md`). It raises that timeout to the limit plus 60 s, as `update`
+in the plan, and keeps every other key and hook; a longer timeout stays. An
+entry written before 0.7.0 has 660, so update raises it to 1860. A setting
+file it cannot use refuses the update. In a terminal it shows the plan and asks `Write
 these changes? [y/N]`; `--yes` writes without asking; with no terminal to ask
 in it shows the plan only. A file that changed between the plan and the
 write is kept. It refuses a folder weftwork did not set up, and a
@@ -182,7 +188,27 @@ changes are ordinary edits in your working tree: review them with `git
 diff` and commit them, or `git restore` them.
 
 `weftwork claude-live` notes when the skills are behind the installed
-weftwork. A checkout linked with `npm link` is not upgraded with `weftwork
+weftwork, and warns when the Stop hook entry's timeout is too short.
+
+### The Stop hook's time limit
+
+The Stop hook lets the declared command run for 1800 s. For a longer or a
+shorter check, set it in `weftwork.yaml`, then write the hook entry's new
+timeout:
+
+```yaml
+---
+budget:
+  stop_hook_timeout_seconds: 2400
+```
+
+```bash
+weftwork update --yes
+```
+
+`weftwork claude-install -- '<declared command>'` writes it too. The value
+is 60 to 86400 seconds; the entry gets the value plus 60. `docs/BUDGET.md`
+has the rules. A checkout linked with `npm link` is not upgraded with `weftwork
 upgrade`: run `git pull` there.
 
 ## Undo

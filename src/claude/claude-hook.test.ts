@@ -9,17 +9,20 @@ import assert from 'node:assert/strict';
 import type { Answer } from '../engine/engine.ts';
 import {
   blockStop,
-  engineTimeoutMs,
+  commandLimit,
   hookAnswer,
   hookDeadline,
-  hookDeadlineMs,
+  hookDeadlineFor,
   hookRequest,
-  hookTimeoutSeconds,
   hostBlockExitCode,
+  hostTimeoutFor,
   parseHookInput,
   projectDir,
+  startDeadlineMs,
   stdinDeadlineMs,
+  type CommandLimit,
 } from './claude-hook.ts';
+import { defaultStopHookSeconds, minStopHookSeconds } from '../engine/budget.ts';
 import type { Reason } from '../engine/gate.ts';
 import { isRecord } from '../shared/json.ts';
 import { runKey } from '../engine/reuse.ts';
@@ -46,8 +49,11 @@ const budget =
   'budget: 2 runs in this loop (no ceiling), 1 failed in a row (ceiling 5), ' +
   'tokens 7 input, 222 output, 74918 cache read, 22705 cache write';
 
-function hookFor(given: Answer, read: TokenRead = tokens) {
-  return hookAnswer(given, read);
+/** The limit when no setting file sets one and the entry fits it. */
+const defaultLimit: CommandLimit = commandLimit(defaultStopHookSeconds, null);
+
+function hookFor(given: Answer, read: TokenRead = tokens, limit: CommandLimit = defaultLimit) {
+  return hookAnswer(given, read, limit);
 }
 
 /** Parse stdout as one JSON object and return it. */
@@ -158,7 +164,7 @@ test('AC-e07s01-12 one command after -- becomes the request', () => {
   const result = hookRequest(['--', 'npm test'], '/work/repo', {});
   assert.deepEqual(result, {
     ok: true,
-    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: engineTimeoutMs, stopHook: runKey('/work/repo', {}) },
+    request: { command: 'npm test', cwd: '/work/repo', timeoutMs: defaultStopHookSeconds * 1000, stopHook: runKey('/work/repo', {}) },
   });
 });
 
@@ -185,16 +191,28 @@ test('AC-e07s01-12 blockStop blocks with one weftwork line on stderr', () => {
   assert.equal(hostBlockExitCode, 2);
 });
 
-test('AC-e07s02-01 the hook timeout exceeds the engine timeout by 60 seconds or more', () => {
-  assert.equal(engineTimeoutMs, 600000);
-  assert.equal(hookTimeoutSeconds, 660);
-  assert.ok(hookTimeoutSeconds * 1000 - engineTimeoutMs >= 60000);
+test('AC-e07s02-01 the host timeout is the command limit plus 60 seconds', () => {
+  assert.equal(defaultStopHookSeconds, 1800);
+  assert.equal(hostTimeoutFor(defaultStopHookSeconds), 1860);
+  assert.equal(hostTimeoutFor(600), 660);
 });
 
-test('AC-e07s02-01 hookRequest gives the engine the engine timeout', () => {
+test('AC-e07s02-01 hookRequest gives the engine the default command limit', () => {
   const result = hookRequest(['--', 'npm test'], '/work/repo', {});
   assert.ok(result.ok);
-  assert.equal(result.request.timeoutMs, engineTimeoutMs);
+  assert.equal(result.request.timeoutMs, 1800000);
+});
+
+test('the command limit is the setting when the entry timeout fits it or is not known', () => {
+  assert.deepEqual(commandLimit(1800, null), { seconds: 1800, setting: 1800, entryTimeout: null });
+  assert.deepEqual(commandLimit(1800, 1860), { seconds: 1800, setting: 1800, entryTimeout: null });
+  assert.deepEqual(commandLimit(900, 3600), { seconds: 900, setting: 900, entryTimeout: null });
+});
+
+test('an entry timeout too short for the setting (an old 660) lowers the limit to fit it', () => {
+  assert.deepEqual(commandLimit(1800, 660), { seconds: 600, setting: 1800, entryTimeout: 660 });
+  assert.deepEqual(commandLimit(1800, 1859), { seconds: 1799, setting: 1800, entryTimeout: 1859 });
+  assert.equal(commandLimit(1800, 30).seconds, 1);
 });
 
 const failedWords: Array<[Reason, RegExp]> = [
@@ -236,27 +254,46 @@ test('AC-e07s02-02 no failed reason says the work is done', () => {
   }
 });
 
-test('AC-e07s02-12 the hook deadline sits below the host timeout and above engine plus stdin', () => {
-  assert.equal(hookTimeoutSeconds * 1000 - hookDeadlineMs, 15000);
-  assert.ok(hookDeadlineMs >= engineTimeoutMs + stdinDeadlineMs);
+test('AC-e07s02-12 the hook deadline sits below the host timeout and above the limit plus stdin', () => {
+  for (const limit of [minStopHookSeconds, 600, defaultStopHookSeconds]) {
+    const deadline = hookDeadlineFor(hostTimeoutFor(limit));
+    assert.equal(hostTimeoutFor(limit) * 1000 - deadline, 15000);
+    assert.ok(deadline >= limit * 1000 + stdinDeadlineMs, String(limit));
+  }
 });
 
-test('AC-e07s02-12 an unset or unusable deadline variable leaves the built-in deadline', () => {
-  const unusable = [undefined, '', '0', '-5', 'abc', '1.5', String(hookDeadlineMs), '9999999'];
+test('AC-e07s02-12 the deadline before the setting is read fits the lowest host timeout', () => {
+  assert.equal(startDeadlineMs, hookDeadlineFor(hostTimeoutFor(minStopHookSeconds)));
+  assert.ok(startDeadlineMs > stdinDeadlineMs);
+});
+
+const builtIn = hookDeadlineFor(hostTimeoutFor(defaultStopHookSeconds));
+
+test('AC-e07s02-12 an unset or unusable deadline variable leaves the given deadline', () => {
+  const unusable = [undefined, '', '0', '-5', 'abc', '1.5', String(builtIn), '99999999'];
   for (const value of unusable) {
-    assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: value }), hookDeadlineMs, String(value));
+    assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: value }, builtIn), builtIn, String(value));
   }
-  assert.equal(hookDeadline({}), hookDeadlineMs);
+  assert.equal(hookDeadline({}, builtIn), builtIn);
 });
 
 test('AC-e07s02-12 a shorter deadline from the variable is used, and never a longer one', () => {
-  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: '1500' }), 1500);
-  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: String(hookDeadlineMs - 1) }), hookDeadlineMs - 1);
+  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: '1500' }, builtIn), 1500);
+  assert.equal(hookDeadline({ WEFTWORK_HOOK_DEADLINE_MS: String(builtIn - 1) }, builtIn), builtIn - 1);
 });
 
-test('AC-e07s02-15 the timeout line names the limit', () => {
-  const out = hookFor(answer('failed', { reason: 'timeout' }));
-  assert.match(out.stderr, new RegExp(`${engineTimeoutMs / 1000} s`));
+test('AC-e07s02-15 the timeout line names the limit and the setting that sets it', () => {
+  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(900, null));
+  assert.match(out.stderr, /past the 900 s limit/);
+  assert.match(out.stderr, /budget\.stop_hook_timeout_seconds in weftwork\.yaml sets it/);
+  assert.match(out.stderr, /raise budget\.stop_hook_timeout_seconds/);
+});
+
+test('AC-e07s02-15 a limit cut by a short entry timeout names the entry and the repair', () => {
+  const out = hookFor(answer('failed', { reason: 'timeout' }), tokens, commandLimit(1800, 660));
+  assert.match(out.stderr, /past the 600 s limit/);
+  assert.match(out.stderr, /has timeout 660 s, lower than the 1860 s that budget\.stop_hook_timeout_seconds \(1800 s\) needs/);
+  assert.match(out.stderr, /weftwork update, or weftwork claude-install/);
 });
 
 test('AC-e07s02-15 the no-ledger line says the passing run could not be recorded', () => {

@@ -17,11 +17,18 @@
 // "$CLAUDE_PROJECT_DIR/..." is read with the project folder put in. The
 // guard's half of the check is claude-live-guard.ts.
 //
+// The Stop entry's timeout must fit the command limit the setting files set
+// (`budget.stop_hook_timeout_seconds`). One that is too short, as an older weftwork
+// wrote it (660 s), still blocks, since the hook fits its limit under it, but
+// the limit drops: the report warns and names the command that repairs it. A
+// setting that cannot be used makes the hook allow every stop: not seen.
+//
 // disableAllHooks takes the value left after precedence: local, then project,
 // then user settings (Claude Code docs, "Disable or remove hooks", read
 // 2026-11-12). Managed settings and the --settings flag sit above all three
 // and cannot be read from here, so the notes say so.
 import { join } from 'node:path';
+import { hostTimeoutFor } from './claude-hook.ts';
 import {
   isAsInstalled,
   isEngineFile,
@@ -29,11 +36,14 @@ import {
   parseSettings,
   parseStopHook,
   projectDirVar,
+  shellQuote,
   stopListOf,
   weftworkOnPath,
   type StopHookEntry,
 } from './claude-install.ts';
 import type { LastCall, LastCallRead } from './last-call.ts';
+import { minStopHookSeconds, stopHookKey } from '../engine/budget.ts';
+import { isRecord } from '../shared/json.ts';
 
 /** What reading one settings file gave: its text (null for no file) and when
  * it last changed, or the error. */
@@ -52,6 +62,9 @@ export type LiveInput = {
   exists: (path: string) => boolean;
   lastCall: LastCallRead;
   now: Date;
+  /** The Stop hook's command limit from the setting files (stopHookSecondsIn),
+   * or why they cannot be used. */
+  stopLimit: { ok: true; seconds: number } | { ok: false; error: string };
 };
 
 /** How to install weftwork, for a report that finds it missing. */
@@ -59,15 +72,17 @@ export const installHint = 'install it in this clone with npx weftwork install, 
 
 export type LiveAnswer = 'live' | 'not-seen' | 'not-registered';
 /** The one step that can change the answer (review round 5). */
-export type NextStep = 'run-install' | 'fix-settings' | 'remove-copy' | 'turn-hooks-on' | 'stop-once';
-export type LiveReport = { answer: LiveAnswer; reason: string; next: NextStep | null; notes: string[] };
-/** An answer before its notes are added. */
-type Verdict = Omit<LiveReport, 'notes'>;
+export type NextStep = 'run-install' | 'fix-settings' | 'fix-setting' | 'remove-copy' | 'turn-hooks-on' | 'stop-once';
+/** `warnings`: what holds the hook back without stopping it blocking, each
+ * with the step that fixes it. */
+export type LiveReport = { answer: LiveAnswer; reason: string; next: NextStep | null; warnings: string[]; notes: string[] };
+/** An answer before its warnings and notes are added. */
+type Verdict = Omit<LiveReport, 'notes' | 'warnings'>;
 
-/** A weftwork entry: the file it is in, whether it is exactly what the install
- * writes, the adapter it runs with $CLAUDE_PROJECT_DIR resolved, and whether
- * that adapter exists. */
-type Entry = StopHookEntry & { file: string; asInstalled: boolean; runs: string; present: boolean };
+/** A weftwork entry: the file it is in, whether it is what the install writes
+ * (with any timeout the hook can fit a limit under), its timeout, the adapter
+ * it runs with $CLAUDE_PROJECT_DIR resolved, and whether that adapter exists. */
+type Entry = StopHookEntry & { file: string; asInstalled: boolean; timeout: number; runs: string; present: boolean };
 type Registered = { ok: true; entries: Entry[]; others: number } | { ok: false; reason: string };
 type Copies = { ok: true; entries: Entry[] } | { ok: false; reason: string };
 
@@ -119,7 +134,10 @@ function weftworkEntries(source: SettingsSource, input: LiveInput): Registered {
     const ours = parseStopHook(hook);
     if (ours === null) return [];
     const runs = resolvedAdapter(ours.cliPath, input.projectDir);
-    return [{ ...ours, file: source.name, asInstalled: isAsInstalled(hook, ours), runs, present: input.exists(runs) }];
+    // The lowest timeout the install writes is the one for the lowest limit.
+    const asInstalled = isAsInstalled(hook, ours, hostTimeoutFor(minStopHookSeconds));
+    const timeout = isRecord(hook) && typeof hook.timeout === 'number' ? hook.timeout : 0;
+    return [{ ...ours, file: source.name, asInstalled, timeout, runs, present: input.exists(runs) }];
   });
   return { ok: true, entries, others: hooks.length - entries.length };
 }
@@ -247,7 +265,20 @@ export function shown(text: string): string {
  * an entry in the settings now is `live`. */
 export function liveReport(input: LiveInput): LiveReport {
   const report = rawReport(input);
-  return { ...report, reason: shown(report.reason) };
+  return { ...report, reason: shown(report.reason), warnings: report.warnings.map(shown) };
+}
+
+/** A warning for each project entry whose timeout is below what the setting
+ * needs: the hook still blocks, but stops the command sooner. */
+function timeoutWarnings(entries: Entry[], input: LiveInput): string[] {
+  if (!input.stopLimit.ok) return [];
+  const setting = input.stopLimit.seconds;
+  const needed = hostTimeoutFor(setting);
+  return entries.filter((entry) => entry.asInstalled && entry.timeout < needed).map((entry) =>
+    `The weftwork Stop hook entry in ${entry.file} has timeout ${entry.timeout} s, lower than the ${needed} s ` +
+    `that budget.${stopHookKey} (${setting} s) needs, so the hook stops '${entry.command}' after ` +
+    `${entry.timeout - (needed - setting)} s. Repair it here: weftwork update --yes, or ` +
+    `weftwork claude-install -- ${shellQuote(entry.command)}`);
 }
 
 /** Why the project has no usable weftwork entry, or null when it has one whose
@@ -271,14 +302,15 @@ function whyNotRegistered(entries: Entry[], others: number, file: string): strin
 function rawReport(input: LiveInput): LiveReport {
   const found = weftworkEntries(input.project, input);
   if (!found.ok) {
-    return { answer: 'not-registered', reason: found.reason, next: 'fix-settings', notes: [...standingNotes] };
+    return { answer: 'not-registered', reason: found.reason, next: 'fix-settings', warnings: [], notes: [...standingNotes] };
   }
   const notes = notesFor(found.entries);
+  const warnings = timeoutWarnings(found.entries, input);
   const missing = whyNotRegistered(found.entries, found.others, input.project.name);
   if (missing !== null) {
-    return { answer: 'not-registered', reason: missing, next: 'run-install', notes };
+    return { answer: 'not-registered', reason: missing, next: 'run-install', warnings, notes };
   }
-  return { ...answerWhenRegistered(found.entries, input), notes };
+  return { ...answerWhenRegistered(found.entries, input), warnings, notes };
 }
 
 /** The answer for a registered hook whose adapter exists: hooks must be on,
@@ -287,6 +319,9 @@ function answerWhenRegistered(entries: Entry[], input: LiveInput): Verdict {
   const off = hooksOff([input.local, input.project, input.user]);
   if (off !== null) {
     return off;
+  }
+  if (!input.stopLimit.ok) {
+    return notSeen(`a setting file cannot be used, so the hook runs nothing and allows every stop as not done: ${input.stopLimit.error}`, 'fix-setting');
   }
   const copies = copiesIn([input.local, input.user], input);
   if (!copies.ok) {

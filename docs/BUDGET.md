@@ -3,7 +3,8 @@
 <!-- story: e09s01, e09s02, e09s03, e09s04 -->
 
 The engine has three stop rules and a handover reserve. You set them in a
-plain YAML file.
+plain YAML file, with the time limit of the Claude Code Stop hook's command
+(The Stop hook's time limit, below).
 
 | Key | What it limits | Answer when reached | Range | Built-in |
 | --- | --- | --- | --- | --- |
@@ -11,6 +12,7 @@ plain YAML file.
 | `stall_after` | Failed runs in a row on the same tree, with the same reason and exit code | `stalled` (exit 4) | 2 to 1000 | 3 |
 | `max_runs` | Runs of any command since the last `done` (the loop ceiling) | `exhausted` (exit 5) | 1 to 1000 | off |
 | `reserve_runs` | Runs left under `max_runs` when the agent is told to write the handoff | `failed` (exit 1) with a `detail` | 0 to 1000 | 1 when `max_runs` is set |
+| `stop_hook_timeout_seconds` | Seconds the Claude Code Stop hook lets the declared command run | `failed` (exit 2 on the hook), reason `timeout` | 60 to 86400 | 1800 |
 
 The file keys are snake_case, as in every other setting. The engine's JSON
 request and its `budget` answer name the same limits in camelCase:
@@ -34,6 +36,7 @@ budget:
   stall_after: 2
   max_runs: 40
   reserve_runs: 2
+  stop_hook_timeout_seconds: 2400
 ```
 
 The engine ignores other top-level keys here. The `review` key sets the
@@ -89,8 +92,8 @@ The engine refuses a file that:
 - has a `budget` that is not a plain mapping (an empty `budget:`, a
   `!!set` and an `!!omap` too)
 - has a key under `budget` other than `max_failures`, `stall_after`,
-  `max_runs` and `reserve_runs` (a long key is cut to 200 characters in the
-  error); a camelCase key from before 0.2.0, such as `maxRuns`, is refused
+  `max_runs`, `reserve_runs` and `stop_hook_timeout_seconds` (a long key is
+  cut to 200 characters in the error); a camelCase key from before 0.2.0, such as `maxRuns`, is refused
   with `budget.maxRuns was renamed to budget.max_runs; rename the key`
 - has a value out of its range, or a value that is not an integer
   (an untagged `"2"` and `2.5` are refused; a plain YAML 1.2 number that is whole,
@@ -208,6 +211,48 @@ is `failed`, not a new state, and it writes no state line.
   (`max_failures`) and the stall rule still end the loop with no warning.
 - At the ceiling the answer is `exhausted`, as before. The engine does not
   check that the agent wrote the handoff.
+
+## The Stop hook's time limit
+
+The Claude Code Stop hook runs the declared command for at most
+`stop_hook_timeout_seconds`, 1800 s (30 minutes) when no file sets it.
+Before 0.7.0 the limit was a fixed 600 s, which a long check such as
+`make lint && make test` on a shared machine could not meet: the hook then
+answered `not done (failed, timeout)` at every stop and never recorded a
+pass to reuse. To change it, the owner sets the key in `weftwork.yaml` (or
+in the user file) and writes the new timeout into the hook entry:
+
+```bash
+weftwork update --yes      # or: weftwork claude-install -- '<declared command>'
+```
+
+How it fits the host's timeout:
+
+- Claude Code cancels a hook that runs past the entry's `timeout` and lets
+  the stop go ahead with no decision (hooks docs, read 2026-11-26). The
+  install therefore writes `timeout` as the limit plus 60 s (1860 for the
+  default), as it wrote 660 for the old 600 s. The docs set no upper bound
+  on a command hook's `timeout`; the 86400 s cap here only keeps the value
+  sane.
+- The hook stops waiting by itself 15 s before the host's timeout, so a hang
+  it cannot abort still ends in its own block.
+- An entry whose `timeout` is too short for the setting, such as the 660 an
+  older weftwork wrote, still blocks: the hook reads the entry from
+  `.claude/settings.json` and `.claude/settings.local.json` and lowers the
+  limit to fit it (660 gives 600 s, as before). The timeout message then
+  names the entry and the repair. `weftwork claude-install` writes the full
+  entry, `weftwork update` raises only the timeout of each weftwork Stop
+  entry that is too short, and `weftwork claude-live` warns about such an
+  entry, with both commands.
+- The agent cannot raise its own limit. The hook takes no request from it,
+  and the guard protects both setting files and `.claude/settings.json`
+  (`docs/GUARD.md`). A `timeoutMs` in a request to the engine CLI is the
+  CLI's own limit and does not change the hook's.
+- A command that runs past the limit is killed with its process group, and
+  the hook blocks: `The command ran past the 1800 s limit.
+  budget.stop_hook_timeout_seconds in weftwork.yaml sets it`. The setting
+  changes how long the command may run, not what counts as done: the done
+  gate and the reused pass are as before.
 
 ## The budget report
 
@@ -327,5 +372,8 @@ alone does not run the command again.
   run before any of them is counted; each then answers `exhausted`. The
   Claude Code hook runs one call at a time, so it is not affected. On the
   CLI the agent picks the command anyway (T1).
-- There is no `timeoutMs` key. The hook sets its timeout to fit the
-  host's hook deadline.
+- There is no `timeoutMs` key. The engine CLI's limit is the request's
+  `timeoutMs`; the Stop hook's is `stop_hook_timeout_seconds` (The Stop
+  hook's time limit). A file can only lower the limit of a hook entry
+  whose `timeout` is shorter, never make the host wait longer than the
+  entry says.

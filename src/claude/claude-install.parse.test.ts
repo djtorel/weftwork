@@ -6,6 +6,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installStopHook, parseStopHookCommand, shellQuote, stopHookCommand } from './claude-install.ts';
+import { hostTimeoutFor } from './claude-hook.ts';
+import { defaultStopHookSeconds } from '../engine/budget.ts';
+
+/** The timeout the install writes when no setting file sets the limit. */
+const testTimeout = hostTimeoutFor(defaultStopHookSeconds);
 
 const cli = '/opt/weft work/src/claude-hook-cli.ts';
 
@@ -47,7 +52,7 @@ test('shell text before the entry is not weftwork\'s (review round 4, B-2)', () 
 
 test('the install keeps an owner hook that runs the entry after its own shell text (review round 4, B-2)', () => {
   const owner = { type: 'command', command: `echo x; ${stopHookCommand(cli, 'npm test')}` };
-  const result = installStopHook(JSON.stringify({ hooks: { Stop: [{ hooks: [owner] }] } }), cli, 'npm test');
+  const result = installStopHook(JSON.stringify({ hooks: { Stop: [{ hooks: [owner] }] } }), cli, 'npm test', testTimeout);
   assert.ok(result.ok && result.action === 'added', JSON.stringify(result));
   assert.ok(result.text.includes(JSON.stringify(owner.command)), 'the owner hook is kept');
 });

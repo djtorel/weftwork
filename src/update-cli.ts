@@ -20,7 +20,9 @@ const usage = `Usage: weftwork update [path] [options]
 Bring the weftwork skills of a project to this version of weftwork. A skill
 file you never changed is replaced; one you changed is kept; a skill this
 version adds is created; a folder of an old skill name is deleted when you
-never changed it. AGENTS.md and the backlog are yours and never touched.
+never changed it. A weftwork Stop hook entry in .claude/settings.json whose
+timeout is too short for budget.stop_hook_timeout_seconds is raised to fit it.
+AGENTS.md and the backlog are yours and never touched.
 Run weftwork upgrade first to get the latest version.
 
   path         The project folder. Default: the current folder.
