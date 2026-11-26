@@ -20,9 +20,10 @@ const cliPath = join(import.meta.dirname, '..', 'claude-hook-cli.ts');
 /** Run the CLI from a directory that is not the repository, so only
  * CLAUDE_PROJECT_DIR (`project`, or unset when null) can say where the
  * command runs. */
-function runHook(input: string, args: string[], project: string | null) {
-  // An empty XDG_CONFIG_HOME: never the real user budget file (e09s01, R6).
-  const env: NodeJS.ProcessEnv = { ...process.env, XDG_CONFIG_HOME: makeTempDir() };
+function runHook(input: string, args: string[], project: string | null, configDir = makeTempDir()) {
+  // An empty XDG_CONFIG_HOME and CLAUDE_CONFIG_DIR: never the real user budget
+  // file (e09s01, R6), nor the real Claude Code user settings.
+  const env: NodeJS.ProcessEnv = { ...process.env, XDG_CONFIG_HOME: makeTempDir(), CLAUDE_CONFIG_DIR: configDir };
   delete env.CLAUDE_PROJECT_DIR;
   if (project !== null) {
     env.CLAUDE_PROJECT_DIR = project;
@@ -244,4 +245,37 @@ test('a bad budget.stop_hook_timeout_seconds runs nothing and allows the stop as
   assert.match(out.stdout, /not done \(blocked\)/);
   assert.match(out.stdout, /budget\.stop_hook_timeout_seconds must be an integer from 60 to 86400/);
   assert.equal(existsSync(join(repo, 'ran.txt')), false);
+});
+
+/** Settings text with one weftwork Stop entry for `command` at `timeout`. */
+function stopSettings(command: string, timeout: number): string {
+  const entry = { type: 'command', command: stopHookCommand(weftworkOnPath, command), timeout };
+  return JSON.stringify({ hooks: { Stop: [{ hooks: [entry] }] } });
+}
+
+test('a short entry in settings.local.json alone lowers the limit, and the block names that file', () => {
+  // Written after the commit: a global gitignore often skips this file.
+  const repo = makeTestRepo({ '.claude/settings.json': '{}' });
+  writeFileSync(join(repo, '.claude', 'settings.local.json'), stopSettings('sleep 5', 61));
+  const out = runHook(stopInput(repo), ['--', 'sleep 5'], repo);
+  assert.equal(out.status, 2, out.stderr);
+  assert.match(out.stderr, /past the 1 s limit\. The Stop hook entry in \.claude\/settings\.local\.json has timeout 61 s/);
+});
+
+test('a short entry in the user settings alone lowers the limit, and the block names that file', () => {
+  const configDir = makeTempDir();
+  writeFileSync(join(configDir, 'settings.json'), stopSettings('sleep 5', 62));
+  const repo = makeTestRepo();
+  const out = runHook(stopInput(repo), ['--', 'sleep 5'], repo, configDir);
+  assert.equal(out.status, 2, out.stderr);
+  assert.match(out.stderr, /past the 2 s limit\. The Stop hook entry in .*settings\.json has timeout 62 s/);
+  assert.ok(out.stderr.includes(join(configDir, 'settings.json')), out.stderr);
+});
+
+test('a lower entry elsewhere wins over a fitting one in the project settings', () => {
+  const repo = makeTestRepo({ '.claude/settings.json': stopSettings('sleep 5', 1860) });
+  writeFileSync(join(repo, '.claude', 'settings.local.json'), stopSettings('sleep 5', 61));
+  const out = runHook(stopInput(repo), ['--', 'sleep 5'], repo);
+  assert.equal(out.status, 2, out.stderr);
+  assert.match(out.stderr, /past the 1 s limit/);
 });
