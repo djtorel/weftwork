@@ -18,6 +18,7 @@ import {
   stuckGitEnv,
 } from './hook-cli-test-helpers.ts';
 import { cleanupTempDirs, makeTestRepo, waitForFile, waitUntilGone } from '../test-support/test-helpers.ts';
+import { lastCallPath } from './last-call.ts';
 
 after(cleanupTempDirs);
 
@@ -42,7 +43,10 @@ test('AC-e07s02-09 SIGTERM while the CLI waits for input blocks at once', async 
   const repo = makeTestRepo();
   const { child, result } = startCli(['--', 'touch ran.txt'], cliEnv(repo), 15000);
   child.stdin.write('{"hook_event_name":"Stop"');
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // let the CLI start
+  // Let the CLI start. A fixed wait is a race on a loaded machine; the call
+  // record is written after the handlers are in and before the input is read.
+  const record = await lastCallPath(repo);
+  assert.ok(record !== null && (await waitForFile(record, 15000)), 'the CLI reached its input');
   const sent = Date.now();
   child.kill('SIGTERM');
   const out = await result;
@@ -75,7 +79,8 @@ test('AC-e07s02-12 a hook whose work cannot be aborted blocks at its own deadlin
 });
 
 test('AC-e07s02-12 a command that outlives the deadline is killed, and the hook blocks', async () => {
-  const env = { ...cliEnv(makeTestRepo()), WEFTWORK_HOOK_DEADLINE_MS: '1500' };
+  // Long enough for the CLI to reach the command on a loaded machine.
+  const env = { ...cliEnv(makeTestRepo()), WEFTWORK_HOOK_DEADLINE_MS: '5000' };
   const { result, pid } = await startSleeper(env);
   try {
     const out = await result;
