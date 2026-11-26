@@ -7,7 +7,6 @@
 // The settings file is untrusted input: it may be anything, and the agent can
 // edit it. Text of the wrong shape is refused, never repaired or overwritten.
 import { isDeepStrictEqual } from 'node:util';
-import { hookTimeoutSeconds } from './claude-hook.ts';
 import { messageOf, type Failure } from '../shared/errors.ts';
 import { isRecord } from '../shared/json.ts';
 import { resolved } from '../install/launcher.ts';
@@ -138,18 +137,22 @@ export function parseStopHook(hook: unknown): StopHookEntry | null {
     : null;
 }
 
-/** The whole hook entry the install writes for `cliPath` and `command`. */
-export function installedEntry(cliPath: string, command: string): object {
-  return { type: 'command', command: stopHookCommand(cliPath, command), timeout: hookTimeoutSeconds };
+/** The whole hook entry the install writes for `cliPath` and `command`, with
+ * the host `timeout` in seconds (hostTimeoutFor in claude-hook.ts). */
+export function installedEntry(cliPath: string, command: string, timeout: number): object {
+  return { type: 'command', command: stopHookCommand(cliPath, command), timeout };
 }
 
-/** True when `hook`, read back as `entry`, is exactly what the install writes.
- * A hand edit can make an entry that runs but cannot block a stop: `async`,
- * an `if`, or a timeout the host cuts short (review B-F1). */
-export function isAsInstalled(hook: unknown, entry: StopHookEntry): boolean {
-  if (isDeepStrictEqual(hook, installedEntry(entry.cliPath, entry.command))) return true;
-  const legacy = { type: 'command', command: legacyStopPrefix + shellQuote(entry.command), timeout: hookTimeoutSeconds };
-  return entry.cliPath === weftworkOnPath && isDeepStrictEqual(hook, legacy);
+/** True when `hook`, read back as `entry`, is what the install writes with a
+ * timeout of `timeout` seconds or more: a longer one still lets the hook
+ * answer first. A hand edit can make an entry that runs but cannot block a
+ * stop: `async`, an `if`, or a timeout the host cuts short (review B-F1). */
+export function isAsInstalled(hook: unknown, entry: StopHookEntry, timeout: number): boolean {
+  if (!isRecord(hook) || typeof hook.timeout !== 'number' || hook.timeout < timeout) return false;
+  const read = { ...hook, timeout };
+  if (isDeepStrictEqual(read, installedEntry(entry.cliPath, entry.command, timeout))) return true;
+  const legacy = { type: 'command', command: legacyStopPrefix + shellQuote(entry.command), timeout };
+  return entry.cliPath === weftworkOnPath && isDeepStrictEqual(read, legacy);
 }
 
 /** True when `hook` is a weftwork entry for the adapter at `cliPath`. An entry
@@ -269,10 +272,12 @@ export function keptAdapter(found: (string | undefined)[], cliPath: string, name
   return found.find((path) => path !== undefined && isInProjectDir(path) && isEngineFile(path, name)) ?? cliPath;
 }
 
-/** The settings text with one weftwork Stop entry for `command`. `text` is the
- * file's text, or null when there is no file. An existing weftwork entry is
- * replaced in place and any more are removed. Every other key and hook stays. */
-export function installStopHook(text: string | null, cliPath: string, command: string): InstallResult {
+/** The settings text with one weftwork Stop entry for `command`, with the
+ * host `timeout` in seconds. `text` is the file's text, or null when there is
+ * no file. An existing weftwork entry is replaced in place, so one with an
+ * older timeout is repaired, and any more are removed. Every other key and
+ * hook stays. */
+export function installStopHook(text: string | null, cliPath: string, command: string, timeout: number): InstallResult {
   if (command.trim() === '') {
     return { ok: false, error: 'the declared command is blank' };
   }
@@ -288,7 +293,7 @@ export function installStopHook(text: string | null, cliPath: string, command: s
   const kept = keptAdapter(found, cliPath, 'claude-hook-cli');
   // cliPath, not kept, decides which entries are replaced: an install from
   // PATH that keeps a "$CLAUDE_PROJECT_DIR" entry still drops a PATH one.
-  const install = { cliPath, entry: installedEntry(kept, command) };
+  const install = { cliPath, entry: installedEntry(kept, command, timeout) };
   const out = renderSettings(parsed, editStopGroups(stop.groups, install));
   const changed = out !== text;
   return { ok: true, text: out, changed, action: actionOf(changed, stop.groups, install) };

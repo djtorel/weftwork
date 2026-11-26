@@ -17,6 +17,7 @@ import { liveReport, type LiveAnswer, type LiveReport, type NextStep, type Setti
 import { isGitRoot, readSettings, userSettingsPath } from './claude/claude-settings-file.ts';
 import { isMissing, messageOf } from './shared/errors.ts';
 import { lastCallPath, readLastCall, type LastCallRead } from './claude/last-call.ts';
+import { stopHookSecondsIn } from './engine/budget.ts';
 import { behind, planUpdate } from './setup/update.ts';
 
 const usage = 'usage: weftwork claude-live (no arguments; run it in the project root)';
@@ -36,6 +37,9 @@ const nextStep: Record<NextStep, string> = {
   'remove-copy':
     'Next: remove the changed copy in the file named above, or make it match the entry\n' +
     'in .claude/settings.json. The install edits only .claude/settings.json.\n',
+  'fix-setting':
+    'Next: fix the setting file named above by hand (docs/BUDGET.md). Only the owner can:\n' +
+    'the guard protects it.\n',
   'turn-hooks-on': 'Next: set disableAllHooks to false, or remove it, in the file named above.\n',
   'stop-once':
     'Next: start Claude Code in this directory, accept the workspace trust dialog if it\n' +
@@ -110,6 +114,7 @@ async function reportFor(dir: string): Promise<[LiveReport, GuardReport]> {
     exists,
     lastCall: await lastCallOf(dir),
     now: new Date(),
+    stopLimit: stopHookSecondsIn(dir, process.env),
   });
   return [stop, guard];
 }
@@ -119,13 +124,15 @@ async function reportFor(dir: string): Promise<[LiveReport, GuardReport]> {
  * behind. */
 function skillsNote(dir: string): string[] {
   const planned = planUpdate(dir, join(import.meta.dirname, '..'));
-  const count = planned.ok ? behind(planned.plan) : 0;
+  // The Stop hook's timeout has its own warning (claude-live.ts).
+  const count = planned.ok ? behind({ changes: planned.plan.changes.filter((change) => change.path.startsWith('.claude/skills/')) }) : 0;
   return count === 0 ? [] : [`The skills in .claude/skills are behind this weftwork (${count} change${count === 1 ? '' : 's'}): run weftwork update.`];
 }
 
 function print(report: LiveReport, guard: GuardReport, dir: string): void {
   const notes = [...report.notes, ...skillsNote(dir)].map((note) => `- ${note}\n`).join('');
-  const lines = `weftwork live check: ${labels[report.answer]}\n${report.reason}\n\n`;
+  const warnings = report.warnings.map((warning) => `Warning: ${warning}\n`).join('');
+  const lines = `weftwork live check: ${labels[report.answer]}\n${report.reason}\n${warnings}\n`;
   const next = report.next === null ? '' : nextStep[report.next];
   const guardLines = `\nguard: ${guardLabels[guard.answer]}\n${guard.reason}\n${guard.next === null ? '' : guardNext[guard.next]}`;
   process.stdout.write(`${lines}${next}${guardLines}\nNotes:\n${notes}`);

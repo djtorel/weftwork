@@ -29,8 +29,22 @@ const fileKeys: Record<string, LimitKey> = { stall_after: 'stallAfter', max_fail
  * it, so the agent cannot turn the warning off. 0 turns it off. */
 const reserveKey = 'reserve_runs';
 
+/** How long the Claude Code Stop hook lets the declared command run, in
+ * seconds. A file-only key, like the reserve: the agent writes no request to
+ * the hook, and the guard protects both files, so it cannot raise its own
+ * limit. The engine CLI ignores it; its request sets `timeoutMs`. */
+export const stopHookKey = 'stop_hook_timeout_seconds';
+
+/** The Stop hook's command limit when no file sets one. Claude Code sets no
+ * upper bound on a command hook's `timeout` (hooks docs, read 2026-11-26). */
+export const defaultStopHookSeconds = 1800;
+
+/** The range a file may set: at least a minute, at most a day. */
+export const minStopHookSeconds = 60;
+export const maxStopHookSeconds = 86400;
+
 /** Every key the `budget` mapping of a setting file may hold. */
-const budgetKeys: readonly string[] = [...Object.keys(fileKeys), reserveKey];
+const budgetKeys: readonly string[] = [...Object.keys(fileKeys), reserveKey, stopHookKey];
 
 /** The keys before 0.2.0, refused with the name that replaced each. */
 const renamedKeys: Record<string, string> = { stallAfter: 'stall_after', maxFailures: 'max_failures', maxRuns: 'max_runs', reserveRuns: 'reserve_runs' };
@@ -45,7 +59,9 @@ export type BudgetSources = {
   request: Partial<Limits>;
 };
 
-export type LimitsResult = { ok: true; limits: Limits } | { ok: false; error: string };
+/** The limits, and the Stop hook's command limit, which is not an engine
+ * limit: only the hook's run uses it (applyBudget). */
+export type LimitsResult = { ok: true; limits: Limits; stopHookSeconds: number } | { ok: false; error: string };
 
 const builtIn: Limits = { maxFailures: defaultMaxFailures, stallAfter: defaultStallAfter };
 
@@ -56,7 +72,7 @@ function lowered(limit: number | undefined, asked: number | undefined): number |
   return asked !== undefined && (limit === undefined || asked < limit) ? asked : limit;
 }
 
-type BudgetCheck = { ok: true; budget: Partial<Limits> } | Failure;
+type BudgetCheck = { ok: true; budget: Partial<Limits>; stopHookSeconds?: number } | Failure;
 
 const maxEchoLength = 200;
 
@@ -150,7 +166,12 @@ function checkLimits(budget: Record<string, unknown>): BudgetCheck {
     }
     limits.reserveRuns = reserve;
   }
-  return { ok: true, budget: limits };
+  const seconds = budget[stopHookKey];
+  if (seconds === undefined) return { ok: true, budget: limits };
+  if (!isInteger(seconds) || seconds < minStopHookSeconds || seconds > maxStopHookSeconds) {
+    return { ok: false, error: `budget.${stopHookKey} must be an integer from ${minStopHookSeconds} to ${maxStopHookSeconds}` };
+  }
+  return { ok: true, budget: limits, stopHookSeconds: seconds };
 }
 
 /** The checked `budget` of one file; every error names the file. */
@@ -164,17 +185,19 @@ function readBudget(file: SettingFile): BudgetCheck {
 /** The limits for one run, or the first problem with a setting file. */
 export function resolveLimits(sources: BudgetSources): LimitsResult {
   const limits: Limits = { ...builtIn };
+  let stopHookSeconds = defaultStopHookSeconds;
   for (const file of [sources.user, sources.repo]) {
     if (file === null) continue;
     const parsed = readBudget(file);
     if (!parsed.ok) return parsed;
     Object.assign(limits, parsed.budget);
+    stopHookSeconds = parsed.stopHookSeconds ?? stopHookSeconds;
   }
   for (const key of limitKeys) {
     const value = lowered(limits[key], sources.request[key]);
     if (value !== undefined) limits[key] = value;
   }
-  return { ok: true, limits };
+  return { ok: true, limits, stopHookSeconds };
 }
 
 /** Neither file may be larger than this. */
@@ -229,5 +252,20 @@ export async function applyBudget(request: GateRequest, env: NodeJS.ProcessEnv):
   // Only the files set reserveRuns. parseRequest already ignores it, so this
   // drop guards library callers that build a GateRequest themselves.
   const { reserveRuns: _fromRequest, ...rest } = request;
-  return { ok: true, request: { ...rest, ...resolved.limits } };
+  // The Stop hook's run takes its command limit from the files; a run of the
+  // engine CLI keeps the request's timeoutMs.
+  const timeout = request.stopHook === undefined ? {} : { timeoutMs: resolved.stopHookSeconds * 1000 };
+  return { ok: true, request: { ...rest, ...resolved.limits, ...timeout } };
+}
+
+/** The Stop hook's command limit for the repository whose root is `root`,
+ * from both setting files as the hook reads them. The install, the update
+ * and the live check use it to write and check the hook entry's timeout. */
+export function stopHookSecondsIn(root: string, env: NodeJS.ProcessEnv): { ok: true; seconds: number } | Failure {
+  const user = readSettingFile(userSettingPath(env), true);
+  if (!user.ok) return user;
+  const repo = readSettingFile(join(root, 'weftwork.yaml'), false);
+  if (!repo.ok) return repo;
+  const resolved = resolveLimits({ user: user.file, repo: repo.file, request: {} });
+  return resolved.ok ? { ok: true, seconds: resolved.stopHookSeconds } : resolved;
 }

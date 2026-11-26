@@ -10,7 +10,8 @@ import { join } from 'node:path';
 import { oldSkillFolders, skillTexts } from './setup.ts';
 import { shippedSkillTexts } from './skill-hashes.ts';
 import { applyUpdate, behind, planUpdate, sha256, type Shipped, type UpdatePlan } from './update.ts';
-import { cleanupTempDirs, makeTestRepo } from '../test-support/test-helpers.ts';
+import { cleanupTempDirs, makeTempDir, makeTestRepo } from '../test-support/test-helpers.ts';
+import { stopHookCommand, weftworkOnPath } from '../claude/claude-install.ts';
 
 after(cleanupTempDirs);
 
@@ -186,4 +187,48 @@ test('a skills folder that is a symlink is refused, so an update never writes ou
   const planned = planUpdate(dir, engineDir);
   assert.equal(planned.ok, false);
   assert.match(planned.ok ? '' : planned.error, /symlink/);
+});
+
+/** Project settings with weftwork's Stop entry at `timeout` and another hook. */
+function hookSettings(timeout: number): string {
+  const stop = { type: 'command', command: stopHookCommand(weftworkOnPath, 'npm test'), timeout };
+  return `${JSON.stringify({ model: 'x', hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo hi' }, stop] }] } }, null, 2)}\n`;
+}
+
+const noUser = (): NodeJS.ProcessEnv => ({ XDG_CONFIG_HOME: makeTempDir() });
+
+test('update raises a Stop entry with the old 660 s timeout to what the setting needs, and keeps the rest', () => {
+  const dir = setUp({ '.claude/settings.json': hookSettings(660) });
+  const planned = planUpdate(dir, engineDir, shippedSkillTexts, noUser());
+  assert.ok(planned.ok, planned.ok ? '' : planned.error);
+  assert.equal(action(planned.plan, '.claude/settings.json'), 'update');
+  assert.equal(behind(planned.plan), 1);
+  const applied = applyUpdate(dir, planned.plan);
+  assert.ok(applied.ok);
+  assert.deepEqual(applied.written, ['.claude/settings.json']);
+  assert.equal(readFileSync(join(dir, '.claude/settings.json'), 'utf8'), hookSettings(1860));
+});
+
+test('update writes the timeout budget.stop_hook_timeout_seconds asks for', () => {
+  const dir = setUp({ '.claude/settings.json': hookSettings(660), 'weftwork.yaml': '---\nbudget:\n  stop_hook_timeout_seconds: 3000\n' });
+  const planned = planUpdate(dir, engineDir, shippedSkillTexts, noUser());
+  assert.ok(planned.ok, planned.ok ? '' : planned.error);
+  assert.ok(applyUpdate(dir, planned.plan).ok);
+  assert.equal(readFileSync(join(dir, '.claude/settings.json'), 'utf8'), hookSettings(3060));
+});
+
+test('update leaves a Stop entry whose timeout already fits, and settings with no entry', () => {
+  for (const text of [hookSettings(1860), hookSettings(4000), '{"hooks":{}}\n', '{"hooks":']) {
+    const dir = setUp({ '.claude/settings.json': text });
+    const planned = planUpdate(dir, engineDir, shippedSkillTexts, noUser());
+    assert.ok(planned.ok, planned.ok ? '' : planned.error);
+    assert.equal(action(planned.plan, '.claude/settings.json'), undefined, text);
+  }
+});
+
+test('update refuses a setting file it cannot use: the timeout it needs is not known', () => {
+  const dir = setUp({ '.claude/settings.json': hookSettings(660), 'weftwork.yaml': '---\nbudget:\n  stop_hook_timeout_seconds: big\n' });
+  const planned = planUpdate(dir, engineDir, shippedSkillTexts, noUser());
+  assert.equal(planned.ok, false);
+  assert.match(planned.ok ? '' : planned.error, /budget\.stop_hook_timeout_seconds must be an integer/);
 });

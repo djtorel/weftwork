@@ -20,10 +20,11 @@ export type CliResult = {
 };
 
 /** The CLI's environment: only `project` can say where the command runs, and
- * XDG_CONFIG_HOME is an empty directory, so the real user budget file is never
- * read (e09s01, spec R6). */
+ * XDG_CONFIG_HOME and CLAUDE_CONFIG_DIR are empty directories, so neither the
+ * real user budget file (e09s01, spec R6) nor the real Claude Code user
+ * settings, whose Stop entry timeout the hook reads, are read. */
 export function cliEnv(project: string | null): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, XDG_CONFIG_HOME: makeTempDir() };
+  const env: NodeJS.ProcessEnv = { ...process.env, XDG_CONFIG_HOME: makeTempDir(), CLAUDE_CONFIG_DIR: makeTempDir() };
   delete env.CLAUDE_PROJECT_DIR;
   if (project !== null) {
     env.CLAUDE_PROJECT_DIR = project;

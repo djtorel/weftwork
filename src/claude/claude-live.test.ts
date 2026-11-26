@@ -250,3 +250,48 @@ test('exactly 60 s reads as 1 min (review round 3, B-5)', () => {
   const report = liveReport(input({ lastCall: { ok: true, call: { ...call, at: '2026-11-12T11:59:00.000Z' } } }));
   assert.match(report.reason, /\(1 min ago\)/);
 });
+
+test('an entry whose timeout is lower than the setting needs still reads as live, with a warning and the repair', () => {
+  const report = liveReport(input({ stopLimit: { ok: true, seconds: 1800 } }));
+  assert.equal(report.answer, 'live', report.reason);
+  assert.equal(report.warnings.length, 1);
+  const [warning] = report.warnings;
+  assert.match(warning ?? '', /has timeout 660 s, lower than the 1860 s that budget\.stop_hook_timeout_seconds \(1800 s\) needs/);
+  assert.match(warning ?? '', /stops 'npm test' after 600 s/);
+  assert.match(warning ?? '', /Repair it here: weftwork claude-install -- 'npm test', or weftwork update --yes/);
+});
+
+test('a short copy in the local or user file is warned about too, with a repair by hand', () => {
+  for (const key of ['local', 'user'] as const) {
+    const name = key === 'local' ? '.claude/settings.local.json' : '/home/u/.claude/settings.json';
+    const copy = source(name, settings([entry()]));
+    const project = source('.claude/settings.json', settings([{ ...entry(), timeout: 1860 }]));
+    const report = liveReport(input({ project, [key]: copy, stopLimit: { ok: true, seconds: 1800 } }));
+    assert.equal(report.warnings.length, 1, key);
+    assert.match(report.warnings[0] ?? '', new RegExp(`entry in ${name.replaceAll('.', '\\.')} has timeout 660 s`));
+    assert.match(report.warnings[0] ?? '', /Raise it to 1860 in that file by hand/);
+  }
+});
+
+test('an entry whose timeout fits the setting, or is longer, has no warning', () => {
+  assert.deepEqual(liveReport(input()).warnings, []);
+  const project = source('.claude/settings.json', settings([{ ...entry(), timeout: 3600 }]));
+  const report = liveReport(input({ project, stopLimit: { ok: true, seconds: 1800 } }));
+  assert.equal(report.answer, 'live', report.reason);
+  assert.deepEqual(report.warnings, []);
+});
+
+test('an entry with a timeout below the lowest the install writes is changed by hand', () => {
+  const project = source('.claude/settings.json', settings([{ ...entry(), timeout: 100 }]));
+  const report = liveReport(input({ project }));
+  assert.equal(report.answer, 'not-seen');
+  assert.match(report.reason, /changed by hand/);
+});
+
+test('a setting file that cannot be used: not seen, since the hook runs nothing, and the next step fixes the file', () => {
+  const error = '/repo/weftwork.yaml: budget.stop_hook_timeout_seconds must be an integer from 60 to 86400';
+  const report = liveReport(input({ stopLimit: { ok: false, error } }));
+  assert.equal(report.answer, 'not-seen');
+  assert.equal(report.next, 'fix-setting');
+  assert.match(report.reason, /allows every stop as not done: \/repo\/weftwork\.yaml: budget\.stop_hook_timeout_seconds/);
+});

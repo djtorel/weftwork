@@ -14,6 +14,7 @@
 // systemMessage of a done stop. The tokens come from the transcript the host
 // names in `transcript_path`; they are a report and never change the answer.
 import { budgetLine } from '../engine/budget-report.ts';
+import { defaultStopHookSeconds, minStopHookSeconds, stopHookKey } from '../engine/budget.ts';
 import type { Answer } from '../engine/engine.ts';
 import { messageOf } from '../shared/errors.ts';
 import { parseRequest, type GateRequest, type Reason } from '../engine/gate.ts';
@@ -27,38 +28,79 @@ import type { Readable } from 'node:stream';
  * non-blocking error and the stop goes ahead. */
 export const hostBlockExitCode = 2;
 
-/** How long the engine lets the declared command run. It has the same value as
- * `defaultTimeoutMs` in gate.ts on purpose: the hook timeout below is written
- * against this number, so a change to the engine's default must not move it. */
-export const engineTimeoutMs = 600000;
+/** How far the hook entry's `timeout` in the host's settings sits above the
+ * command limit (`budget.stop_hook_timeout_seconds`, budget.ts). A hook that reaches
+ * the host's timeout is cancelled, its output is dropped and the stop goes
+ * ahead. The host's clock starts when the hook starts, but the command limit
+ * starts only when the command is spawned, after Node's start, the input (up
+ * to `stdinDeadlineMs`) and the first fingerprint. So this reserve is not a
+ * promise on its own: the hook deadline (hookDeadlineFor) enforces it. */
+export const hostTimeoutReserveSeconds = 60;
 
-/** The `timeout` for the hook entry in the host's settings, in seconds. A hook
- * that reaches the host's timeout is cancelled, its output is dropped and the
- * stop goes ahead. The host's clock starts when the hook starts, but the
- * engine's 600 s starts only when the command is spawned, after Node's start,
- * the input (up to `stdinDeadlineMs`) and the first fingerprint. So the 60 s
- * above the engine's timeout is not a promise on its own: `hookDeadlineMs`
- * enforces it. e07s03 writes this value into the settings. */
-export const hookTimeoutSeconds = 660;
+/** The `timeout` the install writes into the host's settings for a command
+ * limit of `limitSeconds` (e07s03). */
+export function hostTimeoutFor(limitSeconds: number): number {
+  return limitSeconds + hostTimeoutReserveSeconds;
+}
 
 /** The CLI blocks by itself this long before the host's timeout, so a hang it
  * cannot see (a ledger read stuck on a FIFO, a slow fingerprint) ends in our
  * block, not in the host's silent cut-off. */
 export const hookDeadlineReserveMs = 15000;
 
-/** When the CLI gives up, counted from its own start, as the host counts. */
-export const hookDeadlineMs = hookTimeoutSeconds * 1000 - hookDeadlineReserveMs;
+/** When the CLI gives up under a host timeout of `hostSeconds`, counted from
+ * its own start, as the host counts. */
+export function hookDeadlineFor(hostSeconds: number): number {
+  return hostSeconds * 1000 - hookDeadlineReserveMs;
+}
+
+/** The deadline before the setting is read: the one for the lowest command
+ * limit a file may set, so no host timeout the install writes is shorter. The
+ * CLI moves it once it knows the limit. */
+export const startDeadlineMs = hookDeadlineFor(hostTimeoutFor(minStopHookSeconds));
+
+/** A hook entry's host `timeout` and the settings file it is in. `file` is
+ * null when no entry for the command was found (claude-hook-timeout.ts). */
+export type EntryTimeout = { timeout: number; file: string | null };
+
+/** The timeout assumed when the hook finds no entry of its own: the one every
+ * install before 0.7.0 wrote. An entry the hook cannot read (a hand edit, a
+ * managed or plugin hook) may still have it, so the hook keeps the limit that
+ * fits it rather than run past the host's timeout. */
+export const unknownEntryTimeout = 660;
+
+/** The command limit the hook uses, in seconds, and where it comes from. The
+ * setting asks for `setting`. When the hook entry's own `timeout` in the
+ * host's settings is too short for it, as an older weftwork wrote it (660),
+ * the limit drops to fit the entry, so the hook still answers before the host
+ * cuts it off and lets the stop go ahead. `entry` is set only then. */
+export type CommandLimit = { seconds: number; setting: number; entry: EntryTimeout | null };
+
+/** The command limit for `setting` under the entry `found` (null: none found,
+ * read as `unknownEntryTimeout`). Never below 1 s. */
+export function commandLimit(setting: number, found: EntryTimeout | null): CommandLimit {
+  const entry = found ?? { timeout: unknownEntryTimeout, file: null };
+  if (entry.timeout >= hostTimeoutFor(setting)) return { seconds: setting, setting, entry: null };
+  return { seconds: Math.max(1, entry.timeout - hostTimeoutReserveSeconds), setting, entry };
+}
+
+/** The hook deadline for `limit`, counted from the start: under the host
+ * timeout the install writes for the limit, or under the entry's own when
+ * that is lower. */
+export function limitDeadlineMs(limit: CommandLimit): number {
+  return hookDeadlineFor(Math.min(hostTimeoutFor(limit.seconds), limit.entry?.timeout ?? Infinity));
+}
 
 /** How long a signalled CLI waits for work that cannot be aborted before it
  * leaves with exit 2 anyway. */
 export const signalGraceMs = 2000;
 
-/** The deadline in force: the built-in one, or a shorter one from
+/** The deadline in force: `deadlineMs`, or a shorter one from
  * WEFTWORK_HOOK_DEADLINE_MS (for tests). A longer or unusable value is ignored,
  * so the variable can only make the hook block sooner, never later. */
-export function hookDeadline(env: Record<string, string | undefined>): number {
+export function hookDeadline(env: Record<string, string | undefined>, deadlineMs: number): number {
   const asked = Number(env.WEFTWORK_HOOK_DEADLINE_MS);
-  return Number.isInteger(asked) && asked > 0 && asked < hookDeadlineMs ? asked : hookDeadlineMs;
+  return Number.isInteger(asked) && asked > 0 && asked < deadlineMs ? asked : deadlineMs;
 }
 
 export type HookOutput = { exitCode: number; stdout: string; stderr: string };
@@ -185,7 +227,8 @@ export function hookRequest(args: string[], dir: string, env: NodeJS.ProcessEnv)
   }
   // parseRequest takes the engine CLI's JSON text, so one rule refuses a blank
   // command on both paths and the two cannot drift.
-  const parsed = parseRequest(JSON.stringify({ command, timeoutMs: engineTimeoutMs }), dir);
+  // The setting files set the real limit (applyBudget); this is the default.
+  const parsed = parseRequest(JSON.stringify({ command, timeoutMs: defaultStopHookSeconds * 1000 }), dir);
   // Only the hook sets stopHook: it marks the run's ledger line and lets the
   // engine reuse the hook's own pass on the same tree (reuse.ts).
   return parsed.ok ? { ok: true, request: { ...parsed.request, stopHook: runKey(dir, env) } } : parsed;
@@ -212,47 +255,68 @@ export function settingUnusable(error: string): HookOutput {
 
 const makeItPass = 'Make that command pass before you stop.';
 
+/** What to tell the agent when the command ran past `limit`: the setting
+ * that sets it, or, when the hook entry's timeout cut it, the command that
+ * repairs the entry. Both are the owner's to change: the guard protects the
+ * setting files and the settings. */
+function timeoutLine(limit: CommandLimit): string {
+  const ran = `The command ran past the ${limit.seconds} s limit.`;
+  const needs = `the ${hostTimeoutFor(limit.setting)} s that budget.${stopHookKey} (${limit.setting} s) needs`;
+  if (limit.entry !== null && limit.entry.file === null) {
+    return `${ran} No weftwork Stop hook entry for this command was found in the Claude Code settings, so the ` +
+      `hook keeps the limit that fits an older entry's ${limit.entry.timeout} s timeout, below ${needs}. ` +
+      'Tell the owner to run weftwork claude-install, which writes the entry the setting needs.';
+  }
+  if (limit.entry !== null) {
+    return `${ran} The Stop hook entry in ${limit.entry.file} has timeout ${limit.entry.timeout} s, lower than ${needs}. ` +
+      'Tell the owner to run weftwork claude-install, or weftwork update, which write that timeout into ' +
+      '.claude/settings.json; an entry in another file is raised by hand.';
+  }
+  return `${ran} budget.${stopHookKey} in weftwork.yaml sets it (docs/BUDGET.md). ` +
+    `Make the command finish sooner, or tell the owner, who can raise budget.${stopHookKey}.`;
+}
+
 /** What to tell the agent, by why the run failed. Every line blocks the stop:
  * a fault weftwork cannot fix is still not done, and the host's cap on
  * consecutive blocks ends the loop. A reason missing from this table is a type
  * error. `killed` and `passed` are not reasons for a `failed` state; if one
  * ever arrives, it still blocks. */
-const failedLines: Record<Reason, string> = {
-  'exit-nonzero': makeItPass,
-  signal: makeItPass,
-  timeout:
-    `The command ran past the ${engineTimeoutMs / 1000} s limit. ` +
-    'Make it finish sooner, or tell the owner.',
-  'tree-changed':
-    'The command passed but changed the working tree, so the result is not trusted. ' +
-    'Make it leave the tree as it found it.',
-  'no-tree': couldNotCheck('the working tree could not be fingerprinted'),
-  'no-ledger': couldNotCheck('the passing run could not be recorded in the ledger'),
-  'not-started': couldNotCheck('the command could not be started'),
-  'not-run': couldNotCheck('the command was not run'),
-  killed: couldNotCheck('the run ended with reason killed'),
-  passed: couldNotCheck('the run ended with reason passed'),
-};
+function failedLines(limit: CommandLimit): Record<Reason, string> {
+  return {
+    'exit-nonzero': makeItPass,
+    signal: makeItPass,
+    timeout: timeoutLine(limit),
+    'tree-changed':
+      'The command passed but changed the working tree, so the result is not trusted. ' +
+      'Make it leave the tree as it found it.',
+    'no-tree': couldNotCheck('the working tree could not be fingerprinted'),
+    'no-ledger': couldNotCheck('the passing run could not be recorded in the ledger'),
+    'not-started': couldNotCheck('the command could not be started'),
+    'not-run': couldNotCheck('the command was not run'),
+    killed: couldNotCheck('the run ended with reason killed'),
+    passed: couldNotCheck('the run ended with reason passed'),
+  };
+}
 
 /** The one answer that blocks a run the engine reported: the command failed.
  * The budget is the second line. A detail (the handover reserve, e09s03) is
  * the last line, so the agent reads it before it goes on. */
-function blockFailed(answer: Answer, budget: string): HookOutput {
+function blockFailed(answer: Answer, budget: string, limit: CommandLimit): HookOutput {
   const detail = answer.detail === undefined ? '' : `\n${answer.detail}`;
   return blockStop(
-    `not done (failed, ${answer.reason}): ${answer.command}\n${budget}\n${failedLines[answer.reason]}${detail}`,
+    `not done (failed, ${answer.reason}): ${answer.command}\n${budget}\n${failedLines(limit)[answer.reason]}${detail}`,
   );
 }
 
 /** Map an engine answer and the session's tokens to the exit code and output
- * the host reads. */
-export function hookAnswer(answer: Answer, tokens: TokenRead): HookOutput {
+ * the host reads. `limit` is the command limit the run had. */
+export function hookAnswer(answer: Answer, tokens: TokenRead, limit: CommandLimit): HookOutput {
   const budget = budgetLine(answer.budget, tokens);
   switch (answer.state) {
     case 'done':
       return allow(`weftwork: done${answer.detail === undefined ? '' : `, ${answer.detail}`}. ${budget}`);
     case 'failed':
-      return blockFailed(answer, budget);
+      return blockFailed(answer, budget, limit);
     case 'blocked':
     case 'stalled':
     case 'exhausted':

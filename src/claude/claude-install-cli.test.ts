@@ -19,12 +19,16 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { guardEntry, guardMatcher } from './claude-guard-install.ts';
-import { hookTimeoutSeconds } from './claude-hook.ts';
 import { envHookEntry } from './claude-env-install.ts';
 import { stopHookCommand, weftworkOnPath } from './claude-install.ts';
 import { isRecord } from '../shared/json.ts';
 import { missingPrefix } from '../install/launcher.ts';
 import { cleanupTempDirs, makeTempDir, makeTestRepo } from '../test-support/test-helpers.ts';
+import { hostTimeoutFor } from './claude-hook.ts';
+import { defaultStopHookSeconds } from '../engine/budget.ts';
+
+/** The timeout the install writes when no setting file sets the limit. */
+const testTimeout = hostTimeoutFor(defaultStopHookSeconds);
 
 after(cleanupTempDirs);
 
@@ -76,7 +80,7 @@ test('AC-e07s03-07 a repository with no .claude directory gets the entry', () =>
   assert.match(run.stdout, /this clone's own install, a dev\n  dependency or the one on PATH/);
   const group = firstStopGroup(readSettings(repo));
   assert.deepEqual(group.hooks, [
-    { type: 'command', command: stopHookCommand(weftworkOnPath, 'npm test'), timeout: hookTimeoutSeconds },
+    { type: 'command', command: stopHookCommand(weftworkOnPath, 'npm test'), timeout: testTimeout },
   ]);
   const hooks = readSettings(repo).hooks;
   assert.ok(isRecord(hooks));

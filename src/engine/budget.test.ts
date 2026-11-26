@@ -302,7 +302,7 @@ for (const value of ['-1', '1001', '2.5', '"3"']) {
 }
 
 test('AC-e09s03-04 an unknown key error lists reserve_runs as known', () => {
-  assert.match(errorOf({ repo: repo('budget:\n  max_failure: 2\n') }), /known: stall_after, max_failures, max_runs, reserve_runs\)/);
+  assert.match(errorOf({ repo: repo('budget:\n  max_failure: 2\n') }), /known: stall_after, max_failures, max_runs, reserve_runs, stop_hook_timeout_seconds\)/);
 });
 
 test('AC-e09s03-05 the repository file reserveRuns overrides the user file', () => {
@@ -316,4 +316,44 @@ test('AC-e09s03-07 a request reserveRuns is ignored, lower or higher', () => {
   assert.equal(limitsOf({ repo: file, request: { reserveRuns: 0 } }).reserveRuns, 2);
   assert.equal(limitsOf({ repo: file, request: { reserveRuns: 9 } }).reserveRuns, 2);
   assert.equal('reserveRuns' in limitsOf({ request: { reserveRuns: 0 } }), false, 'no file: unset');
+});
+
+test('the Stop hook command limit is 1800 s when no file sets it', () => {
+  const result = resolveLimits(sources({}));
+  assert.ok(result.ok);
+  assert.equal(result.stopHookSeconds, 1800);
+});
+
+test('budget.stop_hook_timeout_seconds sets the Stop hook command limit; the repository file wins', () => {
+  const set = resolveLimits(sources({ repo: repo('budget:\n  stop_hook_timeout_seconds: 2400\n') }));
+  assert.ok(set.ok);
+  assert.equal(set.stopHookSeconds, 2400);
+  const both = resolveLimits(sources({
+    user: user('budget:\n  stop_hook_timeout_seconds: 900\n'),
+    repo: repo('budget:\n  stop_hook_timeout_seconds: 3000\n'),
+  }));
+  assert.ok(both.ok);
+  assert.equal(both.stopHookSeconds, 3000);
+  const userOnly = resolveLimits(sources({ user: user('budget:\n  stop_hook_timeout_seconds: 900\n') }));
+  assert.ok(userOnly.ok);
+  assert.equal(userOnly.stopHookSeconds, 900);
+});
+
+test('budget.stop_hook_timeout_seconds does not change the engine limits', () => {
+  assert.deepEqual(limitsOf({ repo: repo('budget:\n  stop_hook_timeout_seconds: 2400\n') }), { maxFailures: 5, stallAfter: 3 });
+});
+
+for (const bad of ['0', '59', '86401', '1.5', '-60', "'1800'", 'true', 'null', '[1800]']) {
+  test(`a stop_hook_timeout_seconds of ${bad} is refused, naming the file and the key`, () => {
+    const error = errorOf({ repo: repo(`budget:\n  stop_hook_timeout_seconds: ${bad}\n`) });
+    assert.match(error, /\/repo\/weftwork\.yaml: budget\.stop_hook_timeout_seconds must be an integer from 60 to 86400/);
+  });
+}
+
+test('the edges of stop_hook_timeout_seconds are accepted', () => {
+  for (const seconds of [60, 86400]) {
+    const result = resolveLimits(sources({ repo: repo(`budget:\n  stop_hook_timeout_seconds: ${seconds}\n`) }));
+    assert.ok(result.ok, String(seconds));
+    assert.equal(result.stopHookSeconds, seconds);
+  }
 });

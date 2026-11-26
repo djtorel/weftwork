@@ -7,7 +7,9 @@
 import { existsSync, lstatSync, readlinkSync, renameSync, symlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, join, resolve } from 'node:path';
+import { hostTimeoutFor } from '../claude/claude-hook.ts';
 import { installStopHook, weftworkOnPath } from '../claude/claude-install.ts';
+import { stopHookSecondsIn } from '../engine/budget.ts';
 import { installEnvHook } from '../claude/claude-env-install.ts';
 import { installGuardHook } from '../claude/claude-guard-install.ts';
 import { isGitRoot } from '../claude/claude-settings-file.ts';
@@ -28,7 +30,9 @@ export type Change = { path: string; action: ChangeAction; text?: string; diff?:
 export type Plan = { changes: Change[]; notes: string[] };
 /** `envHook`: register the SessionStart entry even with no Stop hook, for a
  * project whose weftwork is not on PATH (`weftwork init --local`). */
-export type SetupOptions = { engineDir: string; stopHook: boolean; envHook?: boolean };
+/** `env` is where the user setting file is found, for the Stop hook's
+ * timeout (stopHookSecondsIn); the process's own by default. */
+export type SetupOptions = { engineDir: string; stopHook: boolean; envHook?: boolean; env?: NodeJS.ProcessEnv };
 export type Applied = { ok: true; written: string[]; kept: string[]; record: Written[] } | Failure;
 
 /** One write, for undo (setup-undo.ts): `made` is how, `before` the text the
@@ -185,7 +189,7 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
   if (options.stopHook && check === null) notes.push('No Stop hook: no test, lint or typecheck command passed, so there is no Preflight to declare.');
   const stop = options.stopHook ? check : null;
   if (stop !== null || options.envHook === true) {
-    const hook = hookChange(dir, stop);
+    const hook = hookChange(dir, stop, options.env ?? process.env);
     if ('ok' in hook) return hook;
     changes.push(hook);
   }
@@ -196,13 +200,15 @@ export function planSetup(dir: string, report: CheckedReport, answers: Answers, 
  * when `check` is not null, and the SessionStart entry, as the install writes
  * them (claude-install-cli.ts). An existing file that would change is a
  * conflict, like any other file. */
-function hookChange(dir: string, check: string | null): Change | Failure {
+function hookChange(dir: string, check: string | null, processEnv: NodeJS.ProcessEnv): Change | Failure {
   const path = '.claude/settings.json';
   const read = readRegularFile(join(dir, path), { follow: false, maxBytes: maxFileBytes });
   if (!read.ok) return read;
   let text = read.file?.text ?? null;
   if (check !== null) {
-    const stop = installStopHook(text, weftworkOnPath, check);
+    const seconds = stopHookSecondsIn(dir, processEnv);
+    if (!seconds.ok) return seconds;
+    const stop = installStopHook(text, weftworkOnPath, check, hostTimeoutFor(seconds.seconds));
     if (!stop.ok) return { ok: false, error: `${path}: ${stop.error}` };
     const guard = installGuardHook(stop.text, weftworkOnPath);
     if (!guard.ok) return { ok: false, error: `${path}: ${guard.error}` };
